@@ -62,10 +62,13 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   hours or indefinitely, and lift a suspension. Session revocation also
   invalidates pending email login codes. Accounts with admin rights are managed
   by the server operator. Suspensions block sign-in and API access.
-* **[E]** Activity is estimated from interactions in the visible client. Only
-  intervals between samples at most five minutes apart count. Automatic
-  refreshes and idle tabs add no samples. The summary covers today and the
-  six preceding UTC days, with a separate most-recent interaction timestamp.
+* **[E]** Activity is the estimated active play time of
+  [Own activity and play time](/features/own-activity.md) (#232, owner,
+  2026-11-15; before: the gaps between click samples up to five minutes, which
+  overcounted idle time). Automatic refreshes and idle tabs add no time. The
+  summary covers today and the six preceding UTC days, with a separate
+  most-recent interaction timestamp; the sums are those of the player's own
+  view.
 * **[E]** Five rejected password checks on an account within an hour or 30 game
   action requests within a minute surface a review signal for the admin.
 * **[E]** Audit events and activity data start after the update and are kept for
@@ -97,7 +100,7 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 | Inactive from („Inaktiv ab (Tage)“, #229) | 7 (not in version 1), [E] owner 2026-11-16 | 1 to 365 [V]; also in „Neue Runde“ (X1) |
 | Long inactive from („Lange inaktiv ab (Tage)“, #229) | 28 (not in version 1), [E] owner 2026-11-16 | 1 to 365 [V]; also in „Neue Runde“ (X1) |
 | Thresholds of foreign fleets, levels of the Auspex-Lehre („Fremde Flotten: Schiffe insgesamt ab Auspex-Lehre“, „… Schiffstypen …“, „… Anzahl je Schiffstyp …“, #228) | 2 / 4 / 8 (not in version 1), [E] owner 2026-11-16 | 0 to 100, [E] owner 2026-11-18; also in the dialog „Neue Runde“ in a framed group „Fremde Flotten erkennen“, [E] owner 2026-11-17 (X1) and 2026-11-18 |
-| Who may hold („Halten erlaubt für“, #55) | „Gilde und Freunde“ (3; not in version 1) [V] | a selection: „Gilde“ (1), „Freunde“ (2), „Gilde und Freunde“ (3) [V]; also in the dialog „Neue Runde“, [E] owner 2026-11-17 (X1) |
+| Who may hold („Verbündete für Halten und Verband“, #55) | „Gilde und Freunde“ (3; not in version 1) [V] | a selection: „Gilde“ (1), „Freunde“ (2), „Gilde und Freunde“ (3) [V]; also in the dialog „Neue Runde“, [E] owner 2026-11-17 (X1) |
 | Held fleets apart in the spy report from the spy's Auspex-Lehre („Gehaltene Flotten im Auspex-Bericht ab Auspex-Lehre“, #55) | 2 (not in version 1), [E] owner 2026-11-17 | 0 to 30 [V]; also in the dialog „Neue Runde“, [E] owner 2026-11-17 (X1) |
 | Marketplace („Marktplatz“, #171): twelve live settings in one fieldset „Marktplatz“, orders 320 to 430: on (1/0), six ratios per pair, price step, drift hours, limit per day (0 = none), fee at level 1 in percent, points the fee falls per level | 1 / 500, 250, 2000, 500, 4000, 2000 [E] owner 2026-11-19 / 5 / 24 / 100,000 [V] / 10 / 1 [E] | 0 to 1, 1 to 100,000, 1 to 1,000, 1 to 720, 0 to 10,000,000, 0 to 100, 0 to 100 [V]; also in „Neue Runde“ (X1); see [Marketplace](/features/marketplace.md) |
 | Refund factor of a demolition („Rückbau-Erstattung (%)“, #202) | +50 (not in version 1) | −100 to +100, [E] owner 2026-11-16; also in the dialog „Neue Runde“, [E] owner 2026-11-17 (X1) |
@@ -120,15 +123,16 @@ universe settings) and their ranges are not decided yet.
 
 | Setting | Issue | Default |
 |---|---|---|
-| Minimum duration of the [vacation mode](/features/vacation-mode.md) | #223 D1 | default 24 h (owner, 2026-11-16) |
+| Minimum duration of the [vacation mode](/features/vacation-mode.md), in whole hours from 1 to 720 [V] | #223 D1 | default 48 h (owner, 2026-11-18; first 24 h, 2026-11-16); built as the entry of `src/core/vacation.ts` (`roundSettings`, `order` 150) in the dialog „Neue Runde“ and, `live`, in the universe settings (X1, owner, 2026-11-17) |
 | Lock of a [given-up colony's](/features/abandon-colony.md) position, in whole hours from 1 to 720 [V] | #224 D2, X1 | default 24 h (owner, 2026-11-16); built in the dialog „Neue Runde“ and, changeable during the round, in the universe settings (owner, 2026-11-17, X1) |
 | Lock after a switch of the [main planet](/features/main-planet.md), in whole days from 1 to 30 [V] | #221 D3 | default 7 days (owner, 2026-11-16); built in the dialog „Neue Runde“ |
-| Who may hold, join an attack union and fight with friends: guild, friends or both ([Holding and ACS](/features/holding-acs.md), [Buddy list](/features/buddy-list.md)) | #55 Q2, #225 D2, #227 D3 | [V] guild and friends, the classic rule for holding; built with #55 as „Halten erlaubt für“ (`roundAllies`) in the dialog „Neue Runde“ and the universe settings (X1) |
+| Who may hold, join an attack union and fight with friends: guild, friends or both ([Holding and ACS](/features/holding-acs.md), [Buddy list](/features/buddy-list.md)) | #55 Q2, #225 D2, #227 D3 | [V] guild and friends, the classic rule for holding; built with #55 as „Verbündete für Halten und Verband“ (`roundAllies`) in the dialog „Neue Runde“ and the universe settings (X1) |
 | Held fleets in the spy report from the spy's Auspex-Lehre („Gehaltene Flotten im Auspex-Bericht ab Auspex-Lehre“, [Holding and ACS](/features/holding-acs.md)) | #55 (owner, 2026-11-17) | 2; built as `roundHeldSpy` in „Neue Runde“ and the universe settings (X1), 0 to 30 [V] |
-| Limits of an attack union ([Holding and ACS](/features/holding-acs.md)) | #225 D3 | classic value: 16 fleets of 5 players, a delay of at most 30 % of the remaining flight time; join window [U] |
+| Limits of an attack union ([Holding and ACS](/features/holding-acs.md)) | #225 D3 | **[E]** classic value: 16 fleets of 5 players, a delay of at most 30 % of the remaining flight time, and a cut-off „no joining in the last N minutes“ (default off, 2026-11-17); built as four entries of `roundSettings` in `src/core/union.ts` (order 200 to 230), in the dialog „Neue Runde“ and the universe settings (X1), ranges [V] 1 to 50, 1 to 20, 0 to 100, 0 to 1440 |
 | Thresholds of the recognition of incoming fleets ([Espionage defense](/features/espionage-defense.md)), in whole levels from 0 to 100 [E] (owner, 2026-11-18) | #228 D1, X1 | classic value: espionage technology 2 / 4 / 8 (source [U]); built in the dialog „Neue Runde“ and, changeable during the round, in the universe settings (owner, 2026-11-17, X1) |
 | Thresholds of the [activity indicators](/features/activity-indicators.md) | #229 Q1, X1 | classic value: star 15 min, „x min“ up to 59 min, „i“ after 7 days, „I“ after 28 days; built in the dialog „Neue Runde“ and, changeable during the round, in the universe settings (owner, 2026-11-17, X1) |
-| Slots and holding time of [expeditions](/features/expeditions.md) | #93 Q3 | classic value: ⌊√level⌋ slots, at most level hours |
+| Extra places, stay per level and the universe speed for the stay of [expeditions](/features/expeditions.md) („Zusätzliche Expeditionsplätze“, „Haltezeit in Stunden je Stufe“, „Haltezeit durch das Universums-Tempo teilen“) | #93 Q3 | **[E]** (owner, 2026-11-19): classic values are the default, 0 extra places and 1 hour per level, the stay in real hours; **[V]** ranges 0 to 10 and 1 to 24, the speed as a choice Nein / Ja (default Nein); built as `roundSettings` in `src/core/expedition.ts` (orders 300, 310, 315, one fieldset „Expeditionen“), in the dialog „Neue Runde“ and the universe settings (X1) |
+| Planet limit per player and the colony research („Maximale Planeten ohne Forschung“, „Kolonieforschung aktivieren“, „Zusätzliche Planeten je Forschungsstufe“, „Maximale Forschungsstufe“, [Colonization](/features/colonization.md#planet-limit-per-player-237)) | #237 D1 to D6 | **[E]** (owner, 2026-11-17): per round, editable during the round; base 0 = unlimited, at most 20 planets in total. **[V]** default: no limit, research off, +2 per level, highest level 4; ranges 0 to 20, 1 to 20 and 0 to 20; one fieldset „Planetengrenze“, orders 440 to 470 in `src/core/colony-limit.ts`, in the dialog „Neue Runde“ and the universe settings (X1); the research switch is refused with a base of 0 through the entry rule `agrees` |
 | Refund factor of a [demolition](/features/demolition.md), −100 % to +100 % („Rückbau-Erstattung (%)“) | #202 D4, D7 | +50 % [E]; built as the first entry of `roundSettings` in `src/core/demolition.ts` (order 180), in the dialog „Neue Runde“ and the universe settings (X1) |
 | Demolition time as a share of the build time, 1 to 200 % („Rückbau-Dauer (% der Bauzeit)“, [Demolition](/features/demolition.md)) | #202 D3 | 50 % [E]; built as the second entry of `roundSettings` in `src/core/demolition.ts` (order 190), in the dialog „Neue Runde“ and the universe settings (X1) |
 
@@ -162,7 +166,7 @@ universe settings) and their ranges are not decided yet.
   dialog, are sent as one object and every wrong one is refused at once
   with the range wording; all four are `live`.
 * **[V]** Added with #55, in the pattern of #310, in
-  `src/core/holding.ts` (`roundSettings`): „Halten erlaubt für“ (key
+  `src/core/holding.ts` (`roundSettings`): „Verbündete für Halten und Verband“ (key
   `roundAllies`, name `allies`, order 100, the choices „Gilde“ 1, „Freunde“
   2 and „Gilde und Freunde“ 3, default 3, refusal „Bitte auswählen, wer in
   der neuen Runde halten darf.“) and „Gehaltene Flotten im Auspex-Bericht
@@ -211,6 +215,12 @@ universe settings) and their ranges are not decided yet.
   number fields from 0 to 100 ([E], 2026-11-18) in one fieldset with the
   defaults 2, 4 and 8, sent as one object and refused together with the
   range wording.
+* **[V]** Added with #223 in the pattern of #310: the minimum duration of
+  the vacation mode ([Vacation mode](/features/vacation-mode.md)) is the
+  entry of `src/core/vacation.ts` with the order 150 (`roundVacationHours`,
+  1 to 720, default 48, its own refusal text). It is live too and comes after
+  the recognition rows in the dialog „Neue Runde“ and in the universe
+  settings.
 * **[V]** Added with #202 in the pattern of #310: the refund factor and the
   time of a [demolition](/features/demolition.md) are the two entries of
   `src/core/demolition.ts` (`roundSettings`), with the orders 180
@@ -335,3 +345,14 @@ universe settings) and their ranges are not decided yet.
   characters. It is stored in each current player's inbox. Subscribed devices
   receive the text via Web Push when enabled for the instance. The audit log
   records the sender and the recipient count.
+* **[V]** What the admin typed into the settings of the tab „Universum“ and
+  has not saved survives a redraw of the page (the list of the round archive
+  of #235 draws the admin page again once it has been read, and so does every
+  new state), until the settings are saved; a refused save keeps it. Before,
+  the fields showed the server's values after every redraw, so a draft was
+  lost without a message and a save then sent the old values (found by the
+  full E2E run of 2026-11-19: „Zusatzfelder pro Planet“ and „Marktplatz“, on
+  a slower machine than the one the specs were written on). The client
+  remembers the edits (`logic/settings-draft.ts`, `features/admin.ts`) and
+  puts them back after the redraw; a field set back to the server's value is
+  no draft, so a later change of the server shows.

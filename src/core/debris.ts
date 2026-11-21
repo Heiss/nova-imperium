@@ -54,3 +54,20 @@ export function debrisOf(sides: readonly Side[]): Debris {
 
 /** Whether a field holds nothing any more: then it disappears. */
 export const isEmpty = (d: Debris): boolean => d.m <= 0 && d.c <= 0;
+
+/**
+ * What a fleet with `free` cargo space takes from a field: both resources
+ * evenly until the smaller one is used up, then the rest of the other
+ * (classic). The cargo of every ship counts, not only the Bergungsbarken.
+ * The Bergung and the Lexicanum read the same rule (#288).
+ */
+export function harvest(field: Debris, free: number): Debris {
+  const room = Math.max(0, free);
+  const half = room / 2;
+  if (field.m <= field.c) {
+    const m = Math.min(field.m, half);
+    return { m, c: Math.min(field.c, room - m) };
+  }
+  const c = Math.min(field.c, half);
+  return { m: Math.min(field.m, room - c), c };
+}

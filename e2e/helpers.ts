@@ -1,8 +1,12 @@
 import { execFileSync } from 'node:child_process';
-import { randomInt } from 'node:crypto';
 import { expect, type Locator, type Page } from '@playwright/test';
 import { E2E_ENV, E2E_MAILBOX, E2E_MAIL_ENV, E2E_MAIL_URL } from './env.ts';
 import { mailsTo } from './mail.ts';
+import { isOwnName, nextHome, ownArea, ownNames } from './own-data.ts';
+
+// What the specs get from one place (#302): their own players, area and guild
+// tags. A spec asks for nothing of this by a fixed value.
+export { guildTag, ownArea, uniqueName } from './own-data.ts';
 
 const run = (
   script: string,
@@ -18,8 +22,18 @@ const run = (
 export const cli = (...args: string[]): string =>
   run('src/server/cli.ts', args);
 
-export const seed = (data: object): string =>
-  run('e2e/seed.ts', [JSON.stringify(data)]);
+/**
+ * Changes the data of a player of the running test (e2e/seed.ts). The call
+ * names the area of the test, and the seed command refuses planets outside it.
+ */
+export function seed(data: { name: string; [field: string]: unknown }): string {
+  if (!isOwnName(data.name))
+    throw new Error(
+      `seed({ name: "${data.name}" }): the player was not handed out to this test by uniqueName() (e2e/own-data.ts); every test makes its own players.`,
+    );
+  const { n, g, s } = ownArea();
+  return run('e2e/seed.ts', [JSON.stringify({ ...data, area: { n, g, s } })]);
+}
 
 /** `cli` and `seed` against the second server, the one that sends mails (#68). */
 export const mailCli = (...args: string[]): string =>
@@ -81,16 +95,9 @@ export function watch(page: Page): { problems: string[] } {
 }
 
 /**
- * A player name no other test uses: the base (at most 14 characters) and 6
- * random base-36 characters, at most 20 in all. A counter and the clock
- * repeated across Playwright workers, which each start the counter anew
- * (#68: a repeat run invited an address that already existed).
+ * Registers the player with an invitation and puts the home planet in the
+ * area of the running test. The name comes from `uniqueName()`.
  */
-export const uniqueName = (base: string): string =>
-  `${base.slice(0, 14)}${randomInt(36 ** 6)
-    .toString(36)
-    .padStart(6, '0')}`;
-
 export async function register(
   page: Page,
   name: string,
@@ -102,6 +109,18 @@ export async function register(
   await page.fill('#a_name', name);
   await page.fill('#a_pw', password);
   await page.click('button[type=submit]');
+  await expect(page.locator('h2')).toContainText('Übersicht');
+  await moveHome(page, name);
+}
+
+/**
+ * The registration puts a new home planet on a random position of galaxy 1,
+ * where two tests could meet. The next free home slot of the home system of
+ * the test's own area takes it over, and the page shows the new position.
+ */
+async function moveHome(page: Page, name: string): Promise<void> {
+  seed({ name, moveHome: nextHome() });
+  await page.reload();
   await expect(page.locator('h2')).toContainText('Übersicht');
 }
 
@@ -201,7 +220,7 @@ export const stock = (page: Page, label: string) =>
   page.locator('#resbar .res').filter({ hasText: label }).locator('.v');
 
 /** Views in the phone tab bar; the others are under „Mehr“ (issue #61). */
-const TABS = ['overview', 'buildings', 'fleet', 'messages'];
+const TABS = ['overview', 'buildings', 'fleet', 'galaxy'];
 
 /**
  * Opens a view: the side menu on a desktop, tab bar or „Mehr“ on a phone.
@@ -218,11 +237,78 @@ export async function nav(page: Page, view: string): Promise<void> {
   await expect(page.locator('#more')).not.toBeVisible();
 }
 
+/**
+ * Logs out: on a phone „Logout“ is at the top of the sheet „Mehr“ (#189), on
+ * a desktop in the header.
+ */
+export async function logout(page: Page): Promise<void> {
+  const phone = (page.viewportSize()?.width ?? 1280) <= 760;
+  if (phone && (await page.locator('#tabbar').isVisible())) {
+    await page.click('#tabbar [data-act=moreOpen]');
+    return page.click('#more [data-act=logout]');
+  }
+  return page.click('[data-act=logout]');
+}
+
+/**
+ * On a phone the lists of buildings, research, shipyard and defense show the
+ * filter „Baubar“ and compact rows (#189): this chooses „Alle“ and unfolds
+ * every row, so a test sees the locked entries and their details as on a
+ * desktop. It does nothing on a desktop.
+ */
+export async function openAllRows(page: Page): Promise<void> {
+  if ((page.viewportSize()?.width ?? 1280) > 760) return;
+  await page
+    .getByRole('group', { name: 'Filter' })
+    .getByRole('button', { name: 'Alle', exact: true })
+    .click();
+  for (const fold of await page
+    .getByRole('button', { name: /^Details zu / })
+    .all())
+    if ((await fold.getAttribute('aria-expanded')) === 'false')
+      await fold.click();
+}
+
+/**
+ * „Optionen“ is in sections on a phone (#189): this chooses one of „Spiel“,
+ * „Runde“, „Konto“, „Gerät“ and „Weiteres“, so its boxes are in sight. It does
+ * nothing on a desktop, which shows them all.
+ */
+export async function optionsSection(
+  page: Page,
+  section: 'Spiel' | 'Runde' | 'Konto' | 'Gerät' | 'Weiteres',
+): Promise<void> {
+  if ((page.viewportSize()?.width ?? 1280) > 760) return;
+  await page
+    .getByRole('group', { name: 'Bereich' })
+    .getByRole('button', { name: section, exact: true })
+    .click();
+}
+
 /** The row of a player's planet on the galaxy page. */
 export const galaxyRow = (page: Page, player: string): Locator =>
   page.locator('tr').filter({
     has: page.locator('td', { hasText: new RegExp(`^${player} \\(Platz`) }),
   });
+
+/**
+ * The action of a row of the Sternenkarte: on a desktop in the row itself, on
+ * a phone (#189) behind the „⋯“ of the row, which opens the bottom sheet with
+ * the actions; this opens it (once) and returns the action in the sheet.
+ */
+export async function galaxyAction(
+  page: Page,
+  row: Locator,
+  name: string | RegExp,
+): Promise<Locator> {
+  if ((page.viewportSize()?.width ?? 1280) > 760)
+    return row.getByRole('button', { name }).or(row.getByText(name));
+  const sheet = page.locator('dialog.gal-sheet');
+  if (!(await sheet.isVisible()))
+    await row.getByRole('button', { name: /^Aktionen für / }).click();
+  await expect(sheet).toBeVisible();
+  return sheet.getByRole('button', { name });
+}
 
 /**
  * The servers under test run without Web Push, which needs an HTTPS address.
@@ -235,5 +321,36 @@ export async function withWebPush(page: Page): Promise<void> {
     const response = await route.fetch();
     const policy = (await response.json()) as Record<string, unknown>;
     await route.fulfill({ response, json: { ...policy, webPush: true } });
+  });
+}
+
+/** Seconds of a duration like "1h 02m 03s". */
+export const seconds = (text: string): number =>
+  [...text.matchAll(/(\d+)([Thms])/g)].reduce(
+    (sum, [, n, unit]) =>
+      sum + Number(n) * { T: 86400, h: 3600, m: 60, s: 1 }[unit!]!,
+    0,
+  );
+
+export const lastToast = (page: Page): Locator => page.locator('.toast').last();
+
+/**
+ * The highscore lists every player of the run, and the table is as wide as
+ * the largest number any test seeded. A test of the layout with numbers must
+ * not depend on what other tests did, so its page gets the state with the
+ * players of this test only; everything else is the real answer of the server
+ * (#302).
+ */
+export async function onlyOwnPlayers(page: Page): Promise<void> {
+  const mine = new Set(ownNames());
+  await page.route('**/api/state**', async (route) => {
+    const response = await route.fetch();
+    const state = (await response.json()) as {
+      players?: Record<string, { name: string }>;
+    };
+    const players = Object.fromEntries(
+      Object.entries(state.players ?? {}).filter(([, p]) => mine.has(p.name)),
+    );
+    await route.fulfill({ response, json: { ...state, players } });
   });
 }

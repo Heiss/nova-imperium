@@ -18,11 +18,13 @@ import { settle, settleR } from '../../core/settle.ts';
 import type { Fleet, Levels, Planet } from '../../core/types.ts';
 import type { User } from '../db/repos/players.ts';
 import { cancelScheduledPush } from '../push-store.ts';
-import type { Action } from './actions.ts';
+import type { Handler } from './actions.ts';
 import { requireAdmin } from './admin.ts';
 import { type Ctx, addReport, fail, universe } from './context.ts';
 import { land } from './missions.ts';
+import { recordRoundEvent, ROUND_EVENT } from './round-archive.ts';
 import { roundRules } from './round.ts';
+import type { ServerFeature } from './feature.ts';
 
 /** The setting with the round of the last „Endzeit“. */
 export const ENDZEIT_ROUND = 'endzeitRound';
@@ -93,7 +95,7 @@ export function giftFleet(
  * of the universe, and applies to this trigger only: the default of the
  * universe settings stays.
  */
-export const endzeit: Action = (ctx, u, d, event) => {
+export const endzeit: Handler<'endzeit'> = (ctx, u, d, event) => {
   requireAdmin(u);
   const round = roundRules(ctx).number;
   const done = ctx.admin.setting(ENDZEIT_ROUND) === round;
@@ -118,6 +120,7 @@ export const endzeit: Action = (ctx, u, d, event) => {
     recipients++;
   }
   ctx.admin.putSettings([[ENDZEIT_ROUND, round]]);
+  recordRoundEvent(ctx, ROUND_EVENT.endzeit, { minutes, recipients, due: arr });
   if (event) event.detail = { round, minutes, recipients, due: arr };
   return `Die Endzeit ist eingeläutet. Gaben unterwegs: ${recipients}.`;
 };
@@ -200,3 +203,7 @@ export function giftArrive(ctx: Ctx, f: Fleet, t: Planet): void {
   );
   ctx.fleets.delete(f.id);
 }
+
+export const serverFeature = {
+  adminActions: { endzeit },
+} satisfies ServerFeature;

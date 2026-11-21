@@ -7,7 +7,16 @@ import { createInvitation } from '../auth.ts';
 import type { Mail } from '../mail.ts';
 import { addPlanet, addUser } from '../test-helpers.ts';
 import { asAdmin, start } from '../../test/http.ts';
-import { COOKIE } from './app.ts';
+import { adminRoutes } from './admin.ts';
+import { COOKIE, type AppDeps } from './app.ts';
+
+// The password check is the cost of every login here; the result of the same
+// password and salt is computed once (src/test/scrypt-memo.ts).
+vi.mock('node:crypto', async (original) =>
+  (await import('../../test/scrypt-memo.ts')).memoScrypt(
+    await original<typeof import('node:crypto')>(),
+  ),
+);
 
 vi.mock('@simplewebauthn/server', async (original) => ({
   ...(await original<typeof import('@simplewebauthn/server')>()),
@@ -677,6 +686,153 @@ describe('account audit and replies', () => {
     });
     expect(deleted.json).toEqual({ ok: true });
     expect(deleted.set).toBe(SIGNED_OUT);
+  });
+});
+
+describe('the vacation mode (#223, owner, 2026-11-18)', () => {
+  async function away() {
+    const s = await player();
+    await s.call('POST', '/api/login', { name: 'Anna', password: 'secret1' });
+    const u = s.ctx.players.get('u_Anna')!;
+    s.ctx.players.save({ ...u, vacation: s.ctx.now() });
+    return s;
+  }
+
+  it('answers the state with the lock screen, none of the game', async () => {
+    const { call } = await away();
+    const state = (await call('GET', '/api/state')).json as Record<
+      string,
+      unknown
+    >;
+    expect(state).toMatchObject({
+      planet: null,
+      reports: [],
+      fleets: [],
+      galaxy: [],
+      players: {},
+      me: { id: 'u_Anna', vacation: expect.any(Number) },
+    });
+  });
+
+  it('refuses every action but the end and the push settings, also one that is unknown', async () => {
+    const { call } = await away();
+    for (const type of ['build', 'read', 'options', 'sendGuildChat', 'abandon'])
+      expect((await call('POST', '/api/action', { type })).json).toEqual({
+        error: 'Im Urlaubsmodus nicht möglich.',
+      });
+    expect(
+      (await call('POST', '/api/action', { type: 'pushOptions', off: [] }))
+        .json,
+    ).toMatchObject({ ok: true, msg: 'Gespeichert.' });
+  });
+
+  it('keeps the routes of the account: password, passkeys, push, news, sign-out and the deletion', async () => {
+    const { call } = await away();
+    expect((await call('POST', '/api/passkeys/list', {})).status).toBe(200);
+    expect((await call('GET', '/api/news')).status).toBe(200);
+    expect(
+      (
+        await call('POST', '/api/push/unsubscribe', {
+          endpoint: 'https://fcm.googleapis.com/fcm/send/abc',
+        })
+      ).json,
+    ).toEqual({ ok: true });
+    const changed = await call('POST', '/api/password/change', {
+      current: 'secret1',
+      password: 'another long passphrase',
+      confirmation: 'another long passphrase',
+    });
+    expect(changed.json).toEqual({ ok: true });
+    expect(changed.set).toBe(SIGNED_OUT);
+    await call('POST', '/api/login', {
+      name: 'Anna',
+      password: 'another long passphrase',
+    });
+    expect((await call('POST', '/api/logout', {})).set).toBe(SIGNED_OUT);
+    await call('POST', '/api/login', {
+      name: 'Anna',
+      password: 'another long passphrase',
+    });
+    const deleted = await call('POST', '/api/account/delete', {
+      password: 'another long passphrase',
+    });
+    expect(deleted.set).toBe(SIGNED_OUT);
+  });
+
+  it('records no activity: login, state, a refused action, the push settings and the interaction leave the times as they were (#223, owner, 2026-11-18)', async () => {
+    const { ctx, call } = await away();
+    const before = {
+      planets: ctx.planets.activeTimes(),
+      players: ctx.players.lastActive(),
+    };
+    expect(Object.keys(before.planets)).not.toEqual([]);
+    ctx.clock.t += 3_600_000;
+    await call('POST', '/api/login', { name: 'Anna', password: 'secret1' });
+    await call('GET', '/api/state');
+    await call('POST', '/api/action', { type: 'build' });
+    await call('POST', '/api/action', { type: 'pushOptions', off: [] });
+    await call('POST', '/api/activity', {});
+    expect({
+      planets: ctx.planets.activeTimes(),
+      players: ctx.players.lastActive(),
+    }).toEqual(before);
+  });
+
+  it('records activity again from the action that ends the vacation (#223)', async () => {
+    const { ctx, call } = await away();
+    ctx.clock.t += 48 * 3_600_000;
+    const before = ctx.planets.activeTimes();
+    await call('POST', '/api/action', { type: 'endVacation' });
+    expect(ctx.planets.activeTimes()).not.toEqual(before);
+    expect(ctx.planets.activeTimes().p1_1_5).toBe(ctx.now());
+    expect(ctx.players.lastActive().u_Anna).toBe(ctx.now());
+    ctx.clock.t += 1000;
+    await call('POST', '/api/activity', {});
+    expect(ctx.players.lastActive().u_Anna).toBe(ctx.now());
+  });
+
+  it('ends with „endVacation“ after the minimum duration and shows the game again', async () => {
+    const { ctx, call } = await away();
+    expect(
+      (await call('POST', '/api/action', { type: 'endVacation' })).json,
+    ).toMatchObject({ error: expect.stringContaining('frühestens beendbar') });
+    ctx.clock.t += 48 * 3_600_000;
+    const done = await call('POST', '/api/action', { type: 'endVacation' });
+    expect(done.json).toMatchObject({
+      msg: 'Urlaubsmodus beendet.',
+      state: { planet: { id: 'p1_1_5' }, me: { vacation: null } },
+    });
+  });
+});
+
+describe('the admin routes of an admin in vacation mode (#223, owner, 2026-11-18)', () => {
+  // The routes the app builds, so a route added later is covered too.
+  const routes = (s: { ctx: AppDeps['ctx'] }) =>
+    Object.keys(
+      adminRoutes(
+        { ctx: s.ctx } as AppDeps,
+        () => s.ctx.players.get('u_Boss')!,
+        () => ({
+          json: {},
+        }),
+      ),
+    );
+
+  it('refuses every one, reading ones too, and works again after the end', async () => {
+    const s = await asAdmin();
+    const paths = routes(s).map((r) => r.replace('POST ', ''));
+    expect(paths).toContain('/api/admin/stats');
+    expect(paths.length).toBeGreaterThan(8);
+    const boss = s.ctx.players.get('u_Boss')!;
+    s.ctx.players.save({ ...boss, vacation: s.ctx.now() });
+    for (const path of paths) {
+      const r = await s.call('POST', path, {});
+      expect(r.status, path).toBe(400);
+      expect(r.json, path).toEqual({ error: 'Im Urlaubsmodus nicht möglich.' });
+    }
+    s.ctx.clock.t += 48 * 3_600_000;
+    await s.call('POST', '/api/action', { type: 'endVacation' });
+    expect((await s.call('POST', '/api/admin/stats', {})).status).toBe(200);
   });
 });
 

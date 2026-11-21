@@ -20,6 +20,12 @@
     "!src/features/index.server.gen.ts",
     "!src/features/lexicon.gen.ts",
     "!src/core/round-settings.gen.ts",
+    "!src/core/actions.gen.ts",
+    "!src/core/state.gen.ts",
+    "!src/server/features.gen.ts",
+    "!src/server/round-reset.gen.ts",
+    "!src/server/db/repos/repositories.gen.ts",
+    "!src/client/views/views.gen.ts",
     "!src/features/**/lexicon.de.ts",
     "!src/test/**"
   ],
@@ -30,6 +36,7 @@
   "jsonReporter": { "fileName": "reports/mutation/mutation.json" },
   "thresholds": { "high": 90, "low": 80, "break": 80 },
   "timeoutMS": 10000,
-  "concurrency": 4,
+  "dryRunTimeoutMinutes": 15,
+  "concurrency": 2,
   "tempDirName": ".stryker-tmp"
 }

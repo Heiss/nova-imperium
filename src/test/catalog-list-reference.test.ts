@@ -41,13 +41,14 @@ import {
   networkLab,
 } from '../core/research.ts';
 import { text } from '../core/text.ts';
-import type { Levels, Planet } from '../core/types.ts';
+import type { Levels, Planet, ResearchState } from '../core/types.ts';
 import { orderMax, YARD_LOCK, yardLockedBy } from '../core/yard.ts';
 import type { CatalogKind } from '../client/logic/catalog-list.ts';
 import { type Explanation, explanation } from '../client/logic/explain.ts';
 import { dur, esc, fmt } from '../client/logic/format.ts';
 import { researchState } from './catalog-reference/states.ts';
 import { iconURL } from '../client/logic/icons.ts';
+import { levelsRow } from '../client/logic/level-mode.ts';
 import { client } from '../client/logic/state.svelte.ts';
 import type { GameState } from '../client/logic/types.ts';
 import CatalogList from '../client/views/CatalogList.svelte';
@@ -73,6 +74,74 @@ const explainButtonHTML = (ex: Explanation | null): string =>
     ? `<button type="button" class="exq" id="${ex.button}" data-act="explain" data-k="${ex.key}" aria-expanded="${ex.open}"${ex.open ? ` aria-controls="${ex.panel}"` : ''} aria-label="Erklärung zu ${esc(ex.name)}">?</button>`
     : '';
 
+// One more change on purpose (#187): buildings and research have the ▤ of
+// the level overview next to the „?“ and a box for its table below the
+// entry; ships and defense have neither.
+const levelsButtonHTML = (v: V, key: string, name: string): string => {
+  const lv = levelsOf(v, key, name);
+  return lv?.button
+    ? `<button type="button" class="lvq" id="${lv.button}" data-act="levels" data-k="${key}" aria-expanded="${lv.open}"${lv.open ? ` aria-controls="${lv.panel}"` : ''} aria-label="Stufenübersicht zu ${esc(name)}">▤</button>`
+    : '';
+};
+
+const levelsBoxHTML = (v: V, key: string, name: string): string => {
+  const lv = levelsOf(v, key, name);
+  return lv?.show ? `<div class="lvt" id="${lv.panel}"></div>` : '';
+};
+
+const levelsOf = (v: V, key: string, name: string) =>
+  Object.hasOwn(BUILD, key) || Object.hasOwn(RES, key)
+    ? levelsRow(key, name, v.s.me.levelTable, v.ui.openLv)
+    : null;
+
+// One more change on purpose (#189, the phone layer; the CSS shows it on a
+// phone only): the switch between the four lists below the title, the filter
+// above the box (with its note when „Baubar“ shows nothing), the phase of
+// every row, the fold button after the ▤, the time line marked, and the short
+// label „▲ 5“ of a level button; its full name stays as the text of the
+// button (the CSS hides it from the eye on a phone only), without an
+// `aria-label`, which axe holds against the visible text (WCAG 2.5.3).
+const SWITCH =
+  '<nav class="seg phone-only" aria-label="Bauen">' +
+  [
+    ['buildings', 'Gebäude'],
+    ['research', 'Forschung'],
+    ['shipyard', 'Schiffsschmiede'],
+    ['defense', 'Abwehr'],
+  ]
+    .map(
+      ([view, label]) =>
+        `<a href="?view=${view}" data-act="nav" data-v="${view}">${label}</a>`,
+    )
+    .join('') +
+  '</nav>';
+
+const FILTER =
+  '<div class="seg phone-only" role="group" aria-label="Filter"><button type="button" class="on" aria-pressed="true">Baubar</button><button type="button" aria-pressed="false">Alle</button><button type="button" aria-pressed="false">Läuft</button></div>';
+
+const NOTHING_OPEN =
+  '<p class="dim phone-only">Nichts ist baubar. „Alle“ zeigt auch, was noch fehlt.</p>';
+
+/** The filter, its note when `open` rows is 0, and the opening tag of the box. */
+const boxStart = (open: number): string =>
+  `${FILTER}${open ? '' : NOTHING_OPEN}<div class="box catalog" data-filter="open">`;
+
+type Phase = 'running' | 'open' | 'locked';
+
+/** A button that starts an upgrade or a research, with the label a level has on a phone. */
+function startButton(
+  act: string,
+  k: string,
+  label: string,
+  off: boolean,
+): string {
+  const attrs = `data-act="${act}" data-k="${k}" ${off ? 'disabled' : ''}`;
+  const level = /Stufe (\d+)/.exec(label);
+  return level
+    ? `<button ${attrs}><span class="lg">${label}</span><span class="sh" aria-hidden="true">▲ ${level[1]}</span></button>`
+    : `<button ${attrs}><span>${label}</span></button>`;
+}
+
 function itemHTML(
   v: V,
   cls: string,
@@ -80,13 +149,16 @@ function itemHTML(
   level: string,
   body: string,
   action: string,
+  phase: Phase,
 ): string {
   const d = text(key)!;
   const src = iconURL(key);
   const icon = src ? `<img src="${src}" alt="${esc(d.n)}">` : d.ab;
   const ds = d.ds ? `<div class="ds">${d.ds}</div>` : '';
   const ex = explanation(key, d, v.s.me.explain, v.ui.openEx);
-  return `<div class="item"><div class="icon ${cls}">${icon}</div><div><div class="nm">${d.n} <span class="lv">${level}</span>${explainButtonHTML(ex)}</div>${ds}${body}</div><div class="act">${action}</div></div>`;
+  const open = !!levelsOf(v, key, d.n)?.open;
+  const fold = `<button type="button" class="fold phone-only" aria-expanded="${open}" aria-label="Details zu ${esc(d.n)}">${open ? '▴' : '▾'}</button>`;
+  return `<div class="item${open ? ' open' : ''}" data-phase="${phase}"><div class="icon ${cls}">${icon}</div><div><div class="nm">${d.n} <span class="lv">${level}</span>${explainButtonHTML(ex)}${levelsButtonHTML(v, key, d.n)}${fold}</div>${ds}${body}${levelsBoxHTML(v, key, d.n)}</div><div class="act">${action}</div></div>`;
 }
 
 // ----- frozen: src/client/views/economy.ts before #118 -----
@@ -118,7 +190,12 @@ function researchAction(
     return '<span class="dim">Scholarium wird ausgebaut</span>';
   if (state === 'noEnergy')
     return `<span class="req">Zu wenig Energie: es fehlen ${fmt(short)}</span>`;
-  return `<button data-act="research" data-k="${k}" ${afford(P, c) ? '' : 'disabled'}>Forschen${level ? ` (Stufe ${level + 1})` : ''}</button>`;
+  return startButton(
+    'research',
+    k,
+    `Forschen${level ? ` (Stufe ${level + 1})` : ''}`,
+    !afford(P, c),
+  );
 }
 
 /** Without a lab here: the own planets that have one (#49). */
@@ -134,7 +211,7 @@ function noLab(v: V): string {
   const text = others.length
     ? 'Auf diesem Planeten gibt es kein Scholarium. Geforscht wird auf einem deiner Planeten mit Scholarium.'
     : 'Für Forschung brauchst du ein Scholarium.';
-  return `<h2>Forschung</h2><div class="notice">${text}${others.join('')}</div>`;
+  return `<h2>Forschung</h2>${SWITCH}<div class="notice">${text}${others.join('')}</div>`;
 }
 
 /** The lab of this planet and how many others the IFN may link. */
@@ -146,7 +223,11 @@ function labLine(v: V): string {
   return `<div class="dim">Scholarium Stufe ${v.P.b.lab ?? 0}${net}</div>`;
 }
 
-function researchItem(v: V, k: string, d: ResearchDef): string {
+function researchItem(
+  v: V,
+  k: string,
+  d: ResearchDef,
+): { html: string; phase: Phase } {
   const { P, R, s } = v;
   const level = R.research[k] ?? 0;
   const c = lvlCost(d, level + 1);
@@ -160,27 +241,42 @@ function researchItem(v: V, k: string, d: ResearchDef): string {
   };
   const body =
     costHTML(c, P, 1, energy) +
-    `<div class="dim">Forschungszeit: ${dur(researchTime(c, { b: { lab } }, s.cfg))}${linked}</div>` +
+    `<div class="dim tl">Forschungszeit: ${dur(researchTime(c, { b: { lab } }, s.cfg))}${linked}</div>` +
     requirementsHTML(v, d.req);
-  return itemHTML(
-    v,
-    'ic-r',
-    k,
-    level ? `(Stufe ${level})` : '',
-    body,
-    researchAction(v, k, level, reqMissing(d, P, R).length, short),
-  );
+  const miss = reqMissing(d, P, R).length;
+  const state = researchState(P, R, k, miss, short);
+  const phase: Phase =
+    state === 'running' ? 'running' : state === 'missing' ? 'locked' : 'open';
+  return {
+    html: itemHTML(
+      v,
+      'ic-r',
+      k,
+      level ? `(Stufe ${level})` : '',
+      body,
+      researchAction(v, k, level, miss, short),
+      phase,
+    ),
+    phase,
+  };
 }
 
 /** Research starts on the shown planet when it has a lab (#49). */
 function research(v: V): string {
   if (!((v.P.b.lab ?? 0) > 0)) return noLab(v);
-  const items = Object.entries(RES).map(([k, d]) => researchItem(v, k, d));
-  return `<h2>Forschung auf ${esc(placeName(v.P))}</h2>${labLine(v)}<div class="box">${items.join('')}</div>`;
+  // The Kolonialverwaltung (#237) is listed only in a round with it, and the
+  // states here have none.
+  const items = Object.entries(RES)
+    .filter(([k]) => k !== 'colonial')
+    .map(([k, d]) => researchItem(v, k, d));
+  const open = items.filter((i) => i.phase === 'open').length;
+  return `<h2>Forschung auf ${esc(placeName(v.P))}</h2>${SWITCH}${labLine(v)}${boxStart(open)}${items.map((i) => i.html).join('')}</div>`;
 }
 
 // ----- frozen: src/client/views/yard.ts before #118 -----
 
+// One change on purpose (#258): every order of the list has a button
+// „Abbrechen“ in a cell of its own, named by position and unit.
 function queue(v: V): string {
   const { P, now } = v;
   if (!P.sq.length) return '';
@@ -190,7 +286,8 @@ function queue(v: V): string {
         i === 0
           ? 'nächste fertig in ' + cd((P.sqT ?? now) + q.unit, now)
           : 'je ' + dur(q.unit);
-      return `<tr><td>${fmt(q.n)}× ${text(q.key)?.n}</td><td class="n">${when}</td></tr>`;
+      const label = `${fmt(q.n)}× ${text(q.key)?.n}`;
+      return `<tr><td>${label}</td><td class="n">${when}</td><td class="n"><button class="small red" data-act="cancelOrder" data-pos="${i}" data-k="${q.key}" aria-label="Abbrechen: ${esc(label)}">Abbrechen</button></td></tr>`;
     })
     .join('');
   return `<div class="box"><div class="hd">Bauauftrag der Schiffsschmiede</div><div class="bd"><table>${rows}</table></div></div>`;
@@ -234,7 +331,7 @@ function yard(
 ): string {
   const { P, R, s } = v;
   if (!((P.b.yard ?? 0) > 0))
-    return `<h2>${title}</h2><div class="notice">Dafür brauchst du eine Orbitale Schiffsschmiede.</div>`;
+    return `<h2>${title}</h2>${SWITCH}<div class="notice">Dafür brauchst du eine Orbitale Schiffsschmiede.</div>`;
   const lock = yardLockedBy(P);
   const items = Object.entries(defs).map(([k, d]) => {
     const miss = reqMissing(d, P, R);
@@ -244,19 +341,30 @@ function yard(
     const body =
       costHTML(d.cost, P) +
       stats(v, k, d) +
-      `<div class="dim">Bauzeit: ${dur(unitTime(d, P, s.cfg))} je Einheit</div>` +
+      `<div class="dim tl">Bauzeit: ${dur(unitTime(d, P, s.cfg))} je Einheit</div>` +
       requirementsHTML(v, d.req);
-    return itemHTML(
-      v,
-      cls,
-      k,
-      `(vorhanden: ${fmt(have[k] ?? 0)}${DEF[k]?.once ? ' · max. 1' : ''})`,
-      body,
-      action,
-    );
+    // A unit with an order in the queue is running, one with missing requirements locked.
+    const phase: Phase = miss.length
+      ? 'locked'
+      : P.sq.some((q) => q.key === k)
+        ? 'running'
+        : 'open';
+    return {
+      html: itemHTML(
+        v,
+        cls,
+        k,
+        `(vorhanden: ${fmt(have[k] ?? 0)}${DEF[k]?.once ? ' · max. 1' : ''})`,
+        body,
+        action,
+        phase,
+      ),
+      phase,
+    };
   });
   const warn = lock ? `<div class="notice warn">${lockNotice(lock)}</div>` : '';
-  return `<h2>${title}</h2>${queue(v)}${warn}<div class="box">${items.join('')}</div>`;
+  const open = items.filter((i) => i.phase === 'open').length;
+  return `<h2>${title}</h2>${SWITCH}${queue(v)}${warn}${boxStart(open)}${items.map((i) => i.html).join('')}</div>`;
 }
 
 const lockNotice = (key: string): string =>
@@ -355,6 +463,42 @@ const place = fc
   })
   .chain((p) => buildOrder(p.b).map((bq) => planet({ ...p, bq })));
 
+/** What a state of the lists is made of, by the generator and by hand. */
+interface Parts {
+  P: Planet;
+  research: Levels;
+  rq: ResearchState['rq'];
+  now: number;
+  explain: string;
+  /** The option „Stufenübersicht“ (#187); the ▤ without it. Not drawn by the generator, so its sample stays. */
+  levelTable?: string;
+  openEx: Record<string, boolean>;
+  /** The entries whose ▤ was pressed (#187). */
+  openLv?: Record<string, boolean>;
+  labs: { id: string; lab: number; upgrading: boolean }[];
+  home: string;
+}
+
+function view(x: Parts): V {
+  const s = {
+    cfg: U,
+    me: { id: 'u1', explain: x.explain, levelTable: x.levelTable },
+    labs: x.labs,
+    galaxy: IDS.map((id, i) => ({ id, name: NAMES[i]!, kind: 'planet' })),
+    homePlanet: x.home,
+    // Without a switch the main planet is the home planet (#221); the
+    // frozen views know only the home planet.
+    mainPlanet: x.home,
+  } as unknown as GameState;
+  return {
+    s,
+    P: x.P,
+    R: { research: x.research, rq: x.rq },
+    now: x.now,
+    ui: { openEx: x.openEx, openLv: x.openLv } as unknown as Ui,
+  };
+}
+
 const state = fc
   .record({
     P: place,
@@ -387,25 +531,7 @@ const state = fc
     ),
     home: fc.constantFrom(...IDS),
   })
-  .map((x): V => {
-    const s = {
-      cfg: U,
-      me: { id: 'u1', explain: x.explain },
-      labs: x.labs,
-      galaxy: IDS.map((id, i) => ({ id, name: NAMES[i]!, kind: 'planet' })),
-      homePlanet: x.home,
-      // Without a switch the main planet is the home planet (#221); the
-      // frozen views know only the home planet.
-      mainPlanet: x.home,
-    } as unknown as GameState;
-    return {
-      s,
-      P: x.P,
-      R: { research: x.research, rq: x.rq },
-      now: x.now,
-      ui: { openEx: x.openEx } as unknown as Ui,
-    };
-  });
+  .map((x): V => view(x));
 
 /** Markup of every branch of the lists, for the check that the cases reach them. */
 const MARKS = [
@@ -418,6 +544,8 @@ const MARKS = [
   'data-act="order"',
   'data-act="selectPlanet"',
   'data-act="explain"',
+  'data-act="levels"',
+  'class="lvt"',
   'Bauschleife belegt',
   'Schiffsschmiede arbeitet gerade',
   'Scholarium forscht gerade',
@@ -438,6 +566,142 @@ const MARKS = [
   'mehr Produktion',
   'verbrauch auf Stufe',
   ' · max. 1',
+];
+
+/** Adds the marks that `html` shows to `seen`. */
+function collect(html: string, seen: Set<string>): void {
+  for (const mark of MARKS) if (html.includes(mark)) seen.add(mark);
+}
+
+/**
+ * The marks the sample (seed 118, 300 runs) reached at most 70 times, one of
+ * them (a running lab upgrade) not at all once the catalog had 58 entries:
+ * each has a hand-built case below, so no new catalog entry can lose it.
+ */
+const RARE = [
+  'class="lvt"',
+  'data-act="demolish"',
+  'data-act="selectPlanet"',
+  'Rückbau auf Stufe',
+  'Schiffsschmiede arbeitet gerade',
+  'Scholarium forscht gerade',
+  'Scholarium wird ausgebaut',
+  'Zu wenig Energie',
+  'kann nicht produzieren',
+  'Auf diesem Planeten gibt es kein Scholarium.',
+  'Für Forschung brauchst du ein Scholarium.',
+  'Keine freien Felder.',
+  'Scholarien zusammen',
+];
+
+const RICH = { m: 5_000_000, c: 5_000_000, d: 2_000_000 };
+
+/** A state by hand: a planet with a lab and a shipyard, rich, and nothing running. */
+function handBuilt(over: Partial<Planet>, more: Partial<Parts> = {}): V {
+  return view({
+    P: planet({
+      unlimited: true,
+      res: RICH,
+      b: { lab: 3, yard: 2, robot: 10, metal: 2 },
+      ...over,
+    }),
+    research: { computer: 10 },
+    rq: null,
+    now: 1000,
+    explain: 'always',
+    openEx: {},
+    labs: [{ id: 'p1_1_5', lab: 3, upgrading: false }],
+    home: 'p1_1_5',
+    ...more,
+  });
+}
+
+const order = (key: string, back = false): NonNullable<Planet['bq']> => ({
+  key,
+  lvl: 1,
+  start: 0,
+  end: 5000,
+  cost: [0, 0, 0],
+  ...(back ? { back: [1, 2, 3] as const } : {}),
+});
+
+/** Cases that make the rare branches certain, each named by what it shows. */
+const HAND_BUILT: readonly (readonly [string, V])[] = [
+  // A level to demolish with a free queue; the lab linked to a better one.
+  [
+    'idle with a linked lab',
+    handBuilt(
+      {},
+      {
+        research: { ifn: 2, computer: 10 },
+        labs: [
+          { id: 'p1_1_5', lab: 3, upgrading: false },
+          { id: 'p1_2_3', lab: 8, upgrading: false },
+        ],
+      },
+    ),
+  ],
+  // The level overview of #187: the ▤ pressed on a building and a research,
+  // the table always shown, and the option „Ausblenden“.
+  [
+    'the ▤ pressed',
+    handBuilt({}, { levelTable: 'icon', openLv: { metal: true, spy: true } }),
+  ],
+  ['the level overview always shown', handBuilt({}, { levelTable: 'always' })],
+  [
+    'the level overview hidden',
+    handBuilt({}, { levelTable: 'hidden', openLv: { metal: true } }),
+  ],
+  ['a demolition running', handBuilt({ bq: order('metal', true) })],
+  ['the lab being upgraded', handBuilt({ bq: order('lab') })],
+  [
+    'a research running',
+    handBuilt(
+      {},
+      {
+        rq: {
+          key: 'energy',
+          lvl: 1,
+          start: 0,
+          end: 5000,
+          cost: [0, 0, 0],
+        },
+      },
+    ),
+  ],
+  [
+    'orders in the shipyard',
+    handBuilt({ sq: [{ key: 'sc', n: 3, unit: 100 }], sqT: 0 }),
+  ],
+  ['the shipyard being upgraded', handBuilt({ bq: order('yard') })],
+  [
+    'no shipyard, no lab, another lab',
+    handBuilt(
+      { b: {} },
+      {
+        labs: [
+          { id: 'p1_1_5', lab: 0, upgrading: false },
+          { id: 'p1_2_3', lab: 8, upgrading: false },
+        ],
+      },
+    ),
+  ],
+  ['no shipyard, no lab at all', handBuilt({ b: {} }, { labs: [] })],
+  [
+    'too little energy',
+    handBuilt(
+      { b: { lab: 12, yard: 2, robot: 10, nanite: 1 } },
+      { research: { energy: 12, computer: 10 } },
+    ),
+  ],
+  [
+    'no free field',
+    handBuilt({
+      unlimited: false,
+      diameter: 3000,
+      b: { lab: 3, yard: 2, robot: 10 },
+    }),
+  ],
 ];
 
 describe('CatalogList against the views before #118', () => {
@@ -494,16 +758,13 @@ describe('CatalogList against the views before #118', () => {
     expect(normalize('<option value="p">P</option>')).not.toBe(
       normalize('<option value="p" selected>P</option>'),
     );
-    // data-nokeep counts by its presence; Svelte writes it with an empty
-    // value (#118, bundle 2).
+    // data-nokeep is no markup of the page any more (#118, package 8): the
+    // frozen HTML that still carries it compares equal.
     expect(normalize('<input data-nokeep="" id="g">')).toBe(
-      normalize('<input id="g" data-nokeep>'),
+      normalize('<input id="g">'),
     );
-    expect(normalize('<input id="g">')).not.toBe(
-      normalize('<input id="g" data-nokeep>'),
-    );
-    expect(normalize('<input data-nokeep="1" id="g">')).not.toBe(
-      normalize('<input id="g" data-nokeep>'),
+    expect(normalize('<input id="g" data-nokeep>')).toBe(
+      normalize('<input id="g">'),
     );
   });
 
@@ -516,16 +777,54 @@ describe('CatalogList against the views before #118', () => {
     );
   });
 
-  // 300 runs: a new catalog entry (#171) changes the generated states, and
-  // 150 no longer reached every notice with the seed.
-  it('reaches every action and notice', () => {
+  it('lists the Handelsposten and the Raketenkrypta, each with its own marks, as before (#171, #54)', () => {
+    const v = handBuilt({
+      b: { lab: 3, yard: 2, robot: 4, market: 1, silo: 2 },
+    });
+    const html = normalize(renderNew(v, 'building'));
+    expect(html).toBe(normalize(OLD.building(v)));
+    const at = (name: string): number => html.indexOf(`${name} <span`);
+    // In the order of the catalog: the Handelsposten (170), then the Raketenkrypta (180).
+    expect(at('Handelsposten')).toBeGreaterThan(-1);
+    expect(at('Raketenkrypta')).toBeGreaterThan(at('Handelsposten'));
+    expect(html).toContain('Handelsposten <span class="lv">(Stufe 1)</span>');
+    expect(html).toContain('Raketenkrypta <span class="lv">(Stufe 2)</span>');
+    // The places of the missiles show at the Raketenkrypta only.
+    expect(html.match(/Belegt: /g)).toHaveLength(1);
+    expect(html.indexOf('Belegt: 0 / 20 Plätze')).toBeGreaterThan(
+      at('Raketenkrypta'),
+    );
+  });
+
+  it('renders the hand-built cases as before', () => {
+    for (const [name, v] of HAND_BUILT)
+      for (const kind of KINDS)
+        expect(normalize(renderNew(v, kind)), `${name}, ${kind}`).toBe(
+          normalize(OLD[kind](v)),
+        );
+  });
+
+  // The generated states reach the rare branches by chance only: each new
+  // catalog entry (#171, #190) moved the sample, and raising the number of
+  // runs twice did not stop that. So the branches below are also reached by
+  // the hand-built cases, on purpose and always.
+  it('reaches the rare actions and notices by the hand-built cases alone', () => {
     const seen = new Set<string>();
+    for (const [, v] of HAND_BUILT)
+      for (const kind of KINDS) collect(renderNew(v, kind), seen);
+    expect([...seen].filter((m) => RARE.includes(m)).sort()).toEqual(
+      [...RARE].sort(),
+    );
+  });
+
+  it('reaches every action and notice', () => {
+    // The sample (seed 118) and the hand-built cases together.
+    const seen = new Set<string>();
+    for (const [, v] of HAND_BUILT)
+      for (const kind of KINDS) collect(renderNew(v, kind), seen);
     fc.assert(
       fc.property(state, (v) => {
-        for (const kind of KINDS) {
-          const html = renderNew(v, kind);
-          for (const mark of MARKS) if (html.includes(mark)) seen.add(mark);
-        }
+        for (const kind of KINDS) collect(renderNew(v, kind), seen);
       }),
       { seed: 118, numRuns: 300 },
     );

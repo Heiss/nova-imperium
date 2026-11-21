@@ -9,7 +9,9 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import {
   expectShownPlace,
+  galaxyAction,
   galaxyRow,
+  logout,
   nav,
   register,
   seed,
@@ -57,8 +59,7 @@ const panel = (page: Page): Locator => page.locator('#scan');
 /**
  * A scanner with a moon and a phalanx of level 1 and a target player with a
  * colony at position `at` of the scanner's home system. The colony's name
- * („Spähziel“ and 6 random characters) is unique: two tests can share a home
- * system, and a fixed name matched both rows (#252).
+ * („Spähziel“ and 6 random characters) is unique, as every name is (#302).
  */
 async function setup(
   page: Page,
@@ -69,7 +70,7 @@ async function setup(
   const colony = uniqueName('Spähziel');
   const scanner = uniqueName(base);
   await register(page, target);
-  await page.click('[data-act=logout]');
+  await logout(page);
   await register(page, scanner);
   const home = await here(page);
   seed({
@@ -223,16 +224,17 @@ test.describe('the Auspex-Phalanx (#53)', () => {
     await chooseMoon(page);
     await homeSystem(page);
     const target = planetRow(page, colony);
-    await target.getByText('Versorgungsflug').tap();
+    // On a phone the actions of a row are in the sheet of its „⋯“ (#189).
+    await (await galaxyAction(page, target, 'Versorgungsflug')).tap();
     await page.getByLabel('Anzahl Frachtläufer').fill('1');
     await page.getByRole('button', { name: 'Flotte losschicken' }).tap();
     await expect(page.locator('.toast').last()).toContainText(
       'Flotte unterwegs nach',
     );
     await homeSystem(page);
-    await target
-      .getByRole('button', { name: `Phalanx-Scan von ${colony}` })
-      .tap();
+    await (
+      await galaxyAction(page, target, `Phalanx-Scan von ${colony}`)
+    ).tap();
     await expect(panel(page).locator('table.scan tr')).toHaveCount(2);
     await expect(panel(page)).toContainText('1 Frachtläufer');
     // Against the device width: a too wide panel also widens innerWidth.

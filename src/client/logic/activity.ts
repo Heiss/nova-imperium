@@ -28,3 +28,18 @@ export const activityNote = (a: PlanetActivity | undefined): string =>
 /** The words after a player's name on the Sternenkarte, or nothing. */
 export const inactivityNote = (i: Inactivity | undefined): string =>
   i ? INACTIVITY_TEXT[i] : '';
+
+/** The words of a report without activity in the last hour [V]. */
+export const NO_ACTIVITY = 'Keine Aktivität in der letzten Stunde.';
+
+/**
+ * The activity in the Auspex-Bericht (#175 D5, Q3): the words of the
+ * Sternenkarte, or „Keine Aktivität in der letzten Stunde.“ [V] without one;
+ * nothing for a report from before #175, which has no activity.
+ */
+export const spyActivityText = (
+  a: PlanetActivity | null | undefined,
+): string | null => {
+  if (a === undefined) return null;
+  return a ? activityText(a) : NO_ACTIVITY;
+};

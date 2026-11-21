@@ -97,9 +97,11 @@ describe('achievements', () => {
       type: 'reset',
       rewards: { achievements: false, daily: true },
     });
-    // The other settings are not sent and keep their values (here the defaults).
+    // The other settings are not sent and keep their values (here the defaults;
+    // the planet limit takes 6 in the first new round, #237).
     expect(roundRules(ctx)).toEqual({
       ...roundDefaults(),
+      colonyBase: 6,
       number: 2,
       achievements: false,
       daily: true,

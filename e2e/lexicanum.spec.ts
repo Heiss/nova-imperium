@@ -1,7 +1,14 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { text as entryText } from '../src/core/text.ts';
-import { nav, register, seed, uniqueName, watch } from './helpers.ts';
+import {
+  nav,
+  openAllRows,
+  register,
+  seed,
+  uniqueName,
+  watch,
+} from './helpers.ts';
 
 // The Lexicanum, stage 1 (#285): the „?“ of a list entry opens the article
 // in a side panel on a desktop and the page on a phone; „Im Lexicanum
@@ -126,7 +133,7 @@ test.describe('Lexicanum (#285)', () => {
     for (const [query, title] of [
       ['Kogitator', 'Kogitator-Doktrin'],
       ['KD', 'Kogitator-Doktrin'],
-      ['Flottenslot', 'Kogitator-Doktrin'],
+      ['Flottenslot', 'Wie bekomme ich mehr Flottenslots?'],
       ['ausspähen', 'Auspex-Lehre'],
       // Everyday keywords of an entry and of a mission (owner, 2026-11-17).
       ['Sprit', 'Promethium-Raffinerie'],
@@ -207,6 +214,7 @@ test.describe('Lexicanum (#285)', () => {
     await register(page, name);
     seed({ name, b: { lab: 3 }, research: { spy: 2 } });
     await page.click('#tabbar [data-v=buildings]');
+    await openAllRows(page);
     await question(page, 'Sonnenkathedrale').tap();
     await expect(page).toHaveURL(/[?&]view=lexicanum&a=solar$/);
     await expect(heading(page)).toContainText('Sonnenkathedrale');
@@ -242,5 +250,77 @@ test.describe('Lexicanum (#285)', () => {
     found.push(...(await axe(page, 'phone start')));
     expect(found).toEqual([]);
     expect(w.problems).toEqual([]);
+  });
+
+  // The page types of stages 2 and 3 (#288, #289): a rule page with a wide
+  // table, a question, a guide and the page computed from the player's state.
+  const PAGES = [
+    ['rule-universe', 'Dieses Universum'],
+    ['rule-battle', 'Kampf'],
+    ['faq-slots', 'Wie bekomme ich mehr Flottenslots?'],
+    ['guide-start', 'Erste Schritte'],
+    ['guide-next', 'Deine nächsten Ziele'],
+  ] as const;
+
+  async function pageTypes(page: Page, phone: boolean): Promise<void> {
+    const w = watch(page);
+    const found: string[] = [];
+    const name = uniqueName(phone ? 'LexSeiteH' : 'LexSeiteT');
+    await register(page, name);
+    // A developed home planet, so „Deine nächsten Ziele“ has a state to read.
+    seed({
+      name,
+      b: { metal: 8, crystal: 6, solar: 8, lab: 2 },
+      research: { energy: 1 },
+      ships: { sc: 2 },
+    });
+    if (phone) await page.setViewportSize({ width: 360, height: 740 });
+    for (const [id, title] of PAGES) {
+      await page.goto(`/?view=lexicanum&a=${id}`);
+      await expect(heading(page)).toContainText(title);
+      await expect(page.locator('#view .lx-art')).toBeVisible();
+      // A wide table scrolls inside its box and never widens the page.
+      const loose = await page.evaluate(
+        () =>
+          [...document.querySelectorAll('#view table')].filter(
+            (t) => !t.closest('.lx-scroll'),
+          ).length,
+      );
+      expect(loose, `${id}: tables outside .lx-scroll`).toBe(0);
+      if (phone) expect(await overflow(page), id).toBeLessThanOrEqual(1);
+      found.push(...(await axe(page, id)));
+    }
+    // „Kampf“ has the table of the rapid fire of every unit: really wide.
+    await page.goto('/?view=lexicanum&a=rule-battle');
+    await expect(heading(page)).toContainText('Kampf');
+    const tables = await page
+      .locator('#view .lx-scroll')
+      .evaluateAll((boxes) => boxes.length);
+    expect(tables).toBeGreaterThan(0);
+    if (phone) {
+      const widest = await page
+        .locator('#view .lx-scroll')
+        .evaluateAll((boxes) =>
+          Math.max(...boxes.map((b) => b.scrollWidth - b.clientWidth)),
+        );
+      expect(widest).toBeGreaterThan(0);
+      expect(await overflow(page)).toBeLessThanOrEqual(1);
+    }
+    expect(found).toEqual([]);
+    expect(w.problems).toEqual([]);
+  }
+
+  test('the rule pages, a question, the guides and „Deine nächsten Ziele“ have no axe violations', async ({
+    page,
+  }) => {
+    test.slow();
+    await pageTypes(page, false);
+  });
+
+  test('the rule pages, a question, the guides and „Deine nächsten Ziele“ fit a 360 px phone and have no axe violations @phone', async ({
+    page,
+  }) => {
+    test.slow();
+    await pageTypes(page, true);
   });
 });

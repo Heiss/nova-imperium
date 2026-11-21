@@ -159,6 +159,26 @@ describe('researchErrors', () => {
     ).toEqual([]);
   });
 
+  it('has the Kolonialverwaltung only in a round with it, and not past its highest level (#237)', () => {
+    const ready = { research: { spy: 4, impulse: 3 }, rq: null };
+    const here = lab({ b: { lab: 3 } });
+    expect(researchErrors(here, ready, 'colonial', U)).toEqual(['off']);
+    const on = {
+      ...U,
+      roundColonyBase: 6,
+      roundColonyResearch: 1,
+      roundColonyPerLevel: 2,
+      roundColonyMaxLevel: 2,
+    };
+    expect(researchErrors(here, ready, 'colonial', on)).toEqual([]);
+    const second = { research: { ...ready.research, colonial: 1 }, rq: null };
+    expect(researchErrors(here, second, 'colonial', on)).toEqual([]);
+    const last = { research: { ...ready.research, colonial: 2 }, rq: null };
+    expect(researchErrors(here, last, 'colonial', on)).toEqual(['maxLevel']);
+    // Another research does not ask the round.
+    expect(researchErrors(lab(), idle, 'energy', U)).toEqual([]);
+  });
+
   it('refuses a level whose energy production is short (#49)', () => {
     const big = lab({ b: { lab: 12, solar: 58 } });
     expect(researchErrors(big, idle, 'graviton', U)).toEqual(['noEnergy']);
@@ -231,6 +251,29 @@ describe('orderErrors', () => {
     expect(orderErrors(has, shield, 'lsd', 1)).toEqual(['locked']);
   });
 
+  it('keeps the missiles within the places of the silo (#54)', () => {
+    const impulse = { research: { impulse: 1 }, rq: null };
+    const silo = (level: number, over: Partial<Planet> = {}) =>
+      yard({ b: { yard: 1, silo: level }, ...over });
+    // Level 2: 20 places, an Abfangrakete takes 1.
+    expect(orderErrors(silo(2), idle, 'abm', 20)).toEqual([]);
+    expect(orderErrors(silo(2), idle, 'abm', 21)).toEqual(['siloFull']);
+    // Level 4: 40 places, an Orbitalrakete takes 2; the stock and the queue count.
+    expect(orderErrors(silo(4), impulse, 'ipm', 20)).toEqual([]);
+    expect(orderErrors(silo(4), impulse, 'ipm', 21)).toEqual(['siloFull']);
+    const used = silo(4, {
+      def: { abm: 10, ipm: 5 },
+      sq: [{ key: 'abm', n: 9, unit: 1 }],
+    });
+    // 10 + 10 + 9 of 40 places taken: 11 are free.
+    expect(orderErrors(used, impulse, 'abm', 12)).toEqual(['siloFull']);
+    expect(orderErrors(used, impulse, 'abm', 11)).toEqual([]);
+    expect(orderErrors(used, impulse, 'ipm', 5)).toEqual([]);
+    expect(orderErrors(used, impulse, 'ipm', 6)).toEqual(['siloFull']);
+    // Other units need no silo.
+    expect(orderErrors(silo(0), idle, 'rl', 1000)).toEqual([]);
+  });
+
   it('needs the price of one unit', () => {
     const price = UNIT.rl!.cost;
     expect(orderErrors(yard({ res: just(price) }), idle, 'rl', 9)).toEqual([]);
@@ -268,6 +311,14 @@ describe('orderErrors', () => {
       'cost',
       'queueFull',
     ]);
+    expect(orderErrors(none, idle, 'ipm', 1)).toEqual<OrderError[]>([
+      'noYard',
+      'yardLocked',
+      'locked',
+      'siloFull',
+      'cost',
+      'queueFull',
+    ]);
   });
 });
 
@@ -292,6 +343,8 @@ describe('the order of the codes', () => {
     'cost',
   ];
   const RESEARCH_ORDER: readonly ResearchError[] = [
+    'off',
+    'maxLevel',
     'noLab',
     'locked',
     'busy',

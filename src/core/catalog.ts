@@ -23,6 +23,7 @@ import type { Consumes } from './components/consumes.ts';
 import type { EnergyThreshold } from './components/energy-threshold.ts';
 import type { Leveled } from './components/leveled.ts';
 import type { Limit } from './components/limit.ts';
+import type { Locks } from './components/locks.ts';
 import {
   DRIVE_BONUS,
   type DriveKey,
@@ -31,6 +32,7 @@ import {
 } from './components/mobile.ts';
 import { type Placement, placeable } from './components/placement.ts';
 import type { Produces } from './components/produces.ts';
+import type { Missile, Silo } from './components/silo.ts';
 import type { Storage } from './components/storage.ts';
 import type { Unit } from './components/unit.ts';
 import type { Cost, Planet, Requirements } from './types.ts';
@@ -104,6 +106,10 @@ type Entry =
       energyThreshold?: EnergyThreshold;
       /** None for a building that stands on planets only (#53). */
       placement?: Placement;
+      /** A building whose upgrade stops the shipyard or the research (#183). */
+      locks?: Locks;
+      /** A building that stores missiles (#54). */
+      silo?: Silo;
       def?: BuildingFields;
     })
   | (Idle & {
@@ -128,6 +134,8 @@ type Entry =
       unit: Unit;
       combat: Combat;
       limit?: Limit;
+      /** A missile: it waits in a silo and does not fight (#54). */
+      missile?: Missile;
       def: DefenseFields;
     });
 
@@ -202,14 +210,20 @@ export const PRODUCTION = ALL.flatMap(([key, e]) =>
     : [],
 ).sort((a, b) => a.produces.order - b.produces.order);
 
-/** The entries with the components `unit` and `combat` (ships, defense), by key. */
+/**
+ * The entries with the components `unit` and `combat` (ships, defense) that
+ * fight in a battle, by key: every one but a missile (#54).
+ */
 export const FIGHTERS: Readonly<Record<string, Fighter>> = Object.fromEntries(
   ALL.flatMap(([key, e]) =>
-    e.kind === 'ship' || e.kind === 'defense'
+    e.kind === 'ship' || (e.kind === 'defense' && !e.missile)
       ? [[key, { kind: e.kind, unit: e.unit, combat: e.combat }] as const]
       : [],
   ),
 );
+
+/** Whether the unit `key` fights in a battle: a ship or a defense but a missile (#54). */
+export const fights = (key: string): boolean => Object.hasOwn(FIGHTERS, key);
 
 /** The ships with a `mobile` component, by key: the ships that fly. */
 export const MOBILE: Readonly<Record<string, Mobile>> = Object.fromEntries(
@@ -222,6 +236,27 @@ export const MOBILE: Readonly<Record<string, Mobile>> = Object.fromEntries(
 export const LIMIT: Readonly<Record<string, Limit>> = Object.fromEntries(
   ofKind('defense').flatMap(([key, e]) =>
     e.limit ? [[key, e.limit] as const] : [],
+  ),
+);
+
+/** The buildings with a `silo` component, by key: they store missiles (#54). */
+export const SILO: Readonly<Record<string, Silo>> = Object.fromEntries(
+  ofKind('building').flatMap(([key, e]) =>
+    e.silo ? [[key, e.silo] as const] : [],
+  ),
+);
+
+/** The defense with a `missile` component, by key (#54). */
+export const MISSILE: Readonly<Record<string, Missile>> = Object.fromEntries(
+  ofKind('defense').flatMap(([key, e]) =>
+    e.missile ? [[key, e.missile] as const] : [],
+  ),
+);
+
+/** The buildings with a `locks` component, by key: their upgrade stops the shipyard or the research (#183). */
+export const LOCKS: Readonly<Record<string, Locks>> = Object.fromEntries(
+  ofKind('building').flatMap(([key, e]) =>
+    e.locks ? [[key, e.locks] as const] : [],
   ),
 );
 

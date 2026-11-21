@@ -93,7 +93,7 @@ section 4) and the places (#119).
   (owner, 2026-11-14).
 * Mission `src/features/missions/harvest/`: `order` 60, the new target kind
   `debris`, no cargo of its own (`cargo: false`, **[E]** owner, 2026-11-14),
-  returns, not visible (until #228, which removed the field), not silent;
+  returns, not silent (it had the field `visible`, false, until #228 removed it);
   `canSend` needs a `recycler` (`noRecycler`). The target kind `debris`
   (`src/core/missions.ts`) checks only that a field lies at the position
   (`noDebris`), whatever planet is there; the fleet flies to the place

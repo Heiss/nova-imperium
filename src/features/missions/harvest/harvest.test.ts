@@ -82,6 +82,7 @@ describe('harvest: the rules', () => {
       planet: { id: 'p1_2_6', owner: 'b' },
       debris,
       protects: () => true,
+      vacation: () => true,
     });
     const with_ = { owner: 'a', from: 'p1', ships: { recycler: 1 } };
     const without = { owner: 'a', from: 'p1', ships: { lc: 1 } };

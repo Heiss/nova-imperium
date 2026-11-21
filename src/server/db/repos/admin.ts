@@ -4,7 +4,9 @@
 import { UNIVERSE_SPECS } from '../../../core/universe.ts';
 import type { Universe } from '../../../core/types.ts';
 import type { Db } from '../database.ts';
+import type { RepositoryModule } from './contract.ts';
 import { levels, type Row } from './rows.ts';
+import type { RoundReset } from '../round-reset.ts';
 
 /** The filter of the audit list (built by `auditFilter` in audit.ts). */
 export interface AuditFilter {
@@ -29,7 +31,7 @@ export interface AuditEvent {
   detail: string;
 }
 
-export interface Suspension {
+interface Suspension {
   reason: string;
   until: number | null;
 }
@@ -44,12 +46,14 @@ export interface Admin {
   addAuditEvent(e: AuditEvent): void;
   auditEvents(filter: AuditFilter, limit: number, offset: number): unknown[];
   lastAuditId(): number;
+  /** The time of the newest audit event of `actor` with `action`, if any. */
+  lastAuditTime(actor: string, action: string): number | undefined;
   countAuditEvents(filter: AuditFilter): number;
-  /** The last interaction of a player, on their newest day. */
-  lastActivity(uid: string): { last: number } | undefined;
-  addActiveTime(ms: number, uid: string, day: number): void;
-  touchActivity(uid: string, day: number, now: number, ms: number): void;
-  /** Drops audit events, error events and activity older than `cutoff`. */
+  /**
+   * Drops audit events, error events and the old activity sums (#232: they
+   * are no longer written) older than `cutoff`. The play time of #232 is
+   * kept until the round is deleted and is not touched.
+   */
   purge(cutoff: number, day: number): void;
   suspension(uid: string, now: number): Suspension | undefined;
   suspend(uid: string, reason: string, until: number | null): void;
@@ -67,7 +71,7 @@ const EVENT_WHERE = `
       AND (@outcome = '' OR e.outcome = @outcome)
 `;
 
-export class SqliteAdmin implements Admin {
+class SqliteAdmin implements Admin {
   private readonly db: Db;
   constructor(db: Db) {
     this.db = db;
@@ -145,6 +149,15 @@ export class SqliteAdmin implements Admin {
     return last.id;
   }
 
+  lastAuditTime(actor: string, action: string): number | undefined {
+    const row = this.db
+      .prepare(
+        'SELECT MAX(time) AS time FROM audit_events WHERE actor = ? AND action = ?',
+      )
+      .get(actor, action) as { time: number | null };
+    return row.time ?? undefined;
+  }
+
   countAuditEvents(filter: AuditFilter): number {
     const { count } = this.db
       .prepare(
@@ -154,36 +167,6 @@ export class SqliteAdmin implements Admin {
       )
       .get(filter) as { count: number };
     return count;
-  }
-
-  lastActivity(uid: string): { last: number } | undefined {
-    return this.db
-      .prepare(
-        `
-      SELECT last_seen AS last FROM player_activity WHERE player = ? ORDER BY day DESC LIMIT 1
-    `,
-      )
-      .get(uid) as { last: number } | undefined;
-  }
-
-  addActiveTime(ms: number, uid: string, day: number): void {
-    this.db
-      .prepare(
-        'UPDATE player_activity SET active_ms = active_ms + ? WHERE player = ? AND day = ?',
-      )
-      .run(ms, uid, day);
-  }
-
-  touchActivity(uid: string, day: number, now: number, ms: number): void {
-    this.db
-      .prepare(
-        `
-      INSERT INTO player_activity VALUES (?, ?, ?, ?)
-      ON CONFLICT(player, day) DO UPDATE SET last_seen = excluded.last_seen,
-        active_ms = player_activity.active_ms + excluded.active_ms
-    `,
-      )
-      .run(uid, day, now, ms);
   }
 
   purge(cutoff: number, day: number): void {
@@ -218,3 +201,16 @@ export class SqliteAdmin implements Admin {
     this.db.prepare('DELETE FROM suspensions WHERE player = ?').run(uid);
   }
 }
+
+/** The `admin` repository on `Ctx`. */
+export const repository = {
+  key: 'admin',
+  make: (db: Db): Admin => new SqliteAdmin(db),
+} as const satisfies RepositoryModule;
+
+/** The settings, the audit, the suspensions and the activity are not bound to a round. */
+export const roundReset = [
+  {
+    keeps: ['settings', 'audit_events', 'suspensions', 'player_activity'],
+  },
+] satisfies readonly RoundReset[];

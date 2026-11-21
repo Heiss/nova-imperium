@@ -367,6 +367,13 @@ Migration 10 adds the display option of the explanation texts per player,
 Existing players get „(?)-Symbol“; their other data stay as they were
 (`upgrades/migration-10.test.ts`).
 
+Migration `20261119T1733-level-table` (issue #187, in the folder layout,
+`migrations/187/migrations.ts`, see [Level overview](/features/level-overview.md))
+adds the display option of the level overview per player, `users.level_table`
+(`always`, `icon` or `hidden`, CHECK, `NOT NULL DEFAULT 'icon'`). Existing
+players get the icon; their other data stay as they were
+(`upgrades/20261119T1733-level-table.test.ts`).
+
 Migration 11 stores the planet where the running research started
 (`users.rq_planet`, issue #49), so a cancel refunds that planet. Research
 started before has no planet and is refunded to the home planet
@@ -519,6 +526,14 @@ recall, fuel and gift and holds for no time
 (`upgrades/20261119T0744-holding.test.ts`). The upgrade test of migration 20
 runs the later migrations before today's actions land due fleets, since
 `fleets.due` reads the new column.
+The three other rebuilds of `fleets` (Mondbruch `20261119T0810-moonbreak`,
+Vermessung `20261119T0811-planet-survey`, Raketenangriff
+`20261119T0812-missiles`) were given IDs after `20261119T0744-holding` when
+the bundle met it: the holding migration is on main and rebuilds `fleets`
+from the schema before them, so run before it they would have lost `aim`
+and their missions. They keep the column `hold`, the state `hold` and the
+mission `hold` in their CHECKs (the IDs of unreleased migrations may change;
+the bundle was not on main).
 
 Migration `20261118T2324-marketplace` (issue #171, see
 [Marketplace](/features/marketplace.md)) adds `market_prices` (`pair` one of
@@ -541,6 +556,56 @@ activity; an existing account starts with its newest `last_seen` of
 `player_activity`, null without one, and the server then counts from
 `users.created`; other data stay as they were
 (`upgrades/20261117T0923-activity-times.test.ts`).
+Migration `20261119T0812-missiles` (issue #54, see
+[Missiles](/features/missiles.md)) rebuilds `fleets` and `fleet_ships`, as
+16 did, for the mission `missile` in the CHECK of `fleets.mission`, and
+adds `fleets.aim` (TEXT, the main target of a Raketenangriff, NULL
+without one). Every fleet in flight keeps its values, its gift and its
+ships; the Raketenkrypta and the missiles are rows of `planet_buildings`
+and `planet_units` and need no change
+(`upgrades/20261119T0812-missiles.test.ts`). The fleet repository writes
+`aim` only for missiles with a main target, so the upgrade tests of
+earlier migrations still save fleets.
+
+Migration `20261119T1700-expeditions` (issue #93, see
+[Expeditions](/features/expeditions.md)) rebuilds `fleets` and
+`fleet_ships`, as 54 did, for the mission `expedition` in the CHECK of
+`fleets.mission`. It runs after the rebuilds of Wache stellen
+(`20261119T0744-holding`), the Mondbruch, the survey and the missiles, so
+the latest rebuild lists every mission of the game and every state (`out`,
+`hold`, `back`) and keeps every column (`fuel`, `gift`, `hold`, `aim`);
+every fleet in flight keeps its values, its gift, its holding time, its
+main target and its ships. The stay of an expedition needs no column and no
+state: it is what lies between `dep`, `arr` and `ret`, and the fleet stays
+`out` until it ends. The upgrade test checks that the CHECK lists exactly
+the keys of `MISSION` and the three states
+(`upgrades/20261119T1700-expeditions.test.ts`); the test of 54 now names its
+ten missions.
+
+Migration `20261117T1000-vacation-mode` (issue #223, see
+[Vacation mode](/features/vacation-mode.md)) adds `users.vacation`
+(INTEGER, when the player's vacation mode started, null outside of it).
+Existing players get null: nobody is in vacation mode, the production goes
+on and every target stays open; other data stay as they were
+(`upgrades/20261117T1000-vacation-mode.test.ts`).
+
+Migration `20261119T0810-moonbreak` (issue #95, in the folder
+layout, `migrations/95/migrations.ts`, see [Moons](/features/moons.md))
+rebuilds `fleets` and `fleet_ships` like migration 16 for the mission
+`moonbreak` (Mondbruch) in the CHECK of `fleets.mission`. Every column
+stays, `gift` of migration 18 included (now in the column list with its
+CHECK instead of appended), with the index `fleets_owner`, the foreign key
+to `users` and both cascades; a Mondbruch flies to a moon (`to_planet`
+`m<g>_<s>_<p>`), which needs no column. Its upgrade test
+(`upgrades/20261119T0810-moonbreak.test.ts`) writes fleets of the version
+before, a gift and fleets from and to a moon among them, checks that every
+row and ship stays, that a gift still takes no fleet slot, that a Mondbruch
+is saved with its ships, the CHECKs of `mission` and `gift`, the index and
+the cascades.
+The later migration `20261119T0811-planet-survey` (issue #190) rebuilds
+`fleets` again for the mission `survey` and lists `moonbreak` in its CHECK
+too, since it runs after this one (its upgrade test checks that both
+missions are allowed).
 
 Migration `20261117T0921-demolition` (issue #202, see
 [Demolition](/features/demolition.md)) adds `planets.bq_back_m`,
@@ -562,6 +627,16 @@ crossed row; an index on `addressee` serves the requests to a player. It
 stores no time. Existing players start without friends and requests;
 other data stay as they were (`upgrades/20261118T2230-friendships.test.ts`).
 A new round keeps the table (owner, 2026-11-16, D2).
+
+Migration `20261119T1830-last-targets` (issue #292, see
+[Cargo buttons of the fleet form](/features/fleet-cargo.md#the-schnellwahl-with-friends-guild-members-and-last-targets-292))
+adds the table `last_targets`: `user_id` (`REFERENCES users(id) ON DELETE
+CASCADE`), `place` (the id of the target planet or moon), `owner` (who owned
+it when it was aimed at) and `at`, primary key `(user_id, place)`, an index
+on `(user_id, at DESC)`. A Sturmangriff or an Auspex-Erkundung writes or
+renews the row of its target; the repository keeps the newest 20 rows per
+player [V]. A new round deletes the table's rows. Other data stay as they
+were (`upgrades/20261119T1830-last-targets.test.ts`).
 
 Account deletion runs in one transaction. Foreign-key cascades clear owned game,
 session, reward and push data, and the friendships and requests of the

@@ -13,7 +13,7 @@ import { placeName } from '../core/moon.ts';
 import { placeId } from '../core/place.ts';
 import type { Levels, Planet } from '../core/types.ts';
 import { debrisAt, debrisMark, harvestButton } from '../client/logic/debris.ts';
-import { dur, esc, fmt } from '../client/logic/format.ts';
+import { coords, dur, esc, fmt } from '../client/logic/format.ts';
 import { galaxyPage } from '../client/logic/galaxy.ts';
 import { isProtected, nameOf, ranks } from '../client/logic/game.ts';
 import { moonAt, moonMark, moonPicture } from '../client/logic/moon.ts';
@@ -34,6 +34,19 @@ const cd = (end: number, now: number): string =>
 
 const join = (...actions: string[]): string =>
   actions.filter(Boolean).join(' · ');
+
+// One change on purpose (#189, the phone layer; the CSS shows it up to 760 px
+// only): the actions of a row stand in a span, and a row with an action has a
+// „⋯“ after it, which opens them in a bottom sheet. A row with nothing but
+// the dim name of the active place has no „⋯“, and one without an action keeps
+// its empty cell. What the sheet shows is tested in
+// src/client/logic/galaxy.test.ts and src/client/views/galaxy.test.ts.
+function actionCell(html: string, id: string, title: string): string {
+  if (!html) return '<td></td>';
+  if (!html.includes('data-act="'))
+    return `<td><span class="gal-acts">${html}</span></td>`;
+  return `<td class="has-sheet"><span class="gal-acts">${html}</span><button type="button" class="small more phone-only" id="gsheet-${esc(id)}" data-act="gsheet" data-id="${esc(id)}" aria-haspopup="dialog" aria-label="Aktionen für ${esc(title)}">⋯</button></td>`;
+}
 
 function planetActions(
   v: V,
@@ -84,7 +97,7 @@ function moonRow(v: V, moon: GalaxyPlanet, rk: Record<string, number>): string {
   const at = `data-g="${moon.g}" data-s="${moon.s}" data-p="${moon.p}" data-k="moon"`;
   const name = placeName(moon);
   return `<tr class="moon-row ${mine ? 'me' : ''}"><td class="n"></td><td><span class="gal-pl">${moonPicture(name, 28)}${esc(name)}</span></td>
-   ${ownerCell(v, moon, rk)}<td>${planetActions(v, moon, mine, at)}</td></tr>`;
+   ${ownerCell(v, moon, rk)}${actionCell(planetActions(v, moon, mine, at), moon.id, `${name} ${coords(moon)}`)}</tr>`;
 }
 
 function row(v: V, p: number, rk: Record<string, number>): string {
@@ -103,13 +116,13 @@ function row(v: V, p: number, rk: Record<string, number>): string {
     const colonize = v.P.ships.colony
       ? `<button class="small" data-act="gfleet" data-m="colonize" ${at}>Landnahme</button>`
       : '';
-    return `<tr><td class="n">${p}</td><td colspan="2"><span class="dim">–</span>${mark}</td><td>${join(colonize, harvest)}</td></tr>`;
+    return `<tr><td class="n">${p}</td><td colspan="2"><span class="dim">–</span>${mark}</td>${actionCell(join(colonize, harvest), `free-${p}`, `Position ${coords(c)}`)}</tr>`;
   }
   const mine = pl.owner === s.me.id;
   const moonLine = open ? moonRow(v, moon, rk) : '';
   return `<tr class="${mine ? 'me' : ''}"><td class="n">${p}</td><td><span class="gal-pl">${planetHTML(pl, true)}${esc(pl.name)}${mark}</span></td>
    ${ownerCell(v, pl, rk)}
-   <td>${join(planetActions(v, pl, mine, at), harvest)}</td></tr>${moonLine}`;
+   ${actionCell(join(planetActions(v, pl, mine, at), harvest), pl.id, `${pl.name} ${coords(pl)}`)}</tr>${moonLine}`;
 }
 
 function galaxy(v: V): string {
@@ -123,13 +136,21 @@ function galaxy(v: V): string {
   System <button class="small" data-act="gnav" data-d="s-" aria-label="voriges System">◀</button><input class="c3" type="number" id="g_s" data-nokeep value="${ui.sys}" min="1" max="${s.cfg.systems}" aria-label="System"><button class="small" data-act="gnav" data-d="s+" aria-label="nächstes System">▶</button>
   <button data-act="ggo">Anzeigen</button> <span class="lnk" data-act="ghome">zum Heimatsystem</span></div>${scanPanel(v)}
   <table class="gal"><tr><th class="n">Pos</th><th>Planet</th><th>Spieler</th><th>Aktionen</th></tr>${rows}</table>
-  <div class="bd dim">Auspex-Erkundung schickt ${fmt(s.me.probes || 1)} Spähschädel – einstellbar unter „Hilfe &amp; Optionen“.</div></div>`;
+  <div class="bd dim">Auspex-Erkundung schickt ${fmt(s.me.probes || 1)} Spähschädel – einstellbar unter „Optionen“.</div></div>`;
 }
 
 // ----- the comparison -----
 
-const renderNew = (v: V): string =>
-  render(Galaxy, { props: { page: galaxyPage(v) } }).body;
+/**
+ * The rows of the planet positions: the row of the expedition position
+ * after them (#93) is new and tested in src/client/logic/galaxy.test.ts.
+ */
+const renderNew = (v: V): string => {
+  const page = galaxyPage(v);
+  return render(Galaxy, {
+    props: { page: { ...page, rows: page.rows.slice(0, v.s.cfg.positions) } },
+  }).body;
+};
 
 /**
  * Names with markup and quotes; the last becomes an attribute boundary when
@@ -326,6 +347,8 @@ const MARKS = [
   'schickt 1 Spähschädel',
   'schickt 1.500 Spähschädel',
   '<td colspan="2"><span class="dim">–</span></td><td></td>',
+  'class="has-sheet"',
+  'aria-label="Aktionen für ',
 ];
 
 const SAMPLE = { seed: 118, numRuns: 300 };

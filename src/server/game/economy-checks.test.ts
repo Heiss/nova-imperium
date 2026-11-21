@@ -53,6 +53,8 @@ const BUILD_MESSAGES: Record<
 };
 
 const RESEARCH_MESSAGES: Record<Exclude<ResearchError, 'noEnergy'>, string> = {
+  off: 'Diese Forschung gibt es in dieser Runde nicht.',
+  maxLevel: 'Die höchste Stufe dieser Forschung ist erreicht.',
   noLab: 'Du brauchst ein Scholarium.',
   locked: LOCKED,
   busy: 'Es wird bereits geforscht.',
@@ -65,6 +67,7 @@ const ORDER_MESSAGES: Record<Exclude<OrderError, 'yardLocked'>, string> = {
   locked: LOCKED,
   count: 'Bitte eine Anzahl eingeben.',
   limit: 'Diesen Schutzdom gibt es nur einmal pro Planet.',
+  siloFull: 'Nicht genug Platz in der Raketenkrypta.',
   cost: POOR,
   queueFull: 'Die Bauliste der Schiffsschmiede ist voll.',
 };

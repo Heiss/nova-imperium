@@ -108,7 +108,7 @@ export function createReporter(
 }
 
 export interface ReportContext {
-  /** „Hilfe & Optionen“ (form) or an error message (toast). */
+  /** „Optionen“ (form) or an error message (toast). */
   source: 'form' | 'toast';
   page: string;
   version: string;
@@ -117,21 +117,32 @@ export interface ReportContext {
   message?: string;
 }
 
-/** What the report sends along, shown above the text. */
-export function reportContextLine(c: ReportContext): string {
+/**
+ * What the report sends along, as the text shown above the field. The form
+ * of the page „Optionen“ (a component) shows it as it is; the dialog behind
+ * an error message writes it as markup (`reportContextLine`).
+ */
+export function reportContextText(
+  c: Omit<ReportContext, 'source'>,
+  mark: (text: string) => string = (text) => text,
+): string {
   const parts = [
-    `Seite: ${esc(c.page)}`,
-    `Version: ${esc(c.version || 'unbekannt')}`,
-    `Letzter Vorgang: ${esc(c.requestId ?? '–')}`,
+    `Seite: ${mark(c.page)}`,
+    `Version: ${mark(c.version || 'unbekannt')}`,
+    `Letzter Vorgang: ${mark(c.requestId ?? '–')}`,
   ];
-  if (c.message) parts.push(`Meldung: ${esc(c.message)}`);
+  if (c.message) parts.push(`Meldung: ${mark(c.message)}`);
   return parts.join(' · ');
 }
+
+/** What the report sends along, shown above the text, as markup. */
+export const reportContextLine = (c: ReportContext): string =>
+  reportContextText(c, esc);
 
 const hidden = (name: string, value: string): string =>
   `<input type="hidden" name="${name}" value="${esc(value)}">`;
 
-/** The form „Problem melden“: in „Hilfe & Optionen“ and behind an error message. */
+/** The form „Problem melden“ as markup: behind an error message; „Optionen“ renders its own. */
 export function reportFormHTML(id: string, c: ReportContext): string {
   return `<form id="${id}" class="report-form">
  ${hidden('source', c.source)}${hidden('page', c.page)}${hidden('version', c.version)}${hidden('requestId', c.requestId ?? '')}${hidden('message', c.message ?? '')}

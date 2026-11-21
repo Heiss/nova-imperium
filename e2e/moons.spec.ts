@@ -6,8 +6,10 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import {
+  galaxyAction,
   cli,
   expectShownPlace,
+  logout,
   nav,
   register,
   seed,
@@ -59,7 +61,7 @@ test.describe('moons (#53)', () => {
     const pilot = uniqueName('MondPilot');
     const boss = uniqueName('MondAdmin');
     await register(page, pilot);
-    await page.click('[data-act=logout]');
+    await logout(page);
     await register(page, boss);
     cli('admin', boss);
     seed({ name: boss, ships: { lf: 3 }, res: { m: 0, c: 0, d: 10000 } });
@@ -115,7 +117,7 @@ test.describe('moons (#53)', () => {
     await page.getByLabel('Zielart').selectOption('planet');
     await expect(page.locator('#t_info')).toHaveText(`Heimatplanet (${pilot})`);
     // „Mond“ only where a moon is.
-    // Players start on 4 to 12 and colonies of the tests lie on 15: 2 is free.
+    // In the system of this test the homes lie on 4 to 12: 2 is free.
     const position = page.getByLabel('Position', { exact: true });
     const at = await position.inputValue();
     await position.fill('2');
@@ -254,7 +256,7 @@ test.describe('moons (#53)', () => {
     const a = uniqueName('MondSturm');
     const b = uniqueName('MondZiel');
     await register(page, b);
-    await page.click('[data-act=logout]');
+    await logout(page);
     await register(page, a);
     seed({ name: a, ships: { lf: 5, sc: 2 }, res: { m: 0, c: 0, d: 10000 } });
     // Points against the noob protection; 100,000 Adamant in the field: 1 %.
@@ -293,15 +295,21 @@ test.describe('moons (#53)', () => {
     const b = uniqueName('MondNachbar');
     await register(page, b);
     seed({ name: b, moon: { name: 'Selene' } });
-    await page.click('[data-act=logout]');
+    await logout(page);
     await register(page, a);
     await openSystemOf(page, b);
+    // Exact: the „⋯“ of the open moon row is named „Aktionen für Selene (Mond) …“ (#189).
     const mark = galaxyRow(page, b).getByRole('button', {
       name: 'Selene (Mond)',
+      exact: true,
     });
     await mark.tap();
     await expect(moonRow(page)).toContainText('Selene (Mond)');
-    await expect(moonRow(page).getByText('Sturmangriff')).toBeVisible();
+    // On a phone the actions of the moon are in the sheet of its „⋯“ (#189).
+    await expect(
+      await galaxyAction(page, moonRow(page), 'Sturmangriff'),
+    ).toBeVisible();
+    await page.keyboard.press('Escape');
     // Against the device width: a too wide table also widens innerWidth.
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth),

@@ -10,10 +10,11 @@ import { render } from 'svelte/server';
 import { describe, expect, it } from 'vitest';
 import { BUILD, DEF, RES, SHIPS } from '../core/catalog.ts';
 import { fleetSlots } from '../core/flight.ts';
-import { MISSION } from '../core/missions.ts';
+import { FLEET_MISSIONS, MISSION } from '../core/missions.ts';
 import { placeName } from '../core/moon.ts';
 import { text } from '../core/text.ts';
-import type { Levels, Mission, Planet } from '../core/types.ts';
+import type { Levels, Planet, ResearchState } from '../core/types.ts';
+import { planetsLine } from '../client/logic/colony-limit.ts';
 import { diameterLine } from '../client/logic/fields.ts';
 import { coords, dt, esc, fmt } from '../client/logic/format.ts';
 import { fleetEnd, nameOf, ranks, sortFleets } from '../client/logic/game.ts';
@@ -27,9 +28,10 @@ import {
   type Ui,
   type V,
 } from '../client/views/common.ts';
-import { fleet } from '../client/views/fleet.ts';
 import Overview from '../client/views/Overview.svelte';
+import OverviewCards from '../client/views/OverviewCards.svelte';
 import { planet, U } from './fixtures.ts';
+import { fleetView } from './fleet-view.ts';
 import { normalize } from './markup.ts';
 
 // ----- frozen: src/client/views/overview.ts before #118 -----
@@ -127,6 +129,7 @@ function overview(v: V): string {
  <tr><td>Position</td><td>${coords(P)}</td></tr><tr><td>Planetentyp</td><td>${l.type}</td></tr><tr><td>Temperatur</td><td>ca. ${P.temp - 40}°C bis ${P.temp}°C</td></tr>
  <tr><td>Durchmesser</td><td>${diameterLine(P, s.cfg)}</td></tr>
  <tr><td>Punkte</td><td>${fmt(s.players[me]?.points)} (Platz ${rk[me] ?? '-'} von ${Object.keys(s.players).length})</td></tr>
+ <tr><td>Planetengrenze</td><td>${planetsLine(s)}</td></tr>
  <tr><td>Serverzeit</td><td>${dt(v.now)}</td></tr></table>${giveUp(v)}</div></div>
  ${box('Aktivitäten', activities(v))}`;
 }
@@ -137,6 +140,23 @@ function renderNew(v: V): string {
   client.shown = v;
   try {
     return render(Overview).body;
+  } finally {
+    client.shown = null;
+  }
+}
+
+// One change on purpose (#189, D5, the phone layer; the CSS shows it up to
+// 760 px only): the cards „Läuft“, „Achtung“ and „Bereit“ right after the
+// title. The frozen view gets them from the component itself; what they
+// show is tested in src/client/logic/overview-cards.test.ts and
+// src/client/views/overview-cards.test.ts.
+function withCards(old: string, v: V): string {
+  client.shown = v;
+  try {
+    return old.replace(
+      '</h2>',
+      `</h2>${render(OverviewCards, { props: { v } }).body}`,
+    );
   } finally {
     client.shown = null;
   }
@@ -213,13 +233,57 @@ const flight = fc.record({
   owner: fc.constantFrom(...OWNERS),
   fromC: coord,
   toC: coord,
-  mission: fc.constantFrom(...(Object.keys(MISSION) as Mission[])),
+  // The missions of the view before #54: missiles came later, without a recall.
+  mission: fc.constantFrom(...FLEET_MISSIONS),
   state: fc.constantFrom('out' as const, 'back' as const),
   arr: time,
   ret: fc.option(time, { nil: undefined }),
   ships: fc.option(levels(Object.keys(SHIPS), 3000), { nil: undefined }),
   gift: fc.option(fc.constant(true as const), { nil: undefined }),
 });
+
+type Flight = typeof flight extends fc.Arbitrary<infer T> ? T : never;
+
+/** What a state of the overview is made of, by the generator and by hand. */
+interface Parts {
+  P: Planet;
+  research: Levels;
+  rq: ResearchState['rq'];
+  fleets: Flight[];
+  players: Record<string, { name: string; points: number }>;
+  extraFields: number;
+  now: number;
+}
+
+function view(x: Parts): V {
+  const s = {
+    cfg: { ...U, extraFields: x.extraFields },
+    me: { id: 'u1', readAt: 0 },
+    // The cards of the phone (#189) read the messages.
+    reports: [],
+    // Fleet ids are unique, as the server gives them.
+    // A foreign fleet always carries its ships here: one without them
+    // shows „Zusammensetzung unbekannt“ (#228), which the frozen view did
+    // not know (src/client/logic/overview.test.ts covers it).
+    fleets: x.fleets.map((f, i) => ({
+      ...f,
+      id: `f${i}`,
+      to: '',
+      ships: (f.owner === 'u1' ? f.ships : (f.ships ?? {})) as Levels,
+    })),
+    players: x.players,
+    galaxy: [],
+    // The shown planet is the main planet now and then (#224).
+    mainPlanet: x.now % 3 === 0 ? x.P.id : null,
+  } as unknown as GameState;
+  return {
+    s,
+    P: x.P,
+    R: { research: x.research, rq: x.rq },
+    now: x.now,
+    ui: { fm: 'attack', ft: null } as unknown as Ui,
+  };
+}
 
 const state = fc
   .record({
@@ -245,33 +309,7 @@ const state = fc
     extraFields: fc.integer({ min: 0, max: 40 }),
     now: time,
   })
-  .map((x): V => {
-    const s = {
-      cfg: { ...U, extraFields: x.extraFields },
-      me: { id: 'u1' },
-      // Fleet ids are unique, as the server gives them.
-      // A foreign fleet always carries its ships here: one without them
-      // shows „Zusammensetzung unbekannt“ (#228), which the frozen view did
-      // not know (src/client/logic/overview.test.ts covers it).
-      fleets: x.fleets.map((f, i) => ({
-        ...f,
-        id: `f${i}`,
-        to: '',
-        ships: (f.owner === 'u1' ? f.ships : (f.ships ?? {})) as Levels,
-      })),
-      players: x.players,
-      galaxy: [],
-      // The shown planet is the main planet now and then (#224).
-      mainPlanet: x.now % 3 === 0 ? x.P.id : null,
-    } as unknown as GameState;
-    return {
-      s,
-      P: x.P,
-      R: { research: x.research, rq: x.rq },
-      now: x.now,
-      ui: { fm: 'attack', ft: null } as unknown as Ui,
-    };
-  });
+  .map((x): V => view(x));
 
 /** Normalized markup of every branch of the overview, for the check that the cases reach them. */
 const MARKS = [
@@ -298,14 +336,71 @@ const MARKS = [
   'alt="Nord&quot; b=&quot;Süd (Mond)"',
   'class="fl-back"',
   'data-act="abandon"',
-  ...Object.keys(MISSION).map((m) => `class="fl-${m}"`),
+  ...FLEET_MISSIONS.map((m) => `class="fl-${m}"`),
+];
+
+/** Adds the marks that `html` shows to `seen`. */
+function collect(html: string, seen: Set<string>): void {
+  for (const mark of MARKS) if (html.includes(mark)) seen.add(mark);
+}
+
+/** The branches the sample reached 10 times or not at all: each has a hand-built case below. */
+const RARE = [
+  'Nichts in Arbeit',
+  'data-act="recall"',
+  'Deine Flotte () von',
+  'Mond &lt;b>&amp;"\'&lt;/b> (Mond)',
+  'alt="Nord&quot; b=&quot;Süd (Mond)"',
+];
+
+/** A state by hand: a planet, nothing running, no fleet, no other player. */
+function handBuilt(over: Partial<Planet>, more: Partial<Parts> = {}): V {
+  return view({
+    P: planet(over),
+    research: {},
+    rq: null,
+    fleets: [],
+    players: {},
+    extraFields: 0,
+    now: 1000,
+    ...more,
+  });
+}
+
+const ownFleet: Flight = {
+  owner: 'u1',
+  fromC: { g: 1, s: 1, p: 5 },
+  toC: { g: 1, s: 2, p: 3 },
+  mission: 'attack',
+  state: 'out',
+  arr: 5000,
+  ret: undefined,
+  ships: undefined,
+  gift: undefined,
+};
+
+/** Cases that make the rare branches certain, each named by what it shows. */
+const HAND_BUILT: readonly (readonly [string, V])[] = [
+  ['nothing running', handBuilt({})],
+  // An own fleet on its way out: the recall button, and no ships to name.
+  ['an own fleet without ships', handBuilt({}, { fleets: [ownFleet] })],
+  [
+    'a moon named with markup',
+    handBuilt({ kind: 'moon', name: 'Mond <b>&"\'</b>' }),
+  ],
+  [
+    'a moon named with quotes',
+    handBuilt({ kind: 'moon', name: 'Nord" b="Süd' }),
+  ],
 ];
 
 describe('Overview against the view before #118', () => {
   it('renders the overview as before', () => {
     fc.assert(
       fc.property(state, (v) => {
-        expect(normalize(renderNew(v))).toBe(normalize(overview(v)));
+        expect(normalize(renderNew(v))).toBe(
+          normalize(withCards(overview(v), v)),
+        );
       }),
       { seed: 118, numRuns: 300 },
     );
@@ -314,20 +409,47 @@ describe('Overview against the view before #118', () => {
   it('keeps the list of fleets of the fleet view', () => {
     fc.assert(
       fc.property(state, (v) => {
-        expect(normalize(fleet(v)).startsWith(normalize(fleetHead(v)))).toBe(
-          true,
-        );
+        // The title counts the expeditions once the research is there (#93,
+        // tested in src/client/views/fleet.test.ts): without it, as before.
+        const old = {
+          ...v,
+          R: { ...v.R, research: { ...v.R.research, expo: 0 } },
+        };
+        expect(
+          normalize(fleetView(old)).startsWith(normalize(fleetHead(v))),
+        ).toBe(true);
       }),
       { seed: 118, numRuns: 300 },
     );
   });
 
-  it('reaches every branch', () => {
+  it('renders the hand-built cases as before', () => {
+    for (const [name, v] of HAND_BUILT)
+      expect(normalize(renderNew(v)), name).toBe(
+        normalize(withCards(overview(v), v)),
+      );
+  });
+
+  // The generated states reach the rare branches by chance only: the sample
+  // (seed 118, 300 runs) reached „Nichts in Arbeit“ not at all once the
+  // catalog had 58 entries, and the recall button and the fleet without
+  // ships 10 times. A new catalog entry moves the sample, so these branches
+  // are also reached by hand-built cases, on purpose and always.
+  it('reaches the rare branches by the hand-built cases alone', () => {
     const seen = new Set<string>();
+    for (const [, v] of HAND_BUILT) collect(normalize(renderNew(v)), seen);
+    expect([...seen].filter((m) => RARE.includes(m)).sort()).toEqual(
+      [...RARE].sort(),
+    );
+  });
+
+  it('reaches every branch', () => {
+    // The sample (seed 118) and the hand-built cases together.
+    const seen = new Set<string>();
+    for (const [, v] of HAND_BUILT) collect(normalize(renderNew(v)), seen);
     fc.assert(
       fc.property(state, (v) => {
-        const html = normalize(renderNew(v));
-        for (const mark of MARKS) if (html.includes(mark)) seen.add(mark);
+        collect(normalize(renderNew(v)), seen);
       }),
       { seed: 118, numRuns: 300 },
     );

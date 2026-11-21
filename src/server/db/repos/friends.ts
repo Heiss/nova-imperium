@@ -4,7 +4,9 @@
 // a second row for a pair in either direction.
 import type { FriendLink } from '../../../core/friends.ts';
 import type { Db } from '../database.ts';
+import type { RepositoryModule } from './contract.ts';
 import type { Row } from './rows.ts';
+import type { RoundReset } from '../round-reset.ts';
 
 export interface Friends {
   /** Every request and friendship of `uid`, in either direction. */
@@ -23,7 +25,7 @@ const linkOf = (r: Row): FriendLink => ({
   status: r.status as FriendLink['status'],
 });
 
-export class SqliteFriends implements Friends {
+class SqliteFriends implements Friends {
   private readonly db: Db;
   constructor(db: Db) {
     this.db = db;
@@ -64,3 +66,14 @@ export class SqliteFriends implements Friends {
       .run(a, b, b, a);
   }
 }
+
+/** The buddy list (#227). */
+export const repository = {
+  key: 'friends',
+  make: (db: Db): Friends => new SqliteFriends(db),
+} as const satisfies RepositoryModule;
+
+/** The buddy list stays (#227). */
+export const roundReset = [
+  { keeps: ['friendships'] },
+] satisfies readonly RoundReset[];

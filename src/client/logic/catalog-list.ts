@@ -10,6 +10,7 @@ import {
   DEF,
   RES,
   SHIPS,
+  SILO,
   type UnitDef,
 } from '../../core/catalog.ts';
 import { techFactor } from '../../core/battle.ts';
@@ -23,6 +24,7 @@ import {
 import { isDemolition } from '../../core/demolition.ts';
 import { type OrderError, orderErrors } from '../../core/economy-checks.ts';
 import { activeDrive, shipSpeed } from '../../core/flight.ts';
+import { researchListed, researchNote } from '../../core/colony-limit.ts';
 import { hasLab } from '../../core/lab.ts';
 import { placeName } from '../../core/moon.ts';
 import {
@@ -33,7 +35,14 @@ import {
 } from '../../core/research.ts';
 import { text } from '../../core/text.ts';
 import type { Cost, Levels, Requirements } from '../../core/types.ts';
-import { hasYard, orderMax, YARD_LOCK, yardLockedBy } from '../../core/yard.ts';
+import {
+  hasYard,
+  orderMax,
+  siloUse,
+  YARD_HOME,
+  YARD_LOCK,
+  yardLockedBy,
+} from '../../core/yard.ts';
 import type { V } from '../views/common.ts';
 import { canOfferDemolition } from './demolition.ts';
 import { type Explanation, explanation } from './explain.ts';
@@ -46,6 +55,7 @@ import {
   researchState,
 } from './game.ts';
 import { iconURL } from './icons.ts';
+import { levelsRow, type LevelsRow } from './level-mode.ts';
 import { levelRow } from './level-table.ts';
 
 /** The kinds of catalog entries that have a list. */
@@ -122,6 +132,8 @@ export interface CatalogRow {
   lines: string[];
   req: Requirements | undefined;
   explanation: Explanation | null;
+  /** The ▤ and the table of the next levels, for buildings and research (#187). */
+  levels?: LevelsRow | null;
   action: CatalogAction;
   /** A building that can be torn down offers „Zurückbauen“ (#202). */
   demolish?: boolean;
@@ -129,6 +141,8 @@ export interface CatalogRow {
 
 /** A row of the order queue of the shipyard. */
 interface QueueRow {
+  /** The catalog key of the unit; with the position it names the order a cancel takes back (#258). */
+  key: string;
   label: string;
   /** The first order: when its next unit is done; null when it is due. */
   next: { end: number; left: string | null } | null;
@@ -154,7 +168,7 @@ export type CatalogPage =
       rows: CatalogRow[];
     };
 
-const LOCKED: Note = {
+export const LOCKED: Note = {
   kind: 'note',
   cls: 'req',
   text: 'Das Wissen ist noch verschlossen',
@@ -201,6 +215,10 @@ function entry(
   };
 }
 
+/** The ▤ of an entry with levels, by the option „Stufenübersicht“ of the player (#187). */
+const levelsOf = (v: V, key: string): LevelsRow | null =>
+  levelsRow(key, text(key)!.n, v.s.me.levelTable, v.ui.openLv);
+
 const stage = (level: number): string => (level ? `(Stufe ${level})` : '');
 
 /** The energy production a level needs, with what the planet makes. */
@@ -236,6 +254,13 @@ function useLines(v: V, key: string, level: number): string[] {
       `${RESOURCE_NAMES[res]}verbrauch auf Stufe ${next}: ${ENERGY.format(use)} pro Stunde`,
   );
   return [...energy, ...uses];
+}
+
+/** The places of the silos the missiles take, at a building that stores them (#54). */
+function siloLines(v: V, key: string): string[] {
+  if (!Object.hasOwn(SILO, key)) return [];
+  const { used, places } = siloUse(v.P);
+  return [`Belegt: ${fmt(used)} / ${fmt(places)} Plätze`];
 }
 
 /**
@@ -289,6 +314,7 @@ function buildingRow(v: V, key: string): CatalogRow {
   const status = buildState(P, R, key, s.cfg);
   return {
     ...entry(v, key, 'ic-b', stage(level)),
+    levels: levelsOf(v, key),
     running: status === 'running',
     cost,
     // As energyShort() counts it: a throttled reactor with its share (#47).
@@ -296,7 +322,11 @@ function buildingRow(v: V, key: string): CatalogRow {
       energyNeed(def, level + 1),
       () => production(P, s.cfg, R.research).eProd,
     ),
-    lines: [...useLines(v, key, level), `Bauzeit: ${dur(time)}`],
+    lines: [
+      ...siloLines(v, key),
+      ...useLines(v, key, level),
+      `Bauzeit: ${dur(time)}`,
+    ],
     req: def.req,
     action: buildAction(v, status, level, short),
     demolish: canOfferDemolition(v, key),
@@ -323,6 +353,8 @@ const RESEARCH_WAITS: Partial<Record<ResearchUiState, Note>> = {
   locked: LOCKED,
   busy: note('dim', 'Es wird bereits geforscht'),
   labUpgrading: note('dim', 'Scholarium wird ausgebaut'),
+  // The configured highest level (Kolonialverwaltung, #237): no next level to start.
+  maxLevel: note('dim', 'höchste Stufe erreicht'),
 };
 
 function researchAction(
@@ -362,15 +394,17 @@ function researchRow(v: V, key: string): CatalogRow {
     lab === (P.b.lab ?? 0) ? '' : ` (Scholarien zusammen Stufe ${lab})`;
   const short = energyShort(def, level + 1, P, s.cfg, R.research);
   const state = researchState(P, R, key, s.cfg);
+  const note = researchNote(key, s.cfg, level);
   return {
     ...entry(v, key, 'ic-r', stage(level)),
+    levels: levelsOf(v, key),
     running: false,
     cost,
     energy: energyCost(
       energyNeed(def, level + 1),
       () => production(P, s.cfg, R.research).eProd,
     ),
-    lines: [`Forschungszeit: ${dur(time)}${linked}`],
+    lines: [...(note ? [note] : []), `Forschungszeit: ${dur(time)}${linked}`],
     req: def.req,
     action: researchAction(v, state, level, short),
   };
@@ -449,7 +483,12 @@ export function unitLines(v: V, key: string): string[] | undefined {
  * one unit, after the requirements, which show their note instead. The list
  * of the shipyard, full at 20 orders, is checked by the server only.
  */
-const DISABLES: readonly OrderError[] = ['yardLocked', 'limit', 'cost'];
+const DISABLES: readonly OrderError[] = [
+  'yardLocked',
+  'limit',
+  'siloFull',
+  'cost',
+];
 
 function orderAction(v: V, key: string, once: boolean): CatalogAction {
   const errors = orderErrors(v.P, v.R, key, 1);
@@ -497,6 +536,7 @@ function queue(v: V): QueueRow[] {
   return P.sq.map((q, i) => {
     const end = (P.sqT ?? now) + q.unit;
     return {
+      key: q.key,
       label: `${fmt(q.n)}× ${text(q.key)!.n}`,
       next: i === 0 ? { end, left: end > now ? dur(end - now) : null } : null,
       each: `je ${dur(q.unit)}`,
@@ -506,9 +546,9 @@ function queue(v: V): QueueRow[] {
 
 /** Why the shipyard cannot produce while `key` is upgraded (#48). */
 export const lockNotice = (key: string): string =>
-  key === 'yard'
-    ? 'Die Schiffsschmiede wird gerade ausgebaut und kann nicht produzieren.'
-    : `Die ${YARD_LOCK[key]} wird gerade ausgebaut, die Schiffsschmiede kann nicht produzieren.`;
+  key === YARD_HOME
+    ? `Die ${YARD_LOCK[key]} wird gerade ausgebaut und kann nicht produzieren.`
+    : `Die ${YARD_LOCK[key]} wird gerade ausgebaut, die ${YARD_LOCK[YARD_HOME]} kann nicht produzieren.`;
 
 function yardPage(
   v: V,
@@ -558,7 +598,10 @@ const PAGES: Readonly<Record<CatalogKind, (v: V) => CatalogPage>> = {
           line: { text: labLine(v) },
           queue: [],
           warn: null,
-          rows: Object.keys(RES).map((k) => researchRow(v, k)),
+          // The Kolonialverwaltung is listed only in a round that has it (#237).
+          rows: Object.keys(RES)
+            .filter((k) => researchListed(k, v.s.cfg))
+            .map((k) => researchRow(v, k)),
         }
       : noLab(v),
   ship: (v) => yardPage(v, 'Schiffsschmiede', SHIPS, 'ic-s', v.P.ships),

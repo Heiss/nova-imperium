@@ -62,9 +62,17 @@ export function explanation(
 export const paragraphs = (text: string): string[] =>
   text.split('\n\n').map((p) => p.trim());
 
+/** One choice of a selection of the options: its value, its label, and whether it is the current one. */
+export interface Choice {
+  value: string;
+  label: string;
+  selected: boolean;
+}
+
 /** The choices of the option, the current mode selected. */
-export const explainOptionsHTML = (mode: unknown): string =>
-  EXPLAIN_MODES.map(
-    (m) =>
-      `<option value="${m}"${m === explainMode(mode) ? ' selected' : ''}>${LABELS[m]}</option>`,
-  ).join('');
+export const explainChoices = (mode: unknown): Choice[] =>
+  EXPLAIN_MODES.map((m) => ({
+    value: m,
+    label: LABELS[m],
+    selected: m === explainMode(mode),
+  }));

@@ -5,11 +5,11 @@
 
 /**
  * Catalog key → classic name, new name and new abbreviation. An entry that
- * the original game did not have (the Handelsposten, #171) has no classic
- * name.
+ * the original game did not have (the Handelsposten, #171; the Auspex-
+ * Kartographie, #190) has no classic name (missing or null).
  */
 export const NAMES: Readonly<
-  Record<string, { classic?: string; name: string; ab: string }>
+  Record<string, { classic?: string | null; name: string; ab: string }>
 > = {
   metal: { classic: 'Metallmine', name: 'Adamant-Tiefbohrung', ab: 'AT' },
   crystal: {
@@ -44,6 +44,9 @@ export const NAMES: Readonly<
   moonbase: { classic: 'Mondbasis', name: 'Mondzitadelle', ab: 'MZ' },
   // #53: the name decided by the owner (2026-11-13), the abbreviation [V].
   phalanx: { classic: 'Sensorphalanx', name: 'Auspex-Phalanx', ab: 'PX' },
+  // #54: the names of the table above [V] (okf/features/missiles.md), the
+  // abbreviations [V].
+  silo: { classic: 'Raketensilo', name: 'Raketenkrypta', ab: 'RK' },
   // #53, #230: the name decided by the owner (2026-11-13), the abbreviation [V].
   jumpgate: { classic: 'Sprungtor', name: 'Warp-Tor', ab: 'WR' },
   // #171: a new building, named by the owner (2026-11-17); the abbreviation [V].
@@ -114,6 +117,22 @@ export const NAMES: Readonly<
   pt: { classic: 'Plasmawerfer', name: 'Plasmabatterie', ab: 'PA' },
   ssd: { classic: 'Kleine Schildkuppel', name: 'Kleiner Schutzdom', ab: 'SD' },
   lsd: { classic: 'Große Schildkuppel', name: 'Großer Schutzdom', ab: 'GD' },
+  // #190: the name decided by the owner (2026-11-14), the abbreviation [V];
+  // an own extension without a classic name.
+  carto: { classic: null, name: 'Auspex-Kartographie', ab: 'AK' },
+  // #93: the name of the package order (okf/features/naming.md), the
+  // abbreviation [V].
+  expo: {
+    classic: 'Expeditionstechnik',
+    name: 'Kreuzzugs-Kartografie',
+    ab: 'KK',
+  },
+  // #237: the name of the issue (owner, 2026-11-17, D2); the abbreviation [V];
+  // an own extension without a classic name.
+  colonial: { classic: null, name: 'Kolonialverwaltung', ab: 'KV' },
+  // #54: the Abfangrakete keeps its classic name (naming table, [V]).
+  abm: { classic: 'Abfangrakete', name: 'Abfangrakete', ab: 'AR' },
+  ipm: { classic: 'Interplanetarrakete', name: 'Orbitalrakete', ab: 'OR' },
 };
 
 /** Resources: Energie stays. */
@@ -133,7 +152,27 @@ export const MISSIONS = {
   harvest: { classic: 'Abbauen', name: 'Bergung' },
   // #55: „Wache stellen“ (owner, 2026-11-17), not „Wacht halten“ of #94.
   hold: { classic: 'Halten', name: 'Wache stellen' },
+  moonbreak: { classic: 'Zerstören', name: 'Mondbruch' },
+  // #190: the name proposed in the issue [V]; no classic mission.
+  survey: { classic: null, name: 'Vermessung' },
+  // #54: the name of the issue's interface, kept by the naming [V].
+  missile: { classic: 'Raketenangriff', name: 'Raketenangriff' },
+  // #93: the name of the issue's interface, kept by the naming [V].
+  expedition: { classic: 'Expedition', name: 'Expedition' },
 } as const;
+
+/**
+ * The classic word of an entry with the name that replaces it. An entry
+ * without a classic name (missing or null: #171, #190) or one whose name the
+ * naming keeps (the Abfangrakete, #54) has no classic word to look for.
+ */
+const classicPairs = (x: {
+  classic?: string | null;
+  name: string;
+}): { classic: string; name: string }[] =>
+  x.classic && x.classic !== x.name
+    ? [{ classic: x.classic, name: x.name }]
+    : [];
 
 /**
  * Classic words no display text may show any more: the names and
@@ -144,7 +183,7 @@ export const CLASSIC: Readonly<Record<string, string>> = {
   ...RESOURCES,
   ...Object.fromEntries(
     Object.values(NAMES).flatMap((x) =>
-      x.classic ? [[x.classic, x.name]] : [],
+      classicPairs(x).map(({ classic, name }) => [classic, name]),
     ),
   ),
   Werft: 'Schiffsschmiede',
@@ -188,9 +227,7 @@ export const classicIn = (text: string): string[] =>
  * name, the longest first („Schlachtkreuzer“ before „Kreuzer“).
  */
 export function renamed(text: string): string {
-  const pairs = Object.values(NAMES).flatMap((x) =>
-    x.classic ? [{ classic: x.classic, name: x.name }] : [],
-  );
+  const pairs = Object.values(NAMES).flatMap(classicPairs);
   pairs.sort((a, b) => b.classic.length - a.classic.length);
   let out = text;
   for (const { classic, name } of pairs)

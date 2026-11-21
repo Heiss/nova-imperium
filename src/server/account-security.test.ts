@@ -11,8 +11,12 @@ import { hashToken, passwordMatches } from './auth.ts';
 import { GameError } from './game/context.ts';
 import { addUser, testCtx } from './test-helpers.ts';
 
+// The password check is the cost of every change here; the result of the same
+// password and salt is computed once (src/test/scrypt-memo.ts).
 vi.mock('node:crypto', async (original) => ({
-  ...(await original<typeof import('node:crypto')>()),
+  ...(await import('../test/scrypt-memo.ts')).memoScrypt(
+    await original<typeof import('node:crypto')>(),
+  ),
   randomInt: () => 42,
 }));
 

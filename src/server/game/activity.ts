@@ -17,12 +17,17 @@ import type { User } from '../db/repos/players.ts';
 import type { Ctx } from './context.ts';
 import { mainPlanet } from './main-planet.ts';
 
-/** Records a login or a manual action of `u` now. */
+/**
+ * Records a login or a manual action of `u` now. An account in vacation mode
+ * records none, so the lock screen and its clicks move no time (#223, owner,
+ * 2026-11-18); the end of the vacation counts again from that action on.
+ */
 export function recordActivity(
   ctx: Ctx,
   u: User,
   event: Extract<ActivityEvent, 'login' | 'action'>,
 ): void {
+  if (u.vacation !== null) return;
   const now = ctx.now();
   const own = ctx.planets.ofOwner(u.id).map((p) => p.id);
   const main = mainPlanet(ctx, u)?.id ?? null;
@@ -45,6 +50,21 @@ export function planetActivities(
   }
   return out;
 }
+
+/**
+ * The public activity of one place at a time with the round's thresholds:
+ * the activity in the Auspex-Bericht (#175 D5, Q3), the same rule as on the
+ * Sternenkarte. Null for a place without a recorded activity.
+ */
+export const placeActivity = (
+  ctx: Ctx,
+  id: string,
+  at: number,
+  limits: Readonly<ActivityLimits>,
+): PlanetActivity | null => {
+  const last = ctx.planets.activeAt(id);
+  return last === null ? null : planetActivity(last, at, limits);
+};
 
 /** The inactivity of every account that is inactive now. */
 export function inactivities(

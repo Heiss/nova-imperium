@@ -138,29 +138,25 @@ describe('admin repository: audit log', () => {
   });
 });
 
-describe('admin repository: activity and retention', () => {
-  it('records the last interaction per day and adds active time', () => {
+describe('admin repository: last audit time', () => {
+  it('is the newest time of one actor and action, undefined without one (#328)', () => {
     const ctx = testCtx();
     addUser(ctx, 'Anna');
     addUser(ctx, 'Bert');
-    expect(ctx.admin.lastActivity('u_Anna')).toBeUndefined();
-    ctx.admin.touchActivity('u_Anna', 0, 50, 5);
-    ctx.admin.touchActivity('u_Anna', 0, 60, 10);
-    ctx.admin.touchActivity('u_Anna', 100, 120, 20);
-    ctx.admin.touchActivity('u_Bert', 0, 70, 1);
-    expect(ctx.admin.lastActivity('u_Anna')).toEqual({ last: 120 });
-    ctx.admin.addActiveTime(7, 'u_Anna', 0);
-    expect(
-      ctx.db
-        .prepare('SELECT * FROM player_activity ORDER BY player, day')
-        .all(),
-    ).toEqual([
-      { player: 'u_Anna', day: 0, last_seen: 60, active_ms: 22 },
-      { player: 'u_Anna', day: 100, last_seen: 120, active_ms: 20 },
-      { player: 'u_Bert', day: 0, last_seen: 70, active_ms: 1 },
-    ]);
+    expect(ctx.admin.lastAuditTime('u_Anna', 'rateLimit')).toBeUndefined();
+    ctx.admin.addAuditEvent(event({ action: 'rateLimit', time: 30 }));
+    ctx.admin.addAuditEvent(event({ action: 'rateLimit', time: 50 }));
+    ctx.admin.addAuditEvent(event({ action: 'build', time: 90 }));
+    ctx.admin.addAuditEvent(
+      event({ action: 'rateLimit', actor: 'u_Bert', time: 70 }),
+    );
+    expect(ctx.admin.lastAuditTime('u_Anna', 'rateLimit')).toBe(50);
+    expect(ctx.admin.lastAuditTime('u_Bert', 'rateLimit')).toBe(70);
+    expect(ctx.admin.lastAuditTime('u_Bert', 'build')).toBeUndefined();
   });
+});
 
+describe('admin repository: retention', () => {
   it('purges audit, error and activity rows before the cutoff', () => {
     const ctx = testCtx();
     addUser(ctx, 'Anna');
@@ -172,8 +168,9 @@ describe('admin repository: activity and retention', () => {
       VALUES ('server', 99, 1, 'old', '', '', '', '', '', ''),
         ('server', 100, 1, 'new', '', '', '', '', '', '');
     `);
-    ctx.admin.touchActivity('u_Anna', 90, 1, 1);
-    ctx.admin.touchActivity('u_Anna', 91, 1, 1);
+    ctx.db.exec(`
+      INSERT INTO player_activity VALUES ('u_Anna', 90, 1, 1), ('u_Anna', 91, 1, 1);
+    `);
     ctx.admin.purge(100, 10);
     expect(
       ctx.db.prepare('SELECT time FROM audit_events').pluck().all(),

@@ -4,7 +4,14 @@
 // after Enter, the planets get their textures, and the fields show the
 // shown system. Desktop and phone.
 import { expect, test, type Page } from '@playwright/test';
-import { nav, register, seed, uniqueName, watch } from './helpers.ts';
+import {
+  galaxyAction,
+  nav,
+  register,
+  seed,
+  uniqueName,
+  watch,
+} from './helpers.ts';
 
 async function stepAndType(page: Page): Promise<void> {
   const w = watch(page);
@@ -29,7 +36,7 @@ async function stepAndType(page: Page): Promise<void> {
     /url\(/,
   );
   await expect(page.locator('.box .bd.dim').last()).toHaveText(
-    /^Auspex-Erkundung schickt \d+ Spähschädel – einstellbar unter „Hilfe & Optionen“\.$/,
+    /^Auspex-Erkundung schickt \d+ Spähschädel – einstellbar unter „Optionen“\.$/,
   );
   // Enter shows the typed system, and the focus stays in the field.
   const other = s === '1' ? '2' : '1';
@@ -44,11 +51,13 @@ async function stepAndType(page: Page): Promise<void> {
   await page.getByText('zum Heimatsystem').click();
   await expect(sys).toHaveValue(s!);
   await expect(home).toContainText('Aktiver Planet');
-  // The colony offers „Wechseln“.
+  // The colony offers „Wechseln“: in its row, on a phone in the sheet of its „⋯“ (#189).
   await expect(
-    page
-      .locator('table.gal tr.me', { hasText: 'Kolonie' })
-      .getByRole('button', { name: 'Wechseln' }),
+    await galaxyAction(
+      page,
+      page.locator('table.gal tr.me', { hasText: 'Kolonie' }),
+      'Wechseln',
+    ),
   ).toBeVisible();
   expect(w.problems).toEqual([]);
 }

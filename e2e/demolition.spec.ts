@@ -6,7 +6,14 @@
 // axe on the confirmation.
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { nav, register, seed, uniqueName, watch } from './helpers.ts';
+import {
+  nav,
+  openAllRows,
+  register,
+  seed,
+  uniqueName,
+  watch,
+} from './helpers.ts';
 
 const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
 
@@ -26,6 +33,7 @@ async function demolitionFlow(page: Page): Promise<void> {
   seed({ name: player, b: { metal: 2 }, res: { m: 1000, c: 1000, d: 0 } });
   await page.reload();
   await nav(page, 'buildings');
+  await openAllRows(page);
   const mine = row(page, 'Adamant-Tiefbohrung');
   await expect(mine.locator('.lv')).toHaveText('(Stufe 2)');
   // Only a building with a level offers it.

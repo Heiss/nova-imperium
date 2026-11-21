@@ -19,9 +19,11 @@ import { parsePlaceId, placeId } from '../../core/place.ts';
 import { settle } from '../../core/settle.ts';
 import type { Planet } from '../../core/types.ts';
 import type { User } from '../db/repos/players.ts';
-import { type Action, mine } from './actions.ts';
+import { type Handler, mine } from './actions.ts';
 import { type Ctx, fail, universe } from './context.ts';
 import { pickedShips } from './fleet-actions.ts';
+import type { ServerFeature, StatePart } from './feature.ts';
+import type { StateShape } from '../../core/state/jump-gate.ts';
 
 /** The German message of each refusal [E] (owner, 2026-11-17). */
 export const JUMP_ERROR: Readonly<Record<JumpError, string>> = {
@@ -52,7 +54,7 @@ function targetOf(ctx: Ctx, u: User, id: unknown): Planet | null {
  * Jumps the ships `d.ships` from the active moon `d.planet` to the own moon
  * `d.to` (an id such as `m1_2_3`).
  */
-export const jump: Action = (ctx, u, d, event) => {
+const jump: Handler<'jump'> = (ctx, u, d, event) => {
   const now = ctx.now();
   const from = mine(ctx, u, d.planet);
   const to = targetOf(ctx, u, d.to);
@@ -85,3 +87,13 @@ export const gateState = (ctx: Ctx, uid: string): GateView[] =>
       level: gateLevel(p),
       ready: ctx.planets.gateReady(p.id),
     }));
+
+export const serverFeature = {
+  actions: { jump },
+  // The own Warp-Tore with their readiness (#230).
+  state: {
+    order: 80,
+    keys: ['gates'],
+    build: (ctx, u) => ({ gates: gateState(ctx, u.id) }),
+  } satisfies StatePart<StateShape>,
+} satisfies ServerFeature;

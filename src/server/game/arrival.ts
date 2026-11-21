@@ -7,7 +7,14 @@ import { queuePush } from '../push-store.ts';
 // else the fleet turns back, and hands the arrival to the mission's
 // `onArrive` from the generated server index.
 import { MISSION_SERVERS } from '../../features/index.server.gen.ts';
-import { type TargetKind, missionRules, suits } from '../../core/missions.ts';
+import {
+  launchOf,
+  MISSION,
+  type TargetKind,
+  missionRules,
+  suits,
+} from '../../core/missions.ts';
+import { isExpeditionPlace } from '../../core/expedition.ts';
 import { settle } from '../../core/settle.ts';
 import { inUniverse } from '../../core/universe.ts';
 import type { Fleet, Planet } from '../../core/types.ts';
@@ -16,14 +23,15 @@ import { dueAt } from '../../core/holding.ts';
 import { endHold } from './holding.ts';
 import { type MissionServer, land, playerOf, turnBack } from './missions.ts';
 import { lockedUntil } from './position-lock.ts';
+import { beginCause, dropCause, fleetBefore, journalFleet } from './journal.ts';
+import { EVENT_KIND } from '../../core/round-events.ts';
 
 // The formulas of the espionage (src/core/spy.ts, #285) and of the battle
-// (with its mission) are exported here as before.
-export { counterChance, spyScore } from '../../core/spy.ts';
-export {
-  plunder,
-  rebuild,
-} from '../../features/missions/attack/arrive.server.ts';
+// (with its mission and the shared battle of #175) are exported here as
+// before.
+export { spyScore } from '../../core/spy.ts';
+export { plunder } from '../../features/missions/attack/arrive.server.ts';
+export { rebuild } from './fight.ts';
 
 const player = playerOf;
 
@@ -32,6 +40,24 @@ const SERVERS: ReadonlyMap<string, MissionServer> = new Map<
   string,
   MissionServer
 >(MISSION_SERVERS);
+
+/**
+ * Missiles whose target is gone are lost: they cannot come back (#54) [V].
+ */
+function lostMissiles(ctx: Ctx, f: Fleet): void {
+  addReport(
+    ctx,
+    f.owner,
+    {
+      time: f.arr,
+      type: 'info',
+      title: `${MISSION[f.mission]} ${coords(f.toC)}`,
+      text: `An ${coords(f.toC)} wurde kein passendes Ziel gefunden. Deine Orbitalraketen sind verloren.`,
+    },
+    { topic: 'fleet' },
+  );
+  ctx.fleets.delete(f.id);
+}
 
 /** A fleet whose target no longer fits flies back with what it carries. */
 function unsuitableTarget(ctx: Ctx, f: Fleet, kind: TargetKind): void {
@@ -55,13 +81,18 @@ function unsuitableTarget(ctx: Ctx, f: Fleet, kind: TargetKind): void {
 /**
  * Whether the target still fits the kind; a free one must also still exist
  * and must not be locked after an abandonment (#224, D2), a Trümmerfeld
- * must still be there (#45).
+ * must still be there (#45), and the expedition position must still be the
+ * one after the last planet position (#93).
  */
-const fits = (ctx: Ctx, kind: TargetKind, f: Fleet, t: Planet | null) =>
-  suits(kind, f.owner, t, kind === 'debris' && !!ctx.debris.get(f.to)) &&
-  (kind !== 'free' ||
-    (inUniverse(f.toC, universe(ctx)) &&
-      lockedUntil(ctx, f.toC, f.arr) === null));
+function fits(ctx: Ctx, kind: TargetKind, f: Fleet, t: Planet | null): boolean {
+  if (!suits(kind, f.owner, t, kind === 'debris' && !!ctx.debris.get(f.to)))
+    return false;
+  if (kind === 'expedition') return isExpeditionPlace(f.toC, universe(ctx));
+  if (kind !== 'free') return true;
+  return (
+    inUniverse(f.toC, universe(ctx)) && lockedUntil(ctx, f.toC, f.arr) === null
+  );
+}
 
 export function arrive(ctx: Ctx, f: Fleet): void {
   const rules = missionRules(f.mission);
@@ -70,7 +101,9 @@ export function arrive(ctx: Ctx, f: Fleet): void {
   const server = SERVERS.get(f.mission)!;
   const t0 = ctx.planets.get(f.to);
   if (!fits(ctx, rules.target, f, t0))
-    return unsuitableTarget(ctx, f, rules.target);
+    return launchOf(rules) === 'missiles'
+      ? lostMissiles(ctx, f)
+      : unsuitableTarget(ctx, f, rules.target);
   // A free target gets the raw target, which is nothing, and so does a
   // Trümmerfeld, which is no planet; the others the target settled to the
   // arrival, with both players.
@@ -123,12 +156,23 @@ export function tick(
       ctx.tx(() => {
         const live = ctx.fleets.get(f.id);
         if (!live || dueAt(live) > now) return;
+        // The journal of the round: one event per arrival, end of holding and return (#235).
+        beginCause();
+        const before = fleetBefore(ctx, live);
+        const at = dueAt(live);
+        const kind = {
+          out: EVENT_KIND.arrival,
+          hold: EVENT_KIND.hold,
+          back: EVENT_KIND.return,
+        }[live.state];
         if (live.state === 'out') arrive(ctx, live);
         // A Halten flies home at the end of its holding time (#55).
         else if (live.state === 'hold') endHold(ctx, live);
         else comeHome(ctx, live);
+        journalFleet(ctx, kind, live, at, before);
       });
     } catch (e) {
+      dropCause();
       // Leave the fleet in place for the next tick when another writer holds the lock.
       if (isDatabaseBusy(e)) break;
       log(`Fleet ${f.id} failed and was removed`, e);

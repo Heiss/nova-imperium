@@ -7,7 +7,7 @@ import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { seeded } from '../test/fixtures.ts';
 import * as N from './battle.ts';
-import { SHIPS, UNIT } from './catalog.ts';
+import { MISSILE, SHIPS, UNIT } from './catalog.ts';
 import type { Levels } from './types.ts';
 
 // ---- reference: src/core/battle.ts before the combat components ----
@@ -135,7 +135,11 @@ function battle(
 }
 // ---- end of the reference ----
 
-const KEYS = [...Object.keys(UNIT), 'nope'];
+/** Every unit that fights, and a key that is none; missiles do not fight (#54). */
+const KEYS = [
+  ...Object.keys(UNIT).filter((k) => !Object.hasOwn(MISSILE, k)),
+  'nope',
+];
 /** Rapid fire also asked for keys of entries that do not fight. */
 const PAIRS = [...KEYS, 'metal', 'energy'];
 // Inherited names of a plain object. The version before answered them with

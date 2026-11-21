@@ -22,9 +22,11 @@ import { tradeDone, tradeNote } from '../../core/market-text.ts';
 import type { RoundRules } from '../../core/round.ts';
 import type { Planet } from '../../core/types.ts';
 import type { User } from '../db/repos/players.ts';
-import { type Action, mine } from './actions.ts';
+import { type Handler, mine } from './actions.ts';
 import { type Ctx, fail, universe } from './context.ts';
 import { roundRules } from './round.ts';
+import type { ServerFeature, StatePart } from './feature.ts';
+import type { StateShape } from '../../core/state/market.ts';
 
 /** The price of every pair now, after the drift (millionths of the base). */
 export function currentPrices(
@@ -66,7 +68,7 @@ export function marketOf(
  * of every pair now and what the player gave today. Its preview computes
  * the exchange with the same function as the server.
  */
-export const marketState = (ctx: Ctx, u: User) => ({
+const marketState = (ctx: Ctx, u: User) => ({
   prices: currentPrices(ctx),
   used: ctx.market.used(u.id, dayOf(ctx.now())),
 });
@@ -78,7 +80,7 @@ export const marketState = (ctx: Ctx, u: User) => ({
  * all. The audit entry records the planet, the pair, both amounts, the fee,
  * whether the storage capped it or the limit of the day cut it, and the price it was made at.
  */
-export const exchange: Action = (ctx, u, d, event) => {
+const exchange: Handler<'trade'> = (ctx, u, d, event) => {
   const p = mine(ctx, u, d.planet);
   const round = roundRules(ctx);
   const market = marketOf(ctx, u, p, round);
@@ -109,3 +111,13 @@ export const exchange: Action = (ctx, u, d, event) => {
     };
   return tradeDone(q);
 };
+
+export const serverFeature = {
+  actions: { trade: exchange },
+  state: {
+    order: 180,
+    keys: ['market'],
+    // The prices of the marketplace and what the player gave today (#171).
+    build: (ctx, u) => ({ market: marketState(ctx, u) }),
+  } satisfies StatePart<StateShape>,
+} satisfies ServerFeature;

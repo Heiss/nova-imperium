@@ -1,5 +1,6 @@
 import MarkdownIt from 'markdown-it';
-import type { Action } from './actions.ts';
+import type { Wire } from '../../core/actions.ts';
+import type { Handler } from './actions.ts';
 import type { Guild, GuildPlayer } from '../db/repos/guilds.ts';
 import { fail, str, type Ctx } from './context.ts';
 import { chatState } from './guild-chat.ts';
@@ -14,6 +15,8 @@ import {
   rankState,
   type Actor,
 } from './guild-ranks.ts';
+import type { ServerFeature, StatePart } from './feature.ts';
+import type { StateShape } from '../../core/state/guilds.ts';
 
 const markdown = new MarkdownIt({ html: false, linkify: false }).disable(
   'image',
@@ -23,7 +26,11 @@ function guild(ctx: Ctx, id: unknown): Guild {
   return ctx.guilds.get(str(id, 32)) ?? fail('Diese Gilde gibt es nicht.');
 }
 
-function profile(ctx: Ctx, d: Record<string, unknown>, except = '') {
+function profile(
+  ctx: Ctx,
+  d: Wire<'createGuild' | 'updateGuild'>,
+  except = '',
+) {
   const tag = str(d.tag, 30).toUpperCase();
   const name = str(d.name, 100);
   const description = String(d.description ?? '').trim();
@@ -38,7 +45,7 @@ function profile(ctx: Ctx, d: Record<string, unknown>, except = '') {
   return { tag, name, description };
 }
 
-export const createGuild: Action = (ctx, user, d) => {
+const createGuild: Handler<'createGuild'> = (ctx, user, d) => {
   if (ctx.guilds.membership(user.id))
     fail('Du hast bereits eine Gilde oder eine offene Bewerbung.');
   const { tag, name, description } = profile(ctx, d);
@@ -47,7 +54,7 @@ export const createGuild: Action = (ctx, user, d) => {
   return 'Gilde gegründet.';
 };
 
-export const updateGuild: Action = (ctx, user, d) => {
+const updateGuild: Handler<'updateGuild'> = (ctx, user, d) => {
   const a = actor(ctx, user.id);
   need(a, 'profile');
   const { tag, name, description } = profile(ctx, d, a.guild.id);
@@ -55,7 +62,7 @@ export const updateGuild: Action = (ctx, user, d) => {
   return 'Gildenprofil gespeichert.';
 };
 
-export const applyToGuild: Action = (ctx, user, d) => {
+const applyToGuild: Handler<'applyToGuild'> = (ctx, user, d) => {
   if (ctx.guilds.membership(user.id))
     fail('Du hast bereits eine Gilde oder eine offene Bewerbung.');
   const target = guild(ctx, d.id);
@@ -63,7 +70,11 @@ export const applyToGuild: Action = (ctx, user, d) => {
   return 'Bewerbung gesendet.';
 };
 
-export const reviewGuildApplication: Action = (ctx, user, d) => {
+const reviewGuildApplication: Handler<'reviewGuildApplication'> = (
+  ctx,
+  user,
+  d,
+) => {
   const a = actor(ctx, user.id);
   need(a, 'applications');
   const applicant = ctx.guilds.membership(str(d.uid, 40));
@@ -78,7 +89,7 @@ export const reviewGuildApplication: Action = (ctx, user, d) => {
   return 'Bewerbung abgelehnt.';
 };
 
-export const leaveGuild: Action = (ctx, user) => {
+const leaveGuild: Handler<'leaveGuild'> = (ctx, user) => {
   const member =
     ctx.guilds.membership(user.id) ?? fail('Du bist in keiner Gilde.');
   const own = guild(ctx, member.guild_id);
@@ -94,7 +105,7 @@ export const leaveGuild: Action = (ctx, user) => {
   return 'Gilde verlassen.';
 };
 
-export const manageGuildMember: Action = (ctx, user, d) => {
+const manageGuildMember: Handler<'manageGuildMember'> = (ctx, user, d) => {
   const a = actor(ctx, user.id);
   const target = memberOf(ctx, a, d.uid);
   if (target.user_id === user.id)
@@ -168,3 +179,22 @@ export function guildState(
     chat: inside ? chatState(ctx, inside, players) : null,
   };
 }
+
+export const serverFeature = {
+  guildActions: {
+    createGuild,
+    updateGuild,
+    applyToGuild,
+    reviewGuildApplication,
+    leaveGuild,
+    manageGuildMember,
+  },
+  state: {
+    order: 110,
+    keys: ['guilds'],
+    // No guild data while guilds are off in the round (#191).
+    build: (ctx, u, view) => ({
+      guilds: view.round.guilds ? guildState(ctx, u.id, view.pts) : null,
+    }),
+  } satisfies StatePart<StateShape>,
+} satisfies ServerFeature;

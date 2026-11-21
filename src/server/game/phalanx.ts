@@ -12,8 +12,9 @@ import {
   scanFlights,
 } from '../../core/phalanx.ts';
 import { parsePlaceId, placeId } from '../../core/place.ts';
-import { type Action, mine } from './actions.ts';
+import { type Handler, mine } from './actions.ts';
 import { fail } from './context.ts';
+import type { ServerFeature } from './feature.ts';
 
 /** The German message of each refusal [V]. */
 export const SCAN_ERROR: Readonly<Record<ScanError, string>> = {
@@ -31,7 +32,7 @@ export const SCAN_ERROR: Readonly<Record<ScanError, string>> = {
  * Scans the place `d.target` (an id such as `p1_2_3`) from the active place
  * `d.planet` and answers its flights, by arrival, as `data.scan`.
  */
-export const scan: Action = (ctx, u, d, event) => {
+const scan: Handler<'scan'> = (ctx, u, d, event) => {
   const moon = mine(ctx, u, d.planet);
   const place = parsePlaceId(String(d.target)) ?? fail('Unbekanntes Ziel.');
   const target = placeId(place);
@@ -47,3 +48,7 @@ export const scan: Action = (ctx, u, d, event) => {
     event.detail = { planet: moon.id, target, flights: flights.length };
   return { msg: null, data: { scan: { by: moon.id, target, flights } } };
 };
+
+export const serverFeature = {
+  actions: { scan },
+} satisfies ServerFeature;

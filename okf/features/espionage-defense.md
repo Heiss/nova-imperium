@@ -29,6 +29,85 @@ points were answered on 2026-11-16.
   [Activity indicators](/features/activity-indicators.md#what-sets-activity):
   v0.76d with the change of v0.77b (owner, 2026-11-17), built by #229 in
   `src/core/activity.ts` (`activityPlaces`, `planetActivity`).
+* **[E]** Unit of the formula (owner, 2026-11-17): the result is a
+  percent. The maximum is (probes / 4) · (target's espionage technology /
+  spy's espionage technology) · (1 + ships / 100) %, capped at 100 %
+  (owiki „Spionagebericht“, section „Spionageabwehr“,
+  https://owiki.de/index.php?title=Spionagebericht&oldid=77679). The page
+  „Spionage“ (oldid=77813) has no formula; it says only that detected probes
+  usually die in the first round and the spy gets a combat report about the
+  lost contact.
+* **[E]** Detected spying (owner, 2026-11-17): probes that survive the
+  battle still deliver the Auspex-Bericht, and both sides get combat
+  reports. A target with no ships and no defense means no battle: the
+  probes survive and report. The fleets that hold at the target (#55) count
+  as its ships for this rule and fight with it (owner, 2026-11-19, [V] for
+  the rule; [Holding and ACS](/features/holding-acs.md)).
+
+## Built (#175)
+
+* `src/core/espionage.ts`: `counterMax` (the maximum in percent),
+  `counterChance` (drawn from 0 up to it, D2), `detected` (one draw below
+  the chance), `shownChance` (whole percent, rounded: owiki says the report
+  rounds) and `spyTechError` (code `noSpyTech` below level 1, Q1).
+* **[V]** The ships of the formula are all ships stationed at the target
+  (owiki: satellites and probes too), not its defense; a spy below level 1,
+  which only a fleet sent before Q1 can be, gets the cap of 100 %.
+* The arrival (`src/features/missions/spy/arrive.server.ts`) draws the
+  chance, then the detection, both from the seeded `rng`, every spying.
+  Undetected, or detected at a target without ships and defense, the
+  probes report and fly back as before.
+* Detected at a target with ships or defense, the probes fight with the
+  battle of the Sturmangriff, shared in `src/server/game/fight.ts`
+  (`fight`, `battleReport`, `recordBattle`): debris of the destroyed probes
+  (#45) and of the held fleets' losses, the moon roll (#53), the rebuilt
+  defense, the audit entry; no loot. The fleets that hold at the target
+  defend it too (`defenders`, owner, 2026-11-19): each owner gets the
+  battle report of the defender.
+  Survivors deliver the report and fly back; without survivors the fleet is
+  gone and the spy gets no Auspex-Bericht (D3).
+* **[E]** Texts confirmed (owner, 2026-11-18, #175): „Keine Aktivität in
+  der letzten Stunde.“, „Auspex-Erkundung erst ab Auspex-Lehre 1.“,
+  „Kontakt abgebrochen – deine Spähschädel wurden bei [g:s:p] entdeckt und
+  zerstört.“, the title „Kampfbericht <Planet> [g:s:p] – Spähschädel von
+  <Spion>“, „Chance auf Auspex-Abwehr: x %.“ and „Die Spähschädel wurden
+  abgeschossen!“.
+* Combat report of the spy: „Kontakt abgebrochen – deine Spähschädel wurden
+  bei [g:s:p] entdeckt und zerstört.“ **[E]** when no probe survives;
+  otherwise „Kampfbericht [g:s:p] – <result>“ as for an
+  attack.
+* **[E]** Combat report of the defender: „Kampfbericht <planet> [g:s:p] –
+  Spähschädel von <spy>“, pushed as „spied“ like the warning; the warning
+  „Auspex-Aktivität“ stays, with the shown chance and „Die Spähschädel
+  wurden abgeschossen!“ when no probe survived.
+* **[V]** What the report shows is scored with the probes sent and the
+  target as they found it on arrival, before the battle.
+* The report shows „Chance auf Auspex-Abwehr: x %“ (the drawn chance,
+  rounded) and the target's activity under „Aktivität“: the marker of
+  `planetActivity` with the round's thresholds at the arrival (one rule with
+  the Sternenkarte, `placeActivity` in `src/server/game/activity.ts`), worded
+  as there. **[E]** Without activity: „Keine Aktivität in der letzten
+  Stunde.“ (the text of the issue's proposal); a report from before #175
+  shows no activity. The new reports have no field `lost` any more.
+* Sending refuses below Auspex-Lehre 1 with „Auspex-Erkundung erst ab
+  Auspex-Lehre 1.“ **[E]** (row `send` of
+  [Checks of the server actions](/architecture/action-checks.md)); the
+  browser does not repeat it.
+* **[E]** The Lexicanum article „Auspex-Lehre“ (#285) shows this rule
+  instead of the old danger formula and table (owner, 2026-11-18):
+  formula, table and paragraph are computed from `counterMax`, `PROBE_DIVISOR`,
+  `SHIP_DIVISOR` and `MAX_CHANCE` of `src/core/espionage.ts`
+  (`src/features/spy/lexicon.de.ts`), so the article cannot drift from the
+  game; `counterChance` of `src/core/spy.ts` is gone. **[V]** Its wording is a
+  proposal for the owner to check (see
+  [Lexicanum texts](/features/lexicanum-texts.md)).
+* **[E]** The article of the mission „Auspex-Erkundung“ no longer says what
+  happens to shot-down probes (owner, 2026-11-18): that sentence is removed
+  and nothing replaces it.
+* Not built: the expected chance before sending, next to
+  „Auspex-Erkundung“ (a **[V]** of the issue); an E2E of a detected spying,
+  which the random draws of the server do not allow without a test hook
+  (the unit tests pin it with given draws).
 
 # Recognition of incoming fleets (#228)
 
@@ -61,6 +140,16 @@ points were answered on 2026-11-16.
 * **[V]** D2 replaces the rule of #116 that only the attack shows its
   ships: the field `visible` of the missions' `rules.ts` is gone, and every
   foreign fleet follows the thresholds.
+* **[V]** The missions that came after #228 (bundle 2 of the Classic
+  features, merged 2026-11-19) follow the same model, taken as recommended
+  from D2 and the notes of the features, none needs a rule of its own: the
+  Mondbruch (#95) flies at a foreign moon and is shown to its owner like
+  an attack (the old `visible: true`); a Raketenangriff (#54) is shown like
+  a foreign fleet, its missiles counting as its ships ([Missiles](/features/missiles.md));
+  a Vermessung (#190) flies to a free position, where no defender
+  exists, so nobody sees it (the old `visible: false`; the filter of
+  `stateFor()` lists only flights to the shown planet of the observer).
+  The fields `visible` of the three rules are gone.
 * **[V]** The thresholds are three entries of the registry of the round
   settings (#283, see
   [Admin](/features/admin.md#the-registry-of-the-round-settings-283)),

@@ -4,6 +4,7 @@ import type { GuildRight } from '../../core/guild-ranks.ts';
 import { deleteAccount } from '../delete-account.ts';
 import {
   addUser,
+  caseDatabase,
   queuedPushes,
   subscribePush,
   testCtx,
@@ -298,9 +299,10 @@ describe('messages (#169)', () => {
   // Up to 12 runs of 560 real actions: seconds on a loaded machine, so its own
   // limit instead of the default of five seconds (timed out in the CI of #300).
   it('never keeps more than 500 messages and always the newest (property)', () => {
+    const caseDb = caseDatabase();
     fc.assert(
       fc.property(fc.integer({ min: 0, max: 560 }), (n) => {
-        const ctx = testCtx();
+        const ctx = testCtx(1_000_000, 42, caseDb.open());
         addUser(ctx, 'Lea');
         runAction(ctx, 'u_Lea', {
           type: 'createGuild',
@@ -319,6 +321,7 @@ describe('messages (#169)', () => {
             (_, i) => n - Math.min(n, 500) + i,
           ),
         );
+        caseDb.rewind();
       }),
       { seed: 169, numRuns: 12 },
     );

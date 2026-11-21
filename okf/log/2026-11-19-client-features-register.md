@@ -1,0 +1,8 @@
+---
+type: log-entry
+date: 2026-11-19T17:00
+kind: Code
+issues: [322, 317, 242]
+---
+
+#322, part 1 of the clean-up #317, without a change of the game, of a text or of the behaviour: client features register themselves. A feature adds its `data-act` handlers (and form handlers) in its own module `src/client/features/<name>.ts` and exports it as `clientFeature`; `scripts/gen-features.ts` lists the modules in the git-ignored `src/client/features/index.gen.ts`, and `src/client/main.ts` builds its tables from its own frame handlers and that list, naming no feature (`assembleActs`, `assembleForms`, `runAfterRender`; a name defined twice stops the start). [V] The contract (`src/client/features/contract.ts`) is the main agent's proposal: a context with `act`, `actHere`, `modal`, `go`, `render`, `api`, `toast` and `setInput`, and two optional members added only where a module needed them, `forms` and `afterRender`. The handlers that earlier branches had moved out only for the ratchet of #242 (`abandon`, `round`, `market`, `social`, `options`, `fleet`, the missiles, the Lexicanum and `demolition`) are modules now and `feature-actions.ts` is gone; moved out of `main.ts` with unit tests: the guilds, the Sternenkarte, the report list, the passkeys, „Problem melden“, the Endzeit and the settings of the admin, the queues, renaming, the highscore, the achievements, Web Push and the app installation, and the fleet form with its preview (1787 to 1222 lines, `size-ratchet.json`). The guard test `src/client/features/registry.test.ts` checks the rules for all modules; the login, the news, the maintenance banner and the admin panel stay in `main.ts` as the frame.

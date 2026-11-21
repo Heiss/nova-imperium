@@ -7,7 +7,7 @@ import type {
   Requirements,
   ResearchState,
 } from '../../core/types.ts';
-import { coords, dur, esc, fmt } from '../logic/format.ts';
+import { dur, esc, fmt } from '../logic/format.ts';
 import { type ResourceKey, resourceIconURL } from '../logic/icons.ts';
 import { planetLook } from '../logic/planet.ts';
 import {
@@ -19,8 +19,9 @@ import {
 } from '../../core/requirements.ts';
 import { production } from '../../core/economy.ts';
 import type { Scan } from '../logic/phalanx.ts';
+import type { HighscoreCategory } from '../logic/highscore.ts';
 import type { PushChoice } from '../logic/push-options.ts';
-import type { GalaxyPlanet, GameState } from '../logic/types.ts';
+import type { GameState } from '../logic/types.ts';
 
 export interface Ui extends PushChoice {
   passwordMinLength?: number;
@@ -33,12 +34,20 @@ export interface Ui extends PushChoice {
   ft: { g: number; s: number; p: number; kind?: 'planet' | 'moon' } | null;
   /** The moon whose actions the Sternenkarte shows (#53), by its id. */
   gmoon?: string | null;
+  /** The place whose actions the bottom sheet „⋯“ of the Sternenkarte shows on a phone (#189), by its id. */
+  gsheet?: string | null;
   /** The answer of the last scan of the Auspex-Phalanx (#53), shown from its moon. */
   scan?: Scan | null;
   fm: string;
+  /** The kind of target the player chose in the fleet form, kept over a redraw (the „Mond“ option is not there yet then). */
+  fk?: 'planet' | 'moon' | undefined;
+  /** The attack union the fleet form joins (#225), by id; none when empty. */
+  union?: string | null;
   openRep: Record<string, boolean>;
   /** Entries whose explanation the player opened with the (?) (issue #63). */
   openEx: Record<string, boolean>;
+  /** Entries whose level overview the player unfolded with the ▤ (#187). */
+  openLv?: Record<string, boolean>;
   auth: 'login' | 'register' | 'forgot' | 'reset' | 'code' | null;
   invite: { token: string; email: string; galaxies: number } | null;
   lastLink: string | null;
@@ -50,6 +59,8 @@ export interface Ui extends PushChoice {
   newsSeen: string | null;
   /** Request ID of the last API answer, for „Problem melden“ (issue #126). */
   lastRequestId?: string | null;
+  /** The category the highscore shows (#78), „Gesamt“ until one is chosen. */
+  highscore?: HighscoreCategory;
 }
 
 /** What every view gets: the state, the planet and research moved to now. */
@@ -105,12 +116,6 @@ export function costHTML(
     );
   return `<div class="cost">${parts.join('')}</div>`;
 }
-
-/** A planet with the link to its system on the Sternenkarte, or „-“ (the Highscore, the buddy list of #227). */
-export const homeCell = (pl: GalaxyPlanet | null): string =>
-  pl
-    ? `<span class="home">${esc(pl.name)}</span> <span class="lnk" data-act="gto" data-g="${pl.g}" data-s="${pl.s}">${coords(pl)}</span>`
-    : '-';
 
 export const box = (title: string, body: string, cls = ''): string =>
   `<div class="box${cls ? ' ' + cls : ''}"><div class="hd">${title}</div><div class="bd">${body}</div></div>`;

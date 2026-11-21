@@ -4,15 +4,8 @@
 // side panel draw the same article (views/LexicanumArticle.svelte). Its
 // tables are computed from the rules: the level table of #187, the values
 // of a unit as in the lists, the requirements in both directions.
-import {
-  BUILD,
-  DEF,
-  PRODUCTION,
-  RES,
-  SHIPS,
-  STORAGE,
-} from '../../core/catalog.ts';
-import { capOf } from '../../core/components/storage.ts';
+import { BUILD, DEF, RES, SHIPS, STORAGE } from '../../core/catalog.ts';
+import { SPY_MIN_TECH } from '../../core/espionage.ts';
 import {
   ARTICLES,
   article,
@@ -20,6 +13,7 @@ import {
   KIND_TITLES,
   KINDS,
   missionArticle,
+  PAGE_KINDS,
   requirementsOf,
   titleOf,
   usedFor,
@@ -32,6 +26,7 @@ import {
   type SearchDoc,
 } from '../../core/lexicon/search.ts';
 import { fill, type Segment, segments } from '../../core/lexicon/links.ts';
+import { TARGET_NAMES } from '../../core/lexicon/targets.ts';
 import { costFormula, storageFormula } from '../../core/lexicon/parts.ts';
 import type {
   ArticleKind,
@@ -40,12 +35,14 @@ import type {
   Formula,
   LexState,
 } from '../../core/lexicon/types.ts';
-import { MISSION, missionRules, type TargetKind } from '../../core/missions.ts';
+import { MISSION, missionRules } from '../../core/missions.ts';
 import type { Cost } from '../../core/types.ts';
 import type { V } from '../views/common.ts';
 import { unitLines } from './catalog-list.ts';
 import { fmt } from './format.ts';
 import { iconURL } from './icons.ts';
+import { ownState } from './lexicanum-own.ts';
+import { producerEffect, storageEffect } from './level-effects.ts';
 import {
   effectText,
   type LevelEffect,
@@ -112,6 +109,12 @@ export interface ArticleView {
 export type Page =
   | {
       t: 'start';
+      /** The boxes of the pages that are written: „Einstieg“, „Regeln“, „Häufige Fragen“ (#288, #289). */
+      boxes: {
+        kind: ArticleKind;
+        title: string;
+        items: { id: string; title: string; line: string }[];
+      }[];
       tiles: { id: string; title: string; note: string }[];
     }
   | {
@@ -136,18 +139,25 @@ const ICON_CLASS: Readonly<Record<ArticleKind, string>> = {
   ship: 'ic-s',
   defense: 'ic-d',
   mission: 'ic-m',
+  rule: 'ic-m',
+  question: 'ic-m',
+  guide: 'ic-m',
 };
 
 const textParts = (text: string): Segment[] => segments(text, titleOf);
 
 const cell = (c: Cell): ViewCell =>
-  typeof c === 'number' ? { text: fmt(c), num: true } : { text: c };
+  typeof c === 'number'
+    ? { text: fmt(c), num: true }
+    : typeof c === 'string'
+      ? { text: c }
+      : c;
 
 /** A block of the data as the components draw it. */
 export function viewBlock(b: Block): ViewBlock {
   switch (b.t) {
     case 'text':
-      return { t: 'text', parts: textParts(b.text) };
+      return { t: 'text', parts: textParts(fill(b.text, b.values)) };
     case 'facts':
       return {
         t: 'facts',
@@ -196,57 +206,26 @@ const formula = (f: Formula): ViewBlock => ({
 /** What the player has, for the computed blocks of an entry. */
 const lexState = (v: V): LexState => ({
   u: v.s.cfg,
+  round: v.s.round,
   research: v.R.research,
   ships: v.P.ships,
+  own: ownState(v),
 });
-
-/**
- * The headings of the effect of a producer; a mine makes less without
- * enough energy, so its heading says what the rate assumes (owner,
- * 2026-11-17).
- */
-const MADE: readonly [string, string][] = [
-  ['m', 'Adamant/h bei voller Energie'],
-  ['c', 'Psikristall/h bei voller Energie'],
-  ['d', 'Promethium/h bei voller Energie'],
-  ['e', 'Energie'],
-];
-
-/**
- * What a producer makes per hour at a level on the shown planet, at full
- * share and with enough energy: its own rate function (`produces`), a
- * resource times the universe speed as prod() adds it.
- */
-function producerEffect(v: V, key: string): LevelEffect | undefined {
-  const { produces } = PRODUCTION.find((p) => p.key === key)!;
-  const first = MADE.find(([res]) => produces[res as 'm']);
-  if (!first) return undefined;
-  const [res, label] = first as ['m' | 'c' | 'd' | 'e', string];
-  const ctx = (level: number) => ({
-    level,
-    pct: 100,
-    temp: v.P.temp,
-    research: v.R.research,
-    u: v.s.cfg,
-    f: 1,
-  });
-  return {
-    label,
-    at: (level) =>
-      res === 'e'
-        ? produces.e!(ctx(level))
-        : produces[res]!(ctx(level)) * v.s.cfg.speed,
-  };
-}
 
 /** The effect of a level: the entry's own, a store's capacity, a producer's rate. */
 function effectOf(v: V, a: ArticleMeta): LevelEffect | undefined {
-  if (a.lexicon.effect) return a.lexicon.effect;
-  if (STORAGE.some((s) => s.key === a.key))
-    return { label: 'Lagerkapazität', at: (level) => capOf(level, v.s.cfg) };
-  if (PRODUCTION.some((p) => p.key === a.key && p.kind === 'building'))
-    return producerEffect(v, a.key);
-  return undefined;
+  return (
+    a.lexicon.effect ?? storageEffect(v, a.key) ?? producerEffect(v, a.key)
+  );
+}
+
+/**
+ * The first effect column of an entry's level table, or undefined for an
+ * entry without a numeric effect (the level overview of #187 reads it).
+ */
+export function entryEffect(v: V, key: string): LevelEffect | undefined {
+  const a = article(key);
+  return a && effectOf(v, a);
 }
 
 /** „Dein Stand: Stufe 4 · Flottenslots 5“, for an entry with an effect (B5). */
@@ -286,7 +265,7 @@ function effectSection(v: V, a: ArticleMeta, e?: LevelEffect): Section | null {
 /** „Stufen“: the cost formula and the level table of #187. */
 function levelSection(v: V, a: ArticleMeta, e?: LevelEffect): Section | null {
   const def = BUILD[a.key] ?? RES[a.key];
-  const table = def && levelTable(v, a.key, e);
+  const table = def && levelTable(v, a.key, e ? [e] : []);
   if (!def || !table) return null;
   return {
     id: 'levels',
@@ -344,16 +323,6 @@ function usedSection(a: ArticleMeta): Section | null {
 
 // ----- missions -----
 
-/** The target of a mission, as the fleet view names it. */
-const TARGETS: Readonly<Record<TargetKind, string>> = {
-  own: 'eigener Planet',
-  foreign: 'fremder Planet',
-  ally: 'Planet eines Gildenmitglieds oder Freundes',
-  any: 'jeder Planet',
-  free: 'Freie Position',
-  debris: 'Trümmerfeld',
-};
-
 const yes = (b: boolean): string => (b ? 'ja' : 'nein');
 
 /**
@@ -369,10 +338,14 @@ export function missionShips(
     planet: { id: m, owner: m },
     debris: true,
     protects: () => false,
+    vacation: () => false,
     ally: () => true,
   };
+  // The article names the ships, not the research a mission needs: the
+  // sender has the espionage technology the Auspex-Erkundung asks for (#175).
+  const research = { spy: SPY_MIN_TECH };
   const check = (ships: Record<string, number>) =>
-    rules.canSend({ owner: '', from: '', ships }, target);
+    rules.canSend({ owner: '', from: '', ships, research }, target);
   const ships = Object.keys(SHIPS).filter((k) => !check({ [k]: 1 }));
   if (ships.length === Object.keys(SHIPS).length) return null;
   return { only: !check({}), ships };
@@ -388,7 +361,7 @@ function missionFacts(m: string): ViewBlock {
   const r = missionRules(m)!;
   const ships = missionShips(m);
   const items: { label: string; text: string }[] = [
-    { label: 'Ziel', text: TARGETS[r.target] },
+    { label: 'Ziel', text: TARGET_NAMES[r.target] },
     { label: 'Ladung', text: yes(r.cargo) },
     { label: 'Rückflug', text: yes(r.returns) },
     { label: 'Eigener Bericht bei der Heimkehr', text: yes(!r.silent) },
@@ -432,6 +405,17 @@ function own(v: V, a: ArticleMeta): string | null {
 /** The article of an id with the player's state; null for an unknown id. */
 /** The sections of an article, the empty ones left out. */
 function sections(v: V, a: ArticleMeta): Section[] {
+  // A rule, a question or a guide is written; its sections are computed from
+  // the rules for this player (#288, #289).
+  if (a.page)
+    return [
+      ...a.page.sections(lexState(v)).map((x) => ({
+        id: x.id,
+        title: x.title,
+        blocks: x.blocks.map(viewBlock),
+      })),
+      seeSection(a),
+    ].filter((s): s is Section => !!s);
   // A mission has the name of a research (`spy`): its text, facts and links.
   const all =
     a.kind === 'mission'
@@ -468,7 +452,7 @@ export function articleView(id: string, v: V): ArticleView | null {
     kind: a.kind,
     kindTitle: KIND_TITLES[a.kind],
     title: a.title,
-    icon: a.kind === 'mission' ? null : iconURL(a.key),
+    icon: a.kind === 'mission' || a.page ? null : iconURL(a.key),
     cls: ICON_CLASS[a.kind],
     own: own(v, a),
     intro: a.lt ? a.lt.split('\n\n').map((p) => p.trim()) : [],
@@ -490,7 +474,7 @@ const plural = (n: number): string =>
 
 /** The page of an address: the start, a list, „Begriffe A–Z“ or an article. */
 export function page(id: string, v: V): Page {
-  const kind = KINDS.find((k) => listId(k) === id);
+  const kind = [...KINDS, ...PAGE_KINDS].find((k) => listId(k) === id);
   if (kind)
     return {
       t: 'list',
@@ -511,6 +495,14 @@ export function page(id: string, v: V): Page {
   if (view) return { t: 'article', article: view };
   return {
     t: 'start',
+    boxes: PAGE_KINDS.flatMap((k) => {
+      const items = ARTICLES.filter((a) => a.kind === k).map((a) => ({
+        id: a.id,
+        title: a.title,
+        line: a.ds ?? '',
+      }));
+      return items.length ? [{ kind: k, title: KIND_TITLES[k], items }] : [];
+    }),
     tiles: [
       ...KINDS.map((k) => ({
         id: listId(k),

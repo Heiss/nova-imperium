@@ -54,3 +54,103 @@ Psikristall, then Promethium without the fuel, up to the capacity
   under its field.
 * E2E in `e2e/fleet-cargo.spec.ts` (desktop and phone, axe on the form);
   the fleet-form flow of `e2e/flows.spec.ts` uses the even fill.
+
+# Missions that fit the target, and the Schnellwahl (#253)
+
+Issue #253 with three „Geklärt“ comments (owner, 2026-11-16 and 2026-11-17).
+The fleet form is still the string view `src/client/views/fleet.ts` on this
+branch, so it is built there, not in a Svelte component.
+
+* **[E]** The list „Auftrag“ shows only the missions that fit the target at
+  the entered coordinates; the others are hidden, not disabled. When the
+  chosen mission no longer fits after the coordinates change, the list
+  switches to the first one that fits, in today's order.
+* **[E]** The filter is a pure function in `src/core` (`missionsFor`,
+  `src/core/mission-fit.ts`) on the target kind of each mission's rules; a
+  moon target is decided by the kind of the moon. **[V]** It is built on the
+  server's own check: `sendError` of `src/core/missions.ts` is now
+  `fitError` (the target kind, which asks nothing of the ships) and then the
+  mission's `canSend`, so the browser and the server cannot disagree. The
+  ships a player picked do not change the list (a Landnahme stays listed
+  before an ark is picked).
+* **[E]** A Trümmerfeld adds „Bergung“ to the missions that fit the planet or
+  the free position there. **[E]** While the target is the start planet
+  itself no mission is offered.
+* **[V]** What the browser cannot know stays offered, and the server refuses
+  it as today: the noob protection of another player, his vacation mode
+  (#223), and who is an ally for „Wache stellen“ (#55). The browser knows a
+  lock after an abandonment (#224) from the state and keeps the free missions
+  out of a locked position, as the server does.
+* **[V]** While no mission fits (the start planet as the target, a moon that
+  is not there, a locked position without a Trümmerfeld) the list shows one
+  disabled entry „Kein Auftrag passt zum Ziel“ and „Flotte losschicken“ is
+  blocked; the form starts at the start planet, so it is blocked until the
+  coordinates change. **[E]** „Ziel wird geprüft …“ shows only once a real
+  lookup exists: the browser has every planet of the universe in its state,
+  so there is no lookup and the text is not built.
+* **[E]** The form gets a select labelled „Schnellwahl“ with the player's
+  other planets and moons; choosing one enters its coordinates (and
+  planet or moon) as the target, and the mission list follows. Entries read
+  „Name [g:s:p]“, a moon „Name (Mond) [g:s:p]“ as on the Sternenkarte; the
+  first entry is „– wählen –“. **[V]** Entries by position, a planet before
+  its moon; after choosing, the select goes back to „– wählen –“; it is
+  disabled without another own place.
+* Code: `src/core/mission-fit.ts`; `fitTarget`, `offeredMissions`,
+  `missionOptions`, `ownQuickTargets`, `quickOptions` in
+  `src/client/logic/fleet-target.ts`; the lists and their update in
+  `src/client/views/fleet.ts` and `src/client/features/fleet.ts`
+  (`missionList`, `quickChoice`).
+* **[V]** The chosen mission survives a redraw of the view (found by
+  `e2e/survey.spec.ts`, 2026-11-19). The fleet view is a component mounted
+  anew on every render (#118) with the options of the shown target;
+  `keepInputs` restores the typed mission by id, which does not work for a
+  mission that is not among those options, and the select came back empty.
+  `missionList` therefore also keeps the choice in `client.ui.fm` and
+  continues from it when the select is empty; a mission that no longer fits
+  still falls back to the first one that fits.
+* **[V]** The same redraw reset „Mond“ in „Zielart“: the fresh select is
+  built for the start planet or `ui.ft`, where „Mond“ is disabled, and
+  `keepInputs` does not restore onto a disabled option, so a fleet went to
+  the planet instead of the moon. The kind the player chose is kept in
+  `client.ui.fk` (set by the select, the Schnellwahl, „Beitreten“ of a union
+  and the shortcut of the Sternenkarte; cleared on „Flotte losschicken“) and
+  `moonOption` sets „Mond“ again once the option is enabled for the typed
+  target; a place without a moon still resets it to „Planet“. What the form
+  shows when the player returns later is unchanged.
+
+# The Schnellwahl with friends, guild members and last targets (#292)
+
+Issue #292, built after #253 with the owner's „Geklärt“ comments of
+2026-11-17.
+
+* **[E]** The list is one flat list without groups, in this order: the own
+  places, the friends, the guild members, the last targets. The own places
+  have no prefix (#253); a foreign entry gets a word: „Freund: Spieler
+  [g:s:p]“, „Gilde: Spieler [g:s:p]“, „Ziel: Spieler – Planet [g:s:p]“
+  (a moon as „Planet (Mond)“). Choosing an entry enters its coordinates as
+  the target, and the mission list follows (#253).
+* **[E]** Friends and guild members: only the main planet (#221) of each
+  player, one entry per player; a player who is both is listed once, as
+  „Freund:“. With guilds off in the round there are no guild entries (#191).
+  A player in vacation mode (#223) stays listed as a friend or a guild
+  member.
+* **[E]** Last targets: the last 5 different foreign targets of the
+  „Sturmangriff“ and the „Auspex-Erkundung“, newest first, per player across
+  all their planets. A target that no longer exists or has a new owner drops
+  out, and the list fills up with the next older targets until there are 5
+  again; a player in vacation mode is left out of the last targets.
+* **[E]** The server stores them per player in its own table when a fleet is
+  sent (migration `20261119T1830-last-targets`, `src/server/db/repos/
+  last-targets.ts`; the table also keeps the owner of the place at that time,
+  to see a change of owner). The launch asks the typed field `remembered` of
+  the mission's rules (the attack and the spy), so no code names a mission.
+* **[V]** The state gets one part `quick` (`src/server/game/quick-targets.ts`,
+  `serverFeature.state`, order 200) with three lists of place ids: the main
+  planets of the friends and of the guild members, by name, and the last
+  targets; the browser words the entries from the galaxy and the players.
+  An own planet (a former target that changed to the player) is never a last
+  target. The table keeps the newest 20 targets per player so that dropped
+  targets can be replaced; a new round deletes it. The words „Freund:“,
+  „Gilde:“ and „Ziel:“ are the owner's (above).
+* Code: `quickTargets`, `ownQuickTargets` in
+  `src/client/logic/fleet-target.ts`.

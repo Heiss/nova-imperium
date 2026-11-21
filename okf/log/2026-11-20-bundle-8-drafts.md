@@ -1,0 +1,8 @@
+---
+type: log-entry
+date: 2026-11-20T23:00
+kind: Code
+issues: [118]
+---
+
+#118, package 8, two decisions of the owner (2026-11-20): the client features register their page listeners in the new hook `listen(ctx)` that the assembly calls once at start, and `acts()` and `forms()` are free of side effects (`registry.test.ts` checks that every feature contributes something and that building them adds no listener); and `keepInputs` is gone with every `data-nokeep` („all now“). A field of a view with an id has a draft in `logic/field-drafts.ts`, recorded when the player changes it and put back when a view is drawn anew (`field-drafts.ts`, `render.ts`); a fresh render and a logout drop the drafts, as they dropped the typed fields. Buttons that fill a field write through `writeField`. The settings of the universe, the link of the invitation, the position of the Sternenkarte, the confirmation of a dissolving, the chat and the buddy name have no field draft (they show the server or keep a draft of their own). `normalize()` of the reference tests ignores `data-nokeep`, so the frozen HTML is unchanged; `e2e/redraw-drafts.spec.ts` (fleet form, marketplace, new guild) types, lets the poll draw the view anew, and checks the fields. The opened `<details>` of the admin page (an event, an error entry, the rules of a round) are kept in the panel store (`logic/admin-panels.svelte.ts`), so a poll that mounts the page anew does not close them; this was the race of `e2e/event-log.spec.ts` („Kampfdetails“ read empty after a redraw), whose wait is now for the open details. No visible change; see [Client features](/architecture/patterns/13-client-features.md).

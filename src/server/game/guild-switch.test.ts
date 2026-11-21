@@ -146,8 +146,10 @@ describe('the guild switch (#191)', () => {
     ).toBe(
       'Neue Runde gestartet – alle Spieler haben einen frischen Planeten.',
     );
+    // The first new round takes the default of the planet limit, 6 (#237).
     expect(roundRules(ctx)).toEqual({
       ...roundDefaults(),
+      colonyBase: 6,
       number: 2,
       guilds: false,
     });
@@ -163,7 +165,7 @@ describe('the guild switch (#191)', () => {
     // The round-reset audit entry holds the choice, like the reward boxes.
     expect(event.detail).toEqual({
       before: { ...roundDefaults(), number: 1, guilds: true },
-      after: { ...roundDefaults(), number: 2, guilds: false },
+      after: { ...roundDefaults(), colonyBase: 6, number: 2, guilds: false },
     });
   });
 

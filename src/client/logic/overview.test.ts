@@ -3,6 +3,7 @@
 // what is being built, researched or ordered; the fleet movements are also
 // the list of the fleet view.
 import { describe, expect, it } from 'vitest';
+import { STRIKER } from '../../core/missiles.ts';
 import { MISSION } from '../../core/missions.ts';
 import { text } from '../../core/text.ts';
 import type { Planet, ResearchQueue } from '../../core/types.ts';
@@ -33,6 +34,7 @@ function view(o: Setup = {}): V {
   const s = {
     cfg: { ...U, ...o.cfg },
     me: { id: 'u1' },
+    galaxy: [],
     fleets: o.fleets ?? [],
     players: o.players ?? {
       u1: { name: 'Ich', points: 1500 },
@@ -91,6 +93,18 @@ describe('fleet movements', () => {
       ],
       recall: true,
     });
+  });
+
+  it('shows own missiles on their way with their mission and offers no recall (#54)', () => {
+    const [row] = fleetRows(
+      view({ fleets: [fleet({ mission: 'missile', ships: { ipm: 4 } })] }),
+      true,
+    );
+    expect(plain(row!)).toBe(
+      `Deine Flotte (4 ${text('ipm')!.n}) von [1:1:5] erreicht [1:2:3] · ${MISSION.missile}`,
+    );
+    expect(row!.cls).toBe('fl-missile');
+    expect(row!.recall).toBe(false);
   });
 
   it('names the „Gottkaiser“ as the origin of the gift and offers no recall', () => {
@@ -177,6 +191,26 @@ describe('fleet movements', () => {
       seen({ total: 7, types: ['lf', 'sc'], ships: { lf: 5, sc: 2 } }),
     ).toBe(`${line} (5 ${lf}, 2 ${sc})`);
     expect(seen({ ships: { lf: 1000 } })).toBe(`${line} (1.000 ${lf})`);
+  });
+
+  it('shows an incoming missile flight like a foreign fleet, by the same recognition (#54, #228)', () => {
+    const missiles = text(STRIKER)!.n;
+    const seen = (o: Partial<ClientFleet>): string => {
+      const f: ClientFleet = {
+        ...fleet({ owner: 'u2', mission: 'missile' }),
+        ...o,
+      };
+      if (!('ships' in o)) delete f.ships;
+      const [row] = fleetRows(view({ fleets: [f] }), true);
+      expect(row!.recall).toBe(false);
+      return row!.parts.at(-1)!.text;
+    };
+    const line = ` [1:1:5] erreicht deinen Planeten [1:2:3] · ${MISSION.missile}`;
+    expect(seen({})).toBe(`${line} (Zusammensetzung unbekannt)`);
+    expect(seen({ total: 3, types: [STRIKER] })).toBe(
+      `${line} (Schiffe insgesamt: 3 · ${missiles})`,
+    );
+    expect(seen({ ships: { [STRIKER]: 3 } })).toBe(`${line} (3 ${missiles})`);
   });
 
   it('calls an unknown owner „Unbekannt“ and an unknown ship by its key', () => {
@@ -320,6 +354,32 @@ describe('fleet movements', () => {
       ],
       recall: true,
     });
+  });
+
+  it('shows an own expedition at its position as a flight that is due when its stay ends, no Halten, with a recall (#93)', () => {
+    // The stay is what lies between the times; the fleet is out until its end (state out, no holding time).
+    const [row] = fleetRows(
+      view({
+        fleets: [fleet({ mission: 'expedition', state: 'out', arr: 9000 })],
+      }),
+      false,
+    );
+    expect(row).toMatchObject({
+      id: 'f1',
+      due: countdown(9000, 1000),
+      cls: 'fl-expedition',
+      recall: true,
+    });
+    expect(row!.parts[0]!.text).toContain(MISSION.expedition);
+    expect(row!.parts[0]!.text).not.toContain('hält bei');
+  });
+
+  it('keeps an expedition of another player out of „Gehaltene Flotten“ and off the planet it never flies to', () => {
+    const v = view({
+      fleets: [fleet({ owner: 'u2', mission: 'expedition', state: 'out' })],
+    });
+    expect(heldRows(v)).toEqual([]);
+    expect(fleetRows(v, false)).toEqual([]);
   });
 });
 
@@ -477,6 +537,36 @@ describe('overview page', () => {
     main.s.mainPlanet = 'p1_1_5';
     expect(overviewPage(main).abandon).toBe(false);
     expect(overviewPage(view({ P: { kind: 'moon' } })).abandon).toBe(false);
+  });
+
+  it('shows the planets against the limit of the round (#237)', () => {
+    const v = view({ P: { name: 'Heimat' } });
+    v.s.cfg = {
+      ...v.s.cfg,
+      roundColonyBase: 6,
+      roundColonyResearch: 1,
+      roundColonyPerLevel: 2,
+      roundColonyMaxLevel: 4,
+    };
+    v.s.galaxy = [
+      {
+        id: 'p1_1_5',
+        kind: 'planet',
+        name: 'Heimat',
+        g: 1,
+        s: 1,
+        p: 5,
+        temp: 1,
+        owner: v.s.me.id,
+      },
+    ];
+    expect(overviewPage(v).planets).toBe(
+      'Planeten: 1 / 6 · Kolonialverwaltung Stufe 0',
+    );
+    // Without a limit in the round.
+    expect(overviewPage(view()).planets).toMatch(
+      /^Planeten: \d+ · unbegrenzt$/,
+    );
   });
 
   it('shows the points and the place in the highscore', () => {

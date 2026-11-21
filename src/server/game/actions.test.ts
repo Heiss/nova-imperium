@@ -2,7 +2,14 @@ import { describe, expect, it } from 'vitest';
 import { RES } from '../../core/catalog.ts';
 import { lvlCost, prod, researchTime } from '../../core/economy.ts';
 import { settle } from '../../core/settle.ts';
-import { addPlanet, addUser, testCtx, type TestCtx } from '../test-helpers.ts';
+import {
+  addPlanet,
+  addUser,
+  subscribePush,
+  testCtx,
+  type TestCtx,
+  loose,
+} from '../test-helpers.ts';
 import type { AuditEntry } from '../audit.ts';
 import * as A from './actions.ts';
 import { addMoon } from './moons.ts';
@@ -344,6 +351,41 @@ describe('research on any own planet with a lab (#49)', () => {
   });
 });
 
+describe('the pushes of the queues', () => {
+  const jobs = (ctx: TestCtx) =>
+    ctx.db.prepare('SELECT kind, event_key, due FROM push_jobs').all();
+
+  it('queues the push of a building under the planet and its start, and takes it back with the cancel', () => {
+    const { ctx, u, p } = setup({ res: { m: 1000, c: 1000, d: 0 } });
+    subscribePush(ctx, u.id);
+    A.build(ctx, u, { key: 'metal' });
+    expect(jobs(ctx)).toEqual([
+      {
+        kind: 'buildings',
+        event_key: `${p().id}:${ctx.now()}`,
+        due: p().bq!.end,
+      },
+    ]);
+    A.cancelBuild(ctx, u, {});
+    expect(jobs(ctx)).toEqual([]);
+  });
+
+  it('takes the push of a research back with the cancel and leaves the other kinds', () => {
+    const { ctx, u, me } = setup({ b: { lab: 1 } });
+    subscribePush(ctx, u.id);
+    A.research(ctx, u, { key: 'energy' });
+    A.build(ctx, me(), { key: 'metal' });
+    expect(jobs(ctx).map((j) => (j as { kind: string }).kind)).toEqual([
+      'research',
+      'buildings',
+    ]);
+    A.cancelResearch(ctx, me(), {});
+    expect(jobs(ctx).map((j) => (j as { kind: string }).kind)).toEqual([
+      'buildings',
+    ]);
+  });
+});
+
 describe('Fusionskraftwerk and Energietechnik (#47)', () => {
   const H = 3600000;
   const energyDone = (ctx: TestCtx) => ({
@@ -395,6 +437,18 @@ describe('Fusionskraftwerk and Energietechnik (#47)', () => {
       rq: null,
     });
     expect(late.res.m).toBeGreaterThan(want.res.m);
+  });
+
+  it('settles them at the very second Energietechnik ends, not only after it', () => {
+    const ctx = testCtx();
+    const u = addUser(ctx, 'Anna', energyDone(ctx));
+    addPlanet(ctx, u.id, { b: { lab: 1 } });
+    const col = addPlanet(ctx, u.id, { s: 2, ...reactor });
+    ctx.clock.t += H;
+    const want = settle(col, ctx.now(), ctx.admin.universe(), u);
+    expect(A.research(ctx, u, { key: 'laser' })).toBeNull();
+    expect(ctx.planets.get(col.id)!.t).toBe(ctx.now());
+    expect(ctx.planets.get(col.id)).toEqual(want);
   });
 
   it('leaves the planets alone while Energietechnik runs or other research ends', () => {
@@ -661,7 +715,9 @@ describe('shipyard', () => {
   });
   it('refuses wrong orders', () => {
     const { ctx, u } = setup();
-    expect(() => A.order(ctx, u, { key: 'x' })).toThrow('Unbekannte Einheit.');
+    expect(() => A.order(ctx, u, loose<'order'>({ key: 'x' }))).toThrow(
+      'Unbekannte Einheit.',
+    );
     expect(() => A.order(ctx, u, { key: 'rl', n: 1 })).toThrow(
       'Orbitale Schiffsschmiede',
     );
@@ -816,9 +872,10 @@ describe('one answer with the browser (#214, O18 (c))', () => {
   it('asks for a count before the price (F10)', () => {
     const { ctx, u, p } = setup({ b: { yard: 1 }, res: { m: 0, c: 0, d: 0 } });
     for (const n of [0, -3, undefined, 'x'])
-      expect(() => A.order(ctx, u, { key: 'rl', n }), String(n)).toThrow(
-        'Bitte eine Anzahl eingeben.',
-      );
+      expect(
+        () => A.order(ctx, u, loose<'order'>({ key: 'rl', n })),
+        String(n),
+      ).toThrow('Bitte eine Anzahl eingeben.');
     expect(() => A.order(ctx, u, { key: 'rl', n: 1 })).toThrow(
       'Der Zehnte reicht nicht aus.',
     );
@@ -871,12 +928,44 @@ describe('planet settings', () => {
     A.options(ctx, u, { probes: 4 });
     expect(me()).toMatchObject({ probes: 4, explain: 'hidden' });
   });
+  it('save the display option of the level overview (#187)', () => {
+    const { ctx, u, me } = setup();
+    expect(me().levelTable).toBe('icon');
+    for (const levelTable of ['always', 'hidden', 'icon']) {
+      expect(A.options(ctx, u, { probes: 2, levelTable })).toBe('Gespeichert.');
+      expect(me()).toMatchObject({ probes: 2, levelTable });
+    }
+    // An older client sends none: the stored one stays, as the explain option.
+    A.options(ctx, u, { probes: 2, levelTable: 'always', explain: 'hidden' });
+    A.options(ctx, u, { probes: 5 });
+    expect(me()).toMatchObject({
+      probes: 5,
+      levelTable: 'always',
+      explain: 'hidden',
+    });
+  });
+  it('refuse an unknown level overview option and change nothing', () => {
+    const { ctx, u, me } = setup({}, { probes: 3, levelTable: 'always' });
+    for (const levelTable of ['', 'never', 'ICON', null, 1, ['icon']])
+      expect(() =>
+        A.options(
+          ctx,
+          { ...u },
+          loose<'options'>({ probes: 9, explain: 'icon', levelTable }),
+        ),
+      ).toThrow('Ungültig.');
+    expect(me()).toMatchObject({
+      probes: 3,
+      explain: 'icon',
+      levelTable: 'always',
+    });
+  });
   it('refuse an unknown display option and change nothing', () => {
     const { ctx, u, me } = setup({}, { probes: 3, explain: 'hidden' });
     for (const explain of ['', 'never', 'ICON', null, 1, ['icon']])
-      expect(() => A.options(ctx, { ...u }, { probes: 9, explain })).toThrow(
-        'Ungültig.',
-      );
+      expect(() =>
+        A.options(ctx, { ...u }, loose<'options'>({ probes: 9, explain })),
+      ).toThrow('Ungültig.');
     expect(me()).toMatchObject({ probes: 3, explain: 'hidden' });
   });
 });
@@ -993,5 +1082,21 @@ describe('moons and the Mondzitadelle (#53)', () => {
     const before = m().res;
     ctx.clock.t += 3_600_000;
     expect(A.mine(ctx, u, m().id).res).toEqual(before);
+  });
+});
+
+describe('orders of missiles', () => {
+  it('are refused with the words of the Raketenkrypta when its places are full', () => {
+    const { ctx, u } = setup({
+      b: { yard: 1, silo: 2 },
+      res: { m: 1e9, c: 1e9, d: 1e9 },
+    });
+    // Two levels hold 20 places, an Abfangrakete takes one.
+    expect(() => A.order(ctx, u, { key: 'abm', n: 21 })).toThrow(
+      'Nicht genug Platz in der Raketenkrypta.',
+    );
+    expect(A.order(ctx, u, { key: 'abm', n: 20 })).toBe(
+      '20× Abfangrakete in Auftrag gegeben.',
+    );
   });
 });

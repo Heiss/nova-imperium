@@ -6,19 +6,24 @@
 // and of the inactivity of its owner (#229) and the actions, and the number of
 // Spähschädel of a spying. The symbols of a moon and a Trümmerfeld and the
 // button „Bergung“ keep their HTML of logic/moon.ts and logic/debris.ts.
+import { canFly } from '../../core/catalog.ts';
+import { distance, fleetSpeed, flightMs } from '../../core/flight.ts';
+import { expeditionLevel } from '../../core/expedition.ts';
 import { MISSION } from '../../core/missions.ts';
 import { placeName } from '../../core/moon.ts';
 import { placeId } from '../../core/place.ts';
-import type { Coords } from '../../core/types.ts';
+import type { Coords, Levels } from '../../core/types.ts';
 import type { V } from '../views/common.ts';
 import { freePosition } from './abandon.ts';
 import { activityNote, inactivityNote } from './activity.ts';
 import { debrisAt, debrisMark, harvestButton } from './debris.ts';
-import { fmt } from './format.ts';
+import { coords, dur, fmt } from './format.ts';
 import { isProtected, nameOf, ranks } from './game.ts';
+import { canLaunch } from './missiles.ts';
 import { moonAt, moonMark } from './moon.ts';
 import { type Countdown, countdown } from './overview.ts';
 import { canScan, scanRows, scanTitle } from './phalanx.ts';
+import { canSurvey } from './survey.ts';
 import type { GalaxyPlanet } from './types.ts';
 
 /**
@@ -35,6 +40,21 @@ export type GalaxyAction =
   | { kind: 'active'; label: string }
   | { kind: 'html'; html: string };
 
+/**
+ * The actions of a position in the bottom sheet of a phone (#189, the „⋯“ of
+ * the proposal): the same actions as the row, the name of the place and the
+ * flight time to it.
+ */
+export interface GalaxySheet {
+  /** The id of the place, or `free-<position>`; the „⋯“ and the sheet carry it. */
+  id: string;
+  /** The place with its position, e.g. „Kolonie [1:2:3]“. */
+  title: string;
+  /** „Flugzeit mit allen Schiffen: …“; none without a ship that flies. */
+  flight: string | null;
+  actions: GalaxyAction[];
+}
+
 /** A planet or a moon of a row with its owner and its actions. */
 export interface GalaxyPlace extends Coords {
   /** The planet by its name, a moon with „(Mond)“. */
@@ -49,7 +69,11 @@ export interface GalaxyPlace extends Coords {
   rank: string;
   /** The noob protection between the player and a foreign owner. */
   protected: boolean;
+  /** Whether the owner is in vacation mode (#223). */
+  vacation: boolean;
   actions: GalaxyAction[];
+  /** The „⋯“ of a phone; none when the place has no action but its own name. */
+  sheet: GalaxySheet | null;
 }
 
 /** One position of the system. */
@@ -59,12 +83,14 @@ export interface GalaxyRow {
   planet: GalaxyPlace | null;
   /** The HTML of the symbols of the moon and the Trümmerfeld, in this order. */
   marks: string[];
-  /** The actions at a free position: „Landnahme“ and „Bergung“. */
+  /** The actions at a free position: „Landnahme“, „Vermessen“ (#190) and „Bergung“. */
   actions: GalaxyAction[];
   /** The note of a free position: „–“, or until when it is locked (#224). */
   note: string;
   /** The moon's row below the planet, once its symbol is opened (#53). */
   moon: GalaxyPlace | null;
+  /** The „⋯“ of a free position, with its actions. */
+  sheet: GalaxySheet | null;
 }
 
 /** One flight of the scan. */
@@ -88,6 +114,8 @@ export interface GalaxyPage {
   systems: number;
   scan: ScanPanel | null;
   rows: GalaxyRow[];
+  /** The sheet that is open (`ui.gsheet`) while its place is on the page, else null. */
+  sheet: GalaxySheet | null;
   /** The Spähschädel an Auspex-Erkundung sends. */
   probes: string;
 }
@@ -146,8 +174,29 @@ function foreignActions(v: V, pl: GalaxyPlanet): GalaxyAction[] {
     fleetTo('link', 'attack', 'Sturmangriff', where),
     fleetTo('link', 'transport', 'Versorgungsflug', where),
     ...scanButton(v, pl),
+    ...missileButton(v, pl),
   ];
 }
+
+/**
+ * The Raketenangriff at a foreign planet or moon (#54): from a planet with
+ * Orbitalraketen, at a target in their range; it opens the dialog.
+ */
+const missileButton = (v: V, pl: GalaxyPlanet): GalaxyAction[] =>
+  canLaunch(v.P, v.R, pl)
+    ? [
+        {
+          kind: 'button',
+          label: 'Raketenangriff',
+          attrs: {
+            'data-act': 'gmissile',
+            'data-id': pl.id,
+            ...at(pl, pl.kind === 'moon'),
+            'aria-label': `Raketenangriff auf ${placeName(pl)}`,
+          },
+        },
+      ]
+    : [];
 
 /** The actions at an own planet or moon: none but its name while it is shown. */
 function ownActions(v: V, pl: GalaxyPlanet): GalaxyAction[] {
@@ -170,15 +219,48 @@ function ownActions(v: V, pl: GalaxyPlanet): GalaxyAction[] {
   ];
 }
 
+/**
+ * The flight time to a place for all ships of the shown planet that fly, at
+ * full speed [V]: the proposal names „the flight time“ without saying for
+ * which fleet.
+ */
+function flightLine(v: V, to: Coords): string | null {
+  const flying: Levels = Object.fromEntries(
+    Object.entries(v.P.ships).filter(([k, n]) => n > 0 && canFly(k)),
+  );
+  if (!Object.keys(flying).length) return null;
+  const ms = flightMs(distance(v.P, to), fleetSpeed(flying, v.R), 10, v.s.cfg);
+  return `Flugzeit mit allen Schiffen: ${dur(ms)}`;
+}
+
+/** The sheet of a place: its actions without the dim name of the active place; none when no action is left. */
+function sheetOf(
+  v: V,
+  id: string,
+  title: string,
+  at: Coords,
+  actions: GalaxyAction[],
+): GalaxySheet | null {
+  const list = actions.filter((a) => a.kind !== 'active');
+  return list.length
+    ? { id, title, flight: flightLine(v, at), actions: list }
+    : null;
+}
+
 /** A planet or a moon of a row, with its owner, rank and protection. */
 function place(
   v: V,
   pl: GalaxyPlanet,
   name: string,
   rk: Record<string, number>,
+  extra: GalaxyAction[] = [],
 ): GalaxyPlace {
   const { s } = v;
   const mine = pl.owner === s.me.id;
+  const actions = [
+    ...(mine ? ownActions(v, pl) : foreignActions(v, pl)),
+    ...extra,
+  ];
   return {
     g: pl.g,
     s: pl.s,
@@ -190,7 +272,9 @@ function place(
     inactivity: inactivityNote(s.players[pl.owner]?.inactive),
     rank: String(rk[pl.owner] ?? '-'),
     protected: !mine && isProtected(s.players, s.me.id, pl.owner),
-    actions: mine ? ownActions(v, pl) : foreignActions(v, pl),
+    vacation: !!s.players[pl.owner]?.vacation,
+    actions,
+    sheet: sheetOf(v, pl.id, `${name} ${coords(pl)}`, pl, actions),
   };
 }
 
@@ -199,6 +283,51 @@ const colonize = (v: V, c: Coords): GalaxyAction[] =>
   v.P.ships.colony
     ? [fleetTo('button', 'colonize', 'Landnahme', at(c, false))]
     : [];
+
+/** „Vermessen“ at a free position, with Spähschädel and the research (#190). */
+const survey = (v: V, c: Coords): GalaxyAction[] =>
+  canSurvey(v.R.research, v.P.ships)
+    ? [
+        {
+          kind: 'button',
+          label: 'Vermessen',
+          attrs: { 'data-act': 'gspy', 'data-m': 'survey', ...at(c, false) },
+        },
+      ]
+    : [];
+
+/**
+ * „Expedition“ at the expedition position (#93): with level 1 of the
+ * research and a ship on the shown planet that flies.
+ */
+const expedition = (v: V, c: Coords): GalaxyAction[] =>
+  expeditionLevel(v.R.research) >= 1 &&
+  Object.entries(v.P.ships).some(([k, n]) => n > 0 && canFly(k))
+    ? [fleetTo('button', 'expedition', MISSION.expedition, at(c, false))]
+    : [];
+
+/** The note of the expedition position, in place of a free one. */
+const EXPEDITION_NOTE = 'Expeditionsposition';
+
+/** A row without a planet: its note, actions and marks, and the sheet of its actions (#189). */
+function emptyRow(
+  v: V,
+  c: Coords,
+  marks: string[],
+  actions: GalaxyAction[],
+  note: string,
+  title: string,
+): GalaxyRow {
+  return {
+    position: c.p,
+    planet: null,
+    marks,
+    actions,
+    note,
+    moon: null,
+    sheet: sheetOf(v, `free-${c.p}`, `${title} ${coords(c)}`, c, actions),
+  };
+}
 
 /** The row of position `p` of the shown system. */
 function galaxyRow(v: V, p: number, rk: Record<string, number>): GalaxyRow {
@@ -216,20 +345,33 @@ function galaxyRow(v: V, p: number, rk: Record<string, number>): GalaxyRow {
   const harvest: GalaxyAction[] = field
     ? [{ kind: 'html', html: harvestButton(c) }]
     : [];
+  // The position after the last planet position: no planet, only expeditions
+  // and the Bergung of its Trümmerfeld (#93).
+  if (p > s.cfg.positions)
+    return emptyRow(
+      v,
+      c,
+      marks,
+      [...expedition(v, c), ...harvest],
+      EXPEDITION_NOTE,
+      EXPEDITION_NOTE,
+    );
   if (!pl) {
     // A position locked after an abandonment says until when (#224).
     const free = freePosition(s.locks, c, v.now);
-    return {
-      position: p,
-      planet: null,
+    // A locked position offers neither the Landnahme nor the Vermessen
+    // (owner, 2026-11-18, #190); the Bergung stays.
+    const offered = free.colonize ? [...colonize(v, c), ...survey(v, c)] : [];
+    return emptyRow(
+      v,
+      c,
       marks,
-      actions: [...(free.colonize ? colonize(v, c) : []), ...harvest],
-      note: free.note,
-      moon: null,
-    };
+      [...offered, ...harvest],
+      free.note,
+      'Position',
+    );
   }
-  const planet = place(v, pl, pl.name, rk);
-  planet.actions.push(...harvest);
+  const planet = place(v, pl, pl.name, rk, harvest);
   return {
     position: p,
     planet,
@@ -237,6 +379,7 @@ function galaxyRow(v: V, p: number, rk: Record<string, number>): GalaxyRow {
     actions: [],
     note: '',
     moon: open ? place(v, moon, placeName(moon), rk) : null,
+    sheet: null,
   };
 }
 
@@ -255,19 +398,32 @@ function scanPanel(v: V): ScanPanel | null {
   };
 }
 
+/** The sheet `id` names, while its place is on the page: of a planet, of its moon or of a free position. */
+const openSheet = (
+  rows: GalaxyRow[],
+  id: string | null | undefined,
+): GalaxySheet | null =>
+  (id &&
+    rows
+      .flatMap((r) => [r.sheet, r.planet?.sheet, r.moon?.sheet])
+      .find((x) => x?.id === id)) ||
+  null;
+
 /** The Sternenkarte of the system `ui.gal`:`ui.sys`. */
 export function galaxyPage(v: V): GalaxyPage {
   const { s, ui } = v;
   const rk = ranks(s.players);
+  const rows = Array.from({ length: s.cfg.positions + 1 }, (_, i) =>
+    galaxyRow(v, i + 1, rk),
+  );
   return {
     gal: ui.gal,
     sys: ui.sys,
     galaxies: s.cfg.galaxies,
     systems: s.cfg.systems,
     scan: scanPanel(v),
-    rows: Array.from({ length: s.cfg.positions }, (_, i) =>
-      galaxyRow(v, i + 1, rk),
-    ),
+    rows,
+    sheet: openSheet(rows, ui.gsheet),
     probes: fmt(s.me.probes || 1),
   };
 }

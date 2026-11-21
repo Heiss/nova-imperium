@@ -1,7 +1,7 @@
 // The partial mutation run of a pull request (owner, 2026-11-18, #309). A
 // pull request that is no release pull request and goes into no hotfix
 // branch mutates only what it changes, in one job, instead of every file in
-// 6 shards (about an hour). The set holds
+// the shards (about an hour with 6, 12 since 2026-11-20). The set holds
 //   - the files of the "mutate" globs of stryker.config.json that the pull
 //     request changed (a deleted file is gone, so it is not in the set), and
 //   - for a changed test file the source file it tests, when that file is
@@ -10,19 +10,20 @@
 //     a source with the ending ".svelte.ts" (state.test.ts tests
 //     state.svelte.ts), and in src/test/ the script of the same name in
 //     scripts/ (size-ratchet.test.ts tests scripts/size-ratchet.ts).
-//   - the files whose floor in mutation-standard.json was added, changed or
-//     removed, when only the floors changed (a pull request that raises or
-//     adds a floor proves it in its own run; a removed floor is checked
-//     against the new-file minimum); any other change of that file runs
-//     everything (#309, the coordinator, 2026-11-18).
+//   - the files whose floor in mutation-floors.txt was added, changed or
+//     removed (a pull request that raises or adds a floor proves it in its
+//     own run; a removed floor is checked against the new-file minimum); the
+//     file holds nothing but floors, one line per file (#317 part 4, the
+//     coordinator, 2026-11-18). A change of mutation-standard.json (newFile,
+//     security) runs everything.
 // A test file with no such source adds nothing, and neither does a test
 // helper (src/test/** and src/server/test-helpers.ts that are no *.test.ts):
 // the nightly complete run (mutation.yml) tests them. A set of more than
 // PARTIAL_LIMIT files runs everything too: one job is slower than the shards
-// for it (#309). A change of the
-// mutation configuration (as scripts/mutation-changes.ts, #146, but
-// mutation-standard.json counts only as above) or of the versions of Stryker, Vitest or TypeScript in the lockfile still runs
-// everything, in the 6 shards.
+// for it (#309). A change of the mutation configuration (as
+// scripts/mutation-changes.ts, #146, but mutation-floors.txt counts only as
+// above) or of the versions of Stryker, Vitest or TypeScript in the lockfile
+// still runs everything, in the shards.
 //
 //   node scripts/mutation-partial.ts plan <from> [<to>]
 //        prints "true" when everything runs, else the JSON list of the
@@ -45,6 +46,7 @@ import {
   MUTATION_CONFIG,
   runGit,
 } from './mutation-changes.ts';
+import { FLOORS_FILE, parseFloors } from './mutation-floorfile.ts';
 import { shardConfig, type StrykerConfig } from './mutation-shards.ts';
 
 const TEST = '.test.ts';
@@ -92,7 +94,7 @@ export function partialSet(
 
 /**
  * The most files one partial job mutates; a set above it runs the complete
- * run in 6 shards (the coordinator, 2026-11-19, #309). One job has no cache
+ * run in the shards (the coordinator, 2026-11-19, #309). One job has no cache
  * and no parallel jobs, so its time grows with the number of files while the
  * complete run takes about 60 minutes whatever the set. Measured on
  * 2026-11-19: the partial run of #281 (11 files, among them `types.ts` and
@@ -102,77 +104,39 @@ export function partialSet(
  * `catalog.ts` can be slower than many small ones.
  */
 export const PARTIAL_LIMIT = 12;
-const STANDARD = 'mutation-standard.json';
-/** The keys of mutation-standard.json (scripts/mutation-gate.ts, Standard). */
-const STANDARD_KEYS = ['floors', 'newFile', 'security', 'securityTarget'];
-
-/** A plain JSON object, or undefined for text that is none. */
-function objectOf(
-  text: string | undefined,
-): Record<string, unknown> | undefined {
-  let value: unknown;
-  try {
-    value = JSON.parse(text ?? '');
-  } catch {
-    return undefined;
-  }
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : undefined;
-}
-
-/** The floors of a parsed mutation-standard.json: a plain object of numbers. */
-function floorsOf(
-  standard: Record<string, unknown>,
-): Record<string, number> | undefined {
-  const floors = standard.floors;
-  return typeof floors === 'object' &&
-    floors !== null &&
-    !Array.isArray(floors) &&
-    Object.values(floors).every((v) => typeof v === 'number')
-    ? (floors as Record<string, number>)
-    : undefined;
-}
-
 /**
- * What a change of mutation-standard.json from <before> to <after> (the
- * texts of the file) runs: the files whose floor was added, changed or
- * removed when ONLY floors changed, else the reason to run everything. Only
- * floors changed when both texts are JSON objects with exactly the keys
- * floors, newFile, security and securityTarget, each floor is a number, and
- * newFile, security and securityTarget are equal on both sides (compared as
- * JSON, so a changed order of "security" counts as a change). A file that is
- * missing or no such object on either side runs everything.
+ * What a change of the floors file from <before> to <after> (its texts) runs:
+ * the files whose floor was added, changed or removed. The file is nothing
+ * but floors (mutation-floors.txt, one line per file), so that is all a
+ * change of it can be; a file that is missing on either side (the change
+ * that introduces it) or has a line of another form, or two lines for a
+ * file, runs everything.
  */
 export function floorChanges(
   before: string | undefined,
   after: string | undefined,
 ): { files: string[] } | { reason: string } {
-  const old = objectOf(before);
-  const now = objectOf(after);
-  const known = (o: Record<string, unknown> | undefined): boolean =>
-    o !== undefined &&
-    Object.keys(o).sort().join() === STANDARD_KEYS.join() &&
-    floorsOf(o) !== undefined;
-  if (!old || !now || !known(old) || !known(now))
-    return { reason: `${STANDARD} is not of the form this script knows` };
-  const other = STANDARD_KEYS.filter(
-    (k) => k !== 'floors' && JSON.stringify(old[k]) !== JSON.stringify(now[k]),
-  );
-  if (other.length)
+  let was: Record<string, number>;
+  let is: Record<string, number>;
+  try {
+    if (before === undefined || after === undefined)
+      throw new Error(`${FLOORS_FILE} is not there on both sides`);
+    was = parseFloors(before);
+    is = parseFloors(after);
+  } catch (error) {
     return {
-      reason: `${STANDARD} changes more than the floors: ${other.join(', ')}`,
+      reason: `${FLOORS_FILE} is not of the form this script knows: ${(error as Error).message}`,
     };
-  const was = floorsOf(old)!;
-  const is = floorsOf(now)!;
+  }
   const files = new Set([...Object.keys(was), ...Object.keys(is)]);
   return { files: [...files].filter((f) => was[f] !== is[f]).sort() };
 }
 
 /**
  * What the changes from <from> to <to> run: reasons to run everything (the
- * mutation configuration or the test tool chain changed, or more than the
- * floors of mutation-standard.json), else the files of the partial run. git
+ * mutation configuration, mutation-standard.json included, or the test tool
+ * chain changed, or mutation-floors.txt is not as floorChanges reads it),
+ * else the files of the partial run. git
  * runs a git command and returns its output; exists tells whether a file is
  * in the checked-out tree.
  */
@@ -184,19 +148,20 @@ export function plan(
   exists: (file: string) => boolean,
 ): { reasons: string[]; files: string[] } {
   const changed = changedFiles(from, to, git);
-  // mutation-standard.json is a mutation configuration for the complete
-  // runs (scripts/mutation-changes.ts), but here only its floors count.
-  const config = MUTATION_CONFIG.filter((p) => p !== STANDARD);
+  // mutation-floors.txt is a mutation configuration for the complete runs
+  // (scripts/mutation-changes.ts), but here only its floors count; a change
+  // of mutation-standard.json (newFile, security) runs everything.
+  const config = MUTATION_CONFIG.filter((p) => p !== FLOORS_FILE);
   const reasons = changed
     .filter((f) => matchesAny(f, config))
     .map((f) => `${f} configures the mutation run`);
   const tools = lockfileReason(changed, from, to, git);
   if (tools) reasons.push(tools);
   let floors: string[] = [];
-  if (changed.includes(STANDARD)) {
+  if (changed.includes(FLOORS_FILE)) {
     const show = (rev: string): string | undefined => {
       try {
-        return git(['show', `${rev}:${STANDARD}`]);
+        return git(['show', `${rev}:${FLOORS_FILE}`]);
       } catch {
         return undefined;
       }

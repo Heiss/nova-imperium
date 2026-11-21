@@ -21,6 +21,19 @@ import { ROUND_ENTRIES } from './round-settings.gen.ts';
 export interface RoundGroup {
   name: string;
   legend?: string;
+  /**
+   * A line under the members in the dialog „Neue Runde“ that the browser
+   * writes again whenever a field changes (#237, the preview of the planet
+   * limit). It gets the number of every member of the group by its `name`.
+   */
+  preview?: (values: Readonly<Record<string, number>>) => string;
+  /**
+   * The settings of the group chosen, repeated word for word above the
+   * button of the dialog „Neue Runde“, so the admin confirms what they chose
+   * (#237). Written again whenever a field changes; gets the numbers like
+   * `preview`.
+   */
+  confirm?: (values: Readonly<Record<string, number>>) => string;
 }
 
 interface Common<N extends string> {
@@ -37,6 +50,13 @@ interface Common<N extends string> {
    */
   order: number;
   group?: RoundGroup;
+  /**
+   * The entry is shown in the dialog „Neue Runde“ only while the entry
+   * called `name` has `value` (#237: the fields of the colony research only
+   * with the research switched on). Hidden, it keeps its value and is sent
+   * with the others, and it has no effect while the other one disagrees.
+   */
+  shownWhen?: { name: string; value: number };
 }
 
 /** A value of yes or no, a checkbox in the dialog. */
@@ -47,6 +67,9 @@ interface RoundSwitch<N extends string = string> extends Common<N> {
   refusal: string;
   /** A sentence below the checkbox, which the checkbox names as its description. */
   note?: string;
+  /** Only a number has a rule between settings or an `unstored` value; the code reads both on any entry. */
+  agrees?: never;
+  unstored?: never;
 }
 
 /** A whole number from `min` to `max`, a number field or a selection. */
@@ -55,12 +78,27 @@ export interface RoundNumber<N extends string = string> extends Common<N> {
   min: number;
   max: number;
   def: number;
+  /**
+   * The value of a running round that has none stored: a database from before
+   * the setting existed keeps today's game (#237: the planet limit stays
+   * unlimited in the round that runs). `def` is then what a new round takes
+   * when nothing is sent and what the dialog offers; without `unstored` a
+   * missing value is `def` everywhere.
+   */
+  unstored?: number;
   /** The refusal; without it the range wording of the universe settings. */
   refusal?: string;
   /** Named values instead of a number field (each lies in the range). */
   choices?: readonly { value: number; label: string }[];
   /** Also a row of the universe settings, changed during the round (X1). */
   live?: true;
+  /**
+   * Whether the value agrees with the other values of the round, a rule
+   * between settings (#237); asked only once every value is in its range.
+   * `round` holds every value by its stored key. The entry's `refusal` words
+   * a disagreement, in the dialog and in the universe settings alike.
+   */
+  agrees?: (value: number, round: Readonly<Record<string, number>>) => boolean;
 }
 
 export type RoundSetting = RoundSwitch | RoundNumber;
@@ -89,7 +127,10 @@ export type RoundRules = { number: number } & RoundValues;
 /** A value of the round by name, for the generic code. */
 type Values = Record<string, number | boolean>;
 
-/** The values as stored: a missing setting is the default, a switch is 0 or 1. */
+/**
+ * The values of the running round: a missing setting is the default (the
+ * `unstored` value of an entry that has one), a switch is 0 or 1.
+ */
 export function storedValues(
   stored: (key: string) => number | undefined,
   settings: readonly RoundSetting[] = ROUND_SETTINGS,
@@ -97,10 +138,29 @@ export function storedValues(
   const out: Values = {};
   for (const s of settings) {
     const value = stored(s.key);
-    out[s.name] =
-      value === undefined ? s.def : s.kind === 'switch' ? value !== 0 : value;
+    if (value === undefined) out[s.name] = s.unstored ?? s.def;
+    else out[s.name] = s.kind === 'switch' ? value !== 0 : value;
   }
   return out;
+}
+
+/**
+ * What a new round takes instead of the value of the running round, where
+ * that round has none stored (`unstored`): the default. Only those entries;
+ * the dialog offers them and a request that does not send them gets them
+ * (#237). Once a round was started, every value is stored and this is empty.
+ */
+export function freshValues(
+  stored: (key: string) => number | undefined,
+  settings: readonly RoundSetting[] = ROUND_SETTINGS,
+): Record<string, number> {
+  return Object.fromEntries(
+    settings.flatMap((s) =>
+      s.unstored !== undefined && stored(s.key) === undefined
+        ? [[s.name, s.def]]
+        : [],
+    ),
+  );
 }
 
 /**
@@ -131,16 +191,31 @@ function chosen(
   return value === undefined ? current[s.name] : value;
 }
 
+/** The entries whose value disagrees with the other values of the round (#237). */
+function disagreeing(
+  current: Readonly<Values>,
+  data: Record<string, unknown>,
+  settings: readonly RoundSetting[],
+): RoundSetting[] {
+  const round = Object.fromEntries(
+    settings.map((s) => [s.key, Number(chosen(s, current, data))]),
+  );
+  return settings.filter((s) => s.agrees && !s.agrees(round[s.key]!, round));
+}
+
 /**
  * The entries refused in a new round, or none: the first refused entry in
- * the order of the registry, with the other refused members of its group.
+ * the order of the registry, with the other refused members of its group. A
+ * value out of its range comes first; a rule between settings (`agrees`) is
+ * asked only when every value is in its range.
  */
 export function roundRefused(
   current: Readonly<Values>,
   data: Record<string, unknown>,
   settings: readonly RoundSetting[] = ROUND_SETTINGS,
 ): RoundSetting[] {
-  const wrong = settings.filter((s) => !valid(s, chosen(s, current, data)));
+  const outside = settings.filter((s) => !valid(s, chosen(s, current, data)));
+  const wrong = outside.length ? outside : disagreeing(current, data, settings);
   const first = wrong[0];
   if (!first?.group) return wrong.slice(0, 1);
   return wrong.filter((s) => s.group === first.group);
@@ -175,6 +250,39 @@ export function roundRequest(
   }
   return out;
 }
+
+/** Whether the dialog shows an entry for the values in its fields (`shownWhen`). */
+export const roundShown = (
+  s: RoundSetting,
+  values: Readonly<Record<string, number | boolean>>,
+): boolean =>
+  !s.shownWhen || Number(values[s.shownWhen.name]) === s.shownWhen.value;
+
+/** The numbers of the members of `group` by their `name`, as its lines are written from them. */
+const membersOf = (
+  group: RoundGroup,
+  values: Readonly<Record<string, number | boolean>>,
+  settings: readonly RoundSetting[],
+): Record<string, number> =>
+  Object.fromEntries(
+    settings
+      .filter((s) => s.group === group)
+      .map((s) => [s.name, Number(values[s.name])]),
+  );
+
+/** The confirmation line of a group for the values in its fields; empty for a group without one (#237). */
+export const roundConfirm = (
+  group: RoundGroup,
+  values: Readonly<Record<string, number | boolean>>,
+  settings: readonly RoundSetting[] = ROUND_SETTINGS,
+): string => group.confirm?.(membersOf(group, values, settings)) ?? '';
+
+/** The preview line of a group for the values in its fields; empty for a group without one. */
+export const roundPreview = (
+  group: RoundGroup,
+  values: Readonly<Record<string, number | boolean>>,
+  settings: readonly RoundSetting[] = ROUND_SETTINGS,
+): string => group.preview?.(membersOf(group, values, settings)) ?? '';
 
 /** The id of an entry's field in the dialog: `mainLock` is `round-main-lock`. */
 export const roundFieldId = (s: RoundSetting): string =>

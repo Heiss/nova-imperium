@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { settle } from '../../core/settle.ts';
 import { RECOGNITION_DEFAULT } from '../../core/fleet-recognition.ts';
 import { DEFAULT_UNIVERSE, UNIVERSE_SPECS } from '../../core/universe.ts';
-import { addPlanet, addUser, testCtx } from '../test-helpers.ts';
+import { addPlanet, addUser, loose, testCtx } from '../test-helpers.ts';
 import { announce, reset, saveSettings } from './admin.ts';
 import { runAction } from './dispatch.ts';
 import { placePlanet } from './planets.ts';
@@ -59,7 +59,7 @@ describe('admin', () => {
     ).toThrow(
       'Tempo (Faktor): ganze Zahl von 1 bis 100. Galaxien: mindestens 2, dort liegen schon Planeten.',
     );
-    expect(() => saveSettings(ctx, u, {})).toThrow('Tempo');
+    expect(() => saveSettings(ctx, u, loose<'settings'>({}))).toThrow('Tempo');
     expect(ctx.admin.universe()).toEqual(DEFAULT_UNIVERSE);
   });
 
@@ -105,6 +105,15 @@ describe('admin', () => {
     expect(ctx.debris.all()).toEqual([]);
   });
 
+  it('a new round forgets the surveyed positions (#190)', () => {
+    const ctx = testCtx();
+    const a = addUser(ctx, 'Anna', { admin: true });
+    const c = { g: 1, s: 2, p: 3 };
+    ctx.surveys.add({ id: 'v1', ...c, temp: 50, diameter: 9000, created: 1 });
+    reset(ctx, a, {});
+    expect(ctx.surveys.get(c)).toBeNull();
+  });
+
   it('a new round ends the planets without a field limit (#51)', () => {
     const ctx = testCtx();
     const a = addUser(ctx, 'Anna', { admin: true });
@@ -144,7 +153,7 @@ describe('the messages of refused settings (#214)', () => {
     const u = addUser(ctx, 'Anna', { admin: true });
     addPlanet(ctx, u.id, at);
     try {
-      saveSettings(ctx, u, { settings });
+      saveSettings(ctx, u, loose<'settings'>({ settings }));
       return null;
     } catch (e) {
       expect(ctx.admin.universe()).toEqual(DEFAULT_UNIVERSE);
@@ -368,9 +377,11 @@ describe('points and state', () => {
     expect(sb.fleets[0]!.cargo).toBeUndefined();
     expect(sb.fleets[1]!.ships).toBeUndefined();
     expect(sb.admin.specs.length).toBeGreaterThan(0);
+    // Every player sees every category of the highscore (#78 D4).
+    const none = { buildings: 0, research: 0, fleet: 0, defense: 0 };
     expect(sb.players).toEqual({
-      u_Anna: { name: 'Anna', points: 12 },
-      u_Bert: { name: 'Bert', points: 0 },
+      u_Anna: { name: 'Anna', points: 12, scores: { ...none, fleet: 3 } },
+      u_Bert: { name: 'Bert', points: 0, scores: none },
     });
     expect(sb.galaxy).toHaveLength(2);
     expect(sb.me).toEqual({
@@ -380,9 +391,11 @@ describe('points and state', () => {
       rq: null,
       probes: 1,
       explain: 'icon',
+      levelTable: 'icon',
       pushOff: [],
       readAt: 0,
       admin: true,
+      vacation: null,
     });
   });
 

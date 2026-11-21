@@ -1,0 +1,12 @@
+---
+type: log-entry
+date: 2026-11-20T23:30
+kind: Code
+issues: [118, 151]
+---
+
+#118, #151, follow-up of package 8. The position fields of the Sternenkarte (`g_g`, `g_s`) now have a field draft: what the player types stays over the poll redraw until Enter, an arrow or „zum Heimatsystem“ draws the page anew (a fresh render drops the drafts). Before package 8 they were `data-nokeep` and lost the typed value on a redraw as well; the E2E „galaxy: ◀ ▶ step through galaxies and systems“ only failed when a poll redraw fell between the typing and Enter. `e2e/redraw-drafts.spec.ts` has the deterministic case (verified red on the commit before package 8 and on the collecting branch). The other fields without a field draft behave as before: settings of the universe and chat and buddy name keep drafts of their own, the invitation link is read only, and the confirmation of a dissolving is in a modal outside the view.
+
+Guard `src/test/field-writes.test.ts` (owner, 2026-11-20): it scans `src/client/**/*.ts` and `*.svelte` (not tests) through the syntax trees for a direct write of a field (`.value`, `.checked`, `.selectedIndex`, `.selected`, `setAttribute('value'`), and fails outside the allow-list (`field-drafts.ts`, which implements `writeField`). The one bypass found, the redraw of the settings of the universe in `features/admin.ts`, now writes through `setById`.
+
+The opened `<details>` of the admin page: `e2e/redraw-drafts.spec.ts` has a deterministic case each for the event log and the error log (open a row, let a poll redraw the page anew, the details are still open with their code or their „Vorgang“). The remaining flake of `e2e/event-log.spec.ts` was the test's, not the product's: the page of the tab (all players) is on screen first and the answer of the filter „Spieler“ replaces it with the admin's own reads on top, so every row moves down by four. The wait for „Ereignisse“ was met by the first page already, and a click on the row of the battle in that moment landed on whatever row the answer put there (`toHaveAttribute('open')` stayed empty). The test now waits for the row `admin.read / events`, which only the answer holds; the `toPass` loop is gone. Evidence: the old plain click failed 1 of 8 runs under CPU load; the new test passed 24 of 24 under the same load.

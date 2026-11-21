@@ -16,6 +16,7 @@ const FILES: Record<string, string> = {
   sdeut: 'buildings/deuterium_tank',
   moonbase: 'buildings/lunar_base',
   phalanx: 'buildings/sensor_phalanx',
+  silo: 'buildings/missile_silo',
   jumpgate: 'buildings/jump_gate',
   market: 'buildings/trading_post',
   energy: 'research/energy_technology',
@@ -33,6 +34,12 @@ const FILES: Record<string, string> = {
   plasma: 'research/plasma_technology',
   graviton: 'research/graviton_technology',
   ifn: 'research/intergalactic_research_network',
+  // #190: the picture of the Auspex-Lehre with its own name until one is drawn [V].
+  carto: 'research/auspex_cartography',
+  // #93: the picture of the Auspex-Lehre with its own name until one is drawn [V].
+  expo: 'research/expedition_technology',
+  // #237: the picture of the Kreuzzugs-Kartografie with its own name until one is drawn [V].
+  colonial: 'research/colonial_administration',
   sc: 'ships/small_cargo',
   lc: 'ships/large_cargo',
   colony: 'ships/colony_ship',
@@ -55,6 +62,8 @@ const FILES: Record<string, string> = {
   pt: 'defense/plasma_turret',
   ssd: 'defense/small_shield_dome',
   lsd: 'defense/large_shield_dome',
+  abm: 'defense/anti_ballistic_missile',
+  ipm: 'defense/interplanetary_missile',
 };
 
 export const ICON_KEYS = Object.keys(FILES);

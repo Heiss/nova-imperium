@@ -2,8 +2,16 @@
 // the market settings are in the audit log): an exchange is a game action
 // with its amounts, a change of a setting and a new round record before and
 // after values, and the state of the answer carries the prices.
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { asAdmin } from '../../test/http.ts';
+
+// The password check is the cost of every login here; the result of the same
+// password and salt is computed once (src/test/scrypt-memo.ts).
+vi.mock('node:crypto', async (original) =>
+  (await import('../../test/scrypt-memo.ts')).memoScrypt(
+    await original<typeof import('node:crypto')>(),
+  ),
+);
 
 type Detail = Record<string, unknown>;
 

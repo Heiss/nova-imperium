@@ -8,6 +8,7 @@ describe('players repository', () => {
       admin: true,
       probes: 4,
       explain: 'hidden',
+      levelTable: 'always',
       readAt: 7,
       research: { energy: 3, laser: 1 },
       rq: {
@@ -70,6 +71,19 @@ describe('players repository', () => {
       mainPlanet: null,
       mainSwitched: null,
     });
+  });
+
+  it('saves and clears the start of the vacation mode (#223)', () => {
+    const ctx = testCtx();
+    const u = addUser(ctx, 'Anna');
+    expect(ctx.players.get(u.id)!.vacation).toBeNull();
+    ctx.players.save({ ...u, vacation: 42 });
+    expect(ctx.players.get(u.id)!.vacation).toBe(42);
+    expect(ctx.db.prepare('SELECT vacation FROM users').get()).toEqual({
+      vacation: 42,
+    });
+    ctx.players.save({ ...u, vacation: null });
+    expect(ctx.players.get(u.id)).toEqual({ ...u, vacation: null });
   });
 
   it('keeps an empty address empty', () => {

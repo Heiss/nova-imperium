@@ -3,7 +3,7 @@
 // included; no Promethium, no defense.
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
-import { DEF, FIGHTERS, SHIPS } from './catalog.ts';
+import { DEF, FIGHTERS, fights, SHIPS } from './catalog.ts';
 import { DEBRIS_SHARE, debrisOf, isEmpty } from './debris.ts';
 
 describe('debris of a battle', () => {
@@ -63,7 +63,11 @@ describe('debris of a battle', () => {
   });
 
   it('is the share of the cost of every lost ship on generated battles', () => {
-    const keys = [...Object.keys(SHIPS), ...Object.keys(DEF)];
+    // The units of a battle: missiles do not fight (#54).
+    const keys = Object.keys(FIGHTERS);
+    expect(keys.sort()).toEqual(
+      [...Object.keys(SHIPS), ...Object.keys(DEF)].filter(fights).sort(),
+    );
     const side = fc
       .dictionary(
         fc.constantFrom(...keys),

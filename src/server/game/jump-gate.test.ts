@@ -11,7 +11,7 @@ import { addPlanet, addUser, testCtx } from '../test-helpers.ts';
 import { ACTIONS, runAction } from './dispatch.ts';
 import { heldAt } from './holding.ts';
 import { JUMP_ERROR, gateState } from './jump-gate.ts';
-import { addMoon } from './moons.ts';
+import { addMoon, destroyMoon } from './moons.ts';
 import { stateFor } from './state.ts';
 
 const FROM = 'm1_2_3';
@@ -217,6 +217,34 @@ describe('the jump through the Warp-Tor', () => {
     const { ctx } = world();
     ctx.db.prepare('DELETE FROM planets WHERE id = ?').run(TO);
     expect(() => jump(ctx, {})).toThrow(JUMP_ERROR.noTarget);
+  });
+
+  it('cannot jump to or from a moon a Mondbruch broke, and its gate time goes with it (#95)', () => {
+    const { ctx } = world(1, 1);
+    // Both gates have a stored time: the moon's still cooling, the other ready.
+    ctx.planets.setGateReady(TO, ctx.now() + 60_000);
+    ctx.planets.setGateReady(FROM, 1);
+    destroyMoon(ctx, ctx.planets.get(TO)!);
+    // The moon, its Warp-Tor and its gate time are gone; the other gate stays.
+    expect(ctx.planets.get(TO)).toBeNull();
+    expect(ctx.planets.gateReady(TO)).toBe(0);
+    expect(
+      ctx.db.prepare('SELECT moon_id FROM jump_gates').pluck().all(),
+    ).toEqual([FROM]);
+    expect(gateState(ctx, 'u_Anna').map((g) => g.id)).toEqual([FROM]);
+    // Nobody jumps to it, nobody from it, and the ships stay where they are.
+    const before = ships(ctx, FROM);
+    expect(() => jump(ctx, {})).toThrow(JUMP_ERROR.noTarget);
+    expect(() => jump(ctx, { planet: TO, to: FROM })).toThrow(
+      'Du hast keinen Zugriff auf diesen Planeten.',
+    );
+    expect(ships(ctx, FROM)).toEqual(before);
+    expect(ctx.planets.gateReady(FROM)).toBe(1);
+    // A new moon at the same position starts ready, with no time of the old one.
+    const again = addMoon(ctx, ctx.planets.get('p2_5_9')!, 10, ctx.now());
+    ctx.planets.save({ ...again, b: { moonbase: 1, jumpgate: 1 } });
+    expect(ctx.planets.gateReady(TO)).toBe(0);
+    expect(gateState(ctx, 'u_Anna').find((g) => g.id === TO)?.ready).toBe(0);
   });
 
   it('keeps the cooldown after a restart: it is stored with the moons', () => {

@@ -10,6 +10,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 import {
   expectShownPlace,
   nav,
+  ownArea,
   register,
   seed,
   uniqueName,
@@ -50,8 +51,8 @@ async function mainPlanetFlow(page: Page): Promise<void> {
   await register(page, player);
   const home = await here(page);
   const first = (await page.locator('#pinfo b').first().innerText()).trim();
-  // The colony lies in another system of the home galaxy.
-  const system = home.s === 1 ? 2 : home.s - 1;
+  // The colony lies in the next system of the area of this test.
+  const { s: system } = ownArea().system(1);
   seed({ name: player, colony: { g: home.g, s: system, p: 9, name: colony } });
   await page.reload();
   // With two places the header names the shown one only in its list (#241).

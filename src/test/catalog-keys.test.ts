@@ -41,17 +41,9 @@ interface Allowed {
  * generic).
  */
 const ALLOWED: readonly Allowed[] = [
-  // The lab lock and the shipyard lock without catalog keys.
-  { file: 'core/lab.ts', key: 'lab', count: 2, issue: '#183' },
-  {
-    file: 'client/logic/catalog-list.ts',
-    key: 'yard',
-    count: 1,
-    issue: '#183',
-  },
   // Not a catalog key but an equal word: the report type „spy“.
   {
-    file: 'client/views/messages.ts',
+    file: 'client/logic/report-body.ts',
     key: 'spy',
     count: 1,
     issue: 'permanent',
@@ -523,7 +515,7 @@ const allowed = (a: Allowed): string => `${a.file}: ${a.key}`;
 
 describe('no comparison with a catalog key outside src/features (#114)', () => {
   it('reads the keys from the feature folders', () => {
-    expect(KEYS.size).toBe(54);
+    expect(KEYS.size).toBe(60);
     expect(KEYS).toContain('recycler');
     expect(KEYS).toContain('moonbase');
     expect(KEYS).toContain('phalanx');

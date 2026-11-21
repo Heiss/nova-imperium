@@ -258,7 +258,7 @@ tasks).
   can read its usage other than from a notice is not checked].
 * **[E]** Local Stryker runs before a push only for changed logic files whose
   score is less than about 2 points above their floor in
-  `mutation-standard.json` (for example `economy.ts`, `settle.ts`,
+  `mutation-floors.txt` (for example `economy.ts`, `settle.ts`,
   `actions.ts`); data and interface files such as `catalog.ts` or
   `icons.ts` are left to the CI mutation job. A local run does not speed up
   the CI, which keeps its own incremental cache; it only saves a red run
@@ -273,8 +273,13 @@ tasks).
   mission updates its article in the same pull request: the texts and
   formulas of `src/features/<key>/lexicon.de.ts` (a mission:
   `src/features/missions/<m>/lexicon.de.ts`), and a rule the article
-  shows moves into `src/core` so the article computes it. The tables
-  follow by themselves; the guards of `src/core/lexicon/articles.test.ts`
+  shows moves into `src/core` so the article computes it. A rule has a
+  rule page, a question or a guide that states it, in
+  `src/core/lexicon/pages/` (#288): a pull request that changes that rule
+  changes the page, which computes every number from the rules and the
+  settings of the round, and a changed or new text goes into the review
+  list. The tables follow by themselves; the guards of
+  `src/core/lexicon/articles.test.ts` and `pages.test.ts`
   turn the CI red for an entry or mission without an article or without
   keywords, a mission without its text, a level effect without words
   before its formula, a link without a target, a typed number in a text

@@ -70,7 +70,7 @@ export const roundSettings = [
     kind: 'number',
     key: 'roundAllies',
     name: 'allies',
-    label: 'Halten erlaubt für',
+    label: 'Verbündete für Halten und Verband',
     order: 100,
     min: ALLIES_RANGE.min,
     max: ALLIES_RANGE.max,
@@ -135,6 +135,16 @@ export function holdLimitError(
 /** When a fleet that holds flies home: its arrival plus its holding time. */
 export const holdEnd = (f: Pick<Fleet, 'arr' | 'hold'>): number =>
   f.arr + (f.hold ?? 0);
+
+/**
+ * When a fleet that holds, or arrives to hold, is home if it turns back at
+ * `t`: its flight back takes as long as its flight there. A fleet whose
+ * holding time is over already left at its end.
+ */
+export const homeAt = (
+  f: Pick<Fleet, 'dep' | 'arr' | 'hold'>,
+  t: number,
+): number => Math.min(t, holdEnd(f)) + (f.arr - f.dep);
 
 /** When the next event of a fleet is due: its arrival, the end of holding or its return. */
 export function dueAt(

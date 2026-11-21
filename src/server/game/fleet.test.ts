@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { fieldsOf } from '../../core/fields.ts';
 import { settle } from '../../core/settle.ts';
+import type { AuditEntry } from '../audit.ts';
 import { type TestCtx, addPlanet, addUser, testCtx } from '../test-helpers.ts';
-import { recall, send } from './fleet-actions.ts';
+import { pickedShips, recall, send } from './fleet-actions.ts';
 import { tick } from './arrival.ts';
 import { runAction } from './dispatch.ts';
 import { addMoon } from './moons.ts';
@@ -10,7 +11,8 @@ import { stateFor } from './state.ts';
 
 function setup() {
   const ctx = testCtx();
-  const a = addUser(ctx, 'Anna');
+  // Auspex-Lehre 1 lets Anna spy (#175, Q1).
+  const a = addUser(ctx, 'Anna', { research: { spy: 1 } });
   const b = addUser(ctx, 'Bert');
   addPlanet(ctx, a.id, {
     g: 1,
@@ -41,6 +43,15 @@ describe('sending fleets', () => {
     );
     send(ctx, a, go({ ships: { lf: 2, sc: 0, sat: 0, bs: 4 } }));
     expect(ctx.fleets.all()[0]!.ships).toEqual({ lf: 2 });
+  });
+  it('picks no more than the planet holds and leaves out what is no ship, also when the planet has some of it', () => {
+    const { ctx } = setup();
+    const home = ctx.planets.get('p1_1_5')!;
+    home.ships.rl = 3;
+    expect(pickedShips(home, { lf: 20, rl: 3, metal: 1, sc: 1 })).toEqual({
+      lf: 10,
+      sc: 1,
+    });
   });
   it('takes ships, fuel and cargo and starts the flight', () => {
     const { ctx, a } = setup();
@@ -121,6 +132,11 @@ describe('sending fleets', () => {
     expect(() =>
       send(ctx, a, go({ mission: 'spy', ships: { lf: 1, probe: 1 } })),
     ).toThrow('nur mit Spähschädeln');
+    a.research = {};
+    expect(() =>
+      send(ctx, a, go({ mission: 'spy', ships: { probe: 1 } })),
+    ).toThrow('Auspex-Erkundung erst ab Auspex-Lehre 1.');
+    a.research = { spy: 1 };
     expect(() =>
       send(
         ctx,
@@ -155,8 +171,42 @@ describe('sending fleets', () => {
     ctx.planets.save(p);
     expect(() => send(ctx, a, go())).toThrow('Nicht genug Promethium');
   });
+  it('flies with exactly the Promethium for fuel and cargo', () => {
+    const { ctx, a } = setup();
+    const p = ctx.planets.home(a.id)!;
+    p.res.d = 500 + 4;
+    ctx.planets.save(p);
+    const mission = { mission: 'transport', ships: { sc: 1 } };
+    expect(() => send(ctx, a, go({ ...mission, cargo: { d: 501 } }))).toThrow(
+      'Nicht genug Promethium',
+    );
+    expect(send(ctx, a, go({ ...mission, cargo: { d: 500 } }))).toContain(
+      'unterwegs',
+    );
+    expect(ctx.planets.home(a.id)!.res.d).toBe(0);
+  });
   it('respects the fleet slots', () => {
     const { ctx, a } = setup();
+    // Missiles in flight take no slot (#54).
+    const t = ctx.now();
+    const home = ctx.planets.home(a.id)!;
+    ctx.fleets.save({
+      id: 'm1',
+      owner: a.id,
+      from: home.id,
+      fromC: { g: home.g, s: home.s, p: home.p },
+      to: home.id,
+      toC: { g: home.g, s: home.s, p: home.p },
+      mission: 'missile',
+      ships: { ipm: 1 },
+      cargo: { m: 0, c: 0, d: 0 },
+      dep: t,
+      arr: t + 1e9,
+      ret: t + 1e9,
+      state: 'out',
+      recalled: false,
+      fuel: 0,
+    });
     send(ctx, a, go());
     expect(() => send(ctx, a, go())).toThrow('Alle Flottenslots belegt.');
     a.research = { computer: 1 };
@@ -189,6 +239,19 @@ describe('recall', () => {
     expect(() => recall(ctx, a, { id: f.id })).toThrow(
       'Rückruf nicht mehr möglich.',
     );
+  });
+  it('tells the audit entry which fleet came back from where and when', () => {
+    const { ctx, a } = setup();
+    send(ctx, a, go());
+    const f = ctx.fleets.all()[0]!;
+    ctx.clock.t += 1000;
+    const event = {} as AuditEntry;
+    recall(ctx, a, { id: f.id }, event);
+    expect(event.detail).toEqual({
+      fleet: f.id,
+      planet: 'p1_1_5',
+      due: ctx.now() + 1000,
+    });
   });
   it('is refused for foreign, unknown or arrived fleets', () => {
     const { ctx, a, b } = setup();
@@ -560,7 +623,7 @@ describe('moons as targets and starts (#53)', () => {
 
   it('spies on and supplies a moon, which shows as „<Name> (Mond)“', () => {
     const { ctx, a, b } = withMoon();
-    a.research = { computer: 1 };
+    a.research = { computer: 1, spy: 1 };
     send(ctx, a, toMoon({ mission: 'spy', ships: { probe: 1 } }));
     send(
       ctx,
@@ -623,5 +686,109 @@ describe('moons as targets and starts (#53)', () => {
         (x) => x.kind === 'planet',
       ),
     ).toHaveLength(2);
+  });
+});
+
+describe('sending a Mondbruch (#95)', () => {
+  /**
+   * Anna with Weltenbrecher and a moon of her own at her home; Bert with a
+   * moon, Cleo with a moon and no points (noob protection), Dora with a
+   * planet and no moon.
+   */
+  function world() {
+    const ctx = testCtx();
+    const a = addUser(ctx, 'Anna');
+    const home = addPlanet(ctx, a.id, {
+      g: 1,
+      s: 1,
+      p: 5,
+      ships: { dstar: 2, sc: 1, lf: 4 },
+      res: { m: 50000, c: 40000, d: 30000 },
+    });
+    addMoon(ctx, home, 5, 0);
+    for (const [name, s, p, metal] of [
+      ['Bert', 2, 6, 15],
+      ['Cleo', 3, 7, 0],
+      ['Dora', 4, 8, 15],
+    ] as const) {
+      // Research keeps all but Cleo out of the noob protection against the
+      // Weltenbrecher of Anna.
+      const u = addUser(
+        ctx,
+        name,
+        name === 'Cleo' ? {} : { research: { energy: 14 } },
+      );
+      const planet = addPlanet(ctx, u.id, { g: 1, s, p, b: { metal } });
+      if (name !== 'Dora') addMoon(ctx, planet, 5, 0);
+    }
+    return { ctx, a };
+  }
+  const order = (over = {}) =>
+    go({
+      mission: 'moonbreak',
+      ships: { dstar: 2, sc: 1 },
+      to: { g: 1, s: 2, p: 6, kind: 'moon' },
+      ...over,
+    });
+
+  it('flies with the Weltenbrecher and the others to a foreign moon, with cargo and a way back', () => {
+    const { ctx, a } = world();
+    expect(send(ctx, a, order({ cargo: { m: 1000, c: 0, d: 0 } }))).toBe(
+      'Flotte unterwegs nach [1:2:6].',
+    );
+    const f = ctx.fleets.all()[0]!;
+    expect(f).toMatchObject({
+      owner: a.id,
+      from: 'p1_1_5',
+      to: 'm1_2_6',
+      mission: 'moonbreak',
+      ships: { dstar: 2, sc: 1 },
+      cargo: { m: 1000, c: 0, d: 0 },
+      state: 'out',
+      recalled: false,
+    });
+    expect(f.ret - f.dep).toBe(2 * (f.arr - f.dep));
+    expect(ctx.planets.get('p1_1_5')!.ships).toMatchObject({ lf: 4 });
+    expect(ctx.planets.get('p1_1_5')!.ships.dstar ?? 0).toBe(0);
+  });
+
+  it('refuses a fleet without a Weltenbrecher', () => {
+    const { ctx, a } = world();
+    expect(() => send(ctx, a, order({ ships: { sc: 1, lf: 2 } }))).toThrow(
+      'Du brauchst einen Weltenbrecher.',
+    );
+    expect(ctx.fleets.all()).toEqual([]);
+  });
+
+  it('refuses a planet as the target, before it asks for the Weltenbrecher', () => {
+    const { ctx, a } = world();
+    const planet = { g: 1, s: 2, p: 6 };
+    expect(() => send(ctx, a, order({ to: planet }))).toThrow(
+      'Mondbruch nur gegen einen Mond.',
+    );
+    expect(() => send(ctx, a, order({ to: planet, ships: { sc: 1 } }))).toThrow(
+      'Mondbruch nur gegen einen Mond.',
+    );
+    expect(ctx.fleets.all()).toEqual([]);
+  });
+
+  it('refuses a position without a moon, an own moon and a moon under noob protection', () => {
+    const { ctx, a } = world();
+    const moon = (s: number, p: number) => ({ g: 1, s, p, kind: 'moon' });
+    expect(() => send(ctx, a, order({ to: moon(4, 8) }))).toThrow(
+      'An dieser Position gibt es keinen Mond.',
+    );
+    expect(() => send(ctx, a, order({ to: moon(1, 5) }))).toThrow(
+      'Eigene Planeten kann man nicht angreifen.',
+    );
+    expect(() => send(ctx, a, order({ to: moon(3, 7) }))).toThrow(
+      'Dieser Spieler steht unter Noobschutz.',
+    );
+    expect(ctx.fleets.all()).toEqual([]);
+    expect(ctx.planets.get('p1_1_5')!.ships).toEqual({
+      dstar: 2,
+      sc: 1,
+      lf: 4,
+    });
   });
 });

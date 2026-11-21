@@ -28,9 +28,18 @@ const LEVELS = [1, 2, 3, 5, 8, 10, 12, 15, 20];
 const UNITS = [1, 5, 10, 25, 50, 100, 250, 500];
 const ACTIONS = [1, 3, 5, 10, 25, 50, 100, 250];
 
+/** The share of the cost of a level a level achievement pays (#288). */
+export const LEVEL_REWARD = 0.05;
+
+/** The share of the cost of a piece, per piece of the target, a unit achievement pays (#288). */
+export const UNIT_REWARD = 0.025;
+
+/** No achievement pays more than this of one resource (#288). */
+export const REWARD_CAP = 30_000;
+
 function fraction(cost: Cost, rate: number): Cost {
   const scaled = (value: number): number =>
-    value ? Math.min(30_000, Math.max(1, Math.floor(value * rate))) : 0;
+    value ? Math.min(REWARD_CAP, Math.max(1, Math.floor(value * rate))) : 0;
   return [scaled(cost[0]), scaled(cost[1]), scaled(cost[2])];
 }
 
@@ -62,7 +71,7 @@ function levels(
       key,
       (n) => `${text(key)!.n} auf Stufe ${n}`,
       LEVELS,
-      (n) => fraction(lvlCost(def, n), 0.05),
+      (n) => fraction(lvlCost(def, n), LEVEL_REWARD),
     ),
   );
 }
@@ -77,7 +86,7 @@ function units(
       key,
       (n) => `${n}× ${text(key)!.n} besitzen`,
       UNITS,
-      (n) => fraction(def.cost, n * 0.025),
+      (n) => fraction(def.cost, n * UNIT_REWARD),
     ),
   );
 }

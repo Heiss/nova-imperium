@@ -9,9 +9,11 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Locator, type Page, test } from '@playwright/test';
 import {
+  galaxyAction,
   galaxyRow,
   login,
   loginByCode,
+  logout,
   mailCli,
   mailSeed,
   nav,
@@ -67,7 +69,7 @@ async function sendAttack(page: Page, a: string, b: string): Promise<void> {
     .filter({ has: page.getByRole('cell', { name: b, exact: true }) })
     .locator('[data-act=gto]')
     .click();
-  await galaxyRow(page, b).getByText('Sturmangriff').click();
+  await (await galaxyAction(page, galaxyRow(page, b), 'Sturmangriff')).click();
   await page.getByLabel('Anzahl Abfangjäger').fill('5');
   await page.getByLabel('Anzahl Frachtläufer').fill('2');
   await page.getByRole('button', { name: 'Flotte losschicken' }).click();
@@ -79,14 +81,14 @@ async function defenderFlow(page: Page): Promise<void> {
   const a = uniqueName('Kundschaft');
   const b = uniqueName('Wache');
   await register(page, b);
-  await page.click('[data-act=logout]');
+  await logout(page);
   await register(page, a);
   await sendAttack(page, a, b);
   // The attacker sees the own fleet in full.
   await expect(page.locator('.fl-attack')).toContainText(
     'Deine Flotte (5 Abfangjäger, 2 Frachtläufer)',
   );
-  await page.click('[data-act=logout]');
+  await logout(page);
   await login(page, b);
   const row = incoming(page);
   await expect(row).toContainText(`Eine fremde Flotte von ${a}`);

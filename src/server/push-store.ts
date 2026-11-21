@@ -1,6 +1,7 @@
 import type { PushTopic } from '../core/push.ts';
 import type { Planet } from '../core/types.ts';
 import type { Ctx } from './game/context.ts';
+import type { RoundReset } from './db/round-reset.ts';
 
 /** The view a push opens in the game. */
 export type PushKind =
@@ -60,3 +61,8 @@ export function scheduleShipyard(ctx: Ctx, p: Planet): void {
   cancelScheduledPush(ctx, p.owner, 'shipyard', `${p.id}:*`);
   queuePush(ctx, p.owner, orderPush('shipyard', `${p.id}:${end}`, end));
 }
+
+/** The queue of the pushes belongs to the old round. */
+export const roundReset = [
+  { order: 90, clears: ['push_jobs'] },
+] satisfies readonly RoundReset[];

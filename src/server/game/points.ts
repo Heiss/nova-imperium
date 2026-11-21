@@ -1,12 +1,13 @@
 // Points: 1 point per 1,000 resources in buildings, research, ships and defense.
-import { BUILD, RES, SHIPS, UNIT } from '../../core/catalog.ts';
+import { BUILD, RES, UNIT } from '../../core/catalog.ts';
 import { sumLevels } from '../../core/economy.ts';
+import { pointsOf } from '../../core/points.ts';
 import { isProtected as protects } from '../../core/protection.ts';
 import { settle, settleR } from '../../core/settle.ts';
 import type { Levels } from '../../core/types.ts';
 import { type Ctx, universe } from './context.ts';
 
-const unitValue = (units: Levels, defs: typeof UNIT): number => {
+export const unitValue = (units: Levels, defs: typeof UNIT): number => {
   let s = 0;
   for (const [k, n] of Object.entries(units)) {
     const d = defs[k];
@@ -15,7 +16,10 @@ const unitValue = (units: Levels, defs: typeof UNIT): number => {
   return s;
 };
 
-const levelValue = (have: Levels, defs: typeof BUILD | typeof RES): number => {
+export const levelValue = (
+  have: Levels,
+  defs: typeof BUILD | typeof RES,
+): number => {
   let s = 0;
   for (const k of Object.keys(defs)) s += sumLevels(defs[k]!, have[k] ?? 0);
   return s;
@@ -35,11 +39,19 @@ export function pointsMap(ctx: Ctx): Record<string, number> {
       levelValue(s.b, BUILD) +
       unitValue({ ...s.ships, ...s.def }, UNIT);
   }
+  // Missiles in flight count until their impact (#54, owiki).
   for (const f of ctx.fleets.all())
-    pts[f.owner] = (pts[f.owner] ?? 0) + unitValue(f.ships, SHIPS);
-  for (const k of Object.keys(pts)) pts[k] = Math.floor(pts[k]! / 1000);
+    pts[f.owner] = (pts[f.owner] ?? 0) + unitValue(f.ships, UNIT);
+  for (const k of Object.keys(pts)) pts[k] = pointsOf(pts[k]!);
   return pts;
 }
+
+/**
+ * The points of the best player: the size of the finds of an expedition
+ * scales with them (#93, owner, 2026-11-17). 0 without a player.
+ */
+export const topPoints = (ctx: Ctx): number =>
+  Math.max(0, ...Object.values(pointsMap(ctx)));
 
 /** Noob protection: a player with less than a fifth of your points. */
 export const isProtected = (

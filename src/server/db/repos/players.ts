@@ -8,8 +8,11 @@ import {
   type ExplainMode,
   storedMode,
 } from '../../../core/explain.ts';
+import { levelMode, type LevelMode } from '../../../core/level-overview.ts';
 import type { Db } from '../database.ts';
+import type { RepositoryModule } from './contract.ts';
 import { levels, queueParams, researchQueueOf, type Row } from './rows.ts';
+import type { RoundReset } from '../round-reset.ts';
 
 export interface User {
   id: string;
@@ -21,6 +24,8 @@ export interface User {
   probes: number;
   /** Display option of the explanation texts (issue #63). */
   explain: ExplainMode;
+  /** Display option of the level overview (#187). */
+  levelTable: LevelMode;
   readAt: number;
   created: number;
   research: Levels;
@@ -29,6 +34,8 @@ export interface User {
   mainPlanet: string | null;
   /** When the main planet was last switched, which starts the lock (#221). */
   mainSwitched: number | null;
+  /** When the vacation mode started (#223); null outside of it. */
+  vacation: number | null;
 }
 
 export interface Players {
@@ -55,7 +62,7 @@ export interface Players {
   lastActive(): Record<string, number>;
 }
 
-export class SqlitePlayers implements Players {
+class SqlitePlayers implements Players {
   private readonly db: Db;
   constructor(db: Db) {
     this.db = db;
@@ -76,12 +83,14 @@ export class SqlitePlayers implements Players {
       probes: r.probes as number,
       // A stored „Immer anzeigen“ of #63 reads as the „?“ (#285 B2).
       explain: storedMode(r.explain_mode) ?? DEFAULT_EXPLAIN,
+      levelTable: levelMode(r.level_table),
       readAt: r.read_at as number,
       created: r.created as number,
       research: levels(research, 'key', 'level'),
       rq: researchQueueOf(r),
       mainPlanet: r.main_planet as string | null,
       mainSwitched: r.main_switched as number | null,
+      vacation: r.vacation as number | null,
     };
   }
 
@@ -113,17 +122,17 @@ export class SqlitePlayers implements Players {
   save(u: User): void {
     this.db
       .prepare(
-        `INSERT INTO users (id, name, email, salt, pw_hash, admin, probes, explain_mode, read_at, created,
-           rq_key, rq_lvl, rq_start, rq_end, rq_cost_m, rq_cost_c, rq_cost_d, rq_planet, main_planet, main_switched)
-         VALUES (@id, @name, @email, @salt, @pw, @admin, @probes, @explain, @readAt, @created,
-           @rq_key, @rq_lvl, @rq_start, @rq_end, @rq_cost_m, @rq_cost_c, @rq_cost_d, @rq_planet, @mainPlanet, @mainSwitched)
+        `INSERT INTO users (id, name, email, salt, pw_hash, admin, probes, explain_mode, level_table, read_at, created,
+           rq_key, rq_lvl, rq_start, rq_end, rq_cost_m, rq_cost_c, rq_cost_d, rq_planet, main_planet, main_switched, vacation)
+         VALUES (@id, @name, @email, @salt, @pw, @admin, @probes, @explain, @levelTable, @readAt, @created,
+           @rq_key, @rq_lvl, @rq_start, @rq_end, @rq_cost_m, @rq_cost_c, @rq_cost_d, @rq_planet, @mainPlanet, @mainSwitched, @vacation)
          ON CONFLICT(id) DO UPDATE SET name = excluded.name, email = excluded.email,
            salt = excluded.salt, pw_hash = excluded.pw_hash, admin = excluded.admin,
-           probes = excluded.probes, explain_mode = excluded.explain_mode, read_at = excluded.read_at, rq_key = excluded.rq_key,
+           probes = excluded.probes, explain_mode = excluded.explain_mode, level_table = excluded.level_table, read_at = excluded.read_at, rq_key = excluded.rq_key,
            rq_lvl = excluded.rq_lvl, rq_start = excluded.rq_start, rq_end = excluded.rq_end,
            rq_cost_m = excluded.rq_cost_m, rq_cost_c = excluded.rq_cost_c, rq_cost_d = excluded.rq_cost_d,
            rq_planet = excluded.rq_planet, main_planet = excluded.main_planet,
-           main_switched = excluded.main_switched`,
+           main_switched = excluded.main_switched, vacation = excluded.vacation`,
       )
       .run({
         ...u,
@@ -186,3 +195,14 @@ export class SqlitePlayers implements Players {
     return levels(rows, 'id', 'at');
   }
 }
+
+/** The `players` repository on `Ctx`. */
+export const repository = {
+  key: 'players',
+  make: (db: Db): Players => new SqlitePlayers(db),
+} as const satisfies RepositoryModule;
+
+/** The accounts and their sessions live through the rounds. */
+export const roundReset = [
+  { keeps: ['users', 'sessions'] },
+] satisfies readonly RoundReset[];

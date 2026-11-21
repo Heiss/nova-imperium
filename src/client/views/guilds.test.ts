@@ -1,10 +1,16 @@
 // The guild chat in the guild view (#169): what each rank sees, and every
 // name and text escaped. The server checks the rights; the view only hides.
+// The tests run on the components (#118, bundle 6), as normalize() shows them.
 import { describe, expect, it } from 'vitest';
 import type { GuildRight } from '../../core/guild-ranks.ts';
 import type { GameState, GuildChat, GuildState } from '../logic/types.ts';
 import type { V } from './common.ts';
-import { adminChatDialog, guilds } from './guilds.ts';
+import { adminChatDialogView, guildsView } from '../../test/guilds-view.ts';
+import { normalize } from '../../test/markup.ts';
+
+/** The admin's chat dialog as markup. */
+const adminDialog = (read: Parameters<typeof adminChatDialogView>[0]): string =>
+  normalize(adminChatDialogView(read));
 
 const XSS = '<img src=x onerror=alert(1)>';
 
@@ -51,7 +57,7 @@ function view(
     guilds: state,
     admin: over.admin ? {} : null,
   } as unknown as GameState;
-  return guilds({ s, ui: { guild: 'g1' } } as unknown as V);
+  return normalize(guildsView({ s, ui: { guild: 'g1' } } as unknown as V));
 }
 
 const message = (over: Partial<GuildChat['messages'][number]> = {}) => ({
@@ -74,10 +80,10 @@ describe('the chat box (#169)', () => {
     });
     expect(html).toContain('<div class="hd">Chat</div>');
     expect(html).toContain(
-      '<div class="chat-log" role="log" aria-label="Chat" tabindex="0"><ol><li><b>Lea</b>',
+      '<div aria-label="Chat" class="chat-log" role="log" tabindex="0"><ol><li><b>Lea</b>',
     );
     expect(html).toContain('<span class="chat-text">Hallo</span>');
-    expect(html).toContain('<form id="guildchatform"');
+    expect(html).toContain('<form class="flex" id="guildchatform">');
     expect(html).toContain('<label for="chat_text">Nachricht</label>');
     expect(html).toContain('maxlength="1000"');
     expect(html).toContain('<button type="submit">Senden</button>');
@@ -148,8 +154,9 @@ describe('the chat box (#169)', () => {
       { name: XSS },
     );
     expect(html).not.toContain('<img');
-    expect(html).toContain('&lt;img src=x onerror=alert(1)&gt;');
-    expect(html).toContain('&amp; &quot;q&quot; &#39;a&#39;');
+    // Only < and & need escaping in a text; normalize() shows the rest as it is.
+    expect(html).toContain('&lt;img src=x onerror=alert(1)>');
+    expect(html).toContain('&amp; "q" \'a\'');
   });
 });
 
@@ -235,13 +242,11 @@ describe('events and the notice in the chat box (#169; owner, 2026-11-15)', () =
       }),
     ]);
     expect(html).not.toContain('<img');
-    expect(html).toContain(
-      '&lt;img src=x onerror=alert(1)&gt; ist jetzt &lt;img',
-    );
+    expect(html).toContain('&lt;img src=x onerror=alert(1)> ist jetzt &lt;img');
   });
 
   it('shows the events in the admin dialog too, without „Löschen“', () => {
-    const html = adminChatDialog({
+    const html = adminDialog({
       guild: { tag: 'OR', name: 'X' },
       messages: [{ id: 1, time: 0, kind: 'leave', name: 'Anna', text: '' }],
     });
@@ -259,7 +264,7 @@ describe('the admin reads a guild chat (#169, D8)', () => {
   });
 
   it('shows the chat in a dialog, escaped, with „Schließen“', () => {
-    const html = adminChatDialog({
+    const html = adminDialog({
       guild: { tag: 'OR', name: XSS },
       messages: [
         { id: 1, time: 0, kind: 'message', name: XSS, text: XSS },
@@ -270,9 +275,74 @@ describe('the admin reads a guild chat (#169, D8)', () => {
     expect(html).not.toContain('<img');
     expect(html).toContain('<i>ehemaliges Mitglied</i>');
     expect(html).not.toContain('guildChatDelete');
-    expect(html).toContain('data-act="closeModal">Schließen</button>');
+    expect(html).toContain(
+      'data-act="closeModal" type="button">Schließen</button>',
+    );
     expect(
-      adminChatDialog({ guild: { tag: 'OR', name: 'X' }, messages: [] }),
+      adminDialog({ guild: { tag: 'OR', name: 'X' }, messages: [] }),
     ).toContain('Noch keine Nachrichten.');
+  });
+});
+
+describe('rank names in the guild view (#277)', () => {
+  /** The Leitung's page; Ada holds a rank whose name is older than the limit. */
+  function leader(oldName: string): string {
+    const rights: GuildRight[] = ['ranks', 'assign', 'remove'];
+    const state = {
+      directory: [
+        {
+          id: 'g1',
+          tag: 'OR',
+          name: 'Outer Rim',
+          html: '',
+          members: [
+            { id: 'u_Lea', name: 'Lea', points: 10 },
+            { id: 'u_Ada', name: 'Ada', points: 5 },
+          ],
+          score: 15,
+          average: 7,
+        },
+      ],
+      own: { id: 'g1', status: 'member' },
+      management: { id: 'g1', description: '', pending: [] },
+      ranks: {
+        lead: 'u_Lea',
+        rank: 'r0',
+        rights,
+        default: 'r1',
+        list: [
+          { id: 'r0', name: 'Leitung', rights },
+          { id: 'r1', name: oldName, rights: [] },
+        ],
+        members: { u_Lea: 'r0', u_Ada: 'r1' },
+      },
+      chat: null,
+    } as unknown as GuildState;
+    const s = {
+      me: { id: 'u_Lea' },
+      guilds: state,
+      admin: null,
+    } as unknown as GameState;
+    return normalize(guildsView({ s, ui: { guild: 'g1' } } as unknown as V));
+  }
+
+  it('limits the inputs to 24 characters and still shows an older, longer name in full', () => {
+    const old = 'Ehrenwerter Großadmiral der Äußeren Randwelten und Kolonien';
+    expect(old.length).toBeGreaterThan(24);
+    const html = leader(old);
+    expect(html).toContain('id="rank_new" maxlength="24" minlength="2"');
+    expect(html).toContain(
+      'maxlength="24" minlength="2" required value="Ehrenwerter',
+    );
+    expect(html).toContain(`value="${old}"`);
+    expect(html).toContain(`<legend>${old} · Standardrang</legend>`);
+    expect(html).toContain(`<td class="rank">${old}</td>`);
+    expect(html).toContain(`>${old}</option>`);
+  });
+
+  it('marks the „Rang ändern“ list so that a long name does not widen the page', () => {
+    expect(leader('Mitglied')).toContain(
+      '<select aria-label="Neuer Rang für Ada" class="rank-select" id="rank_of_u_Ada"',
+    );
   });
 });

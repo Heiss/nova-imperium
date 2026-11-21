@@ -17,7 +17,10 @@ import {
 } from '@playwright/test';
 import {
   cli,
+  galaxyAction,
   galaxyRow,
+  guildTag,
+  logout,
   nav,
   register,
   seed,
@@ -105,7 +108,7 @@ interface Guild {
 async function guild(page: Page, browser: Browser): Promise<Guild> {
   const leadName = uniqueName('Kanzler');
   const memberName = uniqueName('Bote');
-  const tag = `C${Date.now() % 1000000}`;
+  const tag = guildTag('C');
   const title = `[${tag}] Chat ${tag}`;
   const problems = [watch(page)];
   await register(page, leadName);
@@ -133,6 +136,9 @@ async function guild(page: Page, browser: Browser): Promise<Guild> {
 }
 
 async function chatFlow(page: Page, browser: Browser): Promise<void> {
+  // Every register() moves the home planet into the area of the test (#302),
+  // a second or so each: three times the time of a test, as in holding.spec.ts.
+  test.slow();
   const g = await guild(page, browser);
   const { lead, member } = g;
   // The first entry is the event of the server (#169 D4).
@@ -238,6 +244,9 @@ async function chatFlow(page: Page, browser: Browser): Promise<void> {
 
 /** The Leitung takes „Chat lesen“ and then „Chat schreiben“ from Mitglied. */
 async function rightsFlow(page: Page, browser: Browser): Promise<void> {
+  // Every register() moves the home planet into the area of the test (#302),
+  // a second or so each: three times the time of a test, as in holding.spec.ts.
+  test.slow();
   const g = await guild(page, browser);
   const { lead, member } = g;
   await send(lead, 'Nur für Leser');
@@ -268,6 +277,9 @@ async function rightsFlow(page: Page, browser: Browser): Promise<void> {
 
 /** The admin reads the chat of a guild it is not in; the audit log records it. */
 async function adminFlow(page: Page, browser: Browser): Promise<void> {
+  // Every register() moves the home planet into the area of the test (#302),
+  // a second or so each: three times the time of a test, as in holding.spec.ts.
+  test.slow();
   const g = await guild(page, browser);
   // A draft typed while the message is on its way stays in the field.
   const field = g.lead.getByLabel('Nachricht', { exact: true });
@@ -331,7 +343,7 @@ async function adminFlow(page: Page, browser: Browser): Promise<void> {
   const reading = await hold(admin, '**/api/admin/guild-chat');
   await admin.getByRole('button', { name: 'Chat lesen' }).click();
   await reading.answered;
-  await admin.click('[data-act=logout]');
+  await logout(admin);
   await expect(admin.locator('#a_name')).toBeVisible();
   await reading.release();
   await admin.waitForTimeout(300);
@@ -348,6 +360,9 @@ async function adminFlow(page: Page, browser: Browser): Promise<void> {
  * 2026-11-15): joining, a new rank, an attack at its launch and removal.
  */
 async function eventsFlow(page: Page, browser: Browser): Promise<void> {
+  // Every register() moves the home planet into the area of the test (#302),
+  // a second or so each: three times the time of a test, as in holding.spec.ts.
+  test.slow();
   const g = await guild(page, browser);
   const { lead, member } = g;
   for (const p of [lead, member]) {
@@ -411,7 +426,9 @@ async function eventsFlow(page: Page, browser: Browser): Promise<void> {
     .locator('[data-act=gto]')
     .click();
   await expect(vex.locator('h2')).toHaveText('Sternenkarte');
-  await galaxyRow(vex, g.memberName).getByText('Sturmangriff').click();
+  await (
+    await galaxyAction(vex, galaxyRow(vex, g.memberName), 'Sturmangriff')
+  ).click();
   await expect(vex.getByLabel('Auftrag')).toHaveValue('attack');
   await vex.getByLabel('Anzahl Abfangjäger').fill('1');
   await vex.getByRole('button', { name: 'Flotte losschicken' }).click();

@@ -4,6 +4,8 @@ import {
   cli,
   expectShownPlace,
   galaxyRow,
+  guildTag,
+  logout,
   nav,
   register,
   seed,
@@ -113,14 +115,20 @@ test.describe('accessibility (axe)', () => {
     page,
   }) => {
     const name = uniqueName('AxeBerg');
+    // The field lies at the planet of another player: the fleet form offers
+    // no mission with the own planet as its target (#253).
+    const other = uniqueName('AxeWrack');
+    await register(page, other);
+    await logout(page);
     await register(page, name);
-    seed({ name, ships: { recycler: 1 }, debris: { m: 1800, c: 600 } });
+    seed({ name: other, debris: { m: 1800, c: 600 } });
+    seed({ name, ships: { recycler: 1 } });
     await page.reload();
     const found: string[] = [];
     await nav(page, 'galaxy');
     await page.getByText('zum Heimatsystem').click();
-    // Only this player's row: another test may leave a field in the system.
-    const row = galaxyRow(page, name);
+    // The row of the other player: the Trümmerfeld lies at his home planet.
+    const row = galaxyRow(page, other);
     const mark = row.getByRole('img', {
       name: 'Trümmerfeld: 1.800 Adamant, 600 Psikristall',
     });
@@ -138,7 +146,7 @@ test.describe('accessibility (axe)', () => {
     page,
   }) => {
     const name = uniqueName('AxeMond');
-    // A unique moon name: two runs of this test can share a home system (#252).
+    // A unique moon name, as the guard of #302 hands out every name.
     const moon = uniqueName('Axe');
     await register(page, name);
     seed({ name, moon: { name: moon }, ships: { sc: 1 } });
@@ -291,6 +299,29 @@ test.describe('accessibility (axe)', () => {
     expect(found).toEqual([]);
   });
 
+  test('the lock screen of the vacation mode has no violations, with the button off and on (#223)', async ({
+    page,
+  }) => {
+    const name = uniqueName('AxeUrlaub');
+    await register(page, name);
+    // One hour into the minimum duration: the button is off, its reason is text.
+    seed({ name, vacationAgo: 3_600_000 });
+    await page.reload();
+    await expect(page.locator('h2')).toHaveText('Urlaubsmodus');
+    const endButton = page.getByRole('button', {
+      name: 'Urlaubsmodus beenden',
+    });
+    await expect(endButton).toBeDisabled();
+    await expect(page.locator('#lock-note')).toBeVisible();
+    const found = (await violations(page)).map((v) => `off: ${v}`);
+    // Past the minimum duration: the button is on and the note is gone.
+    seed({ name, vacationAgo: 49 * 3_600_000 });
+    await page.reload();
+    await expect(endButton).toBeEnabled();
+    found.push(...(await violations(page)).map((v) => `on: ${v}`));
+    expect(found).toEqual([]);
+  });
+
   test('the options with the push kinds have no violations, on and off (#192)', async ({
     page,
   }) => {
@@ -350,7 +381,7 @@ test.describe('accessibility (axe)', () => {
     browser,
   }) => {
     const lead = uniqueName('AxeGilde');
-    const tag = `A${Date.now() % 1000000}`;
+    const tag = guildTag('A');
     const title = `[${tag}] Axe ${tag}`;
     await register(page, lead);
     const found: string[] = [];
@@ -405,7 +436,7 @@ test.describe('accessibility (axe)', () => {
     browser,
   }) => {
     const lead = uniqueName('AxeChat');
-    const tag = `K${Date.now() % 1000000}`;
+    const tag = guildTag('K');
     const title = `[${tag}] Axe ${tag}`;
     await register(page, lead);
     cli('admin', lead);

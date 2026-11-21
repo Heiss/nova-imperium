@@ -1,118 +1,54 @@
 // The list of actions a player can send and how one is run: first all due
 // fleets, then the action, everything in one transaction.
 import type { AuditEntry } from '../audit.ts';
-import {
-  claimAchievement,
-  claimDailyReward,
-  recordAchievementAction,
-} from './achievements.ts';
+import { recordAchievementAction } from './achievements.ts';
 import type { User } from '../db/repos/players.ts';
 import * as A from './actions.ts';
-import { reset, saveSettings } from './admin.ts';
-import { demolish } from './demolition.ts';
-import { endzeit } from './endzeit.ts';
-import { pushOptions } from '../push-options.ts';
 import { tick } from './arrival.ts';
-import { type Ctx, fail } from './context.ts';
+import { assembleActions } from './assemble.ts';
+import type { Handlers } from './feature.ts';
+import { SERVER_FEATURES } from '../features.gen.ts';
+import { type Ctx, fail, GameError } from './context.ts';
+import {
+  beginCause,
+  dropCause,
+  journalAction,
+  journalRefusal,
+} from './journal.ts';
 import { requireGuilds } from './round.ts';
-import { deleteGuildChat, seeGuildChat, sendGuildChat } from './guild-chat.ts';
-import { recall, send } from './fleet-actions.ts';
-import { scan } from './phalanx.ts';
-import { jump } from './jump-gate.ts';
-import { chooseMainPlanet } from './main-planet.ts';
-import { abandon } from './abandon.ts';
-import { exchange } from './market.ts';
-import {
-  answerFriend,
-  cancelFriend,
-  removeFriend,
-  requestFriend,
-} from './friends.ts';
-import {
-  assignGuildRank,
-  createGuildRank,
-  deleteGuildRank,
-  dissolveGuild,
-  moveGuildRank,
-  renameGuildRank,
-  setGuildDefaultRank,
-  setGuildRankRights,
-} from './guild-ranks.ts';
-import {
-  createGuild,
-  updateGuild,
-  applyToGuild,
-  reviewGuildApplication,
-  leaveGuild,
-  manageGuildMember,
-} from './guilds.ts';
+import { vacationRefuses } from '../../core/vacation.ts';
+import { VACATION_REFUSED } from './vacation.ts';
 
 /**
- * The guild actions: refused while guilds are off in the round (#191). A
- * new guild action, the chat of #169 included, belongs here.
+ * The actions of the core game: the queues of a planet, its name and shares,
+ * the display options and the reports. Every other action is registered by
+ * its module as `serverFeature`, with its group (guild, admin), and added
+ * here by `assembleActions` (#326, okf/architecture/patterns.md, section 14).
  */
-const GUILD: Record<string, A.Action> = {
-  createGuild,
-  updateGuild,
-  applyToGuild,
-  reviewGuildApplication,
-  leaveGuild,
-  manageGuildMember,
-  createGuildRank,
-  renameGuildRank,
-  setGuildRankRights,
-  moveGuildRank,
-  deleteGuildRank,
-  setGuildDefaultRank,
-  assignGuildRank,
-  dissolveGuild,
-  sendGuildChat,
-  deleteGuildChat,
-  seeGuildChat,
-};
-
-export const GUILD_ACTIONS: ReadonlySet<string> = new Set(Object.keys(GUILD));
-
-export const ACTIONS: Record<string, A.Action> = {
+const FRAME = {
   build: A.build,
   cancelBuild: A.cancelBuild,
-  demolish,
   research: A.research,
   cancelResearch: A.cancelResearch,
   order: A.order,
+  cancelOrder: A.cancelOrder,
   pct: A.pct,
   rename: A.rename,
   options: A.options,
-  mainPlanet: chooseMainPlanet,
-  abandon,
-  trade: exchange,
-  pushOptions,
   read: A.read,
   delrep: A.delrep,
   delall: A.delall,
-  send,
-  recall,
-  scan,
-  jump,
-  settings: saveSettings,
-  reset,
-  endzeit,
-  ...GUILD,
-  // The buddy list (#227); not a guild action, so it works with guilds off.
-  requestFriend,
-  answerFriend,
-  cancelFriend,
-  removeFriend,
-  claimAchievement,
-  claimDailyReward,
-};
+} satisfies Handlers;
+
+const tables = assembleActions(FRAME, SERVER_FEATURES);
+
+export const ACTIONS: Record<string, A.Action> = tables.actions;
+
+/** The guild actions: refused while guilds are off in the round (#191). */
+export const GUILD_ACTIONS: ReadonlySet<string> = tables.guild;
 
 /** The actions of the admin: audited as `admin.write`, not as `game`. */
-export const ADMIN_ACTIONS: ReadonlySet<string> = new Set([
-  'settings',
-  'reset',
-  'endzeit',
-]);
+export const ADMIN_ACTIONS: ReadonlySet<string> = tables.admin;
 
 export function runAction(
   ctx: Ctx,
@@ -124,12 +60,32 @@ export function runAction(
   const fn = Object.hasOwn(ACTIONS, type)
     ? ACTIONS[type]!
     : fail('Unbekannte Aktion.');
-  return ctx.tx(() => {
-    tick(ctx);
-    const u: User = ctx.players.get(uid) ?? fail('Bitte einloggen.');
-    if (GUILD_ACTIONS.has(type)) requireGuilds(ctx);
-    const result = fn(ctx, u, d, event);
-    recordAchievementAction(ctx, uid, type);
-    return result;
-  });
+  try {
+    return ctx.tx(() => run(ctx, uid, type, fn, d, event));
+  } catch (e) {
+    // A refused action rolled back; the journal of the round keeps the refusal (#235).
+    if (e instanceof GameError) journalRefusal(ctx, uid, type, d, e.message);
+    else dropCause();
+    throw e;
+  }
+}
+
+function run(
+  ctx: Ctx,
+  uid: string,
+  type: string,
+  fn: A.Action,
+  d: A.Data,
+  event?: AuditEntry,
+): string | null | A.Answer {
+  tick(ctx);
+  beginCause();
+  const u: User = ctx.players.get(uid) ?? fail('Bitte einloggen.');
+  // Nothing but the end and the push settings during the vacation mode (#223).
+  if (vacationRefuses(type, u.vacation)) fail(VACATION_REFUSED);
+  if (GUILD_ACTIONS.has(type)) requireGuilds(ctx);
+  const result = fn(ctx, u, d, event);
+  recordAchievementAction(ctx, uid, type);
+  journalAction(ctx, u, type, d);
+  return result;
 }

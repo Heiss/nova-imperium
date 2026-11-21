@@ -5,7 +5,7 @@ import { reset } from './game/admin.ts';
 import { runAction } from './game/dispatch.ts';
 import { stateFor } from './game/state.ts';
 import { pushOff, pushOptions } from './push-options.ts';
-import { addPlanet, addUser, testCtx } from './test-helpers.ts';
+import { addPlanet, addUser, loose, testCtx } from './test-helpers.ts';
 
 // The push kinds per account (#192): every kind is on until the player
 // switches it off; the switches hold for all devices of the account.
@@ -52,7 +52,9 @@ describe('push options', () => {
       ['news', 'messages'],
       [null],
     ])
-      expect(() => pushOptions(ctx, anna, { off })).toThrow('Ungültig.');
+      expect(() =>
+        pushOptions(ctx, anna, loose<'pushOptions'>({ off })),
+      ).toThrow('Ungültig.');
     expect(pushOff(ctx, anna.id)).toEqual(['news']);
   });
 

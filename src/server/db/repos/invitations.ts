@@ -1,6 +1,8 @@
 // Invitations (#117): registration only by invitation.
 import type { Db } from '../database.ts';
+import type { RepositoryModule } from './contract.ts';
 import type { Row } from './rows.ts';
+import type { RoundReset } from '../round-reset.ts';
 
 export interface Invitation {
   id: string;
@@ -23,7 +25,7 @@ export interface Invitations {
   use(id: string, now: number): void;
 }
 
-export class SqliteInvitations implements Invitations {
+class SqliteInvitations implements Invitations {
   private readonly db: Db;
   constructor(db: Db) {
     this.db = db;
@@ -83,3 +85,13 @@ export class SqliteInvitations implements Invitations {
       .run(now, id);
   }
 }
+
+/** The `invitations` repository on `Ctx`. */
+export const repository = {
+  key: 'invitations',
+  make: (db: Db): Invitations => new SqliteInvitations(db),
+} as const satisfies RepositoryModule;
+
+export const roundReset = [
+  { keeps: ['invitations'] },
+] satisfies readonly RoundReset[];

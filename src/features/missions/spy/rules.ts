@@ -1,5 +1,6 @@
 // Auspex-Erkundung: only Spähschädel and no cargo, at a foreign planet; they
 // come home without a report of their own unless recalled.
+import { spyTechError } from '../../../core/espionage.ts';
 import type {
   SendError,
   SendFleet,
@@ -13,8 +14,13 @@ export const returns = true;
 export const silent = true;
 export const alertsGuild = false;
 export const holds = false;
-/** Only Spähschädel fly to an Auspex-Erkundung. */
+/** The launch is remembered as one of the player's last hostile targets (#292). */
+export const remembered = true;
+/**
+ * Only Spähschädel fly to an Auspex-Erkundung, and only from espionage
+ * technology 1 (#175, Q1).
+ */
 export const canSend = (fleet: SendFleet): SendError | undefined =>
   Object.keys(fleet.ships).some((k) => k !== 'probe')
     ? 'probesOnly'
-    : undefined;
+    : spyTechError(fleet.research?.spy ?? 0);

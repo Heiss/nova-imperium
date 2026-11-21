@@ -8,7 +8,7 @@ export const lexicon: EntryLexicon = {
   keywords: ['ausspähen', 'auskundschaften', 'Gegner', 'Bericht'],
   texts: [
     {
-      text: 'Am Ziel entsteht ein Auspex-Bericht: die Rohstoffe immer, alles Weitere je nach Auspex-Wert (siehe [[spy]]). Der Verteidiger erfährt, dass er erkundet wurde und von wo. Werden die Spähschädel abgeschossen, bekommst du den Bericht trotzdem; sonst fliegen sie heim.',
+      text: 'Am Ziel entsteht ein Auspex-Bericht: die Rohstoffe immer, alles Weitere je nach Auspex-Wert (siehe [[spy]]). Der Verteidiger erfährt, dass er erkundet wurde und von wo.',
     },
   ],
 };

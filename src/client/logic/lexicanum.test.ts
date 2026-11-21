@@ -1,14 +1,14 @@
 // What the Lexicanum shows (#285): the pages, the articles with the
 // player's state, the missions, and the helpers of the search.
 import { describe, expect, it } from 'vitest';
-import { RES, SHIPS } from '../../core/catalog.ts';
+import { DEF, RES, SHIPS } from '../../core/catalog.ts';
 import { capOf } from '../../core/components/storage.ts';
 import { lvlCost, prod } from '../../core/economy.ts';
 import { ARTICLES } from '../../core/lexicon/articles.ts';
 import { MISSION } from '../../core/missions.ts';
 import { text } from '../../core/text.ts';
 import type { Levels, Planet } from '../../core/types.ts';
-import { planet, U } from '../../test/fixtures.ts';
+import { planet, roundDefaults, U } from '../../test/fixtures.ts';
 import type { Ui, V } from '../views/common.ts';
 import { unitLines } from './catalog-list.ts';
 import {
@@ -34,8 +34,11 @@ function view(P: Partial<Planet> = {}, research: Levels = {}): V {
   return {
     s: {
       cfg: U,
+      round: { number: 1, ...roundDefaults() },
       me: { id: 'u1', explain: 'icon' },
       labs: [],
+      players: {},
+      fleets: [],
       galaxy: [],
       mainPlanet: 'p',
     } as unknown as GameState,
@@ -173,7 +176,7 @@ describe('an article of a catalog entry', () => {
     );
     expect(of(bs, 'formula').map((f) => f.lines[0])).toEqual([
       'Auspex-Wert = Spähschädel + Vorsprung² (bei Rückstand: − Rückstand²)',
-      'Gefahr = 2 % · √Schiffe am Ziel ÷ 2^Vorsprung (höchstens 100 %)',
+      'Höchste Chance auf Auspex-Abwehr in % = Spähschädel ÷ 4 · Auspex-Lehre des Ziels ÷ deine Auspex-Lehre · (1 + Schiffe am Ziel ÷ 100) (höchstens 100)',
     ]);
     expect(of(bs, 'stand')).toEqual([
       {
@@ -201,13 +204,22 @@ describe('an article of a catalog entry', () => {
     expect(probes!.rows[0]!.cells[0]).toEqual({ text: '−3 (Ziel führt)' });
     expect(probes!.rows[6]!.cells[0]!.text).toBe('+3 (du führst)');
     expect(probes!.rows[0]!.cells[5]).toEqual({ text: '16', num: true });
-    expect(danger!.rows[1]!.cells.map((c) => c.text)).toEqual([
-      '100 Schiffe am Ziel',
-      '80 %',
-      '40 %',
+    expect(danger!.caption).toBe(
+      'Höchste Chance auf Auspex-Abwehr bei gleicher Auspex-Lehre',
+    );
+    expect(danger!.head).toEqual([
+      'Schiffe am Ziel',
+      '1 Spähschädel',
+      '4 Spähschädel',
+      '12 Spähschädel',
+      '40 Spähschädel',
+    ]);
+    expect(danger!.rows[2]!.cells.map((c) => c.text)).toEqual([
+      '100',
+      '0,5 %',
+      '2 %',
+      '6 %',
       '20 %',
-      '10 %',
-      '5 %',
     ]);
     const few = art('spy', view({ ships: { probe: 3 } }, { spy: 2 }));
     expect(of(blocks(few, 'effect'), 'stand')[0]!.text).toBe(
@@ -228,12 +240,16 @@ describe('an article of a catalog entry', () => {
       'Kosten = Kosten der Stufe 1 · 2^(Stufe − 1)',
     ]);
     const table = of(levels, 'levels')[0]!.table;
-    expect(table.effect).toEqual({ label: 'Flottenslots' });
-    expect(table.rows[0]).toMatchObject({ level: 3, current: true, effect: 4 });
+    expect(table.effects).toEqual([{ label: 'Flottenslots' }]);
+    expect(table.rows[0]).toMatchObject({
+      level: 3,
+      current: true,
+      values: [4],
+    });
     expect(table.rows[1]).toMatchObject({
       level: 4,
       current: false,
-      effect: 5,
+      values: [5],
       cost: lvlCost(RES.computer!, 4),
     });
     // No „Dein Stand“ before the first level.
@@ -246,24 +262,24 @@ describe('an article of a catalog entry', () => {
       'Lagerkapazität = ',
     );
     const t = of(blocks(store, 'levels'), 'levels')[0]!.table;
-    expect(t.effect).toEqual({ label: 'Lagerkapazität' });
-    expect(t.rows[0]).toMatchObject({ level: 2, effect: capOf(2, U) });
+    expect(t.effects).toEqual([{ label: 'Lagerkapazität' }]);
+    expect(t.rows[0]).toMatchObject({ level: 2, values: [capOf(2, U)] });
     // Full share and energy: the rate of the mine, as prod() adds it.
     const P = { b: { metal: 7, solar: 30 }, pct: {} };
     const mine = art('metal', view(P));
     const rows = of(blocks(mine, 'levels'), 'levels')[0]!.table;
     // The rate assumes enough energy; the heading says so (owner, 2026-11-17).
-    expect(rows.effect).toEqual({ label: 'Adamant/h bei voller Energie' });
+    expect(rows.effects).toEqual([{ label: 'Adamant/h bei voller Energie' }]);
     for (const [key, label] of [
       ['crystal', 'Psikristall/h bei voller Energie'],
       ['deut', 'Promethium/h bei voller Energie'],
     ] as const)
       expect(
         of(blocks(art(key, view({ b: { [key]: 1 } })), 'levels'), 'levels')[0]!
-          .table.effect,
-      ).toEqual({ label });
+          .table.effects,
+      ).toEqual([{ label }]);
     const v = view(P);
-    expect(rows.rows[0]!.effect).toBeCloseTo(
+    expect(rows.rows[0]!.values[0]).toBeCloseTo(
       prod(v.P, U).m - prod({ ...v.P, b: { solar: 30 } }, U).m,
       6,
     );
@@ -271,8 +287,8 @@ describe('an article of a catalog entry', () => {
       blocks(art('solar', view({ b: { solar: 1 } })), 'levels'),
       'levels',
     )[0]!.table;
-    expect(solar.effect).toEqual({ label: 'Energie' });
-    expect(solar.rows[0]!.effect).toBeGreaterThan(0);
+    expect(solar.effects).toEqual([{ label: 'Energie' }]);
+    expect(solar.rows[0]!.values[0]).toBeGreaterThan(0);
     // An entry without an effect has no such section.
     expect(section(art('robot'), 'effect')).toBeUndefined();
   });
@@ -292,9 +308,18 @@ describe('an article of a catalog entry', () => {
     expect(unmet[0]!.items[0]!.note).toBe('aktuell 1');
     const used = of(blocks(art('spy'), 'used'), 'table')[0]!;
     expect(used.head).toEqual(['Schaltet frei', 'Art', 'Auspex-Lehre']);
-    expect(used.rows[0]!.cells).toEqual([
+    // Selected by its link, not by position: a new entry that needs the
+    // Auspex-Lehre (#190, Auspex-Kartographie) joins the rows.
+    const rowOf = (id: string) =>
+      used.rows.find((r) => (r.cells[0] as { link: string }).link === id);
+    expect(rowOf('probe')!.cells).toEqual([
       { text: 'Spähschädel', link: 'probe' },
       { text: 'Schiffe' },
+      { text: 'ab Stufe 2', num: true },
+    ]);
+    expect(rowOf('carto')!.cells).toEqual([
+      { text: 'Auspex-Kartographie', link: 'carto' },
+      { text: 'Forschung' },
       { text: 'ab Stufe 2', num: true },
     ]);
     expect(section(art('metal'), 'req')).toBeUndefined();
@@ -448,10 +473,13 @@ describe('an article of a mission', () => {
     expect(flatHits(searchHits('plündern')).map((h) => h.id)).toEqual([
       'mission-attack',
     ]);
+    // The rule page and the question of #288 have the word too, after them.
     expect(flatHits(searchHits('ausspähen')).map((h) => h.id)).toEqual([
       'spy',
       'probe',
       'mission-spy',
+      'rule-spy',
+      'faq-intel',
     ]);
   });
 });
@@ -519,5 +547,285 @@ describe('the blocks and the search', () => {
     expect(moveMark(1, 3, 'ArrowUp')).toBe(0);
     expect(moveMark(1, 3, 'x')).toBe(1);
     expect(moveMark(1, 0, 'ArrowDown')).toBe(-1);
+  });
+});
+
+describe('the rule pages, the questions and the start page of #288', () => {
+  const rule = (id: string, v = view()): ArticleView => art(id, v);
+
+  it('shows the boxes „Einstieg“, „Regeln“ and „Häufige Fragen“ on the start page, none of them empty', () => {
+    const p = page('', view());
+    if (p.t !== 'start') throw new Error(p.t);
+    expect(p.boxes.map((b) => [b.kind, b.title])).toEqual([
+      ['guide', 'Einstieg'],
+      ['rule', 'Regeln'],
+      ['question', 'Häufige Fragen'],
+    ]);
+    expect(p.boxes[0]!.items.map((i) => i.id)).toEqual([
+      'guide-start',
+      'guide-colony',
+      'guide-fleet',
+      'guide-defense',
+      'guide-next',
+    ]);
+    const rules = p.boxes.find((b) => b.kind === 'rule')!;
+    expect(rules.title).toBe('Regeln');
+    expect(rules.items.map((i) => i.id)).toEqual(
+      ARTICLES.filter((a) => a.kind === 'rule').map((a) => a.id),
+    );
+    expect(rules.items[0]).toEqual({
+      id: 'rule-battle',
+      title: 'Kampf',
+      line: expect.stringMatching(/^Wie ein Kampf abläuft/) as string,
+    });
+    for (const box of p.boxes) expect(box.items.length).toBeGreaterThan(0);
+  });
+
+  it('lists the rule pages and the questions, and finds them in „Begriffe A–Z“', () => {
+    const list = page(listId('question'), view());
+    if (list.t !== 'list') throw new Error(list.t);
+    expect(list.title).toBe('Häufige Fragen');
+    expect(list.items.map((i) => i.id)).toContain('faq-intel');
+    const az = page(AZ, view());
+    if (az.t !== 'list') throw new Error(az.t);
+    expect(az.items.map((i) => i.id)).toContain('rule-universe');
+  });
+
+  it('draws a rule page from the rules and the round of the state', () => {
+    const a = rule('rule-vacation');
+    expect(a).toMatchObject({
+      kind: 'rule',
+      kindTitle: 'Regeln',
+      title: 'Urlaubsmodus',
+      icon: null,
+      own: null,
+      intro: [],
+    });
+    expect(a.ds).toMatch(/^Wie du das Spiel pausierst/);
+    const end = of(blocks(a, 'end'), 'text')[0]!;
+    expect(end.parts.map((x) => x.text).join('')).toContain(
+      'in dieser Runde 48 Stunden',
+    );
+    // The admin changes the minimum duration: the page follows.
+    const v = view();
+    v.s.round = { ...v.s.round, vacationHours: 72 };
+    const changed = of(blocks(rule('rule-vacation', v), 'end'), 'text')[0]!;
+    expect(changed.parts.map((x) => x.text).join('')).toContain(
+      'in dieser Runde 72 Stunden',
+    );
+  });
+
+  it('draws formulas, links in tables and the list of „Siehe auch“', () => {
+    const a = rule('rule-battle');
+    expect(blocks(a, 'rapid').map((b) => b.t)).toEqual([
+      'text',
+      'formula',
+      'text',
+      'table',
+    ]);
+    const table = of(blocks(a, 'rapid'), 'table')[0]!;
+    expect(table.rows[0]!.cells[0]).toMatchObject({ link: expect.any(String) });
+    expect(of(blocks(a, 'rapid'), 'formula')[0]!.lines).toEqual([
+      'Chance auf einen weiteren Schuss = (Schnellfeuer − 1) ÷ Schnellfeuer',
+    ]);
+    const see = of(blocks(a, 'see'), 'links')[0]!;
+    expect(see.items.map((i) => i.id)).toContain('mission-attack');
+    expect(see.items[0]).toEqual({ id: 'weapons', text: 'Waffensegnung' });
+  });
+
+  it('has a path through its kind and the other pages of the kind at its side', () => {
+    const p = page('faq-slots', view());
+    if (p.t !== 'article') throw new Error(p.t);
+    expect(crumbs(p)).toEqual([
+      { id: '', text: 'Lexicanum' },
+      { id: 'list-question', text: 'Häufige Fragen' },
+      { id: null, text: 'Wie bekomme ich mehr Flottenslots?' },
+    ]);
+    expect(p.article.siblings.map((s) => s.id)).toContain('faq-intel');
+    expect(p.article.sections.map((s) => s.id)).toEqual([
+      'answer',
+      'steps',
+      'values',
+      'see',
+    ]);
+  });
+
+  it('shows the own state in a question: slots, Auspex-Lehre and Spähschädel', () => {
+    const v = view({ ships: { probe: 12 } }, { computer: 3, spy: 4 });
+    const slots = of(blocks(rule('faq-slots', v), 'values'), 'stand')[0]!;
+    expect(slots.text).toBe(
+      'Dein Stand: Stufe 3 der Kogitator-Doktrin, 4 Flottenslots.',
+    );
+    const intel = of(blocks(rule('faq-intel', v), 'values'), 'stand')[0]!;
+    expect(intel.text).toContain('Stufe 4 der Auspex-Lehre und 12 Spähschädel');
+  });
+});
+
+describe('the guides and the personal hints of #289', () => {
+  it('computes „Deine nächsten Ziele“ from the shown planet and the research', () => {
+    // Ten levels of a mine and no power: energy is short, and the Scholarium is near.
+    const v = view({ b: { metal: 10, lab: 2 }, res: { m: 1, c: 1, d: 0 } });
+    const a = art('guide-next', v);
+    expect(a).toMatchObject({
+      kind: 'guide',
+      kindTitle: 'Einstieg',
+      own: null,
+    });
+    const texts = of(blocks(a, 'now'), 'text').map((t) =>
+      t.parts.map((x) => x.text).join(''),
+    );
+    expect(texts[1]).toMatch(
+      /^Dir fehlt Energie: .* nur mit [\d,]+ % ihrer Leistung/,
+    );
+    expect(texts.join(' ')).toContain(
+      'Auspex-Lehre zu bekommen: Scholarium steht auf Stufe 2',
+    );
+    expect(of(blocks(a, 'stand'), 'stand')[0]!.text).toBe(
+      'Dein Stand: Planeten: 0 · Flotten unterwegs: 0 · Punkte: 0',
+    );
+    // A hint links its words to articles of the Lexicanum.
+    const links = of(blocks(a, 'now'), 'text')[1]!.parts.filter(
+      (x) => 'link' in x,
+    );
+    expect(links.map((x) => 'link' in x && x.link)).toContain('solar');
+  });
+
+  it('names a requirement that is one level away, for a planet in order', () => {
+    const v = view(
+      {
+        b: { metal: 2, crystal: 1, solar: 8, lab: 10 },
+        res: { m: 10, c: 10, d: 0 },
+      },
+      { computer: 20 },
+    );
+    const text = of(blocks(art('guide-next', v), 'now'), 'text').map((t) =>
+      t.parts.map((x) => x.text).join(''),
+    );
+    expect(
+      text.slice(1).every((t) => t.startsWith('Dir fehlt noch eine Stufe')),
+    ).toBe(true);
+  });
+
+  it('draws a guide with its steps, its numbers from the catalog and the universe', () => {
+    const a = art('guide-start');
+    const begin = of(blocks(a, 'begin'), 'text')[0]!;
+    expect(begin.parts.map((x) => x.text).join('')).toContain(
+      'mit 500 Adamant und 500 Psikristall',
+    );
+    const steps = of(blocks(a, 'steps'), 'facts')[0]!;
+    expect(steps.items.map((i) => i.label)).toEqual(
+      steps.items.map((_, i) => `Schritt ${i + 1}`),
+    );
+    expect(steps.items[0]!.parts.map((x) => x.text).join('')).toContain(
+      'Die erste Stufe kostet 60 Adamant und 15 Psikristall beziehungsweise 48 Adamant und 24 Psikristall',
+    );
+    // A guide links the others of the Einstieg.
+    const links = steps.items
+      .flatMap((i) => i.parts)
+      .filter((x) => 'link' in x);
+    expect(links.map((x) => 'link' in x && x.link)).toEqual(
+      expect.arrayContaining(['guide-fleet', 'guide-colony', 'guide-next']),
+    );
+  });
+
+  it('lists the missions of the fleet form with their targets, and no missile', () => {
+    const table = of(blocks(art('guide-fleet'), 'missions'), 'table')[0]!;
+    expect(table.rows).toHaveLength(Object.keys(MISSION).length - 1);
+    const attack = table.rows.find(
+      (r) => r.cells[0]!.link === 'mission-attack',
+    )!;
+    expect(attack.cells.map((c) => c.text)).toEqual([
+      'Sturmangriff',
+      'fremder Planet',
+      'ja',
+      'ja',
+    ]);
+  });
+});
+
+describe('what an article holds and what it leaves out', () => {
+  const kinds = (a: ArticleView, id: string): string[] =>
+    blocks(a, id).map((b) => b.t);
+
+  it('has the blocks of „Was die Stufen bringen“ and nothing else, with and without a level', () => {
+    expect(kinds(art('computer'), 'effect')).toEqual(['text', 'formula']);
+    expect(kinds(art('computer', view({}, { computer: 3 })), 'effect')).toEqual(
+      ['text', 'formula', 'stand'],
+    );
+    // A store has its capacity as a formula of its own.
+    expect(kinds(art('smetal', view({ b: { smetal: 2 } })), 'effect')).toEqual([
+      'text',
+      'formula',
+      'stand',
+    ]);
+  });
+
+  it('has no column of effects for an entry without an effect, and no section of effects', () => {
+    const a = art('robot');
+    expect(section(a, 'effect')).toBeUndefined();
+    expect(of(blocks(a, 'levels'), 'levels')[0]!.table.effects).toEqual([]);
+  });
+
+  it('has no „Wird gebraucht für“ for an entry nothing needs', () => {
+    expect(section(art('phalanx'), 'used')).toBeUndefined();
+    expect(section(art('metal'), 'used')).toBeUndefined();
+    expect(section(art('spy'), 'used')).toBeDefined();
+  });
+
+  it('shows the own level of a building and of a research, the own number of a unit', () => {
+    expect(art('metal', view({ b: { metal: 4 } })).own).toBe('deine Stufe 4');
+    expect(art('spy', view({}, { spy: 2 })).own).toBe('deine Stufe 2');
+    expect(art('sc', view({ ships: { sc: 3 } })).own).toBe('vorhanden: 3');
+    expect(art('rl', view({ def: { rl: 5 } })).own).toBe('vorhanden: 5');
+    expect(art('mission-spy').own).toBeNull();
+    expect(art('rule-flight').own).toBeNull();
+  });
+
+  it('shows the cost of a ship and of a defense, and of nothing else', () => {
+    expect(art('sc').cost).toEqual(SHIPS.sc!.cost);
+    expect(art('rl').cost).toEqual(DEF.rl!.cost);
+    expect(art('metal')).not.toHaveProperty('cost');
+    expect(art('spy')).not.toHaveProperty('cost');
+    expect(art('mission-spy')).not.toHaveProperty('cost');
+  });
+
+  it('has the abbreviation and the short text only where the entry has them', () => {
+    const spy = art('spy');
+    expect(spy.ab).toBe('AU');
+    expect(spy.ds).toBe(text('spy')!.ds);
+    const mission = art('mission-spy');
+    expect(mission).not.toHaveProperty('ab');
+    expect(mission).not.toHaveProperty('ds');
+    const list = page(listId('mission'), view());
+    if (list.t !== 'list') throw new Error(list.t);
+    for (const item of list.items) expect(item).not.toHaveProperty('ab');
+  });
+
+  it('draws a mission without a heading, and a rule, a question and a guide like a mission', () => {
+    expect(section(art('mission-spy'), 'mission')!.title).toBe('');
+    expect(
+      ['rule-flight', 'faq-intel', 'guide-start'].map((id) => art(id).cls),
+    ).toEqual(['ic-m', 'ic-m', 'ic-m']);
+  });
+
+  it('leaves out the note of a link without one and the caption of a table without one', () => {
+    const links = viewBlock({ t: 'links', items: [{ id: 'spy' }] });
+    expect(links).toStrictEqual({
+      t: 'links',
+      items: [{ id: 'spy', text: 'Auspex-Lehre' }],
+    });
+    const table = viewBlock({
+      t: 'table',
+      head: ['a'],
+      rows: [{ cells: ['x'] }],
+    });
+    expect(table).toStrictEqual({
+      t: 'table',
+      head: ['a'],
+      rows: [{ cells: [{ text: 'x' }] }],
+    });
+    expect(
+      viewBlock({ t: 'table', caption: 'C', head: [], rows: [] }),
+    ).toMatchObject({ caption: 'C' });
   });
 });

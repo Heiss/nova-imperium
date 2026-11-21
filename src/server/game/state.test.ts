@@ -103,4 +103,25 @@ describe('state: fleets and the home planet', () => {
     expect(s.homePlanet).toBeNull();
     expect(s.fleets).toEqual([]);
   });
+
+  it('shows the logical time and the reports of the player, and only theirs', () => {
+    const ctx = testCtx();
+    const a = addUser(ctx, 'Anna');
+    const b = addUser(ctx, 'Bert');
+    addPlanet(ctx, a.id, { g: 1, s: 1, p: 5 });
+    ctx.reports.add(
+      a.id,
+      { id: 'r_a', time: 1, type: 'info', title: 'Für Anna' },
+      10,
+    );
+    ctx.reports.add(
+      b.id,
+      { id: 'r_b', time: 1, type: 'info', title: 'Für Bert' },
+      10,
+    );
+    ctx.clock.t += 12345;
+    const s = stateFor(ctx, a) as { now: number; reports: { id: string }[] };
+    expect(s.now).toBe(ctx.now());
+    expect(s.reports.map((r) => r.id)).toEqual(['r_a']);
+  });
 });

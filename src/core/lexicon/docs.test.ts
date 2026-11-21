@@ -7,11 +7,13 @@ import {
   firstSentence,
   hasEffect,
   HEADINGS,
+  pageParts,
   partTexts,
   searchDoc,
   searchDocs,
 } from './docs.ts';
-import type { EntryLexicon } from './types.ts';
+import { defaultState } from './state.ts';
+import type { Block, EntryLexicon, LexState, PageDef } from './types.ts';
 
 const meta = (o: Partial<ArticleMeta> = {}): ArticleMeta => ({
   id: 'thing',
@@ -199,5 +201,149 @@ describe('the search document of an article', () => {
       text: `${robot.ds} ${robot.lt}`,
       line: robot.ds,
     });
+  });
+});
+
+/** A page made for the test: the blocks it shows depend on the state's ships. */
+const made = (blocks: (s: LexState) => Block[], o: Partial<PageDef> = {}) =>
+  ({
+    id: 'rule-made',
+    kind: 'rule',
+    title: 'Gemacht',
+    line: 'Die Zeile.',
+    keywords: [],
+    sections: (s) => [{ id: 'a', title: 'Erster', blocks: blocks(s) }],
+    ...o,
+  }) satisfies PageDef;
+
+describe('the words of a page', () => {
+  it('start with its line, then each heading with the words of its blocks', () => {
+    const page = made(() => [
+      { t: 'text', text: 'Siehe [[spy]] ab {n}.', values: { n: '3' } },
+      { t: 'formula', lines: ['a = b', 'c = d'] },
+      { t: 'stand', text: 'Dein Stand: 4' },
+      { t: 'links', items: [{ id: 'spy' }] },
+    ]);
+    expect(pageParts(page, defaultState())).toEqual([
+      { label: 'Line', text: 'Die Zeile.' },
+      { label: 'Heading', text: 'Erster' },
+      { label: 'Text', text: 'Siehe Auspex-Lehre ab 3.' },
+      { label: 'Formula', text: 'a = b' },
+      { label: 'Formula', text: 'c = d' },
+      { label: 'Stand', text: 'Dein Stand: 4' },
+    ]);
+  });
+
+  it('name the caption and the head of a table, the head joined by bars', () => {
+    const rows = [{ cells: ['x', 'y'] }];
+    const page = made(() => [
+      { t: 'table', caption: 'Unterschrift', head: ['A', 'B'], rows },
+      { t: 'table', head: ['C'], rows },
+    ]);
+    expect(pageParts(page, defaultState()).slice(2)).toEqual([
+      { label: 'Table', text: 'Unterschrift' },
+      { label: 'Table', text: 'A | B' },
+      { label: 'Table', text: 'C' },
+    ]);
+  });
+
+  it('give each fact as „label: text“ and each chip as „label text“', () => {
+    const page = made(() => [
+      {
+        t: 'facts',
+        items: [
+          { label: 'Schritt 1', text: 'Erforsche [[spy]].' },
+          { label: 'Ziel', text: 'Mond' },
+        ],
+      },
+      { t: 'chips', items: [{ label: 'Preis', text: '5 Adamant' }] },
+    ]);
+    expect(pageParts(page, defaultState()).slice(2)).toEqual([
+      { label: 'Facts', text: 'Schritt 1: Erforsche Auspex-Lehre.' },
+      { label: 'Facts', text: 'Ziel: Mond' },
+      { label: 'Facts', text: 'Preis 5 Adamant' },
+    ]);
+  });
+
+  it('are those of the state given', () => {
+    const page = made((s) => [{ t: 'stand', text: `Schiffe: ${s.ships.sc}` }]);
+    const state = { ...defaultState(), ships: { sc: 7 } };
+    expect(pageParts(page, state).at(-1)).toEqual({
+      label: 'Stand',
+      text: 'Schiffe: 7',
+    });
+  });
+
+  it('are those of the default state for a page without review states', () => {
+    const page = made((s) => [{ t: 'stand', text: `Schiffe: ${s.ships.sc}` }]);
+    expect(pageParts(page).at(-1)).toEqual({
+      label: 'Stand',
+      text: 'Schiffe: undefined',
+    });
+  });
+
+  it('are those of the first review state, then what each next one adds', () => {
+    const ships = (sc: number): LexState => ({
+      ...defaultState(),
+      ships: { sc },
+    });
+    const page = made(
+      (s) => [
+        { t: 'stand', text: `Schiffe: ${s.ships.sc}` },
+        { t: 'stand', text: 'Immer' },
+        { t: 'text', text: `Schiffe: ${s.ships.sc}` },
+      ],
+      { review: [ships(1), ships(2), ships(1)] },
+    );
+    expect(pageParts(page)).toEqual([
+      { label: 'Line', text: 'Die Zeile.' },
+      { label: 'Heading', text: 'Erster' },
+      { label: 'Stand', text: 'Schiffe: 1' },
+      { label: 'Stand', text: 'Immer' },
+      { label: 'Text', text: 'Schiffe: 1' },
+      // The second state adds what differs; a part with the same label and
+      // text is not shown twice, a part with the same text but another label is.
+      { label: 'Stand', text: 'Schiffe: 2' },
+      { label: 'Text', text: 'Schiffe: 2' },
+    ]);
+  });
+
+  it("are the default state's for an empty list of review states", () => {
+    const page = made(() => [{ t: 'stand', text: 'Ein Wort' }], { review: [] });
+    expect(pageParts(page)).toEqual([
+      { label: 'Line', text: 'Die Zeile.' },
+      { label: 'Heading', text: 'Erster' },
+      { label: 'Stand', text: 'Ein Wort' },
+    ]);
+  });
+
+  it('leave a text with the same words but another label in', () => {
+    const page = made(
+      (s) =>
+        s.ships.sc === 1
+          ? [{ t: 'text', text: 'Gleich' }]
+          : [{ t: 'stand', text: 'Gleich' }],
+      {
+        review: [
+          { ...defaultState(), ships: { sc: 1 } },
+          { ...defaultState(), ships: { sc: 2 } },
+        ],
+      },
+    );
+    expect(pageParts(page).slice(2)).toEqual([
+      { label: 'Text', text: 'Gleich' },
+      { label: 'Stand', text: 'Gleich' },
+    ]);
+  });
+});
+
+describe('the texts of a written page as they read', () => {
+  it('are the words of the page, in the review state', () => {
+    const page = made(() => [{ t: 'stand', text: 'Ein Wort' }]);
+    expect(partTexts(meta({ page }))).toEqual([
+      'Die Zeile.',
+      'Erster',
+      'Ein Wort',
+    ]);
   });
 });

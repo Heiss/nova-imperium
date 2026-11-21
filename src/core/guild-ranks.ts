@@ -23,6 +23,19 @@ export const GUILD_RIGHTS = [
 
 export type GuildRight = (typeof GUILD_RIGHTS)[number];
 
+/** The rights as the guild view and the Lexicanum name them (#163, #288). */
+export const RIGHT_TEXT: Readonly<Record<GuildRight, string>> = {
+  applications: 'Bewerbungen annehmen und ablehnen',
+  remove: 'Mitglieder entfernen',
+  assign: 'Ränge an Mitglieder vergeben',
+  profile: 'Gildenname, Kürzel und Text ändern',
+  ranks: 'Ränge verwalten',
+  // The guild chat (#169, owner, 2026-11-14, D2).
+  'chat-read': 'Chat lesen',
+  'chat-write': 'Chat schreiben',
+  'chat-delete': 'Chatnachrichten löschen',
+};
+
 export const isGuildRight = (v: unknown): v is GuildRight =>
   (GUILD_RIGHTS as readonly unknown[]).includes(v);
 
@@ -34,8 +47,12 @@ export const MEMBER_RIGHTS: readonly GuildRight[] = ['chat-read', 'chat-write'];
 
 /** At most this many ranks per guild, the Leitung included (owner, 2026-11-13). */
 export const MAX_GUILD_RANKS = 25;
-/** Longest rank name (owner, 2026-11-13). */
-export const MAX_RANK_NAME = 67;
+/**
+ * Longest rank name when a rank is created or renamed: 24 characters, so
+ * the guild page fits a phone (owner, 2026-11-17, #277; it replaces the 67 of
+ * 2026-11-13). A longer name that exists already stays.
+ */
+export const MAX_RANK_NAME = 24;
 /** Shortest rank name (owner, 2026-11-14). */
 export const MIN_RANK_NAME = 2;
 

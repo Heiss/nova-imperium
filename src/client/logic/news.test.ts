@@ -4,8 +4,8 @@ import {
   NEWS_SEEN_KEY,
   type NewsData,
   newsHint,
-  newsHTML,
-  updateMessageHTML,
+  newsPage,
+  UPDATE_LINK,
 } from './news.ts';
 
 const news: NewsData = {
@@ -38,25 +38,26 @@ describe('news', () => {
     expect(newsHint(null, null)).toBeUndefined();
   });
 
-  it('lists every version with date, kinds in order, all text escaped', () => {
-    const html = newsHTML(news);
-    expect(html).toContain('Diese Spielwelt läuft mit Version 26.11.1.');
-    expect(html).toContain(
-      '<div class="hd">Version 26.11.1 – 12.11.2026</div>',
-    );
-    expect(html).toContain(
-      '<h3>Neu</h3><ul><li>Neuigkeiten im Menü.</li></ul><h3>Behoben</h3><ul><li>Fehler &lt;b&gt;weg&lt;/b&gt;.</li></ul>',
-    );
-    expect(html).not.toContain('<h3>Geändert</h3><ul><li>Neuigkeiten');
-    expect(html.indexOf('26.11.1 –')).toBeLessThan(html.indexOf('26.11.0 –'));
-    expect(html).toContain(
-      '<h3>Geändert</h3><ul><li>Die Werft baut schneller.</li></ul>',
-    );
+  it('lists every version with date, kinds in order, newest first', () => {
+    const page = newsPage(news);
+    expect(page.loading).toBe(false);
+    expect(page.running).toBe('Diese Spielwelt läuft mit Version 26.11.1.');
+    expect(page.versions.map((v) => v.title)).toEqual([
+      'Version 26.11.1 – 12.11.2026',
+      'Version 26.11.0 – 01.11.2026',
+    ]);
+    expect(page.versions[0]!.groups).toEqual([
+      { label: 'Neu', items: ['Neuigkeiten im Menü.'] },
+      { label: 'Behoben', items: ['Fehler <b>weg</b>.'] },
+    ]);
+    expect(page.versions[1]!.groups).toEqual([
+      { label: 'Geändert', items: ['Die Werft baut schneller.'] },
+    ]);
   });
 
-  it('joins entries and versions without anything in between', () => {
+  it('keeps the entries of a kind together and leaves out a kind without entries', () => {
     expect(NEWS_SEEN_KEY).toBe('nova.news.seen');
-    const html = newsHTML({
+    const page = newsPage({
       version: null,
       versions: [
         {
@@ -64,37 +65,36 @@ describe('news', () => {
           date: '12.11.2026',
           entries: [
             { kind: 'neu', text: 'A.' },
+            { kind: 'behoben', text: 'C.' },
             { kind: 'neu', text: 'B.' },
           ],
         },
-        {
-          version: '26.11.0',
-          date: '01.11.2026',
-          entries: [{ kind: 'behoben', text: 'C.' }],
-        },
       ],
     });
-    expect(html).toBe(
-      '<div class="box news"><div class="hd">Version 26.11.1 – 12.11.2026</div><div class="bd"><h3>Neu</h3><ul><li>A.</li><li>B.</li></ul></div></div>' +
-        '<div class="box news"><div class="hd">Version 26.11.0 – 01.11.2026</div><div class="bd"><h3>Behoben</h3><ul><li>C.</li></ul></div></div>',
-    );
+    expect(page.running).toBe('');
+    expect(page.versions[0]!.groups).toEqual([
+      { label: 'Neu', items: ['A.', 'B.'] },
+      { label: 'Behoben', items: ['C.'] },
+    ]);
   });
 
   it('says when nothing is loaded or nothing is there', () => {
-    expect(newsHTML(null)).toBe(
-      '<p class="dim">Neuigkeiten werden geladen …</p>',
-    );
-    expect(newsHTML({ version: null, versions: [] })).toBe(
-      '<p class="dim">Noch keine Neuigkeiten.</p>',
-    );
-    expect(newsHTML({ version: '26.11.1', versions: [] })).toContain(
-      'Version 26.11.1.</p><p class="dim">Noch keine Neuigkeiten.</p>',
+    expect(newsPage(null)).toEqual({
+      loading: true,
+      running: '',
+      versions: [],
+    });
+    expect(newsPage({ version: null, versions: [] })).toEqual({
+      loading: false,
+      running: '',
+      versions: [],
+    });
+    expect(newsPage({ version: '26.11.1', versions: [] }).running).toBe(
+      'Diese Spielwelt läuft mit Version 26.11.1.',
     );
   });
 
-  it('turns the update message into lines and a link', () => {
-    expect(updateMessageHTML('Neu:\n• <A>', '?view=news')).toBe(
-      '<div>Neu:<br>• &lt;A&gt;</div><p><a href="?view=news" data-act="nav" data-v="news">Zu den Neuigkeiten</a></p>',
-    );
+  it('links an update message to the page', () => {
+    expect(UPDATE_LINK).toBe('?view=news');
   });
 });

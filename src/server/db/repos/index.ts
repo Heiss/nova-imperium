@@ -1,43 +1,41 @@
-// One repository per aggregate (#117, okf/architecture/patterns.md section 8).
-// A repository never opens a transaction: the caller's `tx` is the unit of
-// work, for an action the one of `runAction`.
+// One repository per aggregate (#117, okf/architecture/patterns.md sections 8
+// and 15). A repository never opens a transaction: the caller's `tx` is the
+// unit of work, for an action the one of `runAction`.
+//
+// No repository is named here (#317): each module of this folder exports its
+// own under the fixed name `repository` (key and `make`, see contract.ts), the
+// list is generated (repositories.gen.ts), and the type `Repositories` is
+// derived from it: `ctx.market` keeps the type `make` returns.
+import { claim } from '../../claim.ts';
 import type { Db } from '../database.ts';
-import { SqliteAdmin, type Admin } from './admin.ts';
-import { SqliteDebris, type DebrisFields } from './debris.ts';
-import { SqliteFleets, type Fleets } from './fleets.ts';
-import { SqliteFriends, type Friends } from './friends.ts';
-import { SqliteGuilds, type Guilds } from './guilds.ts';
-import { SqliteInvitations, type Invitations } from './invitations.ts';
-import { SqliteMarket, type MarketStore } from './market.ts';
-import { SqlitePlanets, type Planets } from './planets.ts';
-import { SqlitePlayers, type Players } from './players.ts';
-import { SqliteReports, type Reports } from './reports.ts';
+import type { RepositoryModule } from './contract.ts';
+import { REPOSITORIES } from './repositories.gen.ts';
 
-export interface Repositories {
-  players: Players;
-  planets: Planets;
-  fleets: Fleets;
-  reports: Reports;
-  guilds: Guilds;
-  invitations: Invitations;
-  admin: Admin;
-  /** The Trümmerfelder (#45), places of their own (#119). */
-  debris: DebrisFields;
-  /** The buddy list (#227). */
-  friends: Friends;
-  /** The prices and the daily amounts of the marketplace (#171). */
-  market: MarketStore;
+/** The modules as the generated list gives them: `[path in this folder, repository]`. */
+export type Listed = readonly (readonly [string, RepositoryModule])[];
+
+type Entry = (typeof REPOSITORIES)[number];
+
+/** Every repository by its key, typed by what its `make` returns. */
+export type Repositories = {
+  [E in Entry as E[1]['key']]: ReturnType<E[1]['make']>;
+};
+
+const fileOf = (name: string): string => `src/server/db/repos/${name}.ts`;
+
+/** The repositories of all `modules` on one connection, each key once. */
+export function assembleRepositories(
+  db: Db,
+  modules: Listed,
+): Record<string, unknown> {
+  const repos: Record<string, unknown> = {};
+  const owners = new Map<string, string>();
+  for (const [name, { key, make }] of modules) {
+    claim('repository', owners, key, fileOf(name));
+    repos[key] = make(db);
+  }
+  return repos;
 }
 
-export const repositories = (db: Db): Repositories => ({
-  players: new SqlitePlayers(db),
-  planets: new SqlitePlanets(db),
-  fleets: new SqliteFleets(db),
-  reports: new SqliteReports(db),
-  guilds: new SqliteGuilds(db),
-  invitations: new SqliteInvitations(db),
-  admin: new SqliteAdmin(db),
-  debris: new SqliteDebris(db),
-  friends: new SqliteFriends(db),
-  market: new SqliteMarket(db),
-});
+export const repositories = (db: Db): Repositories =>
+  assembleRepositories(db, REPOSITORIES) as Repositories;

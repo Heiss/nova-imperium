@@ -7,7 +7,6 @@
 // settleReactors() and the private helpers it calls, copied unchanged but
 // for the names of the copies, the push argument of #192 (`orderPush`,
 // the same kind as today's code) and the order of the checks of #214.
-import Database from 'better-sqlite3';
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { BUILD, RES } from '../../core/catalog.ts';
@@ -35,12 +34,17 @@ import type {
   ResearchState,
 } from '../../core/types.ts';
 import type { AuditEntry } from '../audit.ts';
-import { openDatabase } from '../db/database.ts';
 import type { User } from '../db/repos/players.ts';
 import { orderPush, queuePush } from '../push-store.ts';
-import { addPlanet, addUser, testCtx } from '../test-helpers.ts';
+import { addPlanet, addUser, caseDatabase, testCtx } from '../test-helpers.ts';
 import * as A from './actions.ts';
-import { type Action, mine, ownLabs, researchOf } from './actions.ts';
+import {
+  type Action,
+  type Handler,
+  mine,
+  ownLabs,
+  researchOf,
+} from './actions.ts';
 import { type Ctx, fail, fmt, universe } from './context.ts';
 
 // ---- reference: the research action of actions.ts before #115 ----
@@ -133,10 +137,11 @@ const research: Action = (ctx, u, d, event) => {
 
 // ---- the property test ----
 
-const TEMPLATE = openDatabase(':memory:').serialize();
+const caseDb = caseDatabase();
 const H = 3600000;
 const NOW = 100 * H;
-const RESEARCH = Object.keys(RES);
+// Without the Kolonialverwaltung (#237), which the code before did not know.
+const RESEARCH = Object.keys(RES).filter((k) => k !== 'colonial');
 const BUILDINGS = Object.keys(BUILD);
 
 const oneOf = <T>(often: readonly T[], all: readonly T[]): fc.Arbitrary<T> =>
@@ -214,10 +219,8 @@ function dump(ctx: Ctx): Record<string, unknown[]> {
 }
 
 /** Anna starts the research `c.key` on one of her planets: the answer and every table. */
-function start(c: Case, act: Action) {
-  const db = new Database(TEMPLATE);
-  db.pragma('foreign_keys = ON');
-  const ctx = testCtx(NOW, 115, db);
+function start(c: Case, act: Action | Handler<'research'>) {
+  const ctx = testCtx(NOW, 115, caseDb.open());
   const anna = addUser(ctx, 'Anna', {
     research: c.research,
     rq: c.rq && {
@@ -255,11 +258,11 @@ function start(c: Case, act: Action) {
     answer = `error: ${(e as Error).message}`;
   }
   const result = { answer, db: dump(ctx) };
-  ctx.db.close();
+  caseDb.rewind();
   return result;
 }
 
-// Every case closes its database, as in missions-reference.test.ts.
+// Every case rewinds its database, as in missions-reference.test.ts.
 describe(
   'starting a research settles the planets of before (#115)',
   { timeout: 120_000 },

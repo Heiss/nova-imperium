@@ -1,10 +1,12 @@
 // The level table of a building or research (#187, built with #285): one
 // pure function computes the rows, one component draws them
 // (views/LevelTable.svelte). The lists take the cost and time of their next
-// level from the same `levelRow()`, so a list and the Lexicanum show the
-// same numbers for the same level, planet and universe.
+// level from the same `levelRow()`, so a list, the level overview and the
+// Lexicanum show the same numbers for the same level, planet and universe.
+// Which levels a table shows is the rule of the core (`levelSteps`).
 import { BUILD, RES } from '../../core/catalog.ts';
 import { buildTime, lvlCost, researchTime } from '../../core/economy.ts';
+import { levelSteps } from '../../core/level-overview.ts';
 import { labSite, networkLab } from '../../core/research.ts';
 import type { Cost } from '../../core/types.ts';
 import type { V } from '../views/common.ts';
@@ -15,20 +17,6 @@ export interface LevelRow {
   level: number;
   cost: Cost;
   time: number;
-}
-
-/**
- * The levels a table shows (#187 D1): the next 3, then the multiples of 5
- * above them up to 20; when there is none, the next multiple of 5 above
- * them (level 3 → 4, 5, 6, 10, 15, 20; level 21 → 22, 23, 24, 25).
- */
-export function levelSteps(level: number): number[] {
-  const next = [level + 1, level + 2, level + 3];
-  const last = level + 3;
-  const big: number[] = [];
-  for (let n = (Math.floor(last / 5) + 1) * 5; n <= 20; n += 5) big.push(n);
-  if (!big.length) big.push((Math.floor(last / 5) + 1) * 5);
-  return [...next, ...big];
 }
 
 /** The level of a building on the shown planet or of a research. */
@@ -59,64 +47,121 @@ export function levelRow(
   return { level, cost, time: researchTime(cost, { b: { lab } }, s.cfg) };
 }
 
+/** How a value is shown: a number, a percentage (0.3 → „+30 %“) or a factor („×0,5“). */
+type EffectFormat = 'percent' | 'factor';
+
 /** What a level brings, as a number of the entry's rule. */
 export interface LevelEffect {
   label: string;
   at: (level: number) => number;
-  format?: 'percent';
+  format?: EffectFormat;
   unit?: string;
+  /** A value that costs (an energy need, a time): its rise is shown as the worse. */
+  cost?: true;
 }
 
-/** A row of the table with its effect, and whether it is the own level. */
+/** The heading of an effect column, without its values. */
+type EffectHead = Omit<LevelEffect, 'at'>;
+
+/** A row of the table with its effects, and whether it is the own level. */
 interface LevelTableRow extends LevelRow {
-  effect?: number;
+  /** The value of each effect at this level. */
+  values: number[];
+  /** The value of each effect minus that of the own level (the difference to today). */
+  deltas: number[];
+  /** The first of the big steps, after the next 3 levels (#187 D1). */
+  big: boolean;
   current: boolean;
+  /** What this level opens, for an entry without a number: the names (#187). */
+  unlocks?: string[];
 }
 
 export interface LevelTable {
   /** „Bauzeit“ or „Forschungszeit“, as the lists say. */
   timeLabel: string;
-  effect?: Omit<LevelEffect, 'at'>;
+  effects: EffectHead[];
   rows: LevelTableRow[];
+  /** Lines below the table: what its numbers assume (#187). */
+  notes?: string[];
+}
+
+/** The heading of an effect column: its fields without the function. */
+const head = ({ label, format, unit, cost }: LevelEffect): EffectHead => ({
+  label,
+  ...(format ? { format } : {}),
+  ...(unit ? { unit } : {}),
+  ...(cost ? { cost } : {}),
+});
+
+/** How the table is made up: the own level as a row, or only the next ones. */
+interface Options {
+  /** The own level first, marked (the article, #285 B5); else only the levels to come. */
+  own: boolean;
 }
 
 /**
- * The table of an entry with levels: the own level first when there is one
- * (marked, B5 of #285), then the levels of `levelSteps`; null for an entry
+ * The table of an entry with levels: the own level first when asked for and
+ * there is one (marked, B5 of #285), then the levels of `levelSteps` with
+ * each effect and its difference to the own level; null for an entry
  * without levels.
  */
 export function levelTable(
   v: V,
   key: string,
-  effect?: LevelEffect,
+  effects: readonly LevelEffect[] = [],
+  { own: withOwn }: Options = { own: true },
 ): LevelTable | null {
   if (!levelRow(v, key, 1)) return null;
   const own = levelOf(v, key);
-  const levels = own ? [own, ...levelSteps(own)] : levelSteps(own);
-  const table: LevelTable = {
+  const steps = levelSteps(own);
+  const levels = own && withOwn ? [own, ...steps] : steps;
+  const today = effects.map((e) => e.at(own));
+  return {
     timeLabel: Object.hasOwn(BUILD, key) ? 'Bauzeit' : 'Forschungszeit',
+    effects: effects.map(head),
     rows: levels.map((level) => {
-      const row: LevelTableRow = {
+      const values = effects.map((e) => e.at(level));
+      return {
         ...levelRow(v, key, level)!,
+        values,
+        deltas: values.map((x, i) => x - today[i]!),
+        big: level === steps[3],
         current: level === own,
       };
-      if (effect) row.effect = effect.at(level);
-      return row;
     }),
   };
-  if (effect) {
-    table.effect = { label: effect.label };
-    if (effect.format) table.effect.format = effect.format;
-    if (effect.unit) table.effect.unit = effect.unit;
-  }
-  return table;
 }
 
-/** An effect as the table shows it: „+30 %“, „12 Systeme“ or „5“. */
-export const effectText = (
+/** The number format of the table, with decimals for a factor. */
+const FACTOR = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 2 });
+
+/** An effect as the table shows it: „+30 %“, „12 Systeme“, „×0,5“ or „5“. */
+export function effectText(
   value: number,
   e: Pick<LevelEffect, 'format' | 'unit'>,
-): string =>
-  e.format === 'percent'
-    ? `+${fmt(Math.round(value * 100))} %`
-    : `${fmt(value)}${e.unit ? ` ${e.unit}` : ''}`;
+): string {
+  if (e.format === 'percent') return `+${fmt(Math.round(value * 100))} %`;
+  if (e.format === 'factor') return `×${FACTOR.format(value)}`;
+  return `${fmt(value)}${e.unit ? ` ${e.unit}` : ''}`;
+}
+
+/**
+ * The difference to today as the table shows it: „+280“, „−19“ or „+10 %“;
+ * a sign for any value, undefined when nothing changes.
+ */
+export function deltaText(
+  delta: number,
+  e: Pick<LevelEffect, 'format'>,
+): string | undefined {
+  const sign = delta < 0 ? '−' : '+';
+  const abs = Math.abs(delta);
+  if (e.format === 'percent') {
+    const n = Math.round(abs * 100);
+    return n ? `${sign}${fmt(n)} %` : undefined;
+  }
+  if (e.format === 'factor') {
+    const n = Number(FACTOR.format(abs).replace(',', '.'));
+    return n ? `${sign}${FACTOR.format(abs)}` : undefined;
+  }
+  return Math.floor(abs) ? `${sign}${fmt(abs)}` : undefined;
+}

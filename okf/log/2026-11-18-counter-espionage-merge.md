@@ -1,0 +1,8 @@
+---
+type: log-entry
+date: 2026-11-18T21:00
+kind: Code
+issues: [175, 229, 295, 285]
+---
+
+#175 brought up to main: #229 comes from main in its final form (#295), so the branch's old copy is gone and the activity line of the Auspex-Bericht is built on main's `activityText` (a planet within the first threshold shows „Aktiv“, later „Aktivität vor x Minuten“; [V] without activity „Keine Aktivität in der letzten Stunde.“ stays). What a report shows (`spyScore`, `spyParts`) is read from `src/core/spy.ts` (#285). The six German texts of the build are confirmed [E] (owner, 2026-11-18, #175): „Keine Aktivität in der letzten Stunde.“, „Auspex-Erkundung erst ab Auspex-Lehre 1.“, „Kontakt abgebrochen – deine Spähschädel wurden bei [g:s:p] entdeckt und zerstört.“, the title „Kampfbericht <Planet> [g:s:p] – Spähschädel von <Spion>“, „Chance auf Auspex-Abwehr: x %.“ and „Die Spähschädel wurden abgeschossen!“. The Lexicanum article „Auspex-Lehre“ shows the new rule instead of the old danger formula and table [E]: its formula, table and paragraph are computed from `src/core/espionage.ts`, and `counterChance` of `src/core/spy.ts` is removed; [V] the wording is a proposal for the owner to check (see [Espionage defense](/features/espionage-defense.md), [Lexicanum texts](/features/lexicanum-texts.md)). The Lexicanum asks the check of the mission which ships it takes with the espionage technology the mission needs, so „nur Spähschädel“ stays. The sentence „Werden die Spähschädel abgeschossen, bekommst du den Bericht trotzdem; sonst fliegen sie heim.“ is removed from the article of the mission „Auspex-Erkundung“ (owner, 2026-11-18), nothing replaces it.

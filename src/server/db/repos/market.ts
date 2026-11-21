@@ -3,7 +3,9 @@
 // on each UTC day, in the tables of migration 20261118T2324-marketplace.
 import type { Pair, PriceState } from '../../../core/market.ts';
 import type { Db } from '../database.ts';
+import type { RepositoryModule } from './contract.ts';
 import type { Row } from './rows.ts';
+import type { RoundReset } from '../round-reset.ts';
 
 export interface MarketStore {
   /** The stored price of every pair that had an exchange this round. */
@@ -18,7 +20,7 @@ export interface MarketStore {
   clear(): void;
 }
 
-export class SqliteMarket implements MarketStore {
+class SqliteMarket implements MarketStore {
   private readonly db: Db;
   constructor(db: Db) {
     this.db = db;
@@ -69,3 +71,14 @@ export class SqliteMarket implements MarketStore {
     this.db.exec('DELETE FROM market_prices; DELETE FROM market_usage;');
   }
 }
+
+/** The prices and the daily amounts of the marketplace (#171). */
+export const repository = {
+  key: 'market',
+  make: (db: Db): MarketStore => new SqliteMarket(db),
+} as const satisfies RepositoryModule;
+
+/** The prices and the amounts of the day start over (#171). */
+export const roundReset = [
+  { order: 80, clears: ['market_prices', 'market_usage'] },
+] satisfies readonly RoundReset[];

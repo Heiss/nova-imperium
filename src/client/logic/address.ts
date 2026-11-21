@@ -28,10 +28,14 @@ export function viewUrl(
   if (view === LEXICANUM_VIEW && article)
     url.searchParams.set(ARTICLE_PARAM, article);
   else url.searchParams.delete(ARTICLE_PARAM);
-  url.hash = '';
+  // The hash is left out: only the path and the query are returned.
   return url.pathname + url.search;
 }
 
 /** The relative address of an article, for the links of the Lexicanum. */
 export const articleHref = (id: string): string =>
   `?view=${LEXICANUM_VIEW}${id ? `&${ARTICLE_PARAM}=${encodeURIComponent(id)}` : ''}`;
+
+/** The state URL of the planet, or of the main planet when none is named. */
+export const stateUrl = (planet?: string): string =>
+  planet ? `/api/state?planet=${encodeURIComponent(planet)}` : '/api/state';

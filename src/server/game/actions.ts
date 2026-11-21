@@ -1,5 +1,6 @@
 // The actions of a player on their planet. Each one runs inside a transaction
 // (see dispatch.ts) and saves what it changes.
+import type { ActionName, Wire } from '../../core/actions.ts';
 import { BUILD, RES, UNIT } from '../../core/catalog.ts';
 import {
   buildTime,
@@ -19,7 +20,9 @@ import {
   type ResearchError,
   researchErrors,
 } from '../../core/economy-checks.ts';
+import { cancelOrder as takeOutOrder } from '../../core/cancel-order.ts';
 import { type ExplainMode, storedMode } from '../../core/explain.ts';
+import { isLevelMode, type LevelMode } from '../../core/level-overview.ts';
 import {
   energyNeed,
   energyShort,
@@ -54,12 +57,23 @@ export interface Answer {
   data: Data;
 }
 
-export type Action = (
+/** What a handler gives back: the message, or the message with data (`Answer`). */
+type Result = string | null | Answer;
+
+/**
+ * The handler of the action `K`: it gets the input the browser may send for
+ * `K` (`src/core/actions/`, #317), checked against the map by the compiler;
+ * the handler still validates what it reads, the input arrives as JSON.
+ */
+export type Handler<K extends ActionName> = (
   ctx: Ctx,
   u: User,
-  d: Data,
+  d: Wire<K>,
   event?: AuditEntry,
-) => string | null | Answer;
+) => Result;
+
+/** A handler as the table of `dispatch.ts` holds it, whatever its action: the name picks the input. */
+export type Action = (ctx: Ctx, u: User, d: Data, event?: AuditEntry) => Result;
 
 /** The message and the data of what an action answered. */
 export const answerOf = (
@@ -173,7 +187,7 @@ function payNextLevel(
   return q;
 }
 
-export const build: Action = (ctx, u, d, event) => {
+export const build: Handler<'build'> = (ctx, u, d, event) => {
   const k = String(d.key);
   const def = BUILD[k] ?? fail('Unbekanntes Gebäude.');
   // „at“: a requirement on another own planet (issue #64); the answer keeps
@@ -193,7 +207,7 @@ export const build: Action = (ctx, u, d, event) => {
   return null;
 };
 
-export const cancelBuild: Action = (ctx, u, d) => {
+export const cancelBuild: Handler<'cancelBuild'> = (ctx, u, d) => {
   const p = mine(ctx, u, d.planet);
   if (!p.bq) return null;
   refund(p, p.bq.cost);
@@ -207,6 +221,9 @@ export const cancelBuild: Action = (ctx, u, d) => {
 const RESEARCH_ERROR: Readonly<
   Record<Exclude<ResearchError, 'noEnergy'>, string>
 > = {
+  // The Kolonialverwaltung of a round without it, or at its highest level (#237) [V].
+  off: 'Diese Forschung gibt es in dieser Runde nicht.',
+  maxLevel: 'Die höchste Stufe dieser Forschung ist erreicht.',
   noLab: 'Du brauchst ein Scholarium.',
   locked: LOCKED,
   busy: 'Es wird bereits geforscht.',
@@ -228,7 +245,7 @@ export const ownLabs = (ctx: Ctx, uid: string): LabSite[] =>
     .map((x) => labSite(settle(x, ctx.now(), universe(ctx))));
 
 /** Starts research on the selected own planet, which pays it (#49). */
-export const research: Action = (ctx, u, d, event) => {
+export const research: Handler<'research'> = (ctx, u, d, event) => {
   const k = String(d.key);
   const def = RES[k] ?? fail('Unbekannte Forschung.');
   const p = mine(ctx, u, d.planet);
@@ -256,7 +273,7 @@ export const research: Action = (ctx, u, d, event) => {
 };
 
 /** Refunds the planet where the research started (the home planet before #49). */
-export const cancelResearch: Action = (ctx, u) => {
+export const cancelResearch: Handler<'cancelResearch'> = (ctx, u) => {
   const r = researchOf(ctx, u);
   if (!r.rq) return null;
   const p = mine(ctx, u, r.rq.planet);
@@ -277,6 +294,8 @@ const ORDER_ERROR: Readonly<Record<Exclude<OrderError, 'yardLocked'>, string>> =
     count: 'Bitte eine Anzahl eingeben.',
     // The component `limit`: only the two shield domes have one (#50).
     limit: 'Diesen Schutzdom gibt es nur einmal pro Planet.',
+    // The components `silo` and `missile`: the missiles (#54) [V].
+    siloFull: 'Nicht genug Platz in der Raketenkrypta.',
     cost: POOR,
     queueFull: 'Die Bauliste der Schiffsschmiede ist voll.',
   };
@@ -288,7 +307,7 @@ function checkOrder(p: Planet, r: ResearchState, k: string, n: number): void {
   if (error) fail(ORDER_ERROR[error]);
 }
 
-export const order: Action = (ctx, u, d, event) => {
+export const order: Handler<'order'> = (ctx, u, d, event) => {
   const k = String(d.key);
   const def = UNIT[k] ?? fail('Unbekannte Einheit.');
   const p = mine(ctx, u, d.planet);
@@ -304,7 +323,30 @@ export const order: Action = (ctx, u, d, event) => {
   return `${fmt(n)}× ${text(k)!.n} in Auftrag gegeben.`;
 };
 
-export const pct: Action = (ctx, u, d) => {
+/**
+ * Cancels the order at position `pos` of the shipyard list of the selected
+ * own planet when it still holds the unit `key` (#258, owner, 2026-11-16):
+ * the rule is `cancelOrder()` of the core, which refunds the whole rest of
+ * the order in full and lets the next order start now when the first one
+ * went. An order that finished meanwhile, so that the position is empty or
+ * holds another unit, is no error: nothing happens, like `cancelBuild`
+ * without an upgrade. It is allowed while an upgrade locks the shipyard. The
+ * push „Schiffsschmiede fertig“ moves to the new end of the list, or goes
+ * when the list is empty.
+ */
+export const cancelOrder: Handler<'cancelOrder'> = (ctx, u, d) => {
+  // `Number.isInteger` refuses everything that is no number.
+  const asked = Number.isInteger(d.pos) ? (d.pos as number) : -1;
+  const pos = asked >= 0 ? asked : fail('Ungültig.');
+  const p = mine(ctx, u, d.planet);
+  if (!takeOutOrder(p, pos, String(d.key), ctx.now())) return null;
+  ctx.planets.save(p);
+  if (p.sq.length) scheduleShipyard(ctx, p);
+  else cancelScheduledPush(ctx, u.id, 'shipyard', `${p.id}:*`);
+  return null;
+};
+
+export const pct: Handler<'pct'> = (ctx, u, d) => {
   const k = String(d.key);
   if (!isProducer(k)) fail('Ungültig.');
   const p = mine(ctx, u, d.planet);
@@ -313,7 +355,7 @@ export const pct: Action = (ctx, u, d) => {
   return null;
 };
 
-export const rename: Action = (ctx, u, d) => {
+export const rename: Handler<'rename'> = (ctx, u, d) => {
   const n = str(d.name, 20);
   if (!n) fail('Bitte einen Namen eingeben.');
   const p = mine(ctx, u, d.planet);
@@ -329,27 +371,34 @@ export const rename: Action = (ctx, u, d) => {
 const explainMode = (x: unknown): ExplainMode =>
   storedMode(x) ?? fail('Ungültig.');
 
-export const options: Action = (ctx, u, d) => {
+/** The display option of the level overview (#187), or a refusal. */
+const levelTableMode = (x: unknown): LevelMode =>
+  isLevelMode(x) ? x : fail('Ungültig.');
+
+export const options: Handler<'options'> = (ctx, u, d) => {
   // An older client sends no display option; the stored one stays.
   const explain = d.explain === undefined ? u.explain : explainMode(d.explain);
+  const levelTable =
+    d.levelTable === undefined ? u.levelTable : levelTableMode(d.levelTable);
   u.probes = int(d.probes, 1, 1e6);
   u.explain = explain;
+  u.levelTable = levelTable;
   ctx.players.save(u);
   return 'Gespeichert.';
 };
 
-export const read: Action = (ctx, u) => {
+export const read: Handler<'read'> = (ctx, u) => {
   u.readAt = Math.max(0, ...ctx.reports.ofPlayer(u.id).map((r) => r.time));
   ctx.players.save(u);
   return null;
 };
 
-export const delrep: Action = (ctx, u, d) => {
+export const delrep: Handler<'delrep'> = (ctx, u, d) => {
   ctx.reports.delete(u.id, String(d.id));
   return null;
 };
 
-export const delall: Action = (ctx, u) => {
+export const delall: Handler<'delall'> = (ctx, u) => {
   ctx.reports.deleteAll(u.id);
   return null;
 };

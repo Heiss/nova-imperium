@@ -34,6 +34,7 @@ export const TEST_FILES = [
 export const MUTATION_CONFIG = [
   'stryker.config.json',
   'mutation-standard.json',
+  'mutation-floors.txt',
   'vitest.config.ts',
   'scripts/mutation-*.ts',
   'tsconfig.json',

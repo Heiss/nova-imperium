@@ -148,7 +148,7 @@ describe('server', () => {
     ctx.db
       .prepare(
         `INSERT INTO fleets VALUES ('f1', 'u_Anna', 'p1', 1, 1, 1, 'p2', 1, 1, 2,
-          'transport', 0, 0, 0, 0, 1, 2, 'out', 0, 0, 0, 0)`,
+          'transport', 0, 0, 0, 0, 1, 2, 'out', 0, 0, 0, 0, NULL, NULL)`,
       )
       .run();
     const broken = {
@@ -187,7 +187,7 @@ describe('background jobs', () => {
     ctx.db
       .prepare(
         `INSERT INTO fleets VALUES ('f1', 'u_Anna', 'p1', 1, 1, 1, 'p2', 1, 1, 2,
-          'transport', 0, 0, 0, 0, 1, 2, ?, 0, 0, 0, 0)`,
+          'transport', 0, 0, 0, 0, 1, 2, ?, 0, 0, 0, 0, NULL, NULL)`,
       )
       .run(state);
 
@@ -235,9 +235,28 @@ describe('background jobs', () => {
     ]);
   });
 
-  it('the hourly sweep purges sessions, audit and error log and the app', () => {
+  it('the hourly sweep purges sessions, audit and error log, surveys and the app', () => {
     const ctx = testCtx(40 * DAY);
     addUser(ctx, 'Anna');
+    // Surveys of #190: the one of day 9 expires after 30 days, day 10 not yet.
+    ctx.surveys.add({
+      id: 'v1',
+      g: 1,
+      s: 1,
+      p: 1,
+      temp: 0,
+      diameter: 9000,
+      created: 9 * DAY,
+    });
+    ctx.surveys.add({
+      id: 'v2',
+      g: 1,
+      s: 1,
+      p: 2,
+      temp: 0,
+      diameter: 9000,
+      created: 10 * DAY,
+    });
     ctx.db.exec(`
       INSERT INTO sessions VALUES ('old', 'u_Anna', ${40 * DAY}),
         ('new', 'u_Anna', ${40 * DAY + 1});
@@ -257,6 +276,8 @@ describe('background jobs', () => {
       ctx.db.prepare('SELECT COUNT(*) FROM audit_events').pluck().get(),
     ).toBe(0);
     expect(errors(ctx)).toEqual([]);
+    expect(ctx.surveys.get({ g: 1, s: 1, p: 1 })).toBeNull();
+    expect(ctx.surveys.get({ g: 1, s: 1, p: 2 })).not.toBeNull();
     expect(sweepApp).toHaveBeenCalledTimes(1);
     expect(log).not.toHaveBeenCalled();
   });

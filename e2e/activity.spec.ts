@@ -9,6 +9,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import {
   galaxyRow,
+  logout,
   nav,
   register,
   seed,
@@ -37,7 +38,7 @@ async function activityFlow(page: Page): Promise<void> {
   const me = uniqueName('Beob');
   // The other player registers (a login) and leaves.
   await register(page, other);
-  await page.click('[data-act=logout]');
+  await logout(page);
   await register(page, me);
   await openSystemOf(page, other);
   const row = galaxyRow(page, other);

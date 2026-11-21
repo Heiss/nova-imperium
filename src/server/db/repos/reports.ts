@@ -1,11 +1,12 @@
 // Reports (#117): the messages of a player, kept up to a limit.
 import type { Db } from '../database.ts';
+import type { RepositoryModule } from './contract.ts';
 import type { Row } from './rows.ts';
 
 export interface Report {
   id: string;
   time: number;
-  type: 'info' | 'spy' | 'battle';
+  type: 'info' | 'spy' | 'battle' | 'survey';
   title: string;
   [field: string]: unknown;
 }
@@ -17,9 +18,11 @@ export interface Reports {
   ofPlayer(uid: string): Report[];
   delete(uid: string, id: string): void;
   deleteAll(uid: string): void;
+  /** Deletes the survey reports (#190) of every player that name one of `surveys`. */
+  deleteSurveys(surveys: readonly string[]): void;
 }
 
-export class SqliteReports implements Reports {
+class SqliteReports implements Reports {
   private readonly db: Db;
   constructor(db: Db) {
     this.db = db;
@@ -67,4 +70,17 @@ export class SqliteReports implements Reports {
   deleteAll(uid: string): void {
     this.db.prepare('DELETE FROM reports WHERE user_id = ?').run(uid);
   }
+
+  deleteSurveys(surveys: readonly string[]): void {
+    const del = this.db.prepare(
+      "DELETE FROM reports WHERE type = 'survey' AND json_extract(body, '$.survey') = ?",
+    );
+    for (const id of surveys) del.run(id);
+  }
 }
+
+/** The `reports` repository on `Ctx`. */
+export const repository = {
+  key: 'reports',
+  make: (db: Db): Reports => new SqliteReports(db),
+} as const satisfies RepositoryModule;

@@ -2,15 +2,17 @@
 // component Overview shows, without HTML: the fleet movements, the shown
 // place and what is being built, researched or ordered. The fleet movements
 // are also the list of the fleet view.
-import { MISSION } from '../../core/missions.ts';
+import { isFleet, MISSION } from '../../core/missions.ts';
 import { placeName } from '../../core/moon.ts';
 import { text } from '../../core/text.ts';
 import type { V } from '../views/common.ts';
+import { planetsLine } from './colony-limit.ts';
 import { abandonOffered } from './abandon.ts';
 import { diameterLine } from './fields.ts';
 import { coords, dt, dur, fmt, resLine } from './format.ts';
 import { fleetEnd, nameOf, ranks, sortFleets } from './game.ts';
 import { planetLook } from './planet.ts';
+import { unionPart } from './union.ts';
 import type { ClientFleet } from './types.ts';
 
 /** A countdown to `end`; `left` is null when it is due. The clock counts it down. */
@@ -40,7 +42,7 @@ export interface FleetRow {
   parts: TextPart[];
   /**
    * An own fleet on its way out or holding (#55) can be called back, the
-   * gift not (#161).
+   * gift (#161) and missiles (#54) not.
    */
   recall: boolean;
 }
@@ -84,6 +86,8 @@ export interface OverviewPage {
   activities: ActivityRow[];
   /** Whether „Kolonie aufgeben“ is offered (#224): not on a moon or the main planet. */
   abandon: boolean;
+  /** The planets against the limit of the round (#237). */
+  planets: string;
 }
 
 const part = (text: string, bold = false): TextPart => ({ text, bold });
@@ -132,7 +136,7 @@ function fleetParts(v: V, f: ClientFleet): TextPart[] {
   if (f.state === 'out')
     return [
       part(
-        `Deine Flotte (${ships}) von ${origin} erreicht ${coords(f.toC)} · ${mission}${cargoPart(f)}`,
+        `Deine Flotte (${ships}) von ${origin} erreicht ${coords(f.toC)} · ${mission}${unionPart(f)}${cargoPart(f)}`,
       ),
     ];
   if (f.state === 'hold')
@@ -155,7 +159,7 @@ function fleetRow(v: V, f: ClientFleet): FleetRow {
     due: countdown(fleetEnd(f), v.now),
     cls: back ? 'fl-back' : `fl-${f.mission}`,
     parts: fleetParts(v, f),
-    recall: f.owner === v.s.me.id && !back && !f.gift,
+    recall: f.owner === v.s.me.id && !back && isFleet(f),
   };
 }
 
@@ -235,5 +239,6 @@ export function overviewPage(v: V): OverviewPage {
     time: dt(v.now),
     activities: activityRows(v),
     abandon: abandonOffered(P, s),
+    planets: planetsLine(s),
   };
 }

@@ -7,17 +7,29 @@
 // is sent or arrives, and the names in `MISSION`. No other code asks for a
 // mission by its name.
 import { MISSIONS } from '../features/index.gen.ts';
+import type { PlanetCount } from './colony-limit.ts';
 import { missionText } from './text.ts';
-import type { Levels, Mission, Planet } from './types.ts';
+import type { Fleet, Levels, Mission, Planet } from './types.ts';
+import { vacationProtects } from './vacation.ts';
 
 /**
  * What a mission flies to: an own planet, a foreign one, the planet of an
- * ally (#55), any planet, a free position without a planet, or a
- * Trümmerfeld (#45), which is a place of its own beside a planet at the same
- * position (#119). The planet of an ally is a foreign planet; whether its
- * owner is an ally is the mission's own check.
+ * ally (#55), any planet, a free position without a planet, a Trümmerfeld
+ * (#45), which is a place of its own beside a planet at the same position
+ * (#119), a foreign moon and nothing else (the Mondbruch, #95), or the
+ * expedition position of a system, which is never a planet position (#93).
+ * The planet of an ally is a foreign planet; whether its owner is an ally is
+ * the mission's own check.
  */
-export type TargetKind = 'own' | 'foreign' | 'ally' | 'any' | 'free' | 'debris';
+export type TargetKind =
+  | 'own'
+  | 'foreign'
+  | 'ally'
+  | 'any'
+  | 'free'
+  | 'debris'
+  | 'foreignMoon'
+  | 'expedition';
 
 /**
  * Why a fleet cannot be sent, as a code; the server turns it into today's
@@ -31,15 +43,33 @@ export type SendError =
   | 'notOwn'
   | 'ownTarget'
   | 'protected'
+  | 'vacation'
   | 'noColonyShip'
+  | 'colonyLimit'
   | 'probesOnly'
+  | 'noSpyTech'
   | 'noDebris'
   | 'noRecycler'
   | 'noMoon'
   | 'moonTarget'
+  | 'notMoon'
+  | 'noWorldbreaker'
+  | 'surveyLocked'
+  | 'surveyProbesOnly'
   | 'notAlly'
   | 'holdFleets'
-  | 'holdPlayers';
+  | 'holdPlayers'
+  | 'expeditionLocked'
+  | 'expeditionSlots'
+  | 'notExpedition'
+  | 'expeditionSpace';
+
+/**
+ * How a mission starts: as a fleet from the fleet form, or as missiles from
+ * the silo, launched in the Sternenkarte (#54). Missiles take no fleet slot
+ * and cannot be recalled.
+ */
+export type Launch = 'fleet' | 'missiles';
 
 /** The fleet a player wants to send: its owner, its origin and its ships. */
 export interface SendFleet {
@@ -47,6 +77,20 @@ export interface SendFleet {
   /** The id of the planet it starts from. */
   from: string;
   ships: Levels;
+  /** The research of the owner at the start; missing: none (the espionage technology of #175, Q1, the Vermessung of #190 and the Expedition of #93). */
+  research?: Levels;
+  /**
+   * How many fleets of the owner fly this very mission now, out or back; a
+   * mission with a limit (the expeditions, #93) reads it. Missing: none.
+   */
+  running?: number;
+  /** The expedition slots the round adds to ⌊√level⌋ (#93); missing: none. */
+  extraSlots?: number;
+  /**
+   * The limit of planets of the round and what the owner has against it
+   * (#237); only a Landnahme asks. Missing: no limit.
+   */
+  colonies?(): { limit: number | null; count: PlanetCount };
 }
 
 /** What is at the target position when the fleet is sent. */
@@ -66,11 +110,22 @@ export interface SendTarget {
    */
   locked?: boolean;
   /**
+   * Whether the position is the expedition position of its system (#93):
+   * the one after the last planet position, where no planet ever is.
+   * Missing: it is not.
+   */
+  expedition?: boolean;
+  /**
    * Whether the noob protection keeps `owner` from this player. The server
    * determines it (it needs the points of every player), and only when it is
    * asked: after the other checks of a foreign target.
    */
   protects(owner: string): boolean;
+  /**
+   * Whether `owner` is in vacation mode (#223): every place of such a
+   * player is protected from a new mission of another player (D2, Q2).
+   */
+  vacation(owner: string): boolean;
   /**
    * Whether `owner` is an ally of the sender under the admin's setting of
    * the round (#55, Q2). The server determines it; only a Halten asks.
@@ -96,14 +151,40 @@ export interface MissionRules {
   readonly silent: boolean;
   /**
    * Whether its launch at a member of a guild writes an event into the chat
-   * of that guild (#169 D3, „Nur beim Start“): the attack only.
+   * of that guild (#169 D3, „Nur beim Start“): the attack and the
+   * Mondbruch (owner, 2026-11-16, #95).
    */
   readonly alertsGuild: boolean;
   /**
+   * How it starts: from the silo for the missiles (#54); without it, from
+   * the fleet form.
+   */
+  readonly launch?: Launch;
+  /**
    * Whether the fleet stays at the target for a holding time the player
    * chooses, burning fuel for it, and defends it (#55): the Halten only.
+   * An expedition stays too (`maxHold`), but it does not defend and burns no
+   * fuel for it, so it is not a holding fleet.
    */
   readonly holds: boolean;
+  /**
+   * Whether the fleet founds a colony at the target, so the server counts it
+   * against the limit of planets (#237): the Landnahme only. Missing: no.
+   */
+  readonly colonizes?: true;
+  /**
+   * Whether the launch is remembered as one of the player's last hostile
+   * targets for the Schnellwahl of the fleet form (#292): the Sturmangriff
+   * and the Auspex-Erkundung. Missing: no.
+   */
+  readonly remembered?: true;
+  /**
+   * The most hours the fleet stays at the target before it flies home, from
+   * the research of its owner and the hours per level of the round, which the
+   * player chooses at the send (the expeditions, #93). Without it the fleet
+   * does not stay this way.
+   */
+  readonly maxStay?: (research: Levels, hoursPerLevel: number) => number;
   /** The check of the mission itself, after the target kind; a code or nothing. */
   canSend(fleet: SendFleet, target: SendTarget): SendError | undefined;
 }
@@ -124,6 +205,29 @@ export const MISSION = Object.fromEntries(
   ORDERED.map(([m]) => [m, missionText(m)!.n]),
 ) as Readonly<Record<Mission, string>>;
 
+/** How a mission starts: from the fleet form unless it says otherwise. */
+export const launchOf = (rules: MissionRules): Launch =>
+  rules.launch ?? 'fleet';
+
+/** The missions of the fleet form, in its order: no launch from the silo (#54). */
+export const FLEET_MISSIONS: readonly Mission[] = ORDERED.filter(
+  ([, r]) => launchOf(r) === 'fleet',
+).map(([m]) => m);
+
+/** The missions launched from the silo, which take no fleet slot (#54). */
+export const SILO_MISSIONS: readonly Mission[] = ORDERED.filter(
+  ([, r]) => launchOf(r) === 'missiles',
+).map(([m]) => m);
+
+/**
+ * Whether a flight takes a fleet slot and can be recalled: a fleet from the
+ * fleet form, not the gift of the „Endzeit“ (#161) and no missiles (#54).
+ */
+export const isFleet = (f: Pick<Fleet, 'mission' | 'gift'>): boolean => {
+  const rules = missionRules(f.mission);
+  return !f.gift && !!rules && launchOf(rules) === 'fleet';
+};
+
 /**
  * Whether the planet at the target (or none) suits a target kind for the
  * owner of a fleet; the same rule for sending and for the arrival. A
@@ -132,13 +236,15 @@ export const MISSION = Object.fromEntries(
 export function suits(
   kind: TargetKind,
   owner: string,
-  planet: Pick<Planet, 'owner'> | null,
+  planet: (Pick<Planet, 'owner'> & Partial<Pick<Planet, 'kind'>>) | null,
   debris = false,
 ): boolean {
   if (kind === 'debris') return debris;
-  if (kind === 'free') return !planet;
+  if (kind === 'free' || kind === 'expedition') return !planet;
   if (!planet) return false;
   if (kind === 'any') return true;
+  if (kind === 'foreignMoon')
+    return planet.kind === 'moon' && planet.owner !== owner;
   // The planet of an ally is a foreign planet (#55).
   return (planet.owner === owner) === (kind === 'own');
 }
@@ -151,7 +257,7 @@ const debrisError = (target: SendTarget): SendError | undefined =>
  * A free position and a Trümmerfeld are never a moon: colonization and
  * Bergung never target one (#53; owner, 2026-11-13).
  */
-const NEVER_MOON: readonly TargetKind[] = ['free', 'debris'];
+const NEVER_MOON: readonly TargetKind[] = ['free', 'debris', 'expedition'];
 
 /** Nothing at the target: no planet, or no moon when the fleet flies to one. */
 const nothing = (target: SendTarget): SendError =>
@@ -165,8 +271,32 @@ const OTHER: Partial<Record<TargetKind, SendError>> = {
 
 /** The kinds that fly to a foreign planet, which the noob protection keeps. */
 const FOREIGN: readonly TargetKind[] = ['foreign', 'ally'];
-/** A free position: no planet there, and no lock after an abandonment (#224, D2). */
+
+/**
+ * The protection of a suitable planet: the vacation mode of its owner for
+ * every mission of another player (#223), then the noob protection for a
+ * foreign target. No fleet holds at a player in the noob protection either
+ * (#55 [V]).
+ */
+function shieldError(
+  kind: TargetKind,
+  fleet: FitFleet,
+  target: SendTarget,
+  t: Pick<Planet, 'owner'>,
+): SendError | undefined {
+  if (vacationProtects(t, fleet.owner, target.vacation)) return 'vacation';
+  // Asked last, and only here: the server needs every player's points.
+  return FOREIGN.includes(kind) && target.protects(t.owner)
+    ? 'protected'
+    : undefined;
+}
+
+/**
+ * A free position: no planet there, and no lock after an abandonment (#224,
+ * D2); the expedition position is never one to settle (#93, Q4).
+ */
 function freeError(target: SendTarget): SendError | undefined {
+  if (target.expedition) return 'expeditionSpace';
   if (target.planet) return 'occupied';
   return target.locked ? 'locked' : undefined;
 }
@@ -174,36 +304,62 @@ function freeError(target: SendTarget): SendError | undefined {
 /** The generic check of the target kind, in today's order of the messages. */
 function targetError(
   kind: TargetKind,
-  fleet: SendFleet,
+  fleet: FitFleet,
   target: SendTarget,
 ): SendError | undefined {
   const t = target.planet;
+  if (kind === 'expedition')
+    return target.expedition ? undefined : 'notExpedition';
   if (kind === 'free') return freeError(target);
   if (!t) return nothing(target);
   if (t.id === fleet.from) return 'samePlanet';
   if (!suits(kind, fleet.owner, t)) return OTHER[kind] ?? 'ownTarget';
-  // Asked last, and only here: the server needs every player's points. No
-  // fleet holds at a player in the noob protection either (#55 [V]).
-  return FOREIGN.includes(kind) && target.protects(t.owner)
-    ? 'protected'
-    : undefined;
+  return shieldError(kind, fleet, target, t);
+}
+
+/**
+ * A foreign moon is first a moon (`notMoon`), then a foreign target with
+ * its checks (#95); the other kinds as before.
+ */
+function placeError(
+  kind: TargetKind,
+  fleet: FitFleet,
+  target: SendTarget,
+): SendError | undefined {
+  if (kind !== 'foreignMoon') return targetError(kind, fleet, target);
+  return target.moon ? targetError('foreign', fleet, target) : 'notMoon';
+}
+
+/** What of the fleet the check of the target asks: its owner and its origin. */
+export type FitFleet = Pick<SendFleet, 'owner' | 'from'>;
+
+/**
+ * Whether the target fits the target kind of the mission, as a code or
+ * nothing: the first part of `sendError`, which asks nothing of the ships.
+ * The fleet form asks it to offer only the missions that fit the target
+ * (#253), so the browser and the server cannot disagree.
+ */
+export function fitError(
+  rules: MissionRules,
+  fleet: FitFleet,
+  target: SendTarget,
+): SendError | undefined {
+  if (target.moon && NEVER_MOON.includes(rules.target)) return 'moonTarget';
+  return rules.target === 'debris'
+    ? debrisError(target)
+    : placeError(rules.target, fleet, target);
 }
 
 /**
  * Why a fleet of this mission cannot fly to the target: first the target
- * kind, then the mission's own `canSend`; nothing when it may fly. Slots,
- * cargo and fuel are checked by the server for every mission alike.
+ * kind (`fitError`), then the mission's own `canSend`; nothing when it may
+ * fly. Slots, cargo and fuel are checked by the server for every mission
+ * alike.
  */
 export function sendError(
   rules: MissionRules,
   fleet: SendFleet,
   target: SendTarget,
 ): SendError | undefined {
-  if (target.moon && NEVER_MOON.includes(rules.target)) return 'moonTarget';
-  return (
-    (rules.target === 'debris'
-      ? debrisError(target)
-      : targetError(rules.target, fleet, target)) ??
-    rules.canSend(fleet, target)
-  );
+  return fitError(rules, fleet, target) ?? rules.canSend(fleet, target);
 }

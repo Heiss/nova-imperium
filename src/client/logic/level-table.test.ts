@@ -4,45 +4,20 @@
 import { describe, expect, it } from 'vitest';
 import { BUILD, RES } from '../../core/catalog.ts';
 import { buildTime, lvlCost, researchTime } from '../../core/economy.ts';
-import type { Levels, Planet } from '../../core/types.ts';
-import { planet, U } from '../../test/fixtures.ts';
-import type { Ui, V } from '../views/common.ts';
+import { U } from '../../test/fixtures.ts';
+import { levelView } from '../../test/level-view.ts';
 import { catalogPage } from './catalog-list.ts';
 import { dur } from './format.ts';
-import { levelOf, levelRow, levelSteps, levelTable } from './level-table.ts';
-import type { GameState } from './types.ts';
+import {
+  deltaText,
+  effectText,
+  type LevelEffect,
+  levelOf,
+  levelRow,
+  levelTable,
+} from './level-table.ts';
 
-function view(P: Partial<Planet> = {}, research: Levels = {}, labs = []): V {
-  return {
-    s: {
-      cfg: U,
-      me: { id: 'u1', explain: 'icon' },
-      labs,
-      galaxy: [],
-      mainPlanet: 'p',
-    } as unknown as GameState,
-    P: planet({ res: { m: 0, c: 0, d: 0 }, ...P }),
-    R: { research, rq: null },
-    now: 0,
-    ui: { openEx: {} } as unknown as Ui,
-  };
-}
-
-describe('levelSteps (#187 D1)', () => {
-  it.each([
-    [0, [1, 2, 3, 5, 10, 15, 20]],
-    [3, [4, 5, 6, 10, 15, 20]],
-    [16, [17, 18, 19, 20]],
-    [17, [18, 19, 20, 25]],
-    [19, [20, 21, 22, 25]],
-    [20, [21, 22, 23, 25]],
-    [21, [22, 23, 24, 25]],
-    [22, [23, 24, 25, 30]],
-    [47, [48, 49, 50, 55]],
-  ])('level %i → %j', (level, steps) => {
-    expect(levelSteps(level)).toEqual(steps);
-  });
-});
+const view = levelView;
 
 describe('levelRow and levelTable', () => {
   it('costs and times of a building come from lvlCost and buildTime', () => {
@@ -69,13 +44,11 @@ describe('levelRow and levelTable', () => {
 
   it('marks the own level first, then the steps, with the effect', () => {
     const v = view({}, { computer: 3 });
-    const t = levelTable(v, 'computer', {
-      label: 'Slots',
-      at: (l) => l * 2,
-      unit: 'x',
-    })!;
+    const t = levelTable(v, 'computer', [
+      { label: 'Slots', at: (l) => l * 2, unit: 'x' },
+    ])!;
     expect(t.timeLabel).toBe('Forschungszeit');
-    expect(t.effect).toEqual({ label: 'Slots', unit: 'x' });
+    expect(t.effects).toEqual([{ label: 'Slots', unit: 'x' }]);
     expect(t.rows.map((r) => r.level)).toEqual([3, 4, 5, 6, 10, 15, 20]);
     expect(t.rows.map((r) => r.current)).toEqual([
       true,
@@ -86,15 +59,14 @@ describe('levelRow and levelTable', () => {
       false,
       false,
     ]);
-    expect(t.rows.map((r) => r.effect)).toEqual([6, 8, 10, 12, 20, 30, 40]);
+    expect(t.rows.map((r) => r.values[0])).toEqual([6, 8, 10, 12, 20, 30, 40]);
   });
 
   it('starts with level 1 when the entry has no level yet', () => {
     const t = levelTable(view(), 'metal')!;
     expect(t.timeLabel).toBe('Bauzeit');
-    expect(t.effect).toBeUndefined();
-    expect(t.rows[0]).toMatchObject({ level: 1, current: false });
-    expect(t.rows[0]!.effect).toBeUndefined();
+    expect(t.effects).toEqual([]);
+    expect(t.rows[0]).toMatchObject({ level: 1, current: false, values: [] });
   });
 
   it('shows the same cost and time as the next level of the list', () => {
@@ -110,5 +82,91 @@ describe('levelRow and levelTable', () => {
       expect(row.cost).toEqual(next.cost);
       expect(row.lines.join(' ')).toContain(dur(next.time));
     }
+  });
+});
+
+describe('the effects of the table (#187)', () => {
+  const tens: LevelEffect = { label: 'Wert', at: (l) => l * 10 };
+  const use: LevelEffect = { label: 'Bedarf', at: (l) => l * l, cost: true };
+
+  it('gives every row each value and its difference to the own level', () => {
+    const t = levelTable(view({ b: { metal: 3 } }), 'metal', [tens, use], {
+      own: false,
+    })!;
+    expect(t.effects).toEqual([
+      { label: 'Wert' },
+      { label: 'Bedarf', cost: true },
+    ]);
+    expect(t.rows.map((r) => r.level)).toEqual([4, 5, 6, 10, 15, 20]);
+    expect(t.rows[0]).toMatchObject({ values: [40, 16], deltas: [10, 7] });
+    expect(t.rows[5]).toMatchObject({ values: [200, 400], deltas: [170, 391] });
+  });
+
+  it('shows only the levels to come without the own level, the own level with it', () => {
+    const v = view({ b: { metal: 3 } });
+    expect(
+      levelTable(v, 'metal', [tens], { own: false })!.rows[0],
+    ).toMatchObject({ level: 4, current: false });
+    const withOwn = levelTable(v, 'metal', [tens], { own: true })!;
+    expect(withOwn.rows[0]).toMatchObject({
+      level: 3,
+      current: true,
+      values: [30],
+      deltas: [0],
+    });
+    expect(levelTable(v, 'metal', [tens])!.rows).toEqual(withOwn.rows);
+  });
+
+  it('marks the first of the big steps, after the next 3 levels (D1)', () => {
+    const big = (key: string, level: number, research = {}) =>
+      levelTable(view({ b: { [key]: level } }, research), key, [], {
+        own: false,
+      })!.rows.flatMap((r) => (r.big ? [r.level] : []));
+    expect(big('metal', 3)).toEqual([10]);
+    expect(big('metal', 0)).toEqual([5]);
+    expect(big('metal', 16)).toEqual([20]);
+    expect(big('metal', 17)).toEqual([25]);
+    expect(big('metal', 22)).toEqual([30]);
+    // The own level is no big step.
+    const own = levelTable(view({ b: { metal: 3 } }), 'metal')!;
+    expect(own.rows.filter((r) => r.big).map((r) => r.level)).toEqual([10]);
+  });
+
+  it('has an empty value list for an entry without an effect', () => {
+    const t = levelTable(view(), 'metal', [], { own: false })!;
+    expect(t.effects).toEqual([]);
+    for (const row of t.rows)
+      expect(row).toMatchObject({ values: [], deltas: [] });
+  });
+});
+
+describe('effectText and deltaText', () => {
+  it('shows a number, a number with a unit, a percentage and a factor', () => {
+    expect(effectText(1234.9, {})).toBe('1.234');
+    expect(effectText(12, { unit: 'Systeme' })).toBe('12 Systeme');
+    expect(effectText(0.4, { format: 'percent' })).toBe('+40 %');
+    expect(effectText(0.5, { format: 'factor' })).toBe('×0,5');
+    expect(effectText(1 / 3, { format: 'factor' })).toBe('×0,33');
+    expect(effectText(1, { format: 'factor' })).toBe('×1');
+  });
+
+  it('shows the difference to today with its sign', () => {
+    expect(deltaText(280.7, {})).toBe('+280');
+    expect(deltaText(-19, {})).toBe('−19');
+    expect(deltaText(3000, {})).toBe('+3.000');
+    expect(deltaText(0.1, { format: 'percent' })).toBe('+10 %');
+    expect(deltaText(-0.3, { format: 'percent' })).toBe('−30 %');
+    expect(deltaText(-0.25, { format: 'factor' })).toBe('−0,25');
+    expect(deltaText(0.5, { format: 'factor' })).toBe('+0,5');
+  });
+
+  it('shows nothing when nothing changes', () => {
+    expect(deltaText(0, {})).toBeUndefined();
+    expect(deltaText(0.4, {})).toBeUndefined();
+    expect(deltaText(-0.9, {})).toBeUndefined();
+    expect(deltaText(0, { format: 'percent' })).toBeUndefined();
+    expect(deltaText(0.004, { format: 'percent' })).toBeUndefined();
+    expect(deltaText(0.004, { format: 'factor' })).toBeUndefined();
+    expect(deltaText(0, { format: 'factor' })).toBeUndefined();
   });
 });

@@ -26,6 +26,8 @@ okf_version: "0.2"
 * [Ionengeschütz, Plasmawerfer and shield domes](/features/defense-ion-plasma-domes.md) - defense of #50, domes once per planet
 * [Ionentechnik, Plasmatechnik, Gravitonforschung and IFN](/features/research-ion-plasma-graviton.md) - new research of #49, energy check of Gravitonforschung, research on any planet with a lab, research network
 * [Explanation texts](/features/explanation-texts.md) - long texts with a display option per player (#63)
+* [Cancelling a shipyard order](/features/shipyard-cancel.md) - every order of the shipyard list can be cancelled, units not done yet are refunded in full, units done stay (#258)
+* [Level overview](/features/level-overview.md) - a ▤ next to the „?“ unfolds the next levels of a building or research with cost, time, effect and the difference to today, an option per player (#187)
 * [Lexicanum](/features/lexicanum.md) - in-game lexicon of stage 1: an article per catalog entry and mission computed from the rules, side panel and page, search, shared level table (#285, #187)
 * [Lexicanum texts](/features/lexicanum-texts.md) - review list of the texts Claude drafted for the Lexicanum: words before the formulas, mission texts, keywords, all [V] until the owner confirms them (#285)
 * [Late-game combat ships](/features/late-game-ships.md) - Schlachtkreuzer, Zerstörer, Bomber, Todesstern of #56, classic values, drive switch
@@ -35,7 +37,7 @@ okf_version: "0.2"
 * [Deploy mission „Verlegung“](/features/deploy.md) - moving ships and cargo to another own planet for good (#129)
 * [Planet fields and the Weltenschmiede](/features/fields.md) - limited fields per planet and the building that adds them (#51)
 * [Bergungsbarke, Trümmerfelder and „Bergung“](/features/debris.md) - debris of destroyed ships and the harvest mission (#45)
-* [Moons](/features/moons.md) - moons from debris, Mondzitadelle, Auspex-Phalanx and Warp-Tor (#53)
+* [Moons](/features/moons.md) - moons from debris, Mondzitadelle, Auspex-Phalanx and Warp-Tor (#53), the mission Mondbruch (#95)
 * [Endzeit](/features/endzeit.md) - the admin's gift fleet with everything unlocked for a mass battle at the end of a round (#161)
 * [Error log and problem reports](/features/error-log.md) - server and browser errors, problem reports, admin tab „Fehler“ and download (#126)
 * [Changelog in the game](/features/changelog.md) - „Neuigkeiten“, update message and hint from CHANGELOG.md
@@ -54,7 +56,9 @@ okf_version: "0.2"
 * [Missiles](/features/missiles.md) - silo, anti-ballistic and interplanetary missiles with classic values (#54)
 * [Expeditions and position 16](/features/expeditions.md) - Expeditionstechnik, outcomes, slots and holding time, debris at position 16 (#93)
 * [Highscore categories](/features/highscore-categories.md) - buildings, research, fleet, defense and total; fleet and research by count (#78)
+* [Round archive, reports and history](/features/round-archive.md) - the archive of an ended round written at the close, reports, history across rounds, the thin Runden-Rewind (#235)
 * [Demolition of buildings](/features/demolition.md) - one level per order, refund factor −100 % to +100 % and time share per round (#202)
+* [Surveying free positions](/features/survey.md) - the mission „Vermessung“ with Spähschädel, the research „Auspex-Kartographie“, report tiers, loss and the values fixed for the colony (#190)
 * [Marketplace](/features/marketplace.md) - exchange resources at ratios per pair with moving prices, the Handelsposten lowers the fee, cap by the free storage, limit per player per day (#171)
 
 * [Invitations](/features/invitations.md) - registration only by invitation, mail or copied link

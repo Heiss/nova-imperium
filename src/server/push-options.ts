@@ -2,8 +2,10 @@
 // the account and apply to all of its devices; a kind not in `push_off` is
 // on. Delivery drops a due push of a kind that is off (web-push.ts).
 import { isPushTopic, PUSH_TOPICS, type PushTopic } from '../core/push.ts';
-import type { Action } from './game/actions.ts';
+import type { Handler } from './game/actions.ts';
 import { type Ctx, fail } from './game/context.ts';
+import type { ServerFeature } from './game/feature.ts';
+import type { RoundReset } from './db/round-reset.ts';
 
 /** The kinds the player switched off, in the order of the options. */
 export function pushOff(ctx: Ctx, uid: string): PushTopic[] {
@@ -19,7 +21,7 @@ const topics = (x: unknown): PushTopic[] =>
   Array.isArray(x) && x.every(isPushTopic) ? x : fail('Ungültig.');
 
 /** Stores which kinds are off; every other kind is on. */
-export const pushOptions: Action = (ctx, u, d) => {
+export const pushOptions: Handler<'pushOptions'> = (ctx, u, d) => {
   const off = new Set(topics(d.off));
   ctx.db.prepare('DELETE FROM push_off WHERE user_id = ?').run(u.id);
   const add = ctx.db.prepare(
@@ -28,3 +30,11 @@ export const pushOptions: Action = (ctx, u, d) => {
   for (const topic of off) add.run(u.id, topic);
   return 'Gespeichert.';
 };
+
+export const serverFeature = {
+  actions: { pushOptions },
+} satisfies ServerFeature;
+
+export const roundReset = [
+  { keeps: ['push_off'] },
+] satisfies readonly RoundReset[];

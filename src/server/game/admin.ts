@@ -8,10 +8,20 @@ import {
   universeErrors,
   universeOf,
 } from '../../core/universe.ts';
-import type { Action } from './actions.ts';
+import { clearRound } from '../db/round-reset.ts';
+import { ROUND_RESETS } from '../round-reset.gen.ts';
+import type { Handler } from './actions.ts';
 import { addReport, type Ctx, fail, str, universe } from './context.ts';
 import { rangeError, roundRules, startRoundRules } from './round.ts';
 import { placePlanet } from './planets.ts';
+import {
+  closeActiveRound,
+  openRound,
+  recordRoundEvent,
+  ROUND_EVENT,
+} from './round-archive.ts';
+import { vacationNotice } from './vacation.ts';
+import type { ServerFeature } from './feature.ts';
 
 export const requireAdmin = (u: { admin: boolean }): void => {
   if (!u.admin) fail('Nur der Admin darf das.');
@@ -24,6 +34,8 @@ const SETTINGS_ERROR: Readonly<
   range: rangeError,
   used: (s, used) =>
     `${s.label}: mindestens ${used[s.size!]}, dort liegen schon Planeten.`,
+  // A rule between settings has its own wording (#237).
+  conflict: (s) => s.refusal!,
 };
 
 /**
@@ -31,7 +43,7 @@ const SETTINGS_ERROR: Readonly<
  * settings first, so the time before the change keeps the old speed. Running
  * buildings and flights keep their end time.
  */
-export const saveSettings: Action = (ctx, u, d) => {
+export const saveSettings: Handler<'settings'> = (ctx, u, d) => {
   requireAdmin(u);
   const input = (d.settings as Record<string, unknown> | null) ?? {};
   const used = ctx.planets.usedSize();
@@ -45,26 +57,14 @@ export const saveSettings: Action = (ctx, u, d) => {
   for (const p of ctx.planets.all())
     ctx.planets.save(settle(p, t, old, ctx.players.get(p.owner)));
   ctx.admin.saveUniverse(universeOf(input));
+  recordRoundEvent(ctx, ROUND_EVENT.settings, { settings: universe(ctx) });
   return 'Einstellungen gespeichert.';
 };
 
 function newRound(ctx: Ctx, rules: RoundRules): void {
-  ctx.planets.deleteAll();
-  // A round with guilds off starts without any guild (#191); with guilds on
-  // they stay, as before.
-  if (!rules.guilds) ctx.guilds.deleteAll();
-  // Every new round deletes all guild chats, guilds on or off (#169, D6).
-  ctx.guilds.clearChats();
-  ctx.fleets.deleteAll();
-  ctx.debris.deleteAll();
-  // The prices and the amounts of the day start over (#171).
-  ctx.market.clear();
-  ctx.db.exec(`
-    DELETE FROM push_jobs;
-    DELETE FROM achievement_progress;
-    DELETE FROM achievement_claims;
-    DELETE FROM daily_rewards;
-  `);
+  // The tables of the round are emptied by what their owners declare
+  // (`roundReset`, db/round-reset.ts); this function names none.
+  clearRound(ctx.db, rules, ROUND_RESETS);
   const u = universe(ctx);
   for (const x of ctx.players.all()) {
     x.research = {};
@@ -74,6 +74,9 @@ function newRound(ctx: Ctx, rules: RoundRules): void {
     // (#221): a planet id is its place, so an old choice must not come back.
     x.mainPlanet = null;
     x.mainSwitched = null;
+    // A new round ends every vacation with a notice (#223, D3).
+    const away = x.vacation !== null;
+    x.vacation = null;
     ctx.players.save(x);
     ctx.reports.deleteAll(x.id);
     placePlanet(
@@ -82,13 +85,18 @@ function newRound(ctx: Ctx, rules: RoundRules): void {
       'Heimatplanet',
       1 + Math.floor(ctx.rng() * u.galaxies),
     );
+    if (away) vacationNotice(ctx, x.id);
   }
 }
 
-export const reset: Action = (ctx, u, data, event) => {
+export const reset: Handler<'reset'> = (ctx, u, data, event) => {
   requireAdmin(u);
   const before = roundRules(ctx);
+  // The running round is archived first, in this transaction (#235, D1): a
+  // refused archive refuses the reset, so no round is lost.
+  closeActiveRound(ctx);
   const after = startRoundRules(ctx, data);
+  openRound(ctx);
   newRound(ctx, after);
   if (event) event.detail = { before, after };
   return 'Neue Runde gestartet – alle Spieler haben einen frischen Planeten.';
@@ -111,3 +119,7 @@ export function announce(ctx: Ctx, input: unknown): number {
   }
   return players.length;
 }
+
+export const serverFeature = {
+  adminActions: { settings: saveSettings, reset },
+} satisfies ServerFeature;

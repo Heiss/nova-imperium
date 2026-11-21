@@ -8,15 +8,18 @@ import { describe, expect, it } from 'vitest';
 import { MISSION_SERVERS } from '../../features/index.server.gen.ts';
 import { MISSIONS } from '../../features/index.gen.ts';
 import {
+  launchOf,
+  MISSION,
   type MissionRules,
   type TargetKind,
   missionRules,
 } from '../../core/missions.ts';
 import { placeId } from '../../core/place.ts';
 import type { Coords, Fleet, Mission } from '../../core/types.ts';
-import { addPlanet, addUser, testCtx } from '../test-helpers.ts';
+import { addPlanet, addUser, loose, testCtx } from '../test-helpers.ts';
 import { arrive, comeHome } from './arrival.ts';
 import { send } from './fleet-actions.ts';
+import { addMoon } from './moons.ts';
 import { foreignView } from './state.ts';
 import { RECOGNITION_DEFAULT } from '../../core/fleet-recognition.ts';
 
@@ -26,6 +29,8 @@ const HOME = { g: 1, s: 1, p: 5 };
 const COLONY = { g: 1, s: 1, p: 7 };
 const FOREIGN = { g: 1, s: 2, p: 6 };
 const FREE = { g: 1, s: 4, p: 8 };
+// The position after the last planet position of the universe, 15 by default (#93).
+const EXPEDITION = { g: 1, s: 4, p: 16 };
 
 /** A target that fits each kind, and one that does not. */
 const FITS: Record<TargetKind, Coords> = {
@@ -35,8 +40,11 @@ const FITS: Record<TargetKind, Coords> = {
   free: FREE,
   // A Trümmerfeld lies at Bert's planet (#45).
   debris: FOREIGN,
+  // Bert's planet has a moon (#95).
+  foreignMoon: FOREIGN,
   // Bert is in Anna's guild (#55).
   ally: FOREIGN,
+  expedition: EXPEDITION,
 };
 const MISFITS: Record<TargetKind, Coords[]> = {
   own: [FOREIGN, FREE],
@@ -44,30 +52,44 @@ const MISFITS: Record<TargetKind, Coords[]> = {
   any: [FREE],
   free: [COLONY, FOREIGN],
   debris: [COLONY, FREE],
+  // Anna's colony has her own moon; the free position none.
+  foreignMoon: [COLONY, FREE],
   ally: [COLONY, FREE],
+  // A planet position and a position beyond the expedition position (#93).
+  expedition: [COLONY, FREE, { ...EXPEDITION, p: 17 }],
 };
 
 const id = (c: Coords): string => `p${c.g}_${c.s}_${c.p}`;
 
-/** The place a mission flies to: a planet, or the Trümmerfeld (#45). */
+/** The kind of place a target kind flies to: a Trümmerfeld (#45), a moon (#95) or a planet. */
+const KIND: Partial<Record<TargetKind, 'debris' | 'moon'>> = {
+  debris: 'debris',
+  foreignMoon: 'moon',
+};
+
+/** The place a mission flies to: a planet, the Trümmerfeld or the moon. */
 const placeOf = (m: Mission, c: Coords): string =>
-  placeId({
-    ...c,
-    kind: missionRules(m)!.target === 'debris' ? 'debris' : 'planet',
-  });
+  placeId({ ...c, kind: KIND[missionRules(m)!.target] ?? 'planet' });
 
 function setup() {
   const ctx = testCtx();
-  const anna = addUser(ctx, 'Anna');
-  // Points from research, so the noob protection does not shield him.
-  addUser(ctx, 'Bert', { research: { energy: 10 } });
+  // Auspex-Lehre 1 lets Anna spy (#175, Q1), Auspex-Kartographie 1 lets her
+  // survey (#190), Kreuzzugs-Kartografie 1 lets her fly an expedition (#93).
+  const anna = addUser(ctx, 'Anna', {
+    research: { spy: 1, carto: 1, expo: 1 },
+  });
+  // Points from research, so the noob protection does not shield him, also
+  // from the Weltenbrecher of Anna (#95).
+  addUser(ctx, 'Bert', { research: { energy: 14 } });
   addPlanet(ctx, anna.id, {
     ...HOME,
-    ships: { sc: 5, colony: 5, probe: 5, recycler: 5 },
+    ships: { sc: 5, colony: 5, probe: 5, recycler: 5, dstar: 5 },
   });
-  addPlanet(ctx, anna.id, { ...COLONY, name: 'Kolonie' });
-  addPlanet(ctx, 'u_Bert', { ...FOREIGN, name: 'Beta' });
+  const colony = addPlanet(ctx, anna.id, { ...COLONY, name: 'Kolonie' });
+  const beta = addPlanet(ctx, 'u_Bert', { ...FOREIGN, name: 'Beta' });
   ctx.debris.add(FOREIGN, { m: 100, c: 50 });
+  addMoon(ctx, colony, 1, ctx.now());
+  addMoon(ctx, beta, 1, ctx.now());
   // Anna and Bert share a guild, so Anna may hold at Bert's planet (#55).
   ctx.guilds.create('g1', 'GLD', 'Gilde', '', anna.id);
   ctx.guilds.apply('u_Bert', 'g1');
@@ -75,7 +97,7 @@ function setup() {
   return { ctx, anna };
 }
 
-function fleet(
+function fleetTo(
   ctx: ReturnType<typeof testCtx>,
   mission: Mission,
   to: Coords,
@@ -108,24 +130,30 @@ describe('the server part of every mission (contract)', () => {
       expect(typeof server.onArrive, m).toBe('function');
   });
 
-  it.each(RULES)('%s: turns back from a target that no longer fits', (m, r) => {
-    for (const to of MISFITS[r.target]) {
-      const { ctx } = setup();
-      const before = ctx.planets.all();
-      arrive(ctx, fleet(ctx, m, to));
-      expect(ctx.fleets.get('f1')?.state, `${m} ${id(to)}`).toBe('back');
-      expect(ctx.planets.all()).toEqual(before);
-      expect(ctx.reports.ofPlayer('u_Anna').map((x) => x.title)).toEqual([
-        'Flotte kehrt um',
-      ]);
-    }
-  });
+  it.each(RULES)(
+    '%s: turns back from a target that no longer fits, missiles are lost',
+    (m, r) => {
+      const fleet = launchOf(r) === 'fleet';
+      for (const to of MISFITS[r.target]) {
+        const { ctx } = setup();
+        const before = ctx.planets.all();
+        arrive(ctx, fleetTo(ctx, m, to));
+        expect(ctx.fleets.get('f1')?.state, `${m} ${id(to)}`).toBe(
+          fleet ? 'back' : undefined,
+        );
+        expect(ctx.planets.all()).toEqual(before);
+        expect(ctx.reports.ofPlayer('u_Anna').map((x) => x.title)).toEqual([
+          fleet ? 'Flotte kehrt um' : `${MISSION[m]} [${to.g}:${to.s}:${to.p}]`,
+        ]);
+      }
+    },
+  );
 
   it.each(RULES)(
     '%s: flies back after the arrival only if it returns',
     (m, r) => {
       const { ctx } = setup();
-      arrive(ctx, fleet(ctx, m, FITS[r.target]));
+      arrive(ctx, fleetTo(ctx, m, FITS[r.target]));
       // A Halten holds first and flies back at the end of it (#55).
       const after = r.returns ? 'back' : 'gone';
       expect(ctx.fleets.get('f1')?.state ?? 'gone', m).toBe(
@@ -137,7 +165,7 @@ describe('the server part of every mission (contract)', () => {
   it.each(RULES)('%s: comes home with a report unless silent', (m, r) => {
     for (const recalled of [false, true]) {
       const { ctx } = setup();
-      const f = fleet(ctx, m, FITS[r.target]);
+      const f = fleetTo(ctx, m, FITS[r.target]);
       comeHome(ctx, { ...f, state: 'back', recalled });
       const reports = ctx.reports.ofPlayer('u_Anna').map((x) => x.title);
       expect(reports.length, `${m} recalled ${recalled}`).toBe(
@@ -151,26 +179,48 @@ describe('the server part of every mission (contract)', () => {
     '%s: shows the defender its ships by the Auspex-Lehre only (#228, D2)',
     (m) => {
       const { ctx } = setup();
-      const f = fleet(ctx, m, FOREIGN);
+      const f = fleetTo(ctx, m, FOREIGN);
       expect(foreignView(f, 7, RECOGNITION_DEFAULT).ships, m).toBeUndefined();
       expect(foreignView(f, 8, RECOGNITION_DEFAULT).ships, m).toEqual(f.ships);
     },
   );
 
   it.each(RULES)('%s: takes the cargo only if it carries cargo', (m, r) => {
-    const sent: Fleet[] = [];
-    for (const ships of [{ sc: 1, colony: 1, recycler: 1 }, { probe: 1 }]) {
+    // Missiles are never sent as a fleet (#54).
+    if (r.launch === 'missiles') {
       const { ctx, anna } = setup();
-      try {
+      expect(() =>
         send(ctx, anna, {
           planet: id(HOME),
-          ships,
+          ships: { sc: 1 },
           to: FITS[r.target],
           mission: m,
-          cargo: { m: 5, c: 0, d: 0 },
           pct: 10,
-          hold: 1,
-        });
+        }),
+      ).toThrow('Unbekannter Auftrag.');
+      expect(ctx.fleets.all()).toEqual([]);
+      return;
+    }
+    const sent: Fleet[] = [];
+    for (const ships of [
+      { sc: 1, colony: 1, recycler: 1, dstar: 1 },
+      { probe: 1 },
+    ]) {
+      const { ctx, anna } = setup();
+      try {
+        send(
+          ctx,
+          anna,
+          loose<'send'>({
+            planet: id(HOME),
+            ships,
+            to: { ...FITS[r.target], kind: KIND[r.target] ?? 'planet' },
+            mission: m,
+            cargo: { m: 5, c: 0, d: 0 },
+            pct: 10,
+            hold: 1,
+          }),
+        );
       } catch {
         continue;
       }
@@ -184,7 +234,7 @@ describe('the server part of every mission (contract)', () => {
   it('treats a fleet of an unknown mission like before: a report at home', () => {
     const { ctx } = setup();
     const f = {
-      ...fleet(ctx, 'transport', FOREIGN),
+      ...fleetTo(ctx, 'transport', FOREIGN),
       mission: 'nope',
     } as unknown as Fleet;
     comeHome(ctx, { ...f, state: 'back' });
@@ -202,13 +252,13 @@ describe('the server part of every mission (contract)', () => {
       [{ ...edge, p: 16 }, false],
     ] as const) {
       const { ctx } = setup();
-      arrive(ctx, fleet(ctx, 'colonize', to));
+      arrive(ctx, fleetTo(ctx, 'colonize', to));
       expect(ctx.planets.get(id(to)) !== null, id(to)).toBe(fits);
     }
     const { ctx } = setup();
     const far = { g: 3, s: 1, p: 1 };
     addPlanet(ctx, 'u_Bert', { ...far, name: 'Fern' });
-    arrive(ctx, fleet(ctx, 'transport', far));
+    arrive(ctx, fleetTo(ctx, 'transport', far));
     expect(ctx.reports.ofPlayer('u_Anna')[0]!.title).toBe(
       'Transport erreicht [3:1:1]',
     );
@@ -216,7 +266,7 @@ describe('the server part of every mission (contract)', () => {
 
   it('refuses to land a fleet of an unknown mission', () => {
     const { ctx } = setup();
-    const f = { ...fleet(ctx, 'transport', FOREIGN), mission: 'nope' };
+    const f = { ...fleetTo(ctx, 'transport', FOREIGN), mission: 'nope' };
     expect(() => arrive(ctx, f as unknown as Fleet)).toThrow(
       'Unknown mission nope',
     );

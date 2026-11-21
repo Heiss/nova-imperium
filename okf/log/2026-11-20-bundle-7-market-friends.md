@@ -1,0 +1,8 @@
+---
+type: log-entry
+date: 2026-11-20T00:30
+kind: Code
+issues: [118, 171, 227, 242]
+---
+
+#118, bundle 7, second part („Geklärt“ of the owner, 2026-11-19: Marktplatz and Freunde are part of the update): „Marktplatz“ (#171) and „Freunde“ (#227) are Svelte components. `Market.svelte` renders `marketPage()` of the new `logic/market-page.ts` (the notice while the market is off, no prices came or the planet has no Handelsposten, else the form with its preview); the draft stays in `logic/market.ts`, the typed values stay with `keepInputs()` by id, and `features/market.ts` still repaints the preview and the list of what to get while the player types, so those two parts are HTML in the model and `{@html}` in the component [V]. `Friends.svelte` renders `friendsPage()` of `logic/friends.ts` (the table `.friends`, the requests both ways, the form „Freundschaft anfragen“); the link to the home planet is `HomeCell.svelte`, which `Highscore.svelte` uses too, and `homeCell()` of `views/common.ts` is gone [V]. Both views are mounted anew on every render, registered in `views/mount.ts` and removed from `VIEWS`. The markup, ids and `data-*` hooks are those of the HTML views, so `features/market.ts`, `features/social.ts` and the phone rules for `.friends` keep working. Two property tests keep the components equal to the frozen HTML (300 states each, seed 118, `normalize()` and `textContents()`) with hand-built cases for the rare marks. `main.ts` stays at 1,186 lines (the limit of #242). No visible change (the label `kein-changelog`, no fragment); see [Design patterns](/architecture/patterns.md), [Test strategy](/ops/testing.md).

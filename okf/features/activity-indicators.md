@@ -58,8 +58,10 @@ and „Inaktivität“
   valid is no login.
 * **[V]** A manual action is every game action the player sends
   (`POST /api/action`, a refused one too) and every interaction sample of
-  the visible client (`POST /api/activity`, the samples of the admin's
-  activity estimate, which automatic refreshes and idle tabs never send).
+  the visible client (`POST /api/activity`, a click or key at most every 10 s,
+  which automatic refreshes and idle tabs never send). The play time of
+  [Own activity](/features/own-activity.md) (#232) has its own route and sets
+  no public activity: its heartbeat is no manual action.
   Reading the state and the admin reads are not.
 * **[V]** Both events also set the account's last activity, which decides
   its inactivity. An account without any recorded activity counts from its
@@ -87,8 +89,12 @@ and „Inaktivität“
 * **[V]** A planet's activity goes with the planet: a new round, a
   destroyed or given-up place starts without one. The account's last
   activity stays across rounds.
-* **[V]** Vacation mode (#223) is not built yet; once it is, it needs its
-  own marker apart from these.
+* **[E]** An account in vacation mode records no activity (#223, owner,
+  2026-11-18): the login onto the lock screen and its clicks move neither
+  the time of the account nor of its planets (`recordActivity`,
+  `src/server/game/activity.ts`); ending the vacation counts as activity
+  again from that action on. Vacation mode keeps its own marker apart from
+  these.
 
 # Settings
 

@@ -227,8 +227,8 @@ to preserve the server's push identity and device subscriptions.
 - Passwords hashed with scrypt (N=32768, r=8, p=3) and a random 128-bit salt; session and invitation tokens are random and
   only their SHA-256 is stored; the invitation token travels in the URL
   fragment, so it is never sent to a server or logged.
-- Cross-site requests are refused (JSON only, `Origin` must match).
-- Rate limit on login, registration and invitation checks.
+- Cross-site requests are refused (JSON only, `Origin` must match; a post without `Origin` is refused too, so a script outside the browser sends `Origin: <NOVA_PUBLIC_URL>`).
+- Rate limit on login, registration and invitation checks, and 120 game actions and play time reports together per account and minute.
 
 ## Admin diagnostics and audit data
 

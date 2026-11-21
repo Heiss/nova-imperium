@@ -70,6 +70,16 @@ The battle with several parties is built with #55
 * **[E]** Auspex-Phalanx (owner, 2026-11-17): a held fleet shows as holding
   („hält bei [g:s:p]“ with the end of the holding time), not as its return
   flight.
+* **[E]** Battles (owner, 2026-11-19, #55, „drei Ergänzungen“ 1): held fleets
+  defend in all three fights: the Sturmangriff, the Mondbruch and the fight
+  of detected Auspex probes. Missiles do not fight.
+* **[E]** Vacation (owner, 2026-11-19, #55 / #223, 2): when the host starts
+  the vacation mode, the fleets that hold at his planets and moons fly home
+  at once. Unchanged: whoever holds with a fleet of his own cannot start
+  the vacation while it is out.
+* **[E]** Mondbruch (owner, 2026-11-19, #55 / #95, 3): a fleet that holds at
+  a moon moves to the moon's planet when the moon breaks and holds there
+  on.
 
 ## Built with #55
 
@@ -83,7 +93,7 @@ The battle with several parties is built with #55
 * The rules live in `src/core/holding.ts` (holding times, limits, who is
   an ally, when a fleet is due); the fuel `holdFuel` in
   `src/core/flight.ts`; the server part in `src/server/game/holding.ts`.
-* The admin's setting is `roundAllies`, „Halten erlaubt für“ with the
+* The admin's setting is `roundAllies`, „Verbündete für Halten und Verband“ with the
   choices „Gilde“, „Freunde“ and „Gilde und Freunde“ [V] (1, 2, 3;
   default 3): the first entry of `roundSettings` in `src/core/holding.ts`,
   the registry of the round settings (#283, #310: the feature registers its
@@ -98,7 +108,9 @@ The battle with several parties is built with #55
   `relationOf` of `src/core/friends.ts` for „friends“; an open request in
   either direction and an ended friendship are none.
 * The vacation mode (#223) protects a target of every mission in its own
-  check of the target kind, so it covers holding once it is merged.
+  check of the target kind, so it covers holding once it is merged; what it
+  does to fleets that already hold or are on their way is in „The three
+  decisions of 2026-11-19“ below.
 * **[V]** Taken as recommended when building #55:
   * The holding time runs in real time, not divided by the speed of the
     universe, like the vacation and the main planet lock.
@@ -126,10 +138,12 @@ The battle with several parties is built with #55
     Auspex-Phalanx (owner, 2026-11-17) and, as a defender, in a spy report
     (below).
   * Every fleet that holds is a party of its own in the battle
-    (`battleOf` of `src/core/battle.ts`); each of its owners gets the
-    report of the defender once, with each fleet as „Verteidiger <name>“
-    and its losses; a fleet without survivors is gone. A fleet of the
-    attacker himself that holds there stays out of the battle.
+    (`battleOf` of `src/core/battle.ts`), in all three fights (owner,
+    2026-11-19, see „The three decisions of 2026-11-19“ below); each of its
+    owners gets the report of the defender once, with each fleet as
+    „Verteidiger <name>“ and its losses; a fleet without survivors is gone.
+    A fleet of the attacker himself that holds there stays out of the
+    battle.
   * The cargo of the held fleets is taken whole (not half) with the room
     left; the rest is lost with the fleets, which are destroyed when the
     attacker wins. 1 hour is preselected in the form.
@@ -160,6 +174,98 @@ The battle with several parties is built with #55
     halten darf.“; a holding planet of a player in noob protection keeps
     „Dieser Spieler steht unter Noobschutz.“.
 
+# The three decisions of 2026-11-19 (#55)
+
+Built on `claude/hold-decisions`; the owner's comment „drei Ergänzungen“ on
+#55 (see above).
+
+## Held fleets defend in all three fights
+
+* **[E]** The Sturmangriff, the Mondbruch and the fight of detected Auspex
+  probes each ask `defenders(ctx, f, t)` of `src/server/game/fight.ts` and
+  pass the result to the one shared battle (`raid` for the first two,
+  `fight` for the probes): one party per held fleet, its losses, its share
+  of the debris (30 % of what every party lost lies at the position), the
+  report of the defender for the owner of every held fleet, once, with the
+  title and the push kind of the defender („attacked“, in the probes'
+  fight „spied“). Reports and loot of the Sturmangriff are as before. The
+  Mondbruch plunders like a Sturmangriff, so the held cargo is taken after
+  the moon's stock when the attacker wins; the fleets that held are then
+  destroyed (a won battle leaves no defender). The probes do not plunder.
+  Missiles do not fight and stay as they were.
+* **[E]** A detected spying at a planet with neither ships nor defense, but
+  with a fleet that holds there, fights that fleet (owner, 2026-11-19; the
+  rule of 2026-11-17, „a target with neither gives no battle“, counts the
+  held fleets as ships). The chance of the Auspex-Abwehr still counts the
+  planet's own ships only (owner, 2026-11-17), and the Auspex-Bericht shows
+  the held fleets as they were before the battle.
+* A fleet of the attacker himself that holds at the target stays out in the
+  Mondbruch and the fight of the probes too.
+* The Lexicanum draft of the mission says the fleet „verteidigt den Planeten
+  in jedem Kampf“ ([Lexicanum texts](/features/lexicanum-texts.md)); that is
+  true now, so no Lexicanum text changed. The article of the Mondbruch says
+  nothing about held fleets.
+* **[E]** Consequence of 1 together with 3 (seen when building; owner,
+  2026-11-19, kept as built): the Mondbruch rolls only after a **won**
+  battle, and a won battle leaves no defender. A foreign fleet that holds
+  at the moon therefore fights and is destroyed whenever the moon can break;
+  the move to the planet reaches only fleets that took no part in the
+  battle: the attacker's own fleet that holds there.
+
+## Vacation sends the guards home
+
+* **[E]** At `startVacation` (`src/server/game/vacation.ts`), after the
+  entry checks and the saving of the planets, every fleet in state `hold`
+  at a planet or moon of the player (`heldAt`) flies home at once:
+  `sendHome` of `src/server/game/holding.ts`, which uses `turnBack` like
+  the end of holding and sets the return to now plus the flight time there
+  (`homeAt` of `src/core/holding.ts`; a fleet whose holding time was over
+  already counts from its end). The holding time that is left is dropped,
+  `recalled` stays false. **[E]** The Promethium of the unused hours is not
+  refunded, as after a recall (owner, 2026-11-19).
+* **[E]** A Wache stellen that is still on its way when the host's vacation
+  starts flies on (launched flights land, #223 D2) and **does not start to
+  hold** at its arrival: `onArrive` of the mission
+  (`src/features/missions/hold/arrive.server.ts`) sees that the host is in
+  vacation and turns it home at once, with the same `sendHome` at the
+  arrival time. The earlier behaviour, „arrives, holds and flies home“ at
+  the end of its time, is gone.
+* **[E]** The owner of a fleet that was sent home gets an info report, one
+  per fleet, both at the start of the vacation and at the arrival at a host
+  in vacation (owner, 2026-11-19); `sendHome` writes it with
+  `addReport` (type `info`, push topic `fleet`, like „Flotte kehrt um“),
+  time of the report the moment of the send-home. **[V]** The texts, drafted
+  from the owner's wording: title „Wache heimgeschickt [g:s:p]“, text „Deine
+  Wache bei <Ort> [g:s:p] wurde heimgeschickt: Der Gastgeber hat den
+  Urlaubsmodus begonnen.“ (<Ort> is the name of the planet, for a moon
+  „<Name> (Mond)“, as in the battle reports). The report „Rückkehr zu …“
+  follows when the fleet is home, like after every Wache stellen.
+* Unchanged: `vacationEntryError` counts every fleet of the player,
+  whatever its state, so a player whose own fleet holds elsewhere cannot
+  start the vacation while it is out.
+
+## Mondbruch moves a held fleet to the planet
+
+* **[E]** `destroyMoon` (`src/server/game/moons.ts`) reroutes with
+  `fleets.reroute`; its `UPDATE` now takes the fleets in state `out` **and**
+  `hold` (`src/server/db/repos/fleets.ts`; the missiles keep their target).
+  A held fleet at the destroyed moon gets the planet as its place, keeps
+  its ships, its cargo, its arrival and its holding time, so its end time is
+  the same, and holds there until then; it defends the planet in the next
+  fight. A fleet that already holds at the planet is untouched. No
+  migration: only the target column of the rows changes.
+* **[E]** The limits of the planet (15 fleets, four players besides the
+  owner, `HOLD_LIMITS`) are not asked on the move: the fleet moves even if
+  they are exceeded (owner, 2026-11-19).
+* **[E]** The owner of every fleet that held at the moon gets an info
+  report, one per fleet (owner, 2026-11-19), written by `destroyMoon` before
+  the reroute (type `info`, push topic `fleet`, time of the arrival of the
+  Mondbruch). The fleets that fly to the broken moon, the ones coming home
+  from it and the attacker's other fleets get none. **[V]** The texts,
+  drafted from the owner's wording: title „Wache wechselt zum Planeten
+  [g:s:p]“, text „Der Mond [g:s:p] wurde zerstört; deine Wache hält jetzt am
+  Planeten.“ The fleet movements show „hält bei“ the planet.
+
 # Alliance depot (#55, later)
 
 * **[E]** Values (owner, 2026-11-16, Q1, checked against owiki
@@ -181,8 +287,10 @@ The battle with several parties is built with #55
   default, and the admin can change them per round. Verified: at most 16
   fleets of at most 5 players; a joining fleet may delay the union by at
   most 30 % of the remaining flight time (owiki „Allianzkampfsystem“).
-* **[U]** Join window: no source gives a cut-off besides the 30 % rule
-  (for example no joining in the last minutes); it is open for the build.
+* **[E]** Join window (owner, 2026-11-17, completing the [U] of
+  2026-11-16): the classic 30 % rule applies; an extra cut-off „no joining in
+  the last N minutes“ is a value per round, **default off**; the values are
+  set in „Neue Runde“ and stay editable in the admin panel (X1).
 * **[E]** Loot (owner, 2026-11-16, Q1): split by free cargo space.
   Classic splits by cargo capacity („Laderaum“, owiki
   „Allianzkampfsystem“), and the source does not say „free“.
@@ -194,6 +302,118 @@ The battle with several parties is built with #55
   Flottenverband.“, owiki „Rückruf“).
 * **[V]** A participant's recall turns back only that participant's
   fleet (issue #225).
+
+## Built with #225
+
+Built on `claude/acs` after #55 (owner, 2026-11-17: „Build after #55“).
+Everything below is [V] unless it names an owner's decision.
+
+* **No research.** The issue's „their own research“ is each owner's weapons,
+  shield and armour research in the battle, not a new catalog entry: the issue
+  and its two „Geklärt“ comments name no research with costs or requirements,
+  so none was built (values are never invented).
+* **Data.** A fleet of a union carries `fleets.union_id`; the ID of a union is
+  the ID of the fleet that opened it, its leader's Sturmangriff. The table
+  `attack_union_invites` (union, invited player) holds the invitations.
+  Migration `20261120T0900-attack-unions` (`src/server/db/migrations/225/`)
+  adds the column with `ALTER TABLE` (no rebuild; a later rebuild of `fleets`
+  must list `union_id`) and the table, which does not reference `fleets`. The
+  rules are pure in `src/core/union.ts`, the server part is
+  `src/server/game/union.ts` (actions `openUnion` and `inviteUnion`, the
+  state key `unions`, order 210), the battle is the shared one of
+  `src/server/game/fight.ts`, the arrival is the `onArrive` of the attack
+  mission.
+* **Settings (owner, 2026-11-16 D3, 2026-11-17, X1).** Four live number
+  fields in „Neue Runde“ and the universe settings, the classic values as
+  defaults: `roundUnionFleets` „Verbandsangriff: höchstens Flotten“ (16),
+  `roundUnionPlayers` „Verbandsangriff: höchstens Spieler“ (5),
+  `roundUnionDelay` „Verbandsangriff: Verspätung in Prozent der
+  Restflugzeit“ (30), `roundUnionCutoff` „Verbandsangriff: kein Beitritt in
+  den letzten Minuten (0 = aus)“ (0, off), order 200 to 230. The ranges 1 to
+  50, 1 to 20, 0 to 100 and 0 to 1440 are [V]. Who may invite and join is the
+  one value `roundAllies` of holding (D2); its label is „Verbündete für Halten und Verband“ (owner, [E]
+  2026-11-20, #225), it governs the union too.
+* **Opening.** An own Sturmangriff on its way (not recalled, not arrived, no
+  gift, in no union) opens a union (`openUnion`); the leader invites a player
+  by name (`inviteUnion`): an ally of the leader by the setting, not the
+  owner of the target, not beyond the limit of players (the invited count
+  against it); the invitee gets an info report „Einladung zum Verbandsangriff
+  [g:s:p]“.
+* **Joining.** A join is the action `send` with the field `union`: a
+  Sturmangriff to the target of the union, with every check of an attack
+  (ships, fuel, fleet slots, vacation and noob protection of the target for
+  this attacker). The leader and a player already in the union need no
+  invitation; everyone else needs one and must still be an ally of the
+  leader. The limits of fleets and players are checked; a player in the
+  union may send more fleets. Timing (owner: the 30 % rule): a fleet that is
+  there in time waits and arrives with the union; a later one delays the
+  union by at most `unionDelay` % of the flight time that is left, else it is
+  refused, and then the arrival and the return of every fleet in the union
+  move by the delay; a fleet that joins returns one flight of its own after
+  the arrival. With a cut-off, nobody joins when the time left is at most N
+  minutes (the boundary counts as inside); a union that has arrived is
+  closed.
+* **Recall.** The leader's recall of the fleet that opened the union turns
+  back every fleet of it and ends it (owner, 2026-11-16, Q2); the owner of
+  every other fleet gets an info report „Angriffsverband aufgelöst“. A
+  participant's recall turns back only his own fleet, which leaves the union;
+  the arrival of the union stays as it is (a delay is not taken back).
+* **Arrival and battle.** All fleets of a union are due together. The first
+  to be processed fights for all, in one battle: the leader's fleet leads,
+  the others follow in the order they joined, each with the research of its
+  own owner at the arrival (`battleOf` with several attacking parties, as
+  the held fleets are several defending parties). The fleets leave the union
+  and the invitations go before the battle; the later ones in the same tick
+  find their fleet turned back and change nothing, so nothing is settled
+  twice. A fleet of the owner of the target turns back; a union whose
+  leading fleet is gone arrives as single fleets.
+* **Loot (owner, 2026-11-16, Q1).** One loot as for a single attacker (half
+  of the stock, then the cargo of the held fleets) against the free cargo
+  space of all surviving ships together, split between the fleets in
+  proportion to their free space, rounded down; the units left go one by one
+  to the first fleets that still have room. Each fleet keeps its own cargo and
+  flies home with it; a fleet without survivors is gone with its cargo.
+* **Reports and debris.** Every owner of an attacking fleet gets the same
+  report once (title by the result), with a block per further attacker
+  (`attackers`: name, ships before and after, research, loot) and the loot
+  share of the first (`attLoot`); the defender and the owners of held fleets
+  get the report of the defender, titled „… wird von A, B und C angegriffen“;
+  30 % of what every party lost lies as debris; the audit entry names the
+  other fleets. **[V]** The browser shows the blocks (found by the E2E spec
+  `e2e/union.spec.ts`, 2026-11-20: it had drawn the leader alone):
+  `attackerSides` of `src/client/logic/report-body.ts` draws „Angreifer
+  <Name>“ with the research and the table of losses for the first attacker
+  and for each further one, in the order they joined and before the
+  defender, and under each block „Erbeutet: …“ with its share when it took
+  any (the existing words of the report; the whole loot stays in the line
+  under the result).
+* **Held fleets.** The fleets that hold at the target defend against the
+  whole union, one party each. A fleet that holds at the target and belongs
+  to any player of the union stays out of the battle, as the attacker's own
+  does for a single attack.
+* **Vacation.** A player in vacation can do nothing, so he cannot join; an
+  attack on a player in vacation is refused like every attack, also for a
+  join after the target started it (`sendError`).
+* **Defender.** He sees each fleet as before (#228) and nothing of the
+  union; the state key `unions` lists a union only to its leader, its
+  members and the invited.
+* **Browser.** The fleet view shows the box „Verbandsangriff“ with each union
+  (leader, counts against the limits, fleets per owner, invited), the field
+  for an invitation, the button „Beitreten“, which fills the fleet form with
+  the target and the mission; the fleet form has the row „Verband“ and the
+  arrival line of a joining fleet (with the delay or the reason of a
+  refusal); the same box lists the own Sturmangriffe on their way with the
+  button „Angriffsverband eröffnen“ and says that the recall of the leader's
+  fleet turns back the whole union; the fleet movements show „· Angriffsverband
+  (Anführer)“ or „· im Angriffsverband“ behind an own fleet of a union, and
+  their markup is otherwise unchanged (the reference test of the overview
+  keeps it).
+* **Texts [V].** „Angriffsverband eröffnen“, „Beitreten“, „Einladen“,
+  „Kein Verband“, „Verband“, „Sturmangriff auf …“, the hint on the recall, the
+  refusals of `src/server/game/union.ts` and `joinMessage` of
+  `src/core/union.ts`, the reports above.
+* **Not part of a union:** the Mondbruch, missiles, spying and every other
+  mission.
 
 # Merged with the registry of round settings and #228 (2026-11-19)
 
@@ -219,3 +439,13 @@ The battle with several parties is built with #55
   server is the answer („Wache stellen nur bei Gildenmitgliedern und
   Freunden.“, or the words of the setting). #225 (attack union) reads the
   same value `allies`.
+
+## Label of the ally setting (#225, 2026-11-20)
+
+* **[E]** (owner, 2026-11-20, #225) `roundAllies` is labelled „Verbündete für
+  Halten und Verband“ everywhere it is shown (registry entry, „Neue Runde“,
+  live admin settings, Lexicanum „Dieses Universum“), because it governs
+  holding and the attack union.
+* **[V]** The fragment `changes/wacht-halten.md` names friends too („zum
+  Planeten eines Gildenmitglieds oder Freundes“), as friends may hold (#55,
+  #227).

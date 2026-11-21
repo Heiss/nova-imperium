@@ -13,7 +13,12 @@ import {
 import { DEFAULT_UNIVERSE } from '../../core/universe.ts';
 import type { AuditEntry } from '../audit.ts';
 import { addPlanet, addUser, type TestCtx, testCtx } from '../test-helpers.ts';
-import { inactivities, planetActivities, recordActivity } from './activity.ts';
+import {
+  inactivities,
+  placeActivity,
+  planetActivities,
+  recordActivity,
+} from './activity.ts';
 import { runAction } from './dispatch.ts';
 import { roundRules } from './round.ts';
 import { stateFor } from './state.ts';
@@ -83,6 +88,18 @@ describe('what sets activity', () => {
     expect(ctx.players.lastActive().u_Anna).toBe(t);
   });
 
+  it('an account in vacation mode records none, a login or an action (#223)', () => {
+    const ctx = world();
+    const anna = { ...user(ctx, 'u_Anna'), vacation: ctx.now() };
+    ctx.clock.t += 5 * MINUTE_MS;
+    recordActivity(ctx, anna, 'login');
+    recordActivity(ctx, anna, 'action');
+    expect(ctx.planets.activeTimes()).toEqual({});
+    expect(ctx.players.lastActive().u_Anna).toBe(START);
+    recordActivity(ctx, { ...anna, vacation: null }, 'action');
+    expect(ctx.players.lastActive().u_Anna).toBe(ctx.now());
+  });
+
   it('a game action itself sets nothing, so fleets and buildings set none', () => {
     const ctx = world();
     runAction(ctx, 'u_Anna', { type: 'mainPlanet', main: 'p2_3_7' });
@@ -114,7 +131,11 @@ describe('what the state shows', () => {
     const ctx = world();
     recordActivity(ctx, user(ctx, 'u_Anna'), 'action');
     const players = () => shown(ctx).players;
-    expect(players().u_Bert).toEqual({ name: 'Bert', points: 0 });
+    expect(players().u_Bert).toEqual({
+      name: 'Bert',
+      points: 0,
+      scores: { buildings: 0, research: 0, fleet: 0, defense: 0 },
+    });
     // Bert was created at the start.
     ctx.clock.t = START + 7 * DAY_MS - 1;
     expect(players().u_Bert).not.toHaveProperty('inactive');
@@ -144,6 +165,28 @@ describe('what the state shows', () => {
     });
     expect(planetActivities(ctx, ACTIVITY_DEFAULT)).toEqual({});
     expect(inactivities(ctx, ACTIVITY_DEFAULT)).toEqual({});
+  });
+});
+
+describe('the activity of one place (#175, D5)', () => {
+  it('follows the rule and the thresholds of the Sternenkarte, with none without a time', () => {
+    const ctx = world();
+    const limits = activityLimits(roundRules(ctx));
+    expect(ctx.planets.activeAt('p1_1_5')).toBeNull();
+    expect(ctx.planets.activeAt('nowhere')).toBeNull();
+    expect(placeActivity(ctx, 'p1_1_5', START, limits)).toBeNull();
+    recordActivity(ctx, user(ctx, 'u_Anna'), 'action');
+    const t = ctx.now();
+    expect(ctx.planets.activeAt('p1_1_5')).toBe(t);
+    expect(ctx.planets.activeAt('p1_2_5')).toBeNull();
+    expect(placeActivity(ctx, 'p1_1_5', t + 14 * MINUTE_MS, limits)).toEqual({
+      recent: true,
+    });
+    expect(placeActivity(ctx, 'm1_1_5', t + 20 * MINUTE_MS, limits)).toEqual({
+      minutes: 20,
+    });
+    expect(placeActivity(ctx, 'p1_1_5', t + 60 * MINUTE_MS, limits)).toBeNull();
+    expect(placeActivity(ctx, 'p1_2_5', t, limits)).toBeNull();
   });
 });
 

@@ -1,0 +1,121 @@
+import { describe, expect, it } from 'vitest';
+import { FieldDrafts, isTracked, type Field } from './field-drafts.ts';
+
+const f = (id: string, value = '', over: Partial<Field> = {}): Field => ({
+  id,
+  value,
+  ...over,
+});
+
+describe('the fields that have a draft', () => {
+  it('leaves out what shows the server or keeps a draft of its own', () => {
+    for (const id of [
+      'set_speed',
+      'inv_link',
+      'dissolve_tag',
+      'chat_text',
+      'friend_name',
+    ])
+      expect(isTracked(id), id).toBe(false);
+    for (const id of [
+      'inv_email',
+      't_g',
+      'g_g',
+      'g_s',
+      'market-amount',
+      'o_probes',
+      'guild_tag',
+    ])
+      expect(isTracked(id), id).toBe(true);
+  });
+});
+
+describe('the drafts of the fields', () => {
+  it('keeps the typed position of the Sternenkarte over a redraw until a fresh render', () => {
+    const drafts = new FieldDrafts();
+    drafts.record(f('g_g', '1'));
+    drafts.record(f('g_s', '1'));
+    expect(drafts.restore(f('g_g', '9'))).toEqual({ value: '1' });
+    expect(drafts.restore(f('g_s', '4'))).toEqual({ value: '1' });
+    drafts.reset();
+    expect(drafts.restore(f('g_g', '9'))).toEqual({});
+  });
+
+  it('gives back what was typed after a redraw put the value of the state', () => {
+    const drafts = new FieldDrafts();
+    drafts.record(f('t_g', '7'));
+    expect(drafts.restore(f('t_g', '1'))).toEqual({ value: '7' });
+  });
+
+  it('takes the newest value and gives nothing for a field never changed', () => {
+    const drafts = new FieldDrafts();
+    drafts.record(f('t_g', '7'));
+    drafts.record(f('t_g', '8'));
+    expect(drafts.restore(f('t_g'))).toEqual({ value: '8' });
+    expect(drafts.restore(f('t_s'))).toEqual({});
+  });
+
+  it('keeps an emptied field empty', () => {
+    const drafts = new FieldDrafts();
+    drafts.record(f('inv_email', 'a@b.de'));
+    drafts.record(f('inv_email', ''));
+    expect(drafts.restore(f('inv_email', 'old'))).toEqual({ value: '' });
+  });
+
+  it('records no field without a draft', () => {
+    const drafts = new FieldDrafts();
+    drafts.record(f('set_speed', '9'));
+    drafts.record(f('inv_link', 'x'));
+    expect(drafts.restore(f('set_speed', '5'))).toEqual({});
+  });
+
+  it('does not restore onto a disabled option of a select', () => {
+    const drafts = new FieldDrafts();
+    drafts.record(f('jg_to', 'm2'));
+    const options = [
+      { value: 'm1', disabled: false },
+      { value: 'm2', disabled: true },
+    ];
+    expect(drafts.restore(f('jg_to', 'm1', { options }))).toEqual({});
+    options[1]!.disabled = false;
+    expect(drafts.restore(f('jg_to', 'm1', { options }))).toEqual({
+      value: 'm2',
+    });
+  });
+
+  it('keeps a ticked or cleared rank box, but not onto a disabled one (#163)', () => {
+    const drafts = new FieldDrafts();
+    drafts.record(
+      f('rank_r1_chat', 'chat', { rankRight: true, checked: true }),
+    );
+    drafts.record(f('rank_r1_war', 'war', { rankRight: true, checked: false }));
+    expect(
+      drafts.restore(
+        f('rank_r1_chat', 'chat', { rankRight: true, checked: false }),
+      ),
+    ).toEqual({ checked: true });
+    expect(
+      drafts.restore(
+        f('rank_r1_war', 'war', { rankRight: true, checked: true }),
+      ),
+    ).toEqual({ checked: false });
+    expect(
+      drafts.restore(
+        f('rank_r1_chat', 'chat', { rankRight: true, disabled: true }),
+      ),
+    ).toEqual({});
+  });
+
+  it('drops every draft on reset (a fresh render, a logout)', () => {
+    const drafts = new FieldDrafts();
+    drafts.record(f('t_g', '7'));
+    drafts.record(
+      f('rank_r1_chat', 'chat', { rankRight: true, checked: true }),
+    );
+    drafts.reset();
+    expect(drafts.restore(f('t_g', '1'))).toEqual({});
+    expect(drafts.restore(f('rank_r1_chat', '', { rankRight: true }))).toEqual(
+      {},
+    );
+  });
+});

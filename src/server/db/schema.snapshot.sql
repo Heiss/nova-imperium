@@ -4,6 +4,8 @@ CREATE INDEX account_tokens_expiry ON account_tokens(expires);
 
 CREATE INDEX account_tokens_user ON account_tokens(user_id, purpose, expires);
 
+CREATE INDEX attack_union_invites_user ON attack_union_invites(user_id);
+
 CREATE INDEX audit_actor ON audit_events(actor, id);
 
 CREATE INDEX audit_target ON audit_events(target, id);
@@ -35,17 +37,30 @@ CREATE INDEX guild_members_rank ON guild_members(rank_id);
 
 CREATE INDEX invitations_email ON invitations(email);
 
+CREATE INDEX last_targets_user ON last_targets (user_id, at DESC);
+
 CREATE INDEX passkey_challenges_expiry ON passkey_challenges(expires);
 
 CREATE INDEX passkeys_owner ON passkeys(user_id);
 
 CREATE INDEX planets_owner ON planets(owner, created);
 
+CREATE INDEX playtime_events_round ON playtime_events (round, user_id);
+
+CREATE INDEX playtime_events_user_start ON playtime_events (user_id, start_ms);
+
 CREATE INDEX push_due ON push_jobs(retry_at);
 
 CREATE INDEX push_subscription_user ON push_subscriptions(user_id);
 
 CREATE INDEX reports_user ON reports(user_id, seq);
+
+CREATE INDEX round_events_kind ON round_events(round, kind, at);
+
+CREATE INDEX round_participants_player ON round_participants(player)
+      WHERE player IS NOT NULL;
+
+CREATE INDEX surveys_created ON surveys(created);
 
 CREATE TABLE account_tokens (
     token_hash TEXT PRIMARY KEY,
@@ -68,6 +83,12 @@ CREATE TABLE achievement_progress (
     value INTEGER NOT NULL,
     PRIMARY KEY (user_id, metric)
   ) STRICT;
+
+CREATE TABLE attack_union_invites (
+      union_id TEXT NOT NULL,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      PRIMARY KEY (union_id, user_id)
+    ) STRICT;
 
 CREATE TABLE audit_events (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -133,7 +154,7 @@ CREATE TABLE fleets (
       to_g INTEGER NOT NULL,
       to_s INTEGER NOT NULL,
       to_p INTEGER NOT NULL,
-      mission TEXT NOT NULL CHECK (mission IN ('attack', 'transport', 'spy', 'colonize', 'deploy', 'harvest', 'hold')),
+      mission TEXT NOT NULL CHECK (mission IN ('attack', 'transport', 'spy', 'colonize', 'deploy', 'harvest', 'hold', 'moonbreak', 'survey', 'missile', 'expedition')),
       cargo_m REAL NOT NULL,
       cargo_c REAL NOT NULL,
       cargo_d REAL NOT NULL,
@@ -144,8 +165,9 @@ CREATE TABLE fleets (
       recalled INTEGER NOT NULL DEFAULT 0,
       fuel INTEGER NOT NULL DEFAULT 0,
       gift INTEGER NOT NULL DEFAULT 0 CHECK (gift IN (0, 1)),
-      hold INTEGER NOT NULL DEFAULT 0 CHECK (hold >= 0)
-    ) STRICT;
+      hold INTEGER NOT NULL DEFAULT 0 CHECK (hold >= 0),
+      aim TEXT
+    , union_id TEXT) STRICT;
 
 CREATE TABLE friendships (
       requester TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -216,6 +238,14 @@ CREATE TABLE invitations (
 CREATE TABLE jump_gates (
       moon_id TEXT PRIMARY KEY REFERENCES planets(id) ON DELETE CASCADE,
       ready INTEGER NOT NULL
+    ) STRICT;
+
+CREATE TABLE last_targets (
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      place TEXT NOT NULL,
+      owner TEXT NOT NULL,
+      at INTEGER NOT NULL,
+      PRIMARY KEY (user_id, place)
     ) STRICT;
 
 CREATE TABLE market_prices (
@@ -303,6 +333,21 @@ CREATE TABLE player_activity (
     PRIMARY KEY (player, day)
   ) STRICT;
 
+CREATE TABLE playtime_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      round INTEGER NOT NULL,
+      play_session INTEGER NOT NULL,
+      instance TEXT NOT NULL,
+      seq INTEGER NOT NULL,
+      state TEXT NOT NULL CHECK (state IN ('active', 'inactive', 'background')),
+      reason TEXT NOT NULL CHECK (reason IN ('start', 'heartbeat', 'idle', 'background')),
+      start_ms INTEGER NOT NULL,
+      end_ms INTEGER NOT NULL,
+      method INTEGER NOT NULL,
+      UNIQUE (user_id, instance, seq)
+    ) STRICT;
+
 CREATE TABLE position_locks (
       g INTEGER NOT NULL,
       s INTEGER NOT NULL,
@@ -345,10 +390,39 @@ CREATE TABLE reports (
     user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     time INTEGER NOT NULL,
     seq INTEGER NOT NULL,
-    type TEXT NOT NULL CHECK (type IN ('info', 'spy', 'battle')),
+    type TEXT NOT NULL CHECK (type IN ('info', 'spy', 'battle', 'survey')),
     title TEXT NOT NULL,
     body TEXT NOT NULL
   ) STRICT;
+
+CREATE TABLE round_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      round INTEGER NOT NULL REFERENCES rounds(number) ON DELETE CASCADE,
+      at INTEGER NOT NULL,
+      recorded INTEGER NOT NULL,
+      kind TEXT NOT NULL,
+      seat INTEGER,
+      version INTEGER NOT NULL,
+      payload TEXT NOT NULL
+    ) STRICT;
+
+CREATE TABLE round_participants (
+      round INTEGER NOT NULL REFERENCES rounds(number) ON DELETE CASCADE,
+      seat INTEGER NOT NULL,
+      player TEXT,
+      name TEXT NOT NULL,
+      PRIMARY KEY (round, seat)
+    ) STRICT;
+
+CREATE TABLE rounds (
+      number INTEGER PRIMARY KEY,
+      status TEXT NOT NULL CHECK (status IN ('active', 'closed')),
+      started INTEGER NOT NULL,
+      closed INTEGER,
+      coverage TEXT NOT NULL CHECK (coverage IN ('complete', 'partial')),
+      rules TEXT NOT NULL,
+      events INTEGER
+    ) STRICT;
 
 CREATE TABLE schema_migrations (id TEXT NOT NULL PRIMARY KEY) STRICT;
 
@@ -373,6 +447,17 @@ CREATE TABLE shipyard_queue (
   ) STRICT;
 
 CREATE TABLE sqlite_sequence(name,seq);
+
+CREATE TABLE surveys (
+    id TEXT PRIMARY KEY,
+    g INTEGER NOT NULL,
+    s INTEGER NOT NULL,
+    p INTEGER NOT NULL,
+    temp INTEGER NOT NULL,
+    diameter INTEGER NOT NULL,
+    created INTEGER NOT NULL,
+    UNIQUE (g, s, p)
+  ) STRICT;
 
 CREATE TABLE suspensions (
     player TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
@@ -405,4 +490,11 @@ CREATE TABLE users (
     rq_cost_c INTEGER,
     rq_cost_d INTEGER
   , explain_mode TEXT NOT NULL DEFAULT 'icon'
-    CHECK (explain_mode IN ('always', 'icon', 'hidden')), rq_planet TEXT, main_planet TEXT, main_switched INTEGER, active_at INTEGER) STRICT;
+    CHECK (explain_mode IN ('always', 'icon', 'hidden')), rq_planet TEXT, main_planet TEXT, main_switched INTEGER, active_at INTEGER, vacation INTEGER, level_table TEXT NOT NULL DEFAULT 'icon'
+      CHECK (level_table IN ('always', 'icon', 'hidden'))) STRICT;
+
+CREATE TRIGGER round_participants_deleted_account BEFORE DELETE ON users
+    BEGIN
+      UPDATE round_participants SET player = NULL, name = 'Gelöschter Spieler'
+      WHERE player = OLD.id;
+    END;

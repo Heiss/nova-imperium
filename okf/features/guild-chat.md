@@ -143,6 +143,9 @@ The answers of the comment „Geklärt, Nachtrag“ (owner, 2026-11-15) to O15:
   Auspex-Erkundung, Versorgungsflug or the other missions, not for a
   player in no guild or an applicant. The target is the coordinates
   „[1:27:11]“, also for a moon. The outcome writes nothing (D3).
+* **[E]** A Mondbruch (#95) launched at a member writes the same event as
+  an attack, with the coordinates of the moon (owner, 2026-11-16, see
+  [Moons](/features/moons.md)); its `rules.ts` has `alertsGuild` too.
 * **[V]** The arrival shows as the clock time of the browser, „20:15“; on
   another day than the event, with the day before it, „16.11., 01:02“.
 * **[V]** Names in an event are the current names of the accounts: a

@@ -8,7 +8,14 @@ import { BUILD, DEF, RES, SHIPS } from '../catalog.ts';
 import { MISSION } from '../missions.ts';
 import { missionText, text } from '../text.ts';
 import type { Requirements } from '../types.ts';
-import type { ArticleKind, EntryLexicon } from './types.ts';
+import { PAGES } from './pages/index.ts';
+import type {
+  ArticleKind,
+  EntryKind,
+  EntryLexicon,
+  PageDef,
+  PageKind,
+} from './types.ts';
 
 /** The title of each kind, as the start page lists them (study of #285, [V]). */
 export const KIND_TITLES: Readonly<Record<ArticleKind, string>> = {
@@ -17,10 +24,22 @@ export const KIND_TITLES: Readonly<Record<ArticleKind, string>> = {
   ship: 'Schiffe',
   defense: 'Verteidigung',
   mission: 'Missionen',
+  rule: 'Regeln',
+  question: 'Häufige Fragen',
+  guide: 'Einstieg',
 };
 
-/** The kinds in the order of the start page. */
-export const KINDS = Object.keys(KIND_TITLES) as ArticleKind[];
+/** The kinds of „Nachschlagen“ on the start page: the entries and the missions. */
+export const KINDS: readonly EntryKind[] = [
+  'building',
+  'research',
+  'ship',
+  'defense',
+  'mission',
+];
+
+/** The kinds of the pages that are written, each a box of the start page (#288, #289). */
+export const PAGE_KINDS: readonly PageKind[] = ['guide', 'rule', 'question'];
 
 /** One article without the blocks that depend on the player's state. */
 export interface ArticleMeta {
@@ -35,6 +54,8 @@ export interface ArticleMeta {
   /** The catalog key of an entry, or the name of a mission. */
   key: string;
   lexicon: EntryLexicon;
+  /** The page of a rule, a question or a guide, which has no entry (#288, #289). */
+  page?: PageDef;
 }
 
 type Index = readonly (readonly [string, { lexicon: EntryLexicon }])[];
@@ -82,6 +103,18 @@ export const ARTICLES: readonly ArticleMeta[] = [
     title: missionText(m)!.n,
     key: m,
     lexicon: MISSION_PARTS.get(m) ?? {},
+  })),
+  ...PAGES.map((p): ArticleMeta => ({
+    id: p.id,
+    kind: p.kind,
+    title: p.title,
+    ds: p.line,
+    key: p.id,
+    lexicon: {
+      keywords: p.keywords,
+      ...(p.seeAlso ? { seeAlso: p.seeAlso } : {}),
+    },
+    page: p,
   })),
 ];
 

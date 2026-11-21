@@ -10,6 +10,7 @@ import type { Planet } from '../../core/types.ts';
 import { planet, U } from '../../test/fixtures.ts';
 import type { Ui, V } from '../views/common.ts';
 import { debrisMark, harvestButton } from './debris.ts';
+import { distance, fleetSpeed, flightMs } from '../../core/flight.ts';
 import { dur } from './format.ts';
 import {
   type GalaxyAction,
@@ -44,6 +45,7 @@ interface Setup {
   ui?: Partial<Ui>;
   probes?: number;
   now?: number;
+  research?: Record<string, number>;
 }
 
 /** Anna (u1) looks at system 1:2 from her planet at [1:2:5]. */
@@ -62,7 +64,7 @@ function view(o: Setup = {}): V {
   return {
     s,
     P: planet({ id: 'p1_2_5', g: 1, s: 2, p: 5, ...o.P }),
-    R: { research: {}, rq: null },
+    R: { research: o.research ?? {}, rq: null },
     now: o.now ?? 0,
     ui: { gal: 1, sys: 2, ...o.ui } as Ui,
   };
@@ -129,8 +131,9 @@ describe('galaxyPage', () => {
     expect(page.sys).toBe(7);
     expect(page.galaxies).toBe(U.galaxies);
     expect(page.systems).toBe(U.systems);
+    // The positions of the system and the expedition position after them (#93).
     expect(page.rows.map((r) => r.position)).toEqual(
-      Array.from({ length: U.positions }, (_, i) => i + 1),
+      Array.from({ length: U.positions + 1 }, (_, i) => i + 1),
     );
     expect(page.scan).toBeNull();
   });
@@ -139,6 +142,94 @@ describe('galaxyPage', () => {
     expect(galaxyPage(view({ probes: 0 })).probes).toBe('1');
     expect(galaxyPage(view({ probes: 3 })).probes).toBe('3');
     expect(galaxyPage(view({ probes: 1500 })).probes).toBe('1.500');
+  });
+});
+
+describe('the expedition position (#93)', () => {
+  const last = U.positions + 1;
+  const level1 = { expo: 1 };
+  const ships = { lc: 3 };
+
+  it('is the row after the last planet position, with no planet and its own note', () => {
+    const row = rowAt(view(), last);
+    expect(row).toMatchObject({
+      position: 16,
+      planet: null,
+      marks: [],
+      actions: [],
+      note: 'Expeditionsposition',
+      moon: null,
+    });
+    // The planet positions keep the dash of a free position.
+    expect(rowAt(view(), U.positions).note).toBe('–');
+  });
+
+  it('offers „Expedition“ with the research and a ship that flies', () => {
+    const button = [
+      {
+        kind: 'button',
+        label: 'Expedition',
+        attrs: { 'data-act': 'gfleet', 'data-m': 'expedition', ...at(last) },
+      },
+    ];
+    expect(
+      rowAt(view({ research: level1, P: { ships } }), last).actions,
+    ).toEqual(button);
+    expect(
+      rowAt(view({ research: { expo: 9 }, P: { ships: { probe: 1 } } }), last)
+        .actions,
+    ).toEqual(button);
+    // Without the research, without a ship, with ships that cannot fly or none left.
+    expect(rowAt(view({ P: { ships } }), last).actions).toEqual([]);
+    expect(
+      rowAt(view({ research: { expo: 0 }, P: { ships } }), last).actions,
+    ).toEqual([]);
+    expect(rowAt(view({ research: level1 }), last).actions).toEqual([]);
+    expect(
+      rowAt(view({ research: level1, P: { ships: { sat: 4, lc: 0 } } }), last)
+        .actions,
+    ).toEqual([]);
+  });
+
+  it('shows the Trümmerfeld there with its Bergung, after the expedition', () => {
+    const v = view({
+      research: level1,
+      P: { ships },
+      debris: [field(last, 500, 200)],
+    });
+    const row = rowAt(v, last);
+    expect(row.marks).toEqual([debrisMark(field(last, 500, 200))]);
+    expect(row.actions.map((a) => a.kind)).toEqual(['button', 'html']);
+    expect(row.actions[1]).toEqual({
+      kind: 'html',
+      html: harvestButton({ g: 1, s: 2, p: last }),
+    });
+  });
+
+  it('offers neither the Landnahme nor the Vermessung there', () => {
+    const v = view({
+      research: { carto: 1, expo: 1 },
+      P: { ships: { colony: 1, probe: 2 } },
+    });
+    expect(rowAt(v, last).actions.map((a) => 'label' in a && a.label)).toEqual([
+      'Expedition',
+    ]);
+    expect(rowAt(v, 9).actions.map((a) => 'label' in a && a.label)).toEqual([
+      'Landnahme',
+      'Vermessen',
+    ]);
+  });
+
+  it('follows the size of the universe: 21 with 20 positions', () => {
+    const v = view();
+    v.s.cfg = { ...U, positions: 20 };
+    const page = galaxyPage(v);
+    expect(page.rows).toHaveLength(21);
+    expect(page.rows[20]).toMatchObject({
+      position: 21,
+      note: 'Expeditionsposition',
+    });
+    expect(page.rows[19]!.note).toBe('–');
   });
 });
 
@@ -151,6 +242,7 @@ describe('a free position', () => {
       actions: [],
       note: '–',
       moon: null,
+      sheet: null,
     });
   });
 
@@ -164,6 +256,24 @@ describe('a free position', () => {
     expect(rowAt(v, 9).note).toBe('–');
   });
 
+  it('offers no „Vermessen“ at a locked position either, but still the Bergung (#190, #224; owner, 2026-11-18)', () => {
+    const v = view({
+      P: { ships: { colony: 1, probe: 3 } },
+      research: { carto: 1 },
+      debris: [field(9)],
+    });
+    const names = (p: number) =>
+      rowAt(v, p).actions.map((a) => ('label' in a ? a.label : a.kind));
+    v.s.locks = [{ g: 1, s: 2, p: 9, until: v.now + 60_000 }];
+    expect(names(9)).toEqual(['html']);
+    // The lock ended: both buttons are back, the Bergung after them.
+    v.s.locks = [{ g: 1, s: 2, p: 9, until: v.now }];
+    expect(names(9)).toEqual(['Landnahme', 'Vermessen', 'html']);
+    // Another position keeps its buttons while 9 is locked.
+    v.s.locks = [{ g: 1, s: 2, p: 9, until: v.now + 60_000 }];
+    expect(names(8)).toEqual(['Landnahme', 'Vermessen']);
+  });
+
   it('offers the Landnahme with a colony ship on the shown planet', () => {
     expect(rowAt(view({ P: { ships: { colony: 1 } } }), 9).actions).toEqual([
       {
@@ -172,6 +282,43 @@ describe('a free position', () => {
         attrs: { 'data-act': 'gfleet', 'data-m': 'colonize', ...at(9) },
       },
     ]);
+  });
+
+  it('offers „Vermessen“ with Spähschädel and Auspex-Kartographie, after the Landnahme (#190)', () => {
+    const vermessen = {
+      kind: 'button',
+      label: 'Vermessen',
+      attrs: { 'data-act': 'gspy', 'data-m': 'survey', ...at(9) },
+    };
+    const both = view({
+      P: { ships: { colony: 1, probe: 3 } },
+      research: { carto: 1 },
+      debris: [field(9)],
+    });
+    expect(rowAt(both, 9).actions.map((a) => a.kind)).toEqual([
+      'button',
+      'button',
+      'html',
+    ]);
+    expect(rowAt(both, 9).actions[1]).toEqual(vermessen);
+    expect(
+      rowAt(view({ P: { ships: { probe: 1 } }, research: { carto: 3 } }), 9)
+        .actions,
+    ).toEqual([vermessen]);
+    // Not without the research or without Spähschädel, not at a planet.
+    expect(rowAt(view({ P: { ships: { probe: 1 } } }), 9).actions).toEqual([]);
+    expect(
+      rowAt(view({ P: { ships: {} }, research: { carto: 1 } }), 9).actions,
+    ).toEqual([]);
+    const own = view({
+      P: { ships: { probe: 1 } },
+      research: { carto: 1 },
+      galaxy: [place('planet', 6, 'u3')],
+    });
+    expect(rowAt(own, 6).actions).toEqual([]);
+    expect(
+      rowAt(own, 6).planet!.actions.map((a) => 'label' in a && a.label),
+    ).not.toContain('Vermessen');
   });
 
   it('shows a Trümmerfeld with its symbol and the Bergung after the Landnahme (#45)', () => {
@@ -214,12 +361,20 @@ describe('a foreign planet', () => {
         inactivity: '',
         rank: '1',
         protected: false,
+        vacation: false,
         actions: foreign(6),
+        sheet: {
+          id: 'p1_2_6',
+          title: 'Welt 6 [1:2:6]',
+          flight: null,
+          actions: foreign(6),
+        },
       },
       marks: [],
       actions: [],
       note: '',
       moon: null,
+      sheet: null,
     });
   });
 
@@ -238,6 +393,20 @@ describe('a foreign planet', () => {
       // Without points, as before.
       protected: true,
     });
+  });
+
+  it('marks an owner in vacation mode (#223), the others not', () => {
+    const v = view({
+      galaxy: [place('planet', 6, 'u3'), place('planet', 7, 'u2')],
+    });
+    v.s.players.u3 = { name: 'Cleo', points: 5000, vacation: true };
+    v.s.players.u2 = { name: 'Bert', points: 100, vacation: false };
+    expect(rowAt(v, 6).planet).toMatchObject({ vacation: true });
+    expect(rowAt(v, 7).planet).toMatchObject({ vacation: false });
+    // An owner the state does not know is not in vacation mode.
+    expect(
+      rowAt(view({ galaxy: [place('planet', 6, 'u9')] }), 6).planet,
+    ).toMatchObject({ vacation: false });
   });
 
   it('ends its actions with the Bergung of a field there', () => {
@@ -351,7 +520,14 @@ describe('moons (#53)', () => {
       inactivity: '',
       rank: '3',
       protected: true,
+      vacation: false,
       actions: foreign(6, true),
+      sheet: {
+        id: 'm1_2_6',
+        title: 'Mond (Mond) [1:2:6]',
+        flight: null,
+        actions: foreign(6, true),
+      },
     });
     // The planet keeps its own actions.
     expect(r.planet!.actions).toEqual(foreign(6));
@@ -469,5 +645,140 @@ describe('targetOf', () => {
     expect(targetOf({ g: '1', s: '2', p: '6', k: 'planet' }).kind).toBe(
       'planet',
     );
+  });
+});
+
+describe('the Raketenangriff (#54)', () => {
+  const armed = (ipm: number, impulse = 1, s = 2): V => {
+    const v = view({
+      galaxy: [place('planet', 6, 'u2'), place('planet', 7, 'u1')],
+      P: { owner: 'u1', s, def: { ipm } },
+    });
+    v.R = { research: { impulse }, rq: null };
+    return v;
+  };
+
+  it('is offered at a foreign planet in range from a planet with Orbitalraketen', () => {
+    expect(rowAt(armed(2), 6).planet!.actions.at(-1)).toEqual({
+      kind: 'button',
+      label: 'Raketenangriff',
+      attrs: {
+        'data-act': 'gmissile',
+        'data-id': 'p1_2_6',
+        ...at(6),
+        'aria-label': 'Raketenangriff auf Welt 6',
+      },
+    });
+    const own = rowAt(armed(2), 7).planet!.actions;
+    expect(JSON.stringify(own)).not.toContain('gmissile');
+  });
+
+  it('is not offered without Orbitalraketen or out of range', () => {
+    expect(rowAt(armed(0), 6).planet!.actions).toEqual(foreign(6));
+    expect(rowAt(armed(2, 0), 6).planet!.actions).toEqual(foreign(6));
+    expect(rowAt(armed(2, 1, 7), 6).planet!.actions).toEqual(foreign(6));
+  });
+});
+
+describe('the sheet „⋯“ of a position on a phone (#189)', () => {
+  it('has the actions of the row, without the dim name of the active place', () => {
+    const v = view({
+      galaxy: [place('planet', 5, 'u1'), place('planet', 6, 'u3')],
+    });
+    // [1:2:5] is the shown planet: only its name, so no sheet.
+    expect(rowAt(v, 5).planet!.actions.map((a) => a.kind)).toEqual(['active']);
+    expect(rowAt(v, 5).planet!.sheet).toBeNull();
+    expect(rowAt(v, 6).planet!.sheet!.actions).toEqual(foreign(6));
+  });
+
+  it('offers the actions of an own planet that is not shown, with its title', () => {
+    const v = view({ galaxy: [place('planet', 7, 'u1', 'Kolonie')] });
+    expect(rowAt(v, 7).planet!.sheet).toEqual({
+      id: 'p1_2_7',
+      title: 'Kolonie [1:2:7]',
+      flight: null,
+      actions: own('p1_2_7', 7),
+    });
+  });
+
+  it('holds the Bergung of a field with the actions of the planet and of a free position', () => {
+    const v = view({
+      galaxy: [place('planet', 6, 'u3')],
+      debris: [field(6), field(9)],
+    });
+    expect(rowAt(v, 6).planet!.sheet!.actions.at(-1)).toMatchObject({
+      kind: 'html',
+    });
+    expect(rowAt(v, 9).sheet).toMatchObject({
+      id: 'free-9',
+      title: 'Position [1:2:9]',
+      actions: [{ kind: 'html' }],
+    });
+  });
+
+  it('has no sheet at a free position without an action, and one at the expedition position with one', () => {
+    expect(rowAt(view(), 9).sheet).toBeNull();
+    const v = view({ research: { expo: 1 }, P: { ships: { lc: 3 } } });
+    expect(rowAt(v, U.positions + 1).sheet).toMatchObject({
+      id: `free-${U.positions + 1}`,
+      title: 'Expeditionsposition [1:2:16]',
+    });
+  });
+
+  it('gives a moon its own sheet', () => {
+    const v = view({
+      galaxy: [place('planet', 6, 'u3'), place('moon', 6, 'u3', 'Luna')],
+      ui: { gmoon: 'm1_2_6' },
+    });
+    expect(rowAt(v, 6).moon!.sheet).toMatchObject({
+      id: 'm1_2_6',
+      title: 'Luna (Mond) [1:2:6]',
+    });
+  });
+
+  it('names the flight time of all ships that fly, at full speed', () => {
+    const v = view({
+      galaxy: [place('planet', 6, 'u3')],
+      P: { ships: { lc: 2, probe: 1, sat: 5 } },
+    });
+    // The slowest ship that flies sets the speed: the satellite does not fly.
+    const ms = flightMs(
+      distance({ g: 1, s: 2, p: 5 }, { g: 1, s: 2, p: 6 }),
+      fleetSpeed({ lc: 2, probe: 1 }, v.R),
+      10,
+      U,
+    );
+    expect(rowAt(v, 6).planet!.sheet!.flight).toBe(
+      `Flugzeit mit allen Schiffen: ${dur(ms)}`,
+    );
+  });
+
+  it('names no flight time without a ship that flies', () => {
+    const v = view({
+      galaxy: [place('planet', 6, 'u3')],
+      P: { ships: { sat: 5, lc: 0 } },
+    });
+    expect(rowAt(v, 6).planet!.sheet!.flight).toBeNull();
+  });
+
+  it('opens the sheet that ui.gsheet names, while its place is on the page', () => {
+    const base = { galaxy: [place('planet', 6, 'u3')] };
+    expect(galaxyPage(view(base)).sheet).toBeNull();
+    expect(
+      galaxyPage(view({ ...base, ui: { gsheet: 'p1_2_6' } })).sheet?.id,
+    ).toBe('p1_2_6');
+    // Another system, an unknown id or none.
+    expect(
+      galaxyPage(view({ ...base, ui: { gsheet: 'p1_3_6' } })).sheet,
+    ).toBeNull();
+    expect(
+      galaxyPage(view({ ...base, ui: { gsheet: null } })).sheet,
+    ).toBeNull();
+    expect(
+      galaxyPage(view({ ...base, ui: { gsheet: 'free-9' } })).sheet,
+    ).toBeNull();
+    // A free position and a moon.
+    const free = view({ debris: [field(9)], ui: { gsheet: 'free-9' } });
+    expect(galaxyPage(free).sheet?.id).toBe('free-9');
   });
 });

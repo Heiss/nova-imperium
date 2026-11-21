@@ -110,11 +110,22 @@ export interface Fleet {
    */
   gift?: true;
   /**
+   * The main target of a Raketenangriff (#54): a defense key, hit first.
+   * Only set on missiles with a main target.
+   */
+  aim?: string;
+  /**
    * The holding time of a Wache stellen in milliseconds (#55): the fleet
    * stays at the target from its arrival for that long. Only set on a Wache
    * stellen.
    */
   hold?: number;
+  /**
+   * The attack union the fleet belongs to (#225): the ID of the fleet that
+   * opened it, which is also the ID of its leader's own fleet. Only set on
+   * a Sturmangriff of a union that has not arrived yet.
+   */
+  union?: string;
 }
 
 /** The settings of one universe. The admin changes them in the admin panel. */

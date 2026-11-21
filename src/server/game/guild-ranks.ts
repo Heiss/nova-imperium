@@ -17,6 +17,7 @@ import {
   MAX_GUILD_RANKS,
   MAX_RANK_NAME,
   memberPlace,
+  MIN_RANK_NAME,
   rankNameError,
   type GuildRight,
 } from '../../core/guild-ranks.ts';
@@ -26,9 +27,10 @@ import type {
   Membership,
   Rank,
 } from '../db/repos/guilds.ts';
-import type { Action } from './actions.ts';
+import type { Handler } from './actions.ts';
 import { fail, str, type Ctx } from './context.ts';
 import { rankEvent } from './guild-events.ts';
+import type { ServerFeature } from './feature.ts';
 
 const NO_RIGHT = 'Dazu fehlt deinem Rang das Recht.';
 const LOWER_ONLY = 'Das geht nur bei Rängen unter deinem.';
@@ -111,7 +113,7 @@ function managed(ctx: Ctx, uid: string, id: unknown) {
 }
 
 const NAME_ERROR = {
-  length: 'Der Rangname braucht 2 bis 67 Zeichen.',
+  length: `Der Rangname braucht ${MIN_RANK_NAME} bis ${MAX_RANK_NAME} Zeichen.`,
   taken: 'Diesen Rangnamen gibt es in der Gilde schon.',
 };
 
@@ -128,7 +130,7 @@ function rightsOf(value: unknown): Set<GuildRight> {
   return new Set(list as GuildRight[]);
 }
 
-export const createGuildRank: Action = (ctx, user, d) => {
+const createGuildRank: Handler<'createGuildRank'> = (ctx, user, d) => {
   const a = actor(ctx, user.id);
   need(a, 'ranks');
   if (a.ranks.length >= MAX_GUILD_RANKS)
@@ -137,13 +139,13 @@ export const createGuildRank: Action = (ctx, user, d) => {
   return 'Rang angelegt.';
 };
 
-export const renameGuildRank: Action = (ctx, user, d) => {
+const renameGuildRank: Handler<'renameGuildRank'> = (ctx, user, d) => {
   const { a, rank } = managed(ctx, user.id, d.rank);
   ctx.guilds.renameRank(rank.id, rankName(a, d.name, rank.id));
   return 'Rang umbenannt.';
 };
 
-export const setGuildRankRights: Action = (ctx, user, d) => {
+const setGuildRankRights: Handler<'setGuildRankRights'> = (ctx, user, d) => {
   const { a, rank } = managed(ctx, user.id, d.rank);
   const next = rightsOf(d.rights);
   if (!canChangeRights([...a.rights], rank.rights, [...next])) fail(NO_RIGHT);
@@ -154,7 +156,7 @@ export const setGuildRankRights: Action = (ctx, user, d) => {
   return 'Rechte gespeichert.';
 };
 
-export const moveGuildRank: Action = (ctx, user, d) => {
+const moveGuildRank: Handler<'moveGuildRank'> = (ctx, user, d) => {
   const { a, rank } = managed(ctx, user.id, d.rank);
   const at = a.ranks.indexOf(rank);
   const other =
@@ -165,7 +167,7 @@ export const moveGuildRank: Action = (ctx, user, d) => {
   return 'Rang verschoben.';
 };
 
-export const deleteGuildRank: Action = (ctx, user, d) => {
+const deleteGuildRank: Handler<'deleteGuildRank'> = (ctx, user, d) => {
   const { a, rank } = managed(ctx, user.id, d.rank);
   // The Leitung is never deletable (nobody is above it) and never the
   // default, so a guild keeps both and with them at least two ranks.
@@ -188,7 +190,7 @@ export const deleteGuildRank: Action = (ctx, user, d) => {
   return 'Rang gelöscht.';
 };
 
-export const setGuildDefaultRank: Action = (ctx, user, d) => {
+const setGuildDefaultRank: Handler<'setGuildDefaultRank'> = (ctx, user, d) => {
   const a = actor(ctx, user.id);
   leadOnly(a);
   const rank = rankOf(a, d.rank);
@@ -206,7 +208,7 @@ export function memberOf(ctx: Ctx, a: Actor, uid: unknown): Membership {
   return m;
 }
 
-export const assignGuildRank: Action = (ctx, user, d) => {
+const assignGuildRank: Handler<'assignGuildRank'> = (ctx, user, d) => {
   const a = actor(ctx, user.id);
   need(a, 'assign');
   const target = memberOf(ctx, a, d.uid);
@@ -237,7 +239,7 @@ export function handOverRank(a: Actor, id: unknown): Rank {
  * Dissolves the guild with all its members (owner, 2026-11-14): only the
  * Leitung, never a right, confirmed with the tag of the guild.
  */
-export const dissolveGuild: Action = (ctx, user, d) => {
+const dissolveGuild: Handler<'dissolveGuild'> = (ctx, user, d) => {
   const a = actor(ctx, user.id);
   leadOnly(a, 'Nur die Gildenleitung kann die Gilde auflösen.');
   if (str(d.tag, 30).toUpperCase() !== a.guild.tag.toUpperCase())
@@ -264,3 +266,16 @@ export function rankState(a: Actor, players: GuildPlayer[]) {
     members: Object.fromEntries(members.map((p) => [p.id, p.rank_id])),
   };
 }
+
+export const serverFeature = {
+  guildActions: {
+    createGuildRank,
+    renameGuildRank,
+    setGuildRankRights,
+    moveGuildRank,
+    deleteGuildRank,
+    setGuildDefaultRank,
+    assignGuildRank,
+    dissolveGuild,
+  },
+} satisfies ServerFeature;

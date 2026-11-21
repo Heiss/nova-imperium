@@ -2,7 +2,7 @@
 // phone, each link with its address, the open view and the mark of what is
 // new there.
 import { describe, expect, it } from 'vitest';
-import { navigation, type NavLink } from './navigation.ts';
+import { hiddenView, navigation, type NavLink } from './navigation.ts';
 import type { NewsData } from './news.ts';
 import type { GameState } from './types.ts';
 
@@ -59,11 +59,13 @@ describe('navigation', () => {
       'lexicanum',
       'help',
     ]);
-    expect(views(n.tabs)).toEqual([
-      'overview',
-      'buildings',
-      'fleet',
-      'messages',
+    // #189 (D1): Übersicht, Bauen, Flotte, Karte; the messages are the bell.
+    expect(views(n.tabs)).toEqual(['overview', 'buildings', 'fleet', 'galaxy']);
+    expect(n.tabs.map((l) => l.label)).toEqual([
+      'Übersicht',
+      'Bauen',
+      'Flotte',
+      'Sternenkarte',
     ]);
     expect(views(n.more)).toEqual([
       'resources',
@@ -71,7 +73,7 @@ describe('navigation', () => {
       'research',
       'shipyard',
       'defense',
-      'galaxy',
+      'messages',
       'highscore',
       'guilds',
       'friends',
@@ -100,24 +102,55 @@ describe('navigation', () => {
   });
 
   it('marks „Mehr“ while one of its views is open', () => {
-    expect(nav(state(), 'galaxy').moreOn).toBe(true);
+    expect(nav(state(), 'highscore').moreOn).toBe(true);
     expect(nav(state(), 'fleet').moreOn).toBe(false);
+    expect(nav(state(), 'galaxy').moreOn).toBe(false);
+  });
+
+  it('marks „Bauen“, not „Mehr“, in each of the four lists (#189, D2)', () => {
+    for (const view of ['buildings', 'research', 'shipyard', 'defense']) {
+      const n = nav(state(), view);
+      expect(n.tabs.filter((l) => l.on).map((l) => l.view)).toEqual([
+        'buildings',
+      ]);
+      expect(n.moreOn).toBe(false);
+      // The menu of the desktop marks the open list only.
+      expect(n.menu.filter((l) => l !== '-' && l.on)).toHaveLength(1);
+    }
+    expect(nav(state(), 'resources').tabs.some((l) => l.on)).toBe(false);
+  });
+
+  it('gives the bell the unread messages and the commander for „Logout“ (#189, D1)', () => {
+    const s = state({ reports: [{ time: 100 }, { time: 101 }, { time: 102 }] });
+    expect(nav(s).bell).toEqual({
+      href: '/?view=messages',
+      unread: 2,
+      on: false,
+    });
+    expect(nav(state(), 'messages').bell).toMatchObject({
+      unread: 0,
+      on: true,
+    });
+    expect(nav(state({}, { name: 'Kai' })).commander).toBe('Kai');
   });
 
   it('marks what finished, the unread messages and the news', () => {
     const s = state({ reports: [{ time: 100 }, { time: 101 }] });
     const n = nav(s, 'overview', new Map([['research', 'Forschung fertig']]));
-    expect(n.tabs[3]!.hint).toBe('1 ungelesene Nachrichten');
+    const messages = (l: ReturnType<typeof nav>) =>
+      l.more.find((x) => x.view === 'messages')!;
+    expect(messages(n).hint).toBe('1 ungelesene Nachrichten');
     expect(n.more[2]!.hint).toBe('Forschung fertig');
     expect(n.moreHint).toBe(true);
-    expect(nav(state({ reports: [{ time: 100 }] })).tabs[3]!.hint).toBe(
+    expect(messages(nav(state({ reports: [{ time: 100 }] }))).hint).toBe(
       undefined,
     );
   });
 
   it('marks „Mehr“ only for something new under it', () => {
+    // The unread messages are under „Mehr“ now, next to the bell (#189).
     const s = state({ reports: [{ time: 101 }] });
-    expect(nav(s).moreHint).toBe(false);
+    expect(nav(s).moreHint).toBe(true);
     expect(nav(state()).moreHint).toBe(false);
   });
 
@@ -130,5 +163,37 @@ describe('navigation', () => {
     const seen = nav(state(), 'overview', new Map(), NEWS, '1.2.0');
     expect(seen.more.find((l) => l.view === 'news')!.hint).toBe(undefined);
     expect(seen.moreHint).toBe(false);
+  });
+});
+
+describe('the views a player cannot open (moved from main.ts for #78)', () => {
+  const rules = (over: object): GameState =>
+    state({ round: { ...round, ...over } });
+
+  it('hides the admin view from a player but not from the admin', () => {
+    expect(hiddenView('admin', state())).toBe(true);
+    expect(hiddenView('admin', state({}, { admin: true }))).toBe(false);
+    expect(hiddenView('admin', null)).toBe(false);
+  });
+
+  it('hides the rewards only when achievements and daily rewards are off', () => {
+    expect(hiddenView('achievements', rules({}))).toBe(true);
+    expect(hiddenView('achievements', rules({ achievements: true }))).toBe(
+      false,
+    );
+    expect(hiddenView('achievements', rules({ daily: true }))).toBe(false);
+    expect(hiddenView('achievements', null)).toBe(false);
+  });
+
+  it('hides the guilds in a round without guilds (#191)', () => {
+    expect(hiddenView('guilds', rules({ guilds: false }))).toBe(true);
+    expect(hiddenView('guilds', rules({ guilds: true }))).toBe(false);
+    expect(hiddenView('guilds', null)).toBe(false);
+  });
+
+  it('hides no other view', () => {
+    const off = rules({ guilds: false });
+    for (const view of ['overview', 'highscore', 'unknown'])
+      expect(hiddenView(view, off)).toBe(false);
   });
 });

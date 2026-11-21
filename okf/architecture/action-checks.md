@@ -62,10 +62,33 @@ section 7, the four economy actions `build`, `research`, `order` and `pct`
 too; 10 are split and 12 check inline only. Their rows below are the state
 after it; the other rows are the audit of 2026-11-15.
 
+**[E]** The vacation mode (#223, 2026-11-17) adds `startVacation` and
+`endVacation`, both following section 7, and one gate before every
+action: `runAction` refuses an action with „Im Urlaubsmodus nicht
+möglich.“ when core `vacationRefuses` (`core/vacation.ts`) says so for a
+player in vacation mode. Since 2026-11-18 only `endVacation` and
+`pushOptions` pass it; every other action is refused, the guild actions,
+`options`, `rename`, `mainPlanet`, `read`, `delrep`, `delall`, `jump`
+(#230), `abandon` (#224) and the admin's actions too, and one added later
+as well (a test runs every key of `ACTIONS`). The browser does not offer
+them: it shows the lock screen (`views/vacation-lock.ts`) for the state
+the server sends to such a player (`lockedState`, `server/game/state.ts`).
+The password change, the deletion of the account, the passkeys, the push
+routes and the sign-out are routes, not actions, and stay open. `send` gets
+the code `vacation` of `sendError`. **[E]** Since 2026-11-18 (owner) an
+account in vacation mode records no activity (`recordActivity` returns at
+once; `endVacation` records again) and every admin route `/api/admin/…` is
+refused for an admin in vacation mode with „Im Urlaubsmodus nicht möglich.“,
+by the one guard `admin()` of `src/server/http/admin.ts`. **[V]** The game
+options action `options` is refused in vacation mode like every action off
+the allow list.
+
 Since the Warp-Tor (#230, 2026-11-17) `ACTIONS` also has `jump`, which
 follows section 7; its row is below `recall`. Since #202 (2026-11-17) it
 also has `demolish`, which follows section 7 from its start; its row is
-below `cancelBuild`. The counts above are those of the audit and stay.
+below `cancelBuild`. Since #258 (2026-11-19) it also has `cancelOrder`, which takes
+an order of the shipyard back; its row is below `order`. The counts above are those
+of the audit and stay.
 
 | Action | Where its checks live | Status | Browser repeats | Messages match | Group |
 |---|---|---|---|---|---|
@@ -75,17 +98,21 @@ below `cancelBuild`. The counts above are those of the audit and stay.
 | `research` | core `researchErrors` (codes `noLab`, `locked`, `busy`, `labUpgrading`, `noEnergy`, `cost` from `hasLab`, `reqMissing`, `labUpgrading`, `energyShort`, `afford`); `networkLab` only for the time; the server only the messages (`RESEARCH_ERROR`, `failEnergy`) | yes | yes, with core `researchErrors` in the same order (F9 fixed): `researchState` (game.ts), the notes `RESEARCH_WAITS` of `researchRow`; the page without a lab with core `hasLab` and `noLab` (catalog-list.ts) | no (F2, F3, F4, F5) | economy |
 | `cancelResearch` | only the own planet | none | – | – | economy |
 | `order` | core `orderErrors` (codes `noYard`, `yardLocked`, `locked`, `count`, `limit`, `cost`, `queueFull` from `hasYard`, `yardLockedBy`, `reqMissing`, `unitRoom`, `maxAfford` and at most 20 orders); the server only the messages (`ORDER_ERROR`, the lock with `YARD_LOCK`) | yes | partly, with core `orderErrors` in its own order: the requirements first, then the lock, the limit and the price disable „Bauen“ (`orderAction`, catalog-list.ts), the page with core `hasYard` (`yardPage`), a count of 0 by `orderNote` (`order` in `client/main.ts`); not the 20 orders | no (F2, F6, F7) | economy |
+| `cancelOrder` (#258) | inline: the position must be a whole number from 0 (else „Ungültig.“); only the own planet; the rule is core `cancelOrder` (`core/cancel-order.ts`); a position that holds no order or another unit changes nothing and is no refusal, as `cancelBuild` without an upgrade | none | – (a button per order of the list, `cancelOrder` of `client/features/queue.ts`) | – | economy |
 | `pct` | core `isProducer` (a producer of `PRODUCERS` only); the share rounded to tens after `int()`, a clamp, not a refusal | yes | no; the select offers valid shares only (`views/ProducerTable.svelte`) | – | economy |
 | `rename` | inline: a name after `str(…, 20)` | no | yes, silently: trims, sends nothing when empty, `maxlength="20"` (`doRename`, main.ts) | – | player |
 | `options` | core `isExplainMode`; the probes clamped by `int` | yes | the same clamp, `clampInt` (`client/logic/format.ts`); the select offers the modes | – | player |
 | `pushOptions` | core `isPushTopic` (`server/push-options.ts`) | yes | the boxes offer `PUSH_TOPICS` only (`client/logic/push-options.ts`) | – | player |
 | `abandon` (#224, after the audit) | core `abandonTargetError` (codes `unknown`, `moon`, `main`) and `abandonError` (then `stale`, a confirmation opened for an earlier colony at the same position by its founding time `created` (owner, 2026-11-17), then `flights`, `research`, `orders`, `core/abandon.ts`); the server words them (`ABANDON_ERROR`, `server/game/abandon.ts`); the password before them, inline like the deletion of the account („What counts“: the session), and the address limited | yes | partly, with core `abandonTargetError`: the button „Kolonie aufgeben“ only on an own planet that is not the main planet (`abandonOffered`, `client/logic/abandon.ts`); the references only the server; the Sternenkarte offers no Landnahme at a locked position, with core `positionLocked` (`freePosition`) | – | player |
+| `startVacation` | core `vacationEntryError` (codes `fleets`, `building`, `research`, `shipyard`, `core/vacation.ts`); the server gathers what runs and words the codes (`VACATION_ENTRY_ERROR`, `server/game/vacation.ts`) (#223) | yes | no; the box „Urlaubsmodus“ names what blocks the entry (`client/logic/vacation.ts`) | – | player |
+| `endVacation` | core `vacationExitError` (codes `inactive`, `early`); the server words them (`earlyText` with the earliest end) (#223) | yes | yes, with core `vacationEnd`: on the lock screen „Urlaubsmodus beenden“ disabled before the end, with the time left in text (`lockLeft`, `client/logic/vacation.ts`) | – | player |
 | `read` | – | none | – | – | player |
 | `delrep` | – (deletes only a report of the player) | none | – | – | player |
 | `delall` | – | none | – | – | player |
-| `send` | core `missionRules`, `sendError` (codes, messages `SEND_ERROR` in `server/game/fleet-actions.ts`; after the audit the code `locked` of #224, worded with the end of the lock by `positionLockedText`, `server/game/position-lock.ts`), `fleetSlots`, `capacity`, `fuelFor`, `canFly`; inline the unknown mission, a ship that cannot fly, no ships, the slot count (SQL `gift = 0`), cargo and fuel | partly | partly, not `sendError`: slots (`client/views/fleet.ts`), fuel and load marked red (`fleetPreview`, game.ts), hints at the target (`targetInfo`, main.ts), no probes (`gspy`, main.ts) | no (F11, F12, F13) | fleet |
-| `recall` | inline: own, on the way out, not yet arrived, no gift (`recall`) | no | partly: own, out, no gift (`fleetRow`, `client/logic/overview.ts`); not the arrival | – (F14) | fleet |
+| `send` | core `missionRules`, `sendError` (codes, messages `SEND_ERROR` in `server/game/fleet-actions.ts`; after the audit the code `locked` of #224, worded with the end of the lock by `positionLockedText`, `server/game/position-lock.ts`, and since #223 the code `vacation` from `vacationProtects`, `core/vacation.ts`; since #175 the Auspex-Erkundung refuses below Auspex-Lehre 1 with `noSpyTech` of `spyTechError`, `core/espionage.ts`, from the sender's research in `SendFleet`; #190 added `surveyLocked` and `surveyProbesOnly` of the Vermessung, which reads the research of the owner from `SendFleet` and whose position lock is refused too; since #95 the Mondbruch refuses with `notMoon` (target kind `foreignMoon`, asked first) and `noWorldbreaker`, after the same `vacation` and noob protection checks as a foreign target; #93 added the target kind `expedition` (the position after the last planet position, `SendTarget.expedition` from `isExpeditionPlace`) with `notExpedition`, `expeditionLocked` and `expeditionSlots` (the research and the running expeditions from `SendFleet`) and `expeditionSpace` for a free-position mission there, and the stay of a mission with `maxStay` (hours up to level times the hours per level of the round, the real time divided by the universe speed when the round says so), checked inline by `chosenStay`, with the extra places of the round from `SendFleet.extraSlots`), `fleetSlots`, `capacity`, `fuelFor`, `canFly`; inline the unknown mission, a ship that cannot fly, no ships, the slot count (SQL `gift = 0`), cargo and fuel | partly | partly, not `sendError`: slots (`client/views/fleet.ts`), fuel and load marked red (`fleetPreview`, game.ts), hints at the target (`targetInfo`, main.ts), no probes (`gspy`, main.ts); not `noSpyTech` (#175) | no (F11, F12, F13) | fleet |
+| `recall` | inline: own, on the way out, not yet arrived, no gift (`recall`); the way home is `min(flown so far, flight out)` since #93 | no | partly: own, out, no gift (`fleetRow`, `client/logic/overview.ts`); not the arrival | – (F14) | fleet |
 | `jump` | core `jumpError` (`core/jump-gate.ts`: codes `notMoon`, `noGate`, `cooling`, `noTarget`, `sameMoon`, `targetNoGate`, `targetCooling`, `noShips`, `stationary` from `gateLevel`, `gateReady`, `targetError` and `canFly`); the server only gathers the two moons, their gate times and the picked ships (`pickedShips` of `fleet-actions.ts`, at most the ships there) and words the codes (`JUMP_ERROR`, `server/game/jump-gate.ts`) | yes | yes, with core `gateReady` and `targetError`: „Springen“ disabled while the own gate cools down or no target is ready, a cooling target disabled in „Zielmond“, foreign and gateless moons not offered (`jumpPanel`, `client/logic/jump-gate.ts`); not the ships, which the server refuses („Keine Schiffe ausgewählt.“) | – | fleet |
+| `missile` | core `launchError` (`core/missiles.ts`: codes `count`, `noMissiles`, `aim`, `noPlanet`, `noMoon`, `ownTarget`, `outOfRange`, `vacation` from `vacationProtects` and `protected` from the noob protection); the server gathers the launcher, the target and its owner and words the codes (`LAUNCH_ERROR`, `server/game/missiles.ts`); a player in vacation mode is refused by the general gate | yes | partly: the button „Raketenangriff“ only with Orbitalraketen and a target in range (`canLaunch`, `client/logic/missiles.ts`); the rest the server refuses | – | fleet |
 | `trade` (#171, after the audit) | core `trade` (`core/market.ts`: codes `closed`, `noPost`, `resource`, `amount`, `poor`, `full`, `limit`, `tiny` from `marketOpen`, `postLevel`, `pairOf`, the whole amount, the stock, `roomFor`, `remaining`, `got`; the fee from `feePercent` with the two settings of the round); the cap by the free storage is applied first, then an amount above what is left of the day is cut to it (`cut`, owner 2026-11-19; only an empty rest refuses with `limit`; a limit of 0 is none); the server gathers the planet, the prices after the drift and the amount of the UTC day (`marketOf`, `server/game/market.ts`) and words the codes with `tradeNote` (`core/market-text.ts`, shared with the browser); one transaction: stock, price of the pair (`market_prices`) and amount of the day (`market_usage`) change together; own planet by `mine()`; not on the vacation allow list (#223) | yes | yes, with core `trade`: `preview` shows the refusal as a note and disables „Tauschen“ (`client/logic/market.ts`), „max“ from `maxGive`; the same words | – | economy |
 | `settings` | core `universeErrors` (codes `range` and `used` per setting, in the order of `UNIVERSE_SPECS`) and `universeOf` (`core/universe.ts`); the server words each code (`SETTINGS_ERROR`, `server/game/admin.ts`), every refused setting at once (admin pull request of #214) | yes | no; the inputs show the range of each setting (`client/views/misc.ts`) | – | admin |
 | `reset` | core `roundRefused` and `roundValues` over the registry `ROUND_SETTINGS` (`core/round.ts`, #283): the first refused setting in the fixed order of the registry (`order`, owner, 2026-11-17: rewards, guilds, main-planet lock, lock of a given-up position, then the entries of later features by their numbers, among them who may hold and the level of the spy report of #55 and the refund factor and time of a demolition of #202), a group (`rewards`) together; the server words it with the entry's `refusal`, else `rangeError` (`server/game/round.ts`) (admin pull request of #214); after the audit the locks of #221 (`core/main-planet.ts`) and #224 (`core/abandon.ts`) and the refund factor and the time of a demolition of #202 (`core/demolition.ts`) are entries of it, each file exporting its entries as `roundSettings` (#310) | yes | – (checkboxes send booleans) | – | admin |
@@ -232,7 +259,7 @@ and F10 in that pull request.]
 * **F17** (rule) Rank names: `views/guilds.ts:219` and `:245` carry
   `minlength`, but the inputs sit in no form and `main.ts` calls no
   `checkValidity`, so only `maxlength` holds; the server refuses with „Der
-  Rangname braucht 2 bis 67 Zeichen.“ (`guild-ranks.ts:110`).
+  Rangname braucht 2 bis 24 Zeichen.“ (`guild-ranks.ts:110`; 67 until #277).
 
 Checks only the server makes, besides those of „What counts“: the 20 orders
 of the shipyard (`actions.ts:52` and `:256-257`; the browser leaves „Bauen“
@@ -243,7 +270,7 @@ taken, and every rule of `claimDailyReward` beyond the state.
 Notes, no disagreement:
 
 * Numbers written into messages beside their constant in `src/core`:
-  „2 bis 67“ (`guild-ranks.ts:110`, `MIN_RANK_NAME`, `MAX_RANK_NAME`),
+  „2 bis 24“ (`guild-ranks.ts:110`, `MIN_RANK_NAME`, `MAX_RANK_NAME`),
   „25“ (`guild-ranks.ts:131`, `MAX_GUILD_RANKS`), „1 bis 4.320“
   (`endzeit.ts:55`, `GIFT_MINUTES`).
 * `actions.ts:253` „Diesen Schutzdom gibt es nur einmal pro Planet.“ is the

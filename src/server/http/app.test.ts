@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { openDatabase } from '../db/database.ts';
 import path from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { startSession } from '../auth.ts';
 import type { Mail } from '../mail.ts';
 import {
@@ -17,6 +17,14 @@ import { CSP } from './security.ts';
 import { addMoon } from '../game/moons.ts';
 
 import { asAdmin, close, start } from '../../test/http.ts';
+
+// The password check is the cost of every login here; the result of the same
+// password and salt is computed once (src/test/scrypt-memo.ts).
+vi.mock('node:crypto', async (original) =>
+  (await import('../../test/scrypt-memo.ts')).memoScrypt(
+    await original<typeof import('node:crypto')>(),
+  ),
+);
 
 describe('http', () => {
   it('retries a blocked build without a stale snapshot or a duplicate charge', async () => {
@@ -434,9 +442,20 @@ describe('http', () => {
     const session = (await call('POST', '/api/login', login)).set!.split(
       ';',
     )[0]!;
-    await call('POST', '/api/activity', {});
+    const page = 'page-0001';
+    await call('POST', '/api/playtime', {
+      instance: page,
+      seq: 0,
+      state: 'active',
+      since: null,
+    });
     ctx.clock.t += 20000;
-    await call('POST', '/api/activity', {});
+    await call('POST', '/api/playtime', {
+      instance: page,
+      seq: 1,
+      state: 'active',
+      since: 20000,
+    });
     ctx.clock.t += 360000;
     await call('GET', '/api/state');
     const build = await call('POST', '/api/action', {
@@ -562,37 +581,62 @@ describe('http', () => {
 
   it('detects cross-site requests', () => {
     const cfg = testConfig();
+    const json = 'application/json';
     const req = (method: string, headers: Record<string, string>) =>
       ({ method, headers }) as never;
+    const own = { 'content-type': json, origin: 'http://localhost:8080' };
     expect(crossSite(req('GET', {}), cfg)).toBe(false);
+    expect(crossSite(req('HEAD', {}), cfg)).toBe(false);
+    // Own origin: accepted, whatever the case or parameters of the type.
+    expect(crossSite(req('POST', own), cfg)).toBe(false);
     expect(
       crossSite(
-        req('POST', { 'content-type': 'application/json; charset=utf-8' }),
+        req('POST', { ...own, 'content-type': `${json}; charset=utf-8` }),
         cfg,
       ),
     ).toBe(false);
     expect(
-      crossSite(req('POST', { 'content-type': 'Application/JSON' }), cfg),
+      crossSite(
+        req('POST', { ...own, 'content-type': 'Application/JSON' }),
+        cfg,
+      ),
     ).toBe(false);
+    // No Origin (#328): refused like a foreign one.
+    expect(crossSite(req('POST', { 'content-type': json }), cfg)).toBe(true);
     expect(crossSite(req('POST', {}), cfg)).toBe(true);
-    expect(crossSite(req('POST', { 'content-type': 'text/plain' }), cfg)).toBe(
-      true,
-    );
     expect(
-      crossSite(
-        req('POST', {
-          'content-type': 'application/json',
-          origin: 'http://localhost:8080',
-        }),
-        cfg,
-      ),
-    ).toBe(false);
-    expect(
-      crossSite(
-        req('POST', { 'content-type': 'application/json', origin: 'null' }),
-        cfg,
-      ),
+      crossSite(req('POST', { ...own, 'content-type': 'text/plain' }), cfg),
     ).toBe(true);
+    expect(crossSite(req('POST', { ...own, origin: 'null' }), cfg)).toBe(true);
+    expect(
+      crossSite(req('POST', { ...own, origin: 'https://evil.example' }), cfg),
+    ).toBe(true);
+  });
+
+  it('refuses a POST without Origin like one from a foreign origin (#328)', async () => {
+    const { ctx, call } = await start();
+    addUser(ctx, 'Anna');
+    const login = { name: 'Anna', password: 'secret1' };
+    const foreign = await call('POST', '/api/login', login, {
+      origin: 'https://evil.example',
+    });
+    const none = await call('POST', '/api/login', login, { origin: null });
+    expect(foreign).toMatchObject({
+      status: 403,
+      json: { error: 'Anfrage abgelehnt.' },
+    });
+    expect(none.status).toBe(foreign.status);
+    expect(none.json).toEqual(foreign.json);
+    expect(none.set).toBeNull();
+    // Own origin (the default of the helper): accepted.
+    expect((await call('POST', '/api/login', login)).status).toBe(200);
+    // GET carries no Origin and is not affected.
+    expect(
+      (await call('GET', '/healthz', undefined, { origin: null })).status,
+    ).toBe(200);
+    expect(
+      (await call('GET', '/api/state', undefined, { origin: null })).status,
+    ).toBe(200);
   });
 });
 

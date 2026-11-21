@@ -11,7 +11,10 @@ import Overview from './Overview.svelte';
 const view = (name = 'Heimat', fleets: ClientFleet[] = []): V => ({
   s: {
     cfg: U,
-    me: { id: 'u1' },
+    me: { id: 'u1', readAt: 0 },
+    // The cards of the phone (#189) read the messages.
+    reports: [],
+    galaxy: [],
     fleets,
     players: { u1: { name: 'Ich', points: 10 } },
   } as unknown as GameState,
@@ -32,6 +35,12 @@ describe('Overview', () => {
   it('shows nothing before the first render', () => {
     // Svelte's hydration markers are comments; nothing else is rendered.
     expect(html(null)).toMatch(/^(?:<!--[^>]*-->)*$/);
+  });
+
+  it('shows the planets against the limit of the round (#237)', () => {
+    expect(html(view('Kolonie'))).toContain(
+      '<td>Planetengrenze</td><td>Planeten: 0 · unbegrenzt</td>',
+    );
   });
 
   it('follows the view state of the client', () => {

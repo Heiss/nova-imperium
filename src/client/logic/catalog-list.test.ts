@@ -38,7 +38,9 @@ interface Setup {
   research?: Levels;
   rq?: ResearchQueue | null;
   explain?: string;
+  levelTable?: string;
   openEx?: Record<string, boolean>;
+  openLv?: Record<string, boolean>;
   labs?: GameState['labs'];
   galaxy?: Partial<GameState['galaxy'][number]>[];
   mainPlanet?: string | null;
@@ -52,7 +54,7 @@ function view(o: Setup = {}): V {
   const P = planet({ res: { m: 500, c: 500, d: 0 }, ...o.P });
   const s = {
     cfg: U,
-    me: { id: 'u1', explain: o.explain ?? 'icon' },
+    me: { id: 'u1', explain: o.explain ?? 'icon', levelTable: o.levelTable },
     labs: o.labs ?? [],
     galaxy: o.galaxy ?? [],
     // The first planet; research from before #49 counts as the main planet's (#221).
@@ -64,7 +66,7 @@ function view(o: Setup = {}): V {
     P,
     R: { research: o.research ?? {}, rq: o.rq ?? null },
     now: o.now ?? 0,
-    ui: { openEx: o.openEx ?? {} } as unknown as Ui,
+    ui: { openEx: o.openEx ?? {}, openLv: o.openLv } as unknown as Ui,
   };
 }
 
@@ -128,6 +130,50 @@ describe('every row', () => {
     ).toBe('energy');
   });
 
+  it('shows the ▤ of the level overview on buildings and research only (#187)', () => {
+    const v = view({ P: { b: { yard: 1, lab: 1 } } });
+    const t = text('metal')!;
+    expect(row(v, 'building', 'metal').levels).toEqual({
+      key: 'metal',
+      button: 'lvq_metal',
+      panel: 'lv_metal',
+      name: t.n,
+      open: false,
+      show: false,
+    });
+    expect(row(v, 'research', 'energy').levels).toMatchObject({
+      key: 'energy',
+      button: 'lvq_energy',
+    });
+    expect(row(v, 'ship', 'lf').levels).toBeUndefined();
+    expect(row(v, 'defense', 'rl').levels).toBeUndefined();
+  });
+
+  it('unfolds the table of the entries whose ▤ was pressed, always shows it in „Immer anzeigen“ and drops it in „Ausblenden“ (#187)', () => {
+    const lab = { P: { b: { lab: 1 } } };
+    const pressed = view({ ...lab, openLv: { metal: true } });
+    expect(row(pressed, 'building', 'metal').levels).toMatchObject({
+      open: true,
+      show: true,
+    });
+    expect(row(pressed, 'building', 'crystal').levels).toMatchObject({
+      open: false,
+      show: false,
+    });
+    const always = view({ ...lab, levelTable: 'always' });
+    expect(row(always, 'building', 'metal').levels).toMatchObject({
+      button: null,
+      show: true,
+    });
+    const hidden = view({
+      ...lab,
+      levelTable: 'hidden',
+      openLv: { metal: true },
+    });
+    expect(row(hidden, 'building', 'metal').levels).toBeNull();
+    expect(row(hidden, 'research', 'energy').levels).toBeNull();
+  });
+
   it('gives each kind its icon class', () => {
     const v = view({ P: { b: { yard: 1, lab: 1 } } });
     expect(row(v, 'research', 'energy').cls).toBe('ic-r');
@@ -187,6 +233,21 @@ describe('buildings', () => {
     );
     expect(fusion).toHaveLength(3);
     expect(row(view(), 'building', 'robot').lines).toHaveLength(1);
+  });
+
+  it('shows the places of the Raketenkrypta the missiles take, stock and queue (#54)', () => {
+    const v = view({
+      P: {
+        b: { silo: 2 },
+        def: { abm: 3, ipm: 4 },
+        sq: [{ key: 'ipm', n: 1, unit: 1 }],
+      },
+    });
+    expect(row(v, 'building', 'silo').lines[0]).toBe('Belegt: 13 / 20 Plätze');
+    expect(row(view(), 'building', 'silo').lines[0]).toBe(
+      'Belegt: 0 / 0 Plätze',
+    );
+    expect(row(v, 'building', 'yard').lines[0]).not.toMatch(/Belegt/);
   });
 
   it('starts a building, or upgrades it, when the planet can pay', () => {
@@ -375,11 +436,82 @@ describe('research', () => {
     expect(page.line).toEqual({ text: 'Scholarium Stufe 1' });
     expect(page.queue).toEqual([]);
     expect(page.warn).toBeNull();
-    expect(page.rows.map((r) => r.key)).toEqual(Object.keys(RES));
+    // Without the Kolonialverwaltung, which only a round with it lists (#237).
+    expect(page.rows.map((r) => r.key)).toEqual(
+      Object.keys(RES).filter((k) => k !== 'colonial'),
+    );
     const moon = view({ P: { kind: 'moon', name: 'Luna', b: { lab: 1 } } });
     expect(opened(catalogPage(moon, 'research')).title).toMatch(
       /^Forschung auf .*Luna/,
     );
+  });
+
+  it('lists the Kolonialverwaltung in a round that has it, after the others (#237)', () => {
+    const v = view(lab);
+    v.s.cfg = {
+      ...U,
+      roundColonyBase: 6,
+      roundColonyResearch: 1,
+      roundColonyPerLevel: 2,
+      roundColonyMaxLevel: 4,
+    };
+    const keys = opened(catalogPage(v, 'research')).rows.map((r) => r.key);
+    expect(keys).toEqual(Object.keys(RES));
+    // A round with a base limit but without the research does not list it.
+    v.s.cfg = { ...v.s.cfg, roundColonyResearch: 0 };
+    expect(
+      opened(catalogPage(v, 'research')).rows.map((r) => r.key),
+    ).not.toContain('colonial');
+  });
+
+  it('adds the line „Kolonialverwaltung Stufe 3/4 · …“ above the time to the row of the research (#237)', () => {
+    const v = view({ ...lab, research: { colonial: 3 } });
+    v.s.cfg = {
+      ...U,
+      roundColonyBase: 6,
+      roundColonyResearch: 1,
+      roundColonyPerLevel: 2,
+      roundColonyMaxLevel: 4,
+    };
+    const lines = row(v, 'research', 'colonial').lines;
+    expect(lines).toHaveLength(2);
+    expect(lines[0]).toBe(
+      'Kolonialverwaltung Stufe 3/4 · +2 Planeten je Stufe · nächste Stufe: maximal 14 Planeten',
+    );
+    expect(lines[1]).toMatch(/^Forschungszeit: /);
+    // No other research gets one.
+    expect(row(v, 'research', 'energy').lines).toHaveLength(1);
+  });
+
+  it('offers no next level of the Kolonialverwaltung at its highest level, but a note (#237)', () => {
+    const cfg = {
+      ...U,
+      roundColonyBase: 6,
+      roundColonyResearch: 1,
+      roundColonyPerLevel: 2,
+      roundColonyMaxLevel: 4,
+    };
+    const at = (level: number) => {
+      const v = view({
+        P: { b: { lab: 3 } },
+        research: { colonial: level, spy: 4, impulse: 3 },
+      });
+      v.s.cfg = cfg;
+      return row(v, 'research', 'colonial').action;
+    };
+    expect(at(3)).toMatchObject({ kind: 'start', label: 'Forschen (Stufe 4)' });
+    expect(at(4)).toEqual({
+      kind: 'note',
+      cls: 'dim',
+      text: 'höchste Stufe erreicht',
+    });
+    // No highest level (0): the research goes on.
+    const open = view({
+      P: { b: { lab: 3 } },
+      research: { colonial: 9, spy: 4, impulse: 3 },
+    });
+    open.s.cfg = { ...cfg, roundColonyMaxLevel: 0 };
+    expect(row(open, 'research', 'colonial').action.kind).not.toBe('note');
   });
 
   it('names how many labs the research network links', () => {
@@ -605,6 +737,26 @@ describe('shipyard and defense', () => {
     );
   });
 
+  it('orders no more missiles than the Raketenkrypta holds (#54)', () => {
+    const r = { research: { impulse: 1 } };
+    const full = yard(
+      { res: RICH, b: { yard: 1, silo: 2 }, def: { abm: 20 } },
+      r,
+    );
+    expect(action(full, 'defense', 'abm')).toMatchObject({
+      max: 0,
+      disabled: true,
+    });
+    const room = yard(
+      { res: RICH, b: { yard: 1, silo: 4 }, def: { abm: 10 } },
+      r,
+    );
+    expect(action(room, 'defense', 'ipm')).toMatchObject({
+      max: 15,
+      disabled: false,
+    });
+  });
+
   it('orders as many units as the planet can pay and may have', () => {
     const v = yard({ res: RICH }, { research: { comb: 1, shield: 2 } });
     expect(action(v, 'ship', 'lf')).toEqual({
@@ -694,11 +846,13 @@ describe('shipyard and defense', () => {
       opened(catalogPage(yard({ sq, sqT }, { now }), 'defense')).queue;
     expect(queue(2000)).toEqual([
       {
+        key: 'lf',
         label: `2× ${text('lf')!.n}`,
         next: { end: 6000, left: dur(4000) },
         each: `je ${dur(5000)}`,
       },
       {
+        key: 'sc',
         label: `1.200× ${text('sc')!.n}`,
         next: null,
         each: `je ${dur(3000)}`,
