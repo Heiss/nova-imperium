@@ -2,17 +2,18 @@
 // bundle 7): the closed notice, the missing Handelsposten, the form with its
 // preview, the menu entry, and the places of the settings in the dialog
 // „Neue Runde“ and the admin panel.
+import { render } from 'svelte/server';
 import { afterEach, describe, expect, it } from 'vitest';
 import { DEFAULT_UNIVERSE } from '../../core/universe.ts';
 import { planet, roundDefaults } from '../../test/fixtures.ts';
 import { marketView } from '../../test/market-view.ts';
 import { normalize } from '../../test/markup.ts';
-import { newDraft, preview } from '../logic/market.ts';
+import { newDraft, preview, type Preview } from '../logic/market.ts';
 import { draft } from '../logic/market-form.svelte.ts';
-import { previewHTML } from '../logic/market-page.ts';
 import type { GameState } from '../logic/types.ts';
 import type { V } from './common.ts';
 import { menu } from './index.ts';
+import MarketPreview from './MarketPreview.svelte';
 import {
   adminMarkup as admin,
   roundDialogMarkup as roundDialog,
@@ -20,6 +21,10 @@ import {
 import { ANEW, MOUNTED } from './mount.ts';
 
 const market = (v: V): string => normalize(marketView(v));
+
+/** The preview below the fields (MarketPreview, #337, in place of previewHTML()), as a browser reads it. */
+const previewHTML = (p: Preview): string =>
+  normalize(render(MarketPreview, { props: { p } }).body);
 
 const BASE = 1_000_000;
 const PRICES = { mc: BASE, md: BASE, cm: BASE, cd: BASE, dm: BASE, dc: BASE };
@@ -158,6 +163,31 @@ describe('the preview of the view', () => {
       previewHTML(preview(full, { give: 'm', get: 'c', amount: '1000' })),
     ).toContain(
       '</table><p class="dim">Begrenzt durch das freie Lager: Du gibst nur 665 Adamant ab.</p>',
+    );
+  });
+
+  it('keeps a line and a note as text, as the escaped HTML did (#337)', () => {
+    const p = {
+      lines: [{ label: 'a<b>', value: '&"x"' }],
+      note: '<i>x</i>',
+      ok: false,
+    } as Preview;
+    const html = render(MarketPreview, { props: { p } }).body;
+    expect(html).not.toContain('<b>');
+    expect(html).not.toContain('<i>');
+    expect(html).toContain('<td>a&lt;b></td><td>&amp;"x"</td>');
+    expect(previewHTML(p)).toContain('<p class="bad">&lt;i>x&lt;/i></p>');
+  });
+
+  it('writes the preview that the form is painted with (ported from logic/market-page.test.ts)', () => {
+    expect(
+      previewHTML({
+        lines: [{ label: '<Kurs>', value: 'a & b' }],
+        note: 'Note "x"',
+        ok: false,
+      }),
+    ).toBe(
+      '<table class="kv"><tr><td>&lt;Kurs></td><td>a &amp; b</td></tr></table><p class="bad">Note "x"</p>',
     );
   });
 

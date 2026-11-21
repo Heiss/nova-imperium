@@ -11,7 +11,7 @@
     effectText,
     type LevelTable,
   } from '../logic/level-table.ts';
-  import { costHTML } from './common.ts';
+  import Cost from './Cost.svelte';
 
   let {
     table,
@@ -58,7 +58,7 @@
                 · deine Stufe</span
               >{/if}</th
           >
-          <td>{@html costHTML(row.cost, P)}</td>
+          <td><Cost cost={row.cost} {P} /></td>
           <td class="n">{dur(row.time)}</td>
           {#each table.effects as head, i (head.label)}
             {@const delta = overview

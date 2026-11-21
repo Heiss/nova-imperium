@@ -6,14 +6,14 @@
   // amount with „max“, the preview and „Tauschen“. The fields are the state of
   // logic/market-form.svelte.ts (#332): the form binds them, the preview
   // follows them, and features/market.ts reads them when „Tauschen“ sends and
-  // writes the amount for „max“. The preview is HTML (`{@html}`), written by
-  // previewHTML() of logic/market-page.ts.
+  // writes the amount for „max“. The preview is MarketPreview.svelte (#337).
   import { RES_NAME, TRADED } from '../../core/market.ts';
   import type { Res } from '../../core/market.ts';
   import { chooseGive, draft } from '../logic/market-form.svelte.ts';
-  import { previewHTML, type MarketPage } from '../logic/market-page.ts';
+  import type { MarketPage } from '../logic/market-page.ts';
   import { fixed, preview, targets } from '../logic/market.ts';
   import Box from './Box.svelte';
+  import MarketPreview from './MarketPreview.svelte';
 
   let { page }: { page: MarketPage } = $props();
   // Never gets what it gives: the first other resource then.
@@ -58,7 +58,7 @@
         />
         <button type="button" data-act="marketMax">max</button>
       </p>
-      <div id="market-preview" role="status">{@html previewHTML(p)}</div>
+      <div id="market-preview" role="status"><MarketPreview {p} /></div>
       <p>
         <button type="submit" id="market-trade" disabled={!p.ok}
           >Tauschen</button

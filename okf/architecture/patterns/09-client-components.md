@@ -225,6 +225,28 @@ description: 'The client as generic Svelte components with a state module, the c
   preview of `Market.svelte`, the guild profile of `Guilds.svelte`,
   `costHTML`/`requirementsHTML` of `CatalogList`) stay as they are and get
   an issue of their own later (owner, 2026-11-21, through the coordinator).
+* **[V]** Built with #337 (the issue of the previous entry; owner and
+  coordinator, 2026-11-21): the `{@html}` pieces that show a value of a
+  player or of the game are Svelte markup, view by view, with no visible
+  change. `Cost.svelte` and `Requirements.svelte` (`CatalogList`,
+  `LevelTable`, `LexicanumArticle`), `PlanetPicture.svelte` and
+  `MoonPicture.svelte` (overview, Sternenkarte) and `MarketPreview.svelte`
+  replace `costHTML()`, `requirementsHTML()`, `planetHTML()`,
+  `moonPicture()` and `previewHTML()`; in the Sternenkarte the symbols of a
+  moon and of a Trümmerfeld are data (`GalaxyMark` of `logic/galaxy.ts`) and
+  the button „Bergung“ is the action kind `harvest` (a small button in the
+  row and in the sheet), so `GalaxyAction` has no `html` kind; `moonMark()`,
+  `debrisMark()` and `harvestButton()` are gone. A name or text that was
+  escaped is text of the component, so Svelte escapes it. The frozen
+  copies of the builders are `src/test/html-pieces-frozen.ts`, which the
+  reference tests import; see
+  [Reference tests of the Svelte views](/ops/testing/svelte-view-tests.md).
+  `Fleet.svelte` has no `{@html}` left (#332 removed the two named above).
+  What stays: the fixed SVG glyphs `TAB_GLYPHS` of `TabBar.svelte`,
+  `MoreList.svelte` and `Bell.svelte` (no player or game data; decided), and
+  the guild profile of `Guilds.svelte`, which is the server's Markdown of a
+  player text rendered with `{@html}` (open: the owner decides how it is
+  shown as components, as that is no conversion of a builder).
 * **[E]** Bundle 5 after bundle 4 (owner, 2026-11-15 and 2026-11-16: the
   order of the bundles of #118 „Geklärt, Nachtrag 3“, unchanged by
   „Nachtrag 4“): Highscore, Achievements, and Hilfe & Optionen.

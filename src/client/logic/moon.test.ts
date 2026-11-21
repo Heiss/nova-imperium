@@ -5,9 +5,7 @@ import {
   MOON_FORMED,
   moonAt,
   moonLines,
-  moonMark,
   moonMarkId,
-  moonPicture,
   moonTarget,
   ownPlaces,
 } from './moon.ts';
@@ -39,23 +37,11 @@ describe('moons in the interface (#53)', () => {
     expect(moonAt([], { g: 1, s: 2, p: 5 })).toBeUndefined();
   });
 
-  it('draws the moon with its name for screen readers', () => {
-    expect(moonPicture('Luna <b> (Mond)', 28)).toBe(
-      '<img class="moon" src="/icons/moon.svg" alt="Luna &lt;b&gt; (Mond)" width="28" height="28">',
-    );
-  });
-
-  it('makes the symbol a button that opens and closes the moon row', () => {
-    const moon = place('moon', 5, 'u_Bert', { name: 'Luna' });
-    expect(moonMark(moon, false)).toBe(
-      '<button type="button" id="moon-m1_2_5" class="moon-btn" data-act="gmoon" data-id="m1_2_5" aria-expanded="false" title="Luna (Mond)"><img class="moon" src="/icons/moon.svg" alt="Luna (Mond)" width="20" height="20"></button>',
-    );
-    expect(moonMark(moon, true)).toContain('aria-expanded="true"');
-    // The same id after a new render keeps the focus on the symbol.
+  // The picture and the symbol of a moon are components since #337: their
+  // markup is tested in src/test/html-pieces-reference.test.ts
+  // (MoonPicture) and src/client/views/galaxy.test.ts (the symbol).
+  it('gives the symbol an id that stays the same after a new render, so the focus stays on it', () => {
     expect(moonMarkId('m1_2_5')).toBe('moon-m1_2_5');
-    expect(moonMark({ ...moon, id: 'm<1>' }, false)).toContain(
-      'id="moon-m&lt;1&gt;"',
-    );
   });
 
   it('lists the own planets and moons, each moon after its planet', () => {
