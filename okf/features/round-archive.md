@@ -552,7 +552,11 @@ Rewind below, the full one comes with these events.
       (`mission` `survey`, `fate` `gone`), and a Mondbruch arrival of the seat
       with Weltenbrecher among its ships (they may tear themselves apart, which
       the battle numbers do not hold). The last one suppresses also when none
-      was torn; it can only miss a recovery.
+      was torn; it can only miss a recovery. **[V]** All three are kept
+      (coordinator, 2026-11-21, #235 Q31): each is consumption the ledger
+      does not subtract. The Mondbruch case is the coarse one: the journal does
+      not hold the self-destruction of a Weltenbrecher, so a card is missed
+      there whenever a Weltenbrecher flew, torn or not.
     * The same events before the loss do not suppress the card, and neither do
       the events of another seat.
 * **[V]** The cards in the issue's order of slots: 1, 2, 3, 4, 5, 6, 7, 8 in
@@ -597,4 +601,6 @@ Rewind below, the full one comes with these events.
   `round-rewind-consumption.test.ts` does it for events of real arrivals. The
   query reads every row of the round once (it opens the JSON of the payload in
   SQLite); a more selective read would need columns for the target and the
-  owners of the places, which the journal does not have.
+  owners of the places, which the journal does not have. **[U]** Whether
+  this full read is felt on the server is not known; no schema change for it
+  now (coordinator, 2026-11-21).
