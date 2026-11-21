@@ -57,8 +57,12 @@
       open = null;
       return;
     }
+    // The server names the conversation as stored (Q36): „bert“ opens „Bert“.
+    const stored =
+      typeof answer.data.with === 'string' ? answer.data.with : key;
+    open = stored;
     loaded = {
-      key,
+      key: stored,
       id,
       thread: startThread(
         answer.data.messages as PmLine[],

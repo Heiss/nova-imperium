@@ -183,10 +183,14 @@ const openPrivateConversation: Handler<'openPrivateConversation'> = (
   u,
   d,
 ): Answer => {
-  const page = ctx.privateMessages.newest(u.id, partner(ctx, d.name));
+  const other = partner(ctx, d.name);
+  const page = ctx.privateMessages.newest(u.id, other);
   return {
     msg: null,
     data: {
+      // The name as stored, so a name typed in another case („bert“) finds
+      // its row „Bert“ in the inbox (Q36); '' for the deleted accounts.
+      with: other === null ? '' : (ctx.players.get(other)?.name ?? ''),
       messages: page.messages.map((x) => lineOf(x, u.id)),
       more: page.more,
     },

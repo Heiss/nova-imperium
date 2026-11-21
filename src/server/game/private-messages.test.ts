@@ -275,10 +275,23 @@ describe('paging (Q27, coordinator, 2026-11-21)', () => {
       'andere Unterhaltung',
     ]);
     // A player without a conversation gets an empty page; a deleted message is no part of it.
-    expect(s.thread('Dirk', 'Anna')).toEqual({ messages: [], more: false });
+    expect(s.thread('Dirk', 'Anna')).toEqual({
+      with: 'Anna',
+      messages: [],
+      more: false,
+    });
     const hidden = s.thread('Anna', 'Bert').messages.at(-1)!;
     s.run('Anna', { type: 'deletePrivateMessage', id: hidden.id });
     expect(s.thread('Anna', 'Bert').messages.at(-1)!.text).toBe('m128');
+  });
+
+  it('names the conversation as stored, so a name typed in another case finds its row (Q36)', () => {
+    const s = setup();
+    s.say('Anna', 'bert', 'Hallo');
+    expect(s.view('Anna').conversations[0]!.with).toBe('Bert');
+    const page = s.thread('Anna', 'bERT') as unknown as { with: string };
+    expect(page.with).toBe('Bert');
+    expect(s.texts('Anna', 'bert')).toEqual(['Hallo']);
   });
 
   it('refuses an unknown player when a conversation is opened, odd names answer like an unknown one, and stores nothing', () => {
@@ -294,6 +307,7 @@ describe('paging (Q27, coordinator, 2026-11-21)', () => {
     // No name at all is the empty name: the deleted accounts, none here.
     for (const name of [null, [], undefined])
       expect(s.thread('Anna', name as unknown as string)).toEqual({
+        with: '',
         messages: [],
         more: false,
       });
