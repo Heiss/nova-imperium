@@ -180,7 +180,8 @@ complete, tested and pushed.
   „Spielzeit“. Only the sum is sent to the reader, never the intervals.
 * **[E]** Who sees it (D2: „shares everything“): every reader who may open the
   finished round, that is every participant and the admin, sees the play time of
-  all participants. The earlier [V] of the issue (detailed playtime self/admin
+  all participants (this reading of D2 confirmed by the owner, 2026-11-21).
+  The earlier [V] of the issue (detailed playtime self/admin
   only) is superseded by D2. A provisional report of the running round has none
   (`playtime` null, the line „wird erst nach Rundenende im Archiv geteilt“), also
   for the admin.

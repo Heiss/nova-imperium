@@ -94,7 +94,8 @@ description: 'A client feature exports its handlers as clientFeature from its ow
   the message of the guild chat and the name of a new buddy show a draft of
   `logic/drafts.svelte.ts`.
 * **[E]** Owner, 2026-11-20 („all now“): `keepInputs` is gone and so is every
-  `data-nokeep`. **[V]** Every other field of a view with an id has a draft
+  `data-nokeep`. The field drafts below ship with the update; the state of
+  each form in its own component follows after it (#332). **[V]** Every other field of a view with an id has a draft
   (`logic/field-drafts.ts`, `field-drafts.ts`): the change of a field is
   recorded when it happens (input and change), a button or feature that fills
   a field writes it through `writeField` (also `setInput`, `setById`), and a

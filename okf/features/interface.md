@@ -351,7 +351,8 @@ Up to 760 px only; the desktop stays as it is (D6).
   „?“, „▤“, the arrows of the Sternenkarte), field, list and the list links of
   the Lexicanum are at least 44 px high on a phone, short ones 44 px wide too;
   a link inside a sentence and a check box or radio button (reached through
-  its label) are exempt. The rule is the last block of `style.css`; E2E:
+  its label) are exempt (**[E]** both exemptions confirmed, owner,
+  2026-11-21). The rule is the last block of `style.css`; E2E:
   `e2e/touch-targets.spec.ts`.
 * E2E: the phone tests that click „Logout“, open a locked entry, the „?“ or
   „▤“ of a row, or read a row of the lists without the filter must unfold or
