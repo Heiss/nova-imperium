@@ -135,6 +135,91 @@ describe('the view „Nachrichten“', () => {
   });
 });
 
+describe('the tabs on the lock screen of the vacation mode (owner, 2026-11-21, Q28)', () => {
+  const lockState = (): V =>
+    ({
+      s: {
+        me: { id: 'u_Anna', vacation: 1 },
+        players: {},
+        reports: [],
+        privateMessages: {
+          friendsOnly: false,
+          blocked: ['Cora'],
+          conversations: [
+            {
+              with: 'Bert',
+              unread: 2,
+              more: false,
+              messages: [
+                { id: 1, mine: false, time: 1, text: 'Hallo', read: false },
+              ],
+            },
+          ],
+        },
+      },
+    }) as unknown as V;
+
+  it('has „Posteingang“ and „Gesendet“ only, the inbox first, and no reports', () => {
+    const out = html(MessagesTabs, {
+      viewState: readable(lockState()),
+      lock: true,
+    });
+    const labels = [...out.matchAll(/role="tab"[^>]*>([^<]+)</g)].map((m) =>
+      m[1]!.replace(/\s+/g, ''),
+    );
+    expect(labels).toEqual(['Posteingang(2)', 'Gesendet']);
+    // The title of the lock screen stays the only h2.
+    expect(out).toContain('<h3>Nachrichten</h3>');
+    expect(out).not.toContain('<h2>');
+    expect(out).toMatch(/id="messages-panel-inbox"[^>]*role="tabpanel"/);
+    expect(out).not.toMatch(/id="messages-panel-inbox"[^>]*hidden/);
+    for (const part of [
+      'Berichte',
+      'messages-tab-reports',
+      'messages-panel-reports',
+      'delall',
+      'Alle löschen',
+    ])
+      expect(out, part).not.toContain(part);
+  });
+
+  it('lists the conversations and offers no new message and no settings', () => {
+    const out = html(MessagesTabs, {
+      viewState: readable(lockState()),
+      lock: true,
+    });
+    expect(out).toMatch(/Bert\s*\(2\)/);
+    for (const part of [
+      'Neue Nachricht',
+      'id="pm-compose"',
+      'Blockierte Spieler',
+      'Nur Freunde dürfen mir schreiben',
+      'Cora',
+    ])
+      expect(out, part).not.toContain(part);
+  });
+
+  it('is the same tabs with the reports outside of the lock screen', () => {
+    const out = html(MessagesTabs, { viewState: readable(state()) });
+    expect(out).toContain('messages-tab-reports');
+    expect(out).toContain('Neue Nachricht');
+    expect(out).toContain('Blockierte Spieler');
+  });
+});
+
+describe('older messages', () => {
+  it('offers „Ältere Nachrichten laden“ only while the conversation has more', () => {
+    const more = html(PmThread, { row: row({ more: true }) });
+    expect(more).toContain('id="pm-older"');
+    expect(more).toContain('>Ältere Nachrichten laden<');
+    // The button comes before the messages.
+    expect(more.indexOf('pm-older')).toBeLessThan(more.indexOf('role="log"'));
+    expect(html(PmThread, { row: row({ more: false }) })).not.toContain(
+      'pm-older',
+    );
+  });
+});
+
 describe('an open conversation', () => {
   it('shows each message with its writer, new ones marked, text escaped', () => {
     const out = html(PmThread, { row: row() });

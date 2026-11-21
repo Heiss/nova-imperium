@@ -872,6 +872,7 @@ describe('the Warp-Tor, giving up a colony and the Auspex-Phalanx (#230, #224, #
       'blockPlayer',
       'unblockPlayer',
       'privateMessageOptions',
+      'olderPrivateMessages',
     ]);
     const refused = Object.keys(ACTIONS).filter((type) => !allowed.has(type));
     expect(refused).toEqual(
@@ -1122,8 +1123,43 @@ describe('the state', () => {
       galaxy: [],
       debris: [],
       admin: null,
+      // The lock screen offers „Nachrichten“ (owner, 2026-11-21, Q28).
+      privateMessages: { friendsOnly: false, blocked: [], conversations: [] },
     });
     expect(shown.round.vacationHours).toBe(48);
+  });
+
+  it('carries the own private messages on the lock screen and nothing of the conversations of others (owner, 2026-11-21, Q28)', () => {
+    const ctx = world();
+    const say = (from: string, to: string, text: string) => {
+      ctx.clock.t += 3000;
+      act(ctx, 'sendPrivateMessage', { name: to, text }, `u_${from}`);
+    };
+    say('Bert', 'Carl', 'GEHEIM-ZWISCHEN-BERT-UND-CARL');
+    start(ctx);
+    say('Bert', 'Anna', 'Hallo im Urlaub');
+    const shown = stateFor(ctx, anna(ctx)) as {
+      privateMessages: {
+        conversations: { with: string; unread: number; messages: unknown[] }[];
+      };
+      reports: unknown[];
+    };
+    expect(shown.privateMessages.conversations).toMatchObject([
+      { with: 'Bert', unread: 1, more: false },
+    ]);
+    expect(JSON.stringify(shown)).not.toContain('GEHEIM');
+    expect(shown.reports).toEqual([]);
+    // The player replies, reads and pages in the vacation; the reports stay locked.
+    const id = shown.privateMessages.conversations[0]!.messages[0] as {
+      id: number;
+    };
+    act(ctx, 'readPrivateMessages', { name: 'Bert' });
+    expect(act(ctx, 'olderPrivateMessages', { before: id.id })).toMatchObject({
+      data: { older: [], more: false },
+    });
+    say('Anna', 'Bert', 'Antwort aus dem Urlaub');
+    expect(() => act(ctx, 'read')).toThrow(VACATION_REFUSED);
+    expect(anna(ctx).vacation).not.toBeNull();
   });
 
   it('lists every player exactly: `vacation: true` only for the ones in vacation mode, with their scores (#78, #223)', () => {
@@ -1216,6 +1252,7 @@ describe('the state', () => {
         galaxy: [],
         debris: [],
         admin: null,
+        privateMessages: { friendsOnly: false, blocked: [], conversations: [] },
       });
     // A second device selects a planet, or sends anything: the same lock screen.
     for (const selected of ['p1_1_5', 'm1_1_5', 5, {}, null])

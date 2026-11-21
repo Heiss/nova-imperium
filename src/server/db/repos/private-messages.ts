@@ -40,7 +40,7 @@ export interface MessageReport {
 }
 
 /** One conversation of a player as the state carries it: the newest messages and the counts of all. */
-export interface ConversationWindow {
+interface ConversationWindow {
   /** The other account; null for the deleted accounts. */
   other: string | null;
   /** Received messages not read yet, over the whole conversation. */

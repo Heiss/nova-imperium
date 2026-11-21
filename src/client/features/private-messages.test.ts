@@ -38,6 +38,46 @@ describe('answer', () => {
     }
   });
 
+  it('reads older messages through the api, gives their data back and changes nothing (Q27)', async () => {
+    const api = vi.fn(async () => ({
+      data: { older: [{ id: 1 }], more: false },
+    }));
+    const ctx = fakeCtx({ api: api as never });
+    const { request: r, done } = request([
+      'olderPrivateMessages',
+      { before: 4 },
+    ]);
+    await answer(ctx, r, () => false);
+    expect(api).toHaveBeenCalledExactlyOnceWith('/api/action', {
+      type: 'olderPrivateMessages',
+      before: 4,
+    });
+    expect(done).toHaveBeenCalledExactlyOnceWith(true, {
+      older: [{ id: 1 }],
+      more: false,
+    });
+    expect(ctx.act).not.toHaveBeenCalled();
+    expect(ctx.quiet).not.toHaveBeenCalled();
+  });
+
+  it('shows the words of a refusal of the older messages and says it did not go through', async () => {
+    const ctx = fakeCtx({
+      api: vi.fn(async () => {
+        throw new Error('Diese Nachricht gibt es nicht.');
+      }),
+    });
+    const { request: r, done } = request([
+      'olderPrivateMessages',
+      { before: 4 },
+    ]);
+    await answer(ctx, r, () => true);
+    expect(ctx.toast).toHaveBeenCalledWith(
+      'Diese Nachricht gibt es nicht.',
+      true,
+    );
+    expect(done).toHaveBeenCalledExactlyOnceWith(false);
+  });
+
   it('reports a refusal of the server as not gone through, so the form keeps its text', async () => {
     const ctx = fakeCtx({ act: vi.fn(async () => false) });
     const { request: r, done } = request([

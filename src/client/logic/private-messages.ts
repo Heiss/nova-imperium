@@ -94,13 +94,58 @@ export interface PrivatePage {
   unread: number;
 }
 
-export const lineOf = (m: PmLine): MessageLine => ({
+const lineOf = (m: PmLine): MessageLine => ({
   id: m.id,
   mine: m.mine,
   time: dt(m.time),
   text: m.text,
   fresh: !m.mine && !m.read,
 });
+
+/**
+ * The older messages the player loaded into one open conversation (Q27): the
+ * state carries the newest page only, so a page asked for is kept next to it.
+ * `anchor` is the id of the state's oldest message when it was loaded.
+ */
+export interface Older {
+  lines: MessageLine[];
+  anchor: number;
+  more: boolean;
+}
+
+/**
+ * What an open conversation shows: the older page the player loaded in front
+ * of the state's own messages, while the state's window still starts where it
+ * did then. If it moved on (newer messages pushed the oldest out of the page,
+ * or one was deleted) a gap could open, so the page is dropped and the button
+ * loads again from the window's start. `more` says whether still older
+ * messages exist.
+ */
+export function threadLines(
+  row: Pick<InboxRow, 'lines' | 'more'>,
+  older: Older | null,
+): { lines: MessageLine[]; more: boolean } {
+  const kept = older !== null && older.anchor === (row.lines[0]?.id ?? 0);
+  return kept
+    ? { lines: [...older.lines, ...row.lines], more: older.more }
+    : { lines: row.lines, more: row.more };
+}
+
+/** The loaded older messages after a page `page` came in before the shown lines of `row`. */
+export function withOlder(
+  row: Pick<InboxRow, 'lines' | 'more'>,
+  older: Older | null,
+  page: readonly PmLine[],
+  more: boolean,
+): Older {
+  const anchor = row.lines[0]?.id ?? 0;
+  const kept = older !== null && older.anchor === anchor ? older.lines : [];
+  return {
+    lines: [...page.map(lineOf), ...kept],
+    anchor,
+    more,
+  };
+}
 
 /** A state without the private messages (an old answer): nothing. */
 const NONE: NonNullable<GameState['privateMessages']> = {

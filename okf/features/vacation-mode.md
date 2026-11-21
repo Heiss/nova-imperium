@@ -71,6 +71,14 @@ owiki.de „Urlaubsmodus“
   and reach the account options (password, passkeys, push settings, delete
   account). Only the player's own actions are locked: others can still
   write to the player and manage him in the guild and see it afterwards.
+* **[E]** Messages on the lock screen (owner, 2026-11-21, Q28): the lock
+  screen offers „Nachrichten“, the inbox and replying, and nothing else of the
+  interface. This changes the view of 2026-11-18: until then the lock screen
+  held only the notice, the end button, „Logout“ and the account boxes. Now it
+  also holds „Nachrichten“ with the tabs „Posteingang“ and „Gesendet“; the
+  reports are not reachable from it. See [Private
+  messages](/features/private-messages.md). The server lets the private message
+  actions through (owner, 2026-11-21, Q25).
 * **[V]** The texts of the lock screen, to be checked by the owner (owner,
   2026-11-18): title „Urlaubsmodus“, text „Dein Konto ist im
   Urlaubsmodus.“, button „Urlaubsmodus beenden“, while locked „Du kannst
@@ -142,7 +150,10 @@ owiki.de „Urlaubsmodus“
   „Passwort ändern“, „Passkeys“, „Benachrichtigungen“,
   „Browser-Benachrichtigungen“ and „Account löschen“ of the options (shared
   with `help()` through `passwordBox`, `passkeysBox`, `notificationBoxes`).
-  The menu, the header and the resource bar are empty. Before the end of
+  Since 2026-11-21 (Q28) it also holds „Nachrichten“ (a section below the
+  notice, `MessagesTabs` with `lock`, see [Private
+  messages](/features/private-messages.md)); the lock state carries the key
+  `privateMessages`. The menu, the header and the resource bar are empty. Before the end of
   the minimum duration the button is disabled and `aria-describedby` names
   the notice „Du kannst den Urlaubsmodus in <Restzeit> beenden.“ next to
   it, so the reason is text, not only grey; the clock of the lock screen
@@ -160,9 +171,11 @@ owiki.de „Urlaubsmodus“
   and `vacation` (the start; from it and `round.vacationHours` the browser
   knows the earliest end). The same state comes after „Urlaubsmodus
   aktivieren“ and at every refresh, so a second device locks too.
-* **[V]** Nothing but the end and the push settings (Q2, owner,
-  2026-11-18): only `endVacation` and `pushOptions` are on the allow list
-  of `vacationRefuses` (`src/core/vacation.ts`), asked by `runAction` before
+* **[V]** Nothing but the end, the push settings and, since 2026-11-21 (Q25,
+  Q28), the private messages (Q2, owner, 2026-11-18): only `endVacation`,
+  `pushOptions` and the actions of `PM_ACTIONS` (`src/core/private-messages.ts`,
+  `sendPrivateMessage` and the others, `olderPrivateMessages` included) are on
+  the allow list of `vacationRefuses` (`src/core/vacation.ts`), asked by `runAction` before
   the action; every other action is refused with „Im Urlaubsmodus nicht
   möglich.“, an action added later too, so a new action needs no change
   here: the guild actions, `options`, `rename`, `mainPlanet`, `read`,

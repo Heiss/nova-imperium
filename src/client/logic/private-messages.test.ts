@@ -6,10 +6,14 @@ import {
   MESSAGE_TABS,
   PM_EVENT,
   PM_LABELS,
+  pmAsk,
   pmCall,
   privatePage,
   privateUnread,
   questionFor,
+  threadLines,
+  withOlder,
+  type MessageLine,
   type PmCall,
   type PmRequest,
 } from './private-messages.ts';
@@ -168,6 +172,7 @@ describe('the questions', () => {
       ['blockPlayer', { name: 'Bert' }],
       ['unblockPlayer', { name: 'Bert' }],
       ['privateMessageOptions', { friendsOnly: true }],
+      ['olderPrivateMessages', { before: 7 }],
     ];
     expect(calls.map(questionFor)).toEqual([
       null,
@@ -175,6 +180,7 @@ describe('the questions', () => {
       'Nachricht löschen?',
       'Unterhaltung löschen?',
       'Nachricht der Spielleitung melden?',
+      null,
       null,
       null,
       null,
@@ -202,5 +208,118 @@ describe('pmCall', () => {
     expect(request!.quiet).toBe(true);
     request!.done(false);
     await expect(quiet).resolves.toBe(false);
+  });
+});
+
+const shown = (...ids: number[]): MessageLine[] =>
+  ids.map((id) => ({
+    id,
+    mine: false,
+    time: String(id),
+    text: `m${id}`,
+    fresh: false,
+  }));
+
+describe('older messages of an open conversation (Q27)', () => {
+  const row = (ids: number[], more = true) => ({ lines: shown(...ids), more });
+
+  it('shows the state as it is until a page was loaded, with its `more`', () => {
+    expect(threadLines(row([60, 61]), null)).toEqual({
+      lines: shown(60, 61),
+      more: true,
+    });
+    expect(threadLines(row([60], false), null).more).toBe(false);
+  });
+
+  it('puts a loaded page in front, in order, and takes its `more`', () => {
+    const older = withOlder(
+      row([60, 61]),
+      null,
+      [line(58, false), line(59, true)],
+      true,
+    );
+    const view = threadLines(row([60, 61]), older);
+    expect(view.lines.map((l) => l.id)).toEqual([58, 59, 60, 61]);
+    expect(view.lines[1]).toMatchObject({
+      mine: true,
+      fresh: false,
+      text: 'm59',
+    });
+    expect(view.more).toBe(true);
+    // The next page goes in front of the first one, with no gap and no duplicate.
+    const again = withOlder(
+      row([60, 61]),
+      older,
+      [line(56, false), line(57, false)],
+      false,
+    );
+    const all = threadLines(row([60, 61]), again);
+    expect(all.lines.map((l) => l.id)).toEqual([56, 57, 58, 59, 60, 61]);
+    expect(all.more).toBe(false);
+  });
+
+  it('follows new messages of the state while its window starts where it did', () => {
+    const older = withOlder(row([60, 61]), null, [line(59, false)], false);
+    expect(
+      threadLines(row([60, 61, 62]), older).lines.map((l) => l.id),
+    ).toEqual([59, 60, 61, 62]);
+  });
+
+  it('drops the page once the window moved, so no gap opens; the next load starts at the window', () => {
+    const older = withOlder(
+      row([60, 61]),
+      null,
+      [line(58, false), line(59, false)],
+      false,
+    );
+    // New messages pushed 60 out of the page, or the player deleted 60.
+    expect(threadLines(row([61, 62]), older)).toEqual({
+      lines: shown(61, 62),
+      more: true,
+    });
+    // A page loaded now is the only one in front of the new window.
+    const next = withOlder(row([61, 62]), older, [line(60, false)], true);
+    expect(threadLines(row([61, 62]), next).lines.map((l) => l.id)).toEqual([
+      60, 61, 62,
+    ]);
+  });
+
+  it('passes the data of the answer through pmAsk, and pmCall stays a boolean', async () => {
+    const answerWith = (ok: boolean, data?: Record<string, unknown>) => {
+      const target = {
+        dispatchEvent: (e: Event) => {
+          (e as CustomEvent<PmRequest>).detail.done(ok, data);
+          return true;
+        },
+      } as unknown as Element;
+      return target;
+    };
+    const call: PmCall = ['olderPrivateMessages', { before: 4 }];
+    await expect(
+      pmAsk(answerWith(true, { more: true }), call),
+    ).resolves.toEqual({
+      ok: true,
+      data: { more: true },
+    });
+    await expect(pmAsk(answerWith(false), call)).resolves.toEqual({
+      ok: false,
+      data: {},
+    });
+    await expect(pmCall(answerWith(true, { more: true }), call)).resolves.toBe(
+      true,
+    );
+  });
+
+  it('marks the conversation with `more` for the button', () => {
+    const page = privatePage(
+      view({
+        friendsOnly: false,
+        blocked: [],
+        conversations: [
+          { with: 'Bert', unread: 0, more: true, messages: [line(9, false)] },
+        ],
+      }),
+    );
+    expect(page.inbox[0]!.more).toBe(true);
   });
 });

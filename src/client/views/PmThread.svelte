@@ -6,30 +6,27 @@
   // as text. The buttons ask features/private-messages.ts through `pmCall`.
   import type { PmLine } from '../../core/private-messages.ts';
   import {
-    lineOf,
     PM_LABELS,
     pmAsk,
     pmCall,
+    threadLines,
+    withOlder,
     type InboxRow,
-    type MessageLine,
+    type Older,
   } from '../logic/private-messages.ts';
   import PmCompose from './PmCompose.svelte';
 
   let { row }: { row: InboxRow } = $props();
 
   // Older messages (Q27): the state carries the newest page only; a page the
-  // player asked for is kept here, next to the state's lines, for as long as
-  // the state's window starts where it did then (else a gap could open, and
-  // the page is dropped: the next click loads the messages before the window).
-  let older = $state<MessageLine[]>([]);
-  let anchor = $state(0);
-  let olderMore = $state(false);
+  // player asked for is kept here, next to the state's lines (logic/
+  // private-messages.ts says for how long).
+  let older = $state<Older | null>(null);
   let loading = $state(false);
 
-  const windowStart = $derived(row.lines[0]?.id ?? 0);
-  const kept = $derived(older.length > 0 && anchor === windowStart);
-  const lines = $derived(kept ? [...older, ...row.lines] : row.lines);
-  const more = $derived(kept ? olderMore : row.more);
+  const shown = $derived(threadLines(row, older));
+  const lines = $derived(shown.lines);
+  const more = $derived(shown.more);
 
   async function loadOlder(event: MouseEvent): Promise<void> {
     const first = lines[0];
@@ -41,10 +38,8 @@
     ]);
     loading = false;
     if (!answer.ok) return;
-    const page = (answer.data.older as PmLine[]).map(lineOf);
-    older = [...page, ...(kept ? older : [])];
-    anchor = windowStart;
-    olderMore = answer.data.more === true;
+    const page = answer.data.older as PmLine[];
+    older = withOlder(row, older, page, answer.data.more === true);
   }
 </script>
 

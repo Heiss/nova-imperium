@@ -58,12 +58,60 @@ of 2026-11-21 and the answers to the open points of the same day (owner,
   that message can report it, checked by id on the server.
 * **[E]** Vacation mode (Q25): a player in vacation mode sends and receives
   messages as normal; there is no special handling.
+* **[E]** Lock screen (Q28, owner, 2026-11-21): the lock screen of the vacation
+  mode offers „Nachrichten“ (the inbox and replying) and nothing else of the
+  interface. This changes the view the owner decided on 2026-11-18
+  ([Vacation mode](/features/vacation-mode.md)): the lock screen held the
+  notice, „Urlaubsmodus beenden“, „Logout“ and the account options only, and
+  keeps exactly that. Added: „Nachrichten“ with the tabs „Posteingang“ and
+  „Gesendet“ and replying. The reports („Berichte“) were not reachable from the
+  lock screen and stay unreachable.
 * **[E]** The text of the journal of the round and of the audit log: the
   message text, e-mail addresses, passwords, codes and tokens are never
   stored there; the journal keeps the length of a text only (the allow-list
   `src/server/game/journal-input.ts`), a push never carries the text.
 
 # Proposals as built
+
+* **[V]** The state carries per conversation the newest 50 messages
+  (`PM_PAGE` in `src/core/private-messages.ts`: a technical page size, not a
+  rule of the owner) plus the unread count of the whole conversation and `more`
+  (whether older messages exist); the 500 kept per conversation stay the
+  owner's rule (Q27, coordinator, 2026-11-21). Older messages load through the
+  action `olderPrivateMessages` with `before`, the id of the oldest message the
+  browser shows, while the conversation is open: at most 50 per call, oldest
+  first, answered as the data of the action (no new state). The conversation is
+  the one of the message `before`, found like every message id (`ownMessage`):
+  an id of another conversation, a message the player deleted from its own view
+  and an unknown id are refused with the same words, „Diese Nachricht gibt es
+  nicht.“, so a foreign conversation leaks nothing; the SQL is parameterised
+  and reads only messages the player did not hide. The button is „Ältere
+  Nachrichten laden“ above the messages of an open conversation while `more`.
+  A loaded page is kept in the open conversation of the browser only while the
+  state's window starts where it did, so no gap opens (otherwise it is dropped
+  and the next click loads from the window's start). The tab „Gesendet“ lists
+  what is loaded. The journal keeps `before` as a number
+  (`src/server/game/journal-input.ts`). The action is not classed in
+  `src/core/action-kind.ts`: that file does not exist on this branch; the
+  class `click` (the player opens older messages on purpose) is for the main
+  agent. The vacation mode lets it through (`PM_ACTIONS`).
+* **[V]** Blocking does nothing to earlier messages: only future sends are
+  refused (Q29, coordinator, 2026-11-21). A test pins it
+  (`does nothing to earlier messages`).
+* **[V]** The admin can only view a report; what happens next is the existing
+  player moderation of the admin (Q30, coordinator, 2026-11-21). No tool of its
+  own.
+* **[V]** On the lock screen „Nachrichten“ is a section below the notice with
+  the heading „Nachrichten“ (one level below the title „Urlaubsmodus“); it
+  has the tabs „Posteingang“ and „Gesendet“, the conversations with the
+  messages, „Antworten“ and the actions of an open conversation („Melden“,
+  „Löschen“, „Unterhaltung löschen“, „Blockieren“). It has no „Neue
+  Nachricht“, no list of recipients (the lock state holds no players), no
+  settings („Nur Freunde dürfen mir schreiben“, „Blockierte Spieler“) and no
+  „Berichte“. The lock state carries the key `privateMessages` and nothing
+  else of the game. The section is mounted once (`src/client/views/
+  vacation-lock.ts`), so the open conversation and a reply being typed stay
+  over a render.
 
 * **[V]** The text a refused sender sees: „Dieser Spieler nimmt keine
   Nachrichten von dir an.“ (`REFUSED_TEXT` in `src/core/private-messages.ts`).
@@ -166,17 +214,31 @@ of 2026-11-21 and the answers to the open points of the same day (owner,
   `src/client/{logic,features,views}/private-messages.test.ts`, the admin tab in
   `admin-panels*.test.ts`, the mark in `navigation.test.ts`.
 * `e2e/private-messages.spec.ts`, desktop and phone.
+* Q27: `paging (Q27, …)` in `src/server/game/private-messages.test.ts` (at
+  most 50 per conversation, the older pages in order without gap or duplicate,
+  the page borders, a foreign conversation refused like an unknown one, nothing
+  written), `src/server/game/private-messages-size.test.ts` (the size of one
+  poll with 20 conversations of 500 messages of 1,000 characters; printed with
+  `NOVA_PRINT_SIZES=1`), `older messages of an open conversation` in
+  `src/client/logic/private-messages.test.ts`, the handler in
+  `src/client/features/private-messages.test.ts`.
+* Q28: `carries the own private messages on the lock screen` in
+  `src/server/game/vacation.test.ts`, `the tabs on the lock screen` in
+  `src/client/views/private-messages.test.ts`, the place in
+  `src/client/views/vacation-lock.test.ts`, the E2E case in
+  `e2e/vacation.spec.ts`.
+* Q29 `does nothing to earlier messages`, the checks of the report (a foreign
+  id, an unknown id and an odd id answer alike and store nothing; „Gelöschter
+  Spieler“ for a deleted sender, recipient or reporter; the copy of the text
+  cleared with the round) in `src/server/game/private-messages.test.ts`; the
+  text in no table but the messages and the reports, no journal, audit or
+  error log row and no log line in `src/server/http/private-messages.test.ts`.
 
 # Open
 
-* **[U]** The whole history of every conversation travels with the state
-  (as the guild chat does). With many conversations that grows; options:
-  the last N messages per conversation in the state and the rest through a
-  request, paging, or only the open conversation. Not decided.
-* **[U]** The lock screen of the vacation mode hides the game, so a player in
-  vacation mode reaches the messages through the server (they arrive, the
-  push and the mark work) but the interface shows the lock screen. [E] is that
-  there is no special handling of the vacation.
-* **[U]** The admin can only read reports; what happens after a report (a
-  warning, a ban, dismissing a report) has no tool of its own yet; the player
-  moderation of the admin stays as it is.
+* **[U]** The lock screen shows no „Neue Nachricht“ and no settings; the
+  owner said „the inbox and replying“ ([V] reading, Q28). Not decided whether a
+  player in vacation mode may also write a first message, block or report.
+* **[V]** The admin can only view a report; what happens after a report (a
+  warning, a ban, dismissing a report) has no tool of its own; the player
+  moderation of the admin stays as it is (Q30).

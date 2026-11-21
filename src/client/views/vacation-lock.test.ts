@@ -79,6 +79,20 @@ describe('the lock screen', () => {
       expect(html, part).not.toContain(part);
   });
 
+  it('leaves a place for „Nachrichten“ between the notice and the account boxes (owner, 2026-11-21, Q28)', () => {
+    const html = lockHTML(state(START), ui, START);
+    expect(html.match(/id="lock-messages"/g)).toHaveLength(1);
+    expect(html.indexOf('data-act="endVacation"')).toBeLessThan(
+      html.indexOf('id="lock-messages"'),
+    );
+    expect(html.indexOf('id="lock-messages"')).toBeLessThan(
+      html.indexOf('Passwort ändern'),
+    );
+    // The place is empty: the mounted view fills it, and no menu, no reports.
+    expect(html).toContain('<div id="lock-messages"></div>');
+    expect(html).not.toContain('Berichte');
+  });
+
   it('shows the push kinds only on a server with Web Push', () => {
     expect(
       lockHTML(state(START), { webPush: false } as Ui, START),

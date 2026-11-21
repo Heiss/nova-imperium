@@ -18,7 +18,8 @@
 
   // `lock`: the lock screen of the vacation mode (owner, 2026-11-21, Q28)
   // shows „Posteingang“ and „Gesendet“ only; the reports are no part of it,
-  // and its state holds none.
+  // and its state holds none. Its heading is one level lower, below the title
+  // „Urlaubsmodus“ of the lock screen.
   let {
     viewState,
     lock = false,
@@ -51,7 +52,7 @@
   }
 </script>
 
-<h2>Nachrichten</h2>
+{#if lock}<h3>Nachrichten</h3>{:else}<h2>Nachrichten</h2>{/if}
 <div role="tablist" aria-label="Nachrichten" class="flex pm-tabs">
   {#each tabs as key (key)}
     <button

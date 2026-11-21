@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { asAdmin } from '../../test/http.ts';
+import { asAdmin, start } from '../../test/http.ts';
 import { runAction } from '../game/dispatch.ts';
 import { addUser, type TestCtx } from '../test-helpers.ts';
 
@@ -110,5 +110,78 @@ describe('POST /api/admin/message-reports (#226)', () => {
     expect(refused.json).toEqual({ error: 'Nur der Admin darf das.' });
     expect(refused.text).not.toContain('TEXT');
     expect(audit(ctx)).toEqual([]);
+  });
+});
+
+describe('where the text of a message goes (#226, Q24)', () => {
+  const MARKER = 'GEHEIMER-MARKER-4711';
+
+  it('is in the messages and the reports only: in no journal, audit, error log, other table or log line', async () => {
+    const spies = (['log', 'info', 'warn', 'error', 'debug'] as const).map(
+      (name) => vi.spyOn(console, name).mockImplementation(() => undefined),
+    );
+    try {
+      const logs: string[] = [];
+      const { ctx, call } = await start({ logs });
+      for (const n of ['Lea', 'Bo']) addUser(ctx, n);
+      const action = (body: object) => call('POST', '/api/action', body);
+      const login = (name: string) =>
+        call('POST', '/api/login', { name, password: 'secret1' });
+      expect((await login('lea')).status).toBe(200);
+      // A sent message, a refused one (too long), and a body that is no JSON.
+      const sent = await action({
+        type: 'sendPrivateMessage',
+        name: 'Bo',
+        text: MARKER,
+      });
+      expect(sent.status).toBe(200);
+      ctx.clock.t += 3000;
+      const tooLong = await action({
+        type: 'sendPrivateMessage',
+        name: 'Bo',
+        text: MARKER + 'x'.repeat(1000),
+      });
+      expect(tooLong.status).toBe(400);
+      expect(tooLong.text).not.toContain(MARKER);
+      const broken = await call('POST', '/api/action', `{"text": "${MARKER}`);
+      expect(broken.status).toBe(400);
+      await call('POST', '/api/logout', {});
+      // The recipient reads, reports and pages.
+      expect((await login('bo')).status).toBe(200);
+      for (const body of [
+        { type: 'readPrivateMessages', name: 'Lea' },
+        { type: 'reportPrivateMessage', id: 1 },
+        { type: 'olderPrivateMessages', before: 1 },
+      ])
+        expect((await action(body)).status, body.type).toBe(200);
+      // Meant to be there: the messages and the reports hold the text.
+      const holding = (t: string): boolean =>
+        JSON.stringify(ctx.db.prepare(`SELECT * FROM ${t}`).all()).includes(
+          MARKER,
+        );
+      expect(holding('private_messages')).toBe(true);
+      expect(holding('message_reports')).toBe(true);
+      // Meant to be nowhere else: not a row of any other table (the journal
+      // `round_events`, `audit_events` and the error log `error_events`
+      // among them), not a log line.
+      const tables = ctx.db
+        .prepare(
+          "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'",
+        )
+        .pluck()
+        .all() as string[];
+      for (const t of ['round_events', 'audit_events', 'error_events'])
+        expect(tables).toContain(t);
+      const leaking = tables.filter(
+        (t) =>
+          t !== 'private_messages' && t !== 'message_reports' && holding(t),
+      );
+      expect(leaking).toEqual([]);
+      expect(logs.join('\n')).not.toContain(MARKER);
+      for (const spy of spies)
+        expect(JSON.stringify(spy.mock.calls)).not.toContain(MARKER);
+    } finally {
+      for (const spy of spies) spy.mockRestore();
+    }
   });
 });
