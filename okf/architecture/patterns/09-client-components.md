@@ -220,6 +220,11 @@ description: 'The client as generic Svelte components with a state module, the c
   (battle reports without tech, loot, debris, moon, `held` or `attackers`;
   espionage reports without `activity`). `Messages.svelte` and its
   reference test take the bodies from `ReportBody.svelte` too.
+* **[E]** Scope of #330 (D1): only the report bodies; the other `{@html}`
+  pieces (the option list and time row of `Fleet.svelte`, the options and
+  preview of `Market.svelte`, the guild profile of `Guilds.svelte`,
+  `costHTML`/`requirementsHTML` of `CatalogList`) stay as they are and get
+  an issue of their own later (owner, 2026-11-21, through the coordinator).
 * **[E]** Bundle 5 after bundle 4 (owner, 2026-11-15 and 2026-11-16: the
   order of the bundles of #118 „Geklärt, Nachtrag 3“, unchanged by
   „Nachtrag 4“): Highscore, Achievements, and Hilfe & Optionen.
