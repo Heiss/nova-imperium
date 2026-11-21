@@ -203,6 +203,8 @@ describe('the rules of every mission (contract)', () => {
       ...(rules.colonizes === undefined ? [] : ['colonizes']),
       // `remembered` is set by the attack and the spy only (#292).
       ...(rules.remembered === undefined ? [] : ['remembered']),
+      // `withoutShips` is set by the spy only (F12 of #214).
+      ...(rules.withoutShips === undefined ? [] : ['withoutShips']),
     ];
     expect(Object.keys(rules).sort(), m).toEqual(fields.sort());
     expect(TARGETS, m).toContain(rules.target);

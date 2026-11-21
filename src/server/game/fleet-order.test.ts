@@ -49,6 +49,7 @@ function sent(
 const UNKNOWN = 'error: Unbekannter Auftrag.';
 const STATIONARY = 'error: Sonnenreliquiare können nicht fliegen.';
 const NO_SHIPS = 'error: Keine Schiffe ausgewählt.';
+const NO_PROBES = 'error: Keine Spähschädel auf dem Planeten.';
 const SLOTS = 'error: Alle Flottenslots belegt.';
 const NO_PLANET = 'error: An dieser Position gibt es keinen Planeten.';
 const HOLD = 'error: Nicht genug Laderaum.';
@@ -88,13 +89,15 @@ describe('send', () => {
       expect(sent(ctx, a, { ships, to: NOWHERE })).toBe(NO_SHIPS);
   });
 
-  it('refuses an Auspex-Erkundung without probes as without ships', () => {
+  // F12 (owner, 2026-11-21): the text of the Sternenkarte; until then the
+  // server answered „Keine Schiffe ausgewählt.“
+  it('refuses an Auspex-Erkundung without probes as the Sternenkarte does', () => {
     const { ctx, a } = setup();
     for (const ships of [{}, { probe: 0 }])
-      expect(sent(ctx, a, { mission: 'spy', ships })).toBe(NO_SHIPS);
+      expect(sent(ctx, a, { mission: 'spy', ships })).toBe(NO_PROBES);
     fillSlots(ctx, a);
     expect(sent(ctx, a, { mission: 'spy', ships: {}, to: NOWHERE })).toBe(
-      NO_SHIPS,
+      NO_PROBES,
     );
   });
 

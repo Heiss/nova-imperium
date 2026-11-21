@@ -146,6 +146,8 @@ const FLEET_ERROR: Readonly<
   mission: 'Unbekannter Auftrag.',
   stationary: 'Sonnenreliquiare können nicht fliegen.',
   noShips: 'Keine Schiffe ausgewählt.',
+  // The text of the Sternenkarte (F12, owner 2026-11-21).
+  noProbes: 'Keine Spähschädel auf dem Planeten.',
   slots: 'Alle Flottenslots belegt.',
   holdTime: 'Bitte eine Haltezeit auswählen.',
   hold: 'Nicht genug Laderaum.',

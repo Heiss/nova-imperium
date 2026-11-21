@@ -158,7 +158,9 @@ numbers are those of the audit (`8a589eb`).
 
 **[E]** The economy pull request of #214 (2026-11-16) fixed F8, F9 and
 F10, the economy findings among those O18 (c) unifies (owner, 2026-11-15);
-F12 belongs to the fleet group and F15 to the admin group. F1 to F7 stay:
+F12 belongs to the fleet group and F15 to the admin group. **[E]** F15 was
+unified by the admin pull request, F12 by the fleet pull request of #214
+(owner, 2026-11-21, Q2 (a): the browser's text on both sides). F1 to F7 stay:
 the browser keeps its notes and the server its messages, each from a table
 of the codes. [U: O18 says „after the economy pull request“; the task of
 the loop read it as „with the economy checks in place“ and unified F8, F9
@@ -227,6 +229,15 @@ and F10 in that pull request.]
 * **F12** (message) An Auspex-Erkundung from the Sternenkarte without
   probes: `main.ts:1243-1247` „Keine Spähschädel auf dem Planeten.“; the
   server `fleet-actions.ts:124-125` „Keine Schiffe ausgewählt.“
+  **[E]** Unified by the fleet pull request of #214 (owner, 2026-11-21, Q2
+  (a)): browser and server use the browser's text. The code `noProbes` of
+  core `startError` (`core/fleet-checks.ts`), from the field
+  `withoutShips` of the rules of the Auspex-Erkundung
+  (`features/missions/spy/rules.ts`), and the server words it „Keine
+  Spähschädel auf dem Planeten.“; the Sternenkarte keeps its toast
+  (`gspy`, `client/features/galaxy.ts`). The visible text stays; only the
+  server's message changes, for a request the interface never sends (an
+  Auspex-Erkundung with no probes selected).
 * **F13** (message) All slots used: `views/fleet.ts:63` „Alle Flottenslots
   belegt (Kogitator-Doktrin erhöht die Anzahl).“; `fleet-actions.ts:126-127`
   „Alle Flottenslots belegt.“ The rule itself, no slot for the gift of the

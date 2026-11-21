@@ -20,9 +20,11 @@ import type { Fleet, Levels, Resources } from './types.ts';
 
 /**
  * Why a fleet cannot start, before its target is asked: no mission of the
- * fleet form, a ship that cannot fly, no ships, or all slots used.
+ * fleet form, a ship that cannot fly, no ships (for an Auspex-Erkundung no
+ * probes, F12), or all slots used.
  */
-export type StartError = 'mission' | 'stationary' | 'noShips' | 'slots';
+export type StartError =
+  'mission' | 'stationary' | 'noShips' | 'noProbes' | 'slots';
 
 /**
  * `send`, first: a mission that starts as a fleet (missiles start from the
@@ -38,7 +40,9 @@ export function startError(
   const rules = missionRules(mission);
   if (!rules || launchOf(rules) !== 'fleet') return 'mission';
   if (!Object.keys(ships).every(canFly)) return 'stationary';
-  if (!countUnits(ships)) return 'noShips';
+  // An Auspex-Erkundung without ships is refused as the Sternenkarte does
+  // (F12, owner 2026-11-21).
+  if (!countUnits(ships)) return rules.withoutShips ?? 'noShips';
   return used >= slots ? 'slots' : null;
 }
 

@@ -34,7 +34,11 @@ describe('startError', () => {
     expect(startError('attack', { nope: 1 }, 0, 1)).toBe('stationary');
     expect(startError('attack', {}, 9, 1)).toBe('noShips');
     expect(startError('attack', { lf: 0 }, 9, 1)).toBe('noShips');
-    expect(startError('spy', {}, 9, 1)).toBe('noShips');
+    expect(startError('spy', {}, 9, 1)).toBe('noProbes');
+    expect(startError('spy', { probe: 0 }, 0, 1)).toBe('noProbes');
+    expect(startError('survey', {}, 0, 1)).toBe('noShips');
+    expect(startError('spy', { sat: 1 }, 0, 1)).toBe('stationary');
+    expect(startError('spy', { probe: 1 }, 1, 1)).toBe('slots');
     expect(startError('attack', { lf: 1 }, 9, 1)).toBe('slots');
     expect(startError('attack', { lf: 1 }, 1, 1)).toBe('slots');
     expect(startError('attack', { lf: 1 }, 0, 1)).toBeNull();

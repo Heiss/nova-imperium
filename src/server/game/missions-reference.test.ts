@@ -18,7 +18,9 @@
 // 2026-11-17) is written here on its own as well (`refCounter`,
 // `refActivity`, `refSpyBattle`, and the refusal below Auspex-Lehre 1), so
 // that it compares the new chance, the battle of detected probes and the
-// activity in the report too.
+// activity in the report too. An Auspex-Erkundung without ships is refused
+// with the text of the Sternenkarte since F12 of #214 (owner, 2026-11-21),
+// written here on its own as well.
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { battle } from '../../core/battle.ts';
@@ -759,7 +761,13 @@ function plan(ctx: Ctx, u: User, p: Planet, d: Data): Plan {
   const mission = String(d.mission) as Mission;
   if (!Object.hasOwn(MISSION, mission)) fail('Unbekannter Auftrag.');
   const ships = pickShips(p, d.ships);
-  if (!countUnits(ships)) fail('Keine Schiffe ausgewählt.');
+  // F12 of #214 (owner, 2026-11-21).
+  if (!countUnits(ships))
+    fail(
+      mission === 'spy'
+        ? 'Keine Spähschädel auf dem Planeten.'
+        : 'Keine Schiffe ausgewählt.',
+    );
   if (ctx.fleets.count(u.id) >= fleetSlots(researchOf(ctx, u)))
     fail('Alle Flottenslots belegt.');
   const dest = target(ctx, d);
@@ -1276,6 +1284,7 @@ describe(
         'error: Du brauchst eine Kolonistenarche.',
         'error: Eigene Planeten kann man nicht angreifen.',
         'error: Keine Schiffe ausgewählt.',
+        'error: Keine Spähschädel auf dem Planeten.',
         'error: Nicht genug Laderaum.',
         'error: Nicht genug Promethium für Treibstoff und Ladung.',
         'error: Sonnenreliquiare können nicht fliegen.',

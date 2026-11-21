@@ -16,6 +16,8 @@ export const alertsGuild = false;
 export const holds = false;
 /** The launch is remembered as one of the player's last hostile targets (#292). */
 export const remembered = true;
+/** Without ships the launch names the probes, as the Sternenkarte does (F12, #214). */
+export const withoutShips = 'noProbes';
 /**
  * Only Spähschädel fly to an Auspex-Erkundung, and only from espionage
  * technology 1 (#175, Q1).
