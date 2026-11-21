@@ -111,9 +111,7 @@ export function roundFacts(ctx: Ctx): RoundFacts {
   // A player keeps the seat they got when they joined (`participant.joined`);
   // one who has none yet (a round without those events) gets the next free one.
   const seated = ctx.rounds.participants(roundRules(ctx).number);
-  const known = new Map(
-    seated.filter((p) => p.player).map((p) => [p.player!, p.seat]),
-  );
+  const known = new Map(seated.map((p) => [p.player, p.seat]));
   let free = Math.max(0, ...seated.map((p) => p.seat)) + 1;
   const players: RoundFacts['players'] = [];
   for (const user of ctx.players.all()) {

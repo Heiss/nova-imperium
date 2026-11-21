@@ -63,7 +63,7 @@ export interface RoundArchive {
   /** Closes a round: the cutoff, the rules it ran under and the number of events it holds. */
   close(number: number, closed: number, rules: object, events: number): void;
   /** Deletes a round with its participants and events. */
-  delete(number: number): boolean;
+  delete(number: number): void;
   addParticipant(p: Participant): void;
   /** Whether the round exists and still runs: the cheap check before an event is written. */
   isActive(number: number): boolean;
@@ -157,11 +157,8 @@ class SqliteRounds implements RoundArchive {
       .run(closed, JSON.stringify(rules), events, number);
   }
 
-  delete(number: number): boolean {
-    return (
-      this.db.prepare('DELETE FROM rounds WHERE number = ?').run(number)
-        .changes > 0
-    );
+  delete(number: number): void {
+    this.db.prepare('DELETE FROM rounds WHERE number = ?').run(number);
   }
 
   addParticipant(p: Participant): void {
