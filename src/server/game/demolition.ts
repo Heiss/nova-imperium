@@ -30,6 +30,7 @@ export const DEMOLITION_ERROR: Readonly<Record<DemolitionError, string>> = {
   busy: 'Es wird bereits gebaut.',
   yardBusy: 'Die Schiffsschmiede arbeitet gerade.',
   labBusy: 'Das Scholarium forscht gerade.',
+  siloBusy: 'Die Raketenkrypta lagert zu viele Raketen.',
   cost: 'Der Zehnte reicht nicht aus.',
 };
 

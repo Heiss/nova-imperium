@@ -76,6 +76,19 @@ Mondzitadelle cannot be torn down ([Moons](/features/moons.md)).
   would hold more levels than fields; only a building with fields (the
   Weltenschmiede) can do that. Refused with the field message of building
   „Keine freien Felder.“ (owner, 2026-11-18).
+* **[E]** The Raketenkrypta is refused while the places left after the
+  level would be fewer than the missiles there (owner, 2026-11-21, #54): the
+  code `siloBusy` of `demolitionErrors`, after `labBusy` and before `cost`.
+  It counts like the order of a missile (`siloUse` of `src/core/yard.ts`):
+  the stored Abfangraketen and Orbitalraketen and those in the shipyard
+  queue, against the places of the silos without the level (10 per level).
+  It follows D5: the player tears missiles down first
+  ([Missiles](/features/missiles.md)); nothing is removed silently.
+  Exactly as many places as missiles is allowed. Only the Raketenkrypta is
+  checked (the component `silo`). **[V]** The text, in the words of the
+  refusals for a building in use: „Die Raketenkrypta lagert zu viele
+  Raketen.“ The button „Zurückbauen“ stays visible and the confirmation
+  shows the text instead of its button, as for the shipyard that builds.
 * **[V]** Not on a moon (out of scope of #202) and not without a level: the
   interface never offers it, and the server refuses such a request with
   „Ungültig.“, as every request the interface never sends. The rule is the
@@ -84,7 +97,7 @@ Mondzitadelle cannot be torn down ([Moons](/features/moons.md)).
   ([Moons](/features/moons.md), #230) are refused alike, and the tests go
   over every building that stands on a moon.
 * **[V]** The check is `demolitionErrors` in `src/core/demolition.ts`
-  (codes `place`, `none`, `fields`, `busy`, `yardBusy`, `labBusy`, `cost`,
+  (codes `place`, `none`, `fields`, `busy`, `yardBusy`, `labBusy`, `siloBusy`, `cost`,
   in this order; patterns, section 7); the server
   (`src/server/game/demolition.ts`, action `demolish` with `key`) words
   them with the messages of building („Es wird bereits gebaut.“, „Die
