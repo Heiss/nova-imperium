@@ -222,10 +222,7 @@ const lossOf = ({ events, seat }: Facts): Loss | null =>
 const loss: Builder = (f) => {
   const l = lossOf(f);
   if (!l) return null;
-  const other =
-    l.opponent === null
-      ? undefined
-      : f.report.rows.find((r) => r.seat === l.opponent);
+  const other = f.report.rows.find((r) => r.seat === l.opponent);
   return {
     kind: 'loss',
     slot: 4,
