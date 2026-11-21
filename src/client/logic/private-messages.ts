@@ -24,6 +24,7 @@ export type MessageTab = keyof typeof MESSAGE_TABS;
 export const PM_LABELS = {
   compose: 'Neue Nachricht',
   recipient: 'Empfänger',
+  player: 'Spieler',
   text: 'Nachricht',
   send: 'Senden',
   reply: 'Antworten',

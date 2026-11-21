@@ -54,7 +54,7 @@
       <p class="dim">{PM_LABELS.noBlocked}</p>
     {/each}
     <form id="pm-block" class="flex" onsubmit={block}>
-      <label for="pm-block-name">{PM_LABELS.recipient}</label>
+      <label for="pm-block-name">{PM_LABELS.player}</label>
       <input
         id="pm-block-name"
         maxlength="20"
