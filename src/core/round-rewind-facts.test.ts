@@ -378,6 +378,21 @@ describe('card 4: largestLoss', () => {
     expect(lf.cost[0]! + lf.cost[1]! + lf.cost[2]!).toBe(worth('lf', 1));
   });
 
+  it('counts in an expedition battle the own fleet (the defending side), not the pirates', () => {
+    // The pirates attack (att) and lose 5; the fleet of ME defends and loses 2.
+    const raid = fight(
+      4 * DAY,
+      ME,
+      null,
+      [{ lf: 5 }, { lf: 0 }],
+      [{ lf: 6 }, { lf: 4 }],
+      { mission: 'expedition' },
+    );
+    const loss = largestLoss([raid], ME)!;
+    expect(loss.value).toBe(worth('lf', 2));
+    expect(loss.points).toBe(Math.floor(worth('lf', 2) / 1000));
+  });
+
   it('is the defender loss when the seat owned the target, the opponent is the attacker', () => {
     const loss = largestLoss(
       [
