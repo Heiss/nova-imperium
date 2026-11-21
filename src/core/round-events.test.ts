@@ -54,8 +54,8 @@ describe('researchFinished', () => {
 
 describe('unitsCost', () => {
   it('adds the catalog cost of each unit times its number', () => {
-    const [a, b] = [UNIT.rl!, UNIT.lt!];
-    expect(unitsCost({ rl: 2, lt: 3 })).toEqual([
+    const [a, b] = [UNIT.rl!, UNIT.lf!];
+    expect(unitsCost({ rl: 2, lf: 3 })).toEqual([
       a.cost[0] * 2 + b.cost[0] * 3,
       a.cost[1] * 2 + b.cost[1] * 3,
       a.cost[2] * 2 + b.cost[2] * 3,
@@ -71,10 +71,10 @@ describe('unitsCost', () => {
 describe('unitsPaid', () => {
   it('lists ships and defense apart and only what finished', () => {
     expect(unitsPaid({}, {})).toBeUndefined();
-    expect(unitsPaid({ lt: 1 }, {})).toEqual({ ships: [...UNIT.lt!.cost] });
+    expect(unitsPaid({ lf: 1 }, {})).toEqual({ ships: [...UNIT.lf!.cost] });
     expect(unitsPaid({}, { rl: 1 })).toEqual({ def: [...UNIT.rl!.cost] });
-    expect(unitsPaid({ lt: 1 }, { rl: 1 })).toEqual({
-      ships: [...UNIT.lt!.cost],
+    expect(unitsPaid({ lf: 1 }, { rl: 1 })).toEqual({
+      ships: [...UNIT.lf!.cost],
       def: [...UNIT.rl!.cost],
     });
   });

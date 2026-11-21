@@ -225,7 +225,7 @@ describe('what a finished unit and a demolition record', () => {
       b: { yard: 1 },
       sq: [
         { key: 'rl', n: 2, unit: 1000 },
-        { key: 'lt', n: 3, unit: 1000 },
+        { key: 'lf', n: 3, unit: 1000 },
       ],
       sqT: 1_000_000,
     });
@@ -241,7 +241,7 @@ describe('what a finished unit and a demolition record', () => {
         }[];
       }
     ).prod[0]!;
-    expect(prod.units).toEqual({ rl: 2, lt: 3 });
+    expect(prod.units).toEqual({ rl: 2, lf: 3 });
     expect(prod.unitsCost.def).toHaveLength(3);
     expect(prod.unitsCost.ships).toHaveLength(3);
     expect(prod.unitsCost.def!.some((n) => n > 0)).toBe(true);
@@ -290,7 +290,7 @@ describe('the gift of the Endzeit', () => {
     to: 'p1_1_5',
     toC: { g: 1, s: 1, p: 5 },
     mission: 'deploy',
-    ships: { lt: 42 },
+    ships: { lf: 42 },
     cargo: { m: 1_000_000, c: 1_000_000, d: 1_000_000 },
     dep: 0,
     arr: 5,
@@ -327,6 +327,9 @@ describe('the closing settlement', () => {
       cost: [1, 2, 3],
     };
     ctx.players.save(anna);
+    // The stores of a new place are full: nothing is credited above the limit.
+    for (const place of ctx.planets.all())
+      ctx.planets.save({ ...place, res: { m: 0, c: 0, d: 0 } });
     const before = ctx.planets.get('p1_1_5')!;
     ctx.clock.t += 3 * HOUR;
     journalClose(ctx, ctx.now());
