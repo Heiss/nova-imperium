@@ -67,10 +67,11 @@ export function completeFor(
   events: readonly RewindEvent[],
   seat: number,
 ): boolean {
-  // The facts of the close and the annotations of the admin have their own version.
-  const journal = events.filter((e) => JOURNAL.has(e.kind));
-  if (!journal.length || hasOldVersion(events)) return false;
-  return journal.some(
+  // No events and no joining of the seat both end in the false below; the facts
+  // of the close and the annotations of the admin have their own version, and
+  // `hasOldVersion` leaves them out.
+  if (hasOldVersion(events)) return false;
+  return events.some(
     (e) =>
       e.kind === EVENT_KIND.joined &&
       e.seat === seat &&
@@ -79,7 +80,7 @@ export function completeFor(
 }
 
 const cost = (v: readonly number[] | undefined): number =>
-  (v ?? []).reduce((s, n) => s + (Number.isFinite(n) ? n : 0), 0);
+  v?.reduce((s, n) => s + (Number.isFinite(n) ? n : 0), 0) ?? 0;
 
 /** The `prod` entries of the seat in one event: only places the seat owned. */
 const prodOf = (e: RewindEvent, seat: number): Produced[] => {
@@ -99,13 +100,11 @@ const shipsOf = (units: Levels | undefined): Levels =>
     Object.entries(units ?? {}).filter(([key]) => key in SHIPS),
   );
 
-/** What the units of `before` lost in the battle, by key: the units that are fewer afterwards. */
+/** What the units of `before` lost in the battle, by key: how many are fewer afterwards (0 for a unit that all survived). */
 function lost(before: Levels, after: Levels | undefined): Levels {
   const out: Levels = {};
-  for (const [key, n] of Object.entries(before)) {
-    const left = Math.min(n, after?.[key] ?? 0);
-    if (n > left) out[key] = n - left;
-  }
+  for (const [key, n] of Object.entries(before))
+    out[key] = n - Math.min(n, after?.[key] ?? 0);
   return out;
 }
 
@@ -188,11 +187,11 @@ export interface Focus {
  * focus (the rule of the issue: no fact, no card).
  */
 export function focusOf(spent: Record<Investment, number>): Focus | null {
-  const all = INVESTMENT.reduce((s, k) => s + spent[k], 0);
-  if (all <= 0) return null;
   const ranked = [...INVESTMENT].sort((a, b) => spent[b] - spent[a]);
   const top = ranked[0]!;
-  if (spent[top] <= 0 || spent[ranked[1]!] === spent[top]) return null;
+  // Nothing paid is a tie of four zeros, so it needs no check of its own.
+  if (spent[ranked[1]!] === spent[top]) return null;
+  const all = INVESTMENT.reduce((s, k) => s + spent[k], 0);
   return { focus: top, percent: Math.round((spent[top] / all) * 100) };
 }
 
@@ -211,7 +210,7 @@ export interface Loss {
 
 function battleOf(e: RewindEvent): JournalBattle | null {
   const b = e.payload.battle;
-  return b && typeof b === 'object' ? (b as JournalBattle) : null;
+  return typeof b === 'object' ? (b as JournalBattle | null) : null;
 }
 
 const isFleetEvent = (e: RewindEvent): boolean =>
@@ -233,11 +232,10 @@ function shipsLost(e: RewindEvent, seat: number): Levels | null {
   return null;
 }
 
-/** The loss of the seat in one event, or null when the seat lost no ship in it. */
-function lossIn(e: RewindEvent, seat: number): Loss | null {
+/** The loss of the seat in one event; its value is 0 when the seat lost no ship in it. */
+function lossIn(e: RewindEvent, seat: number): Loss {
   const gone = shipsLost(e, seat);
   const value = gone ? constructionValue(gone) : 0;
-  if (value <= 0) return null;
   const attacker = e.seat === seat;
   const other = attacker ? e.payload.target : e.seat;
   return {
@@ -263,7 +261,7 @@ export function largestLoss(
   let best: Loss | null = null;
   for (const e of inOrder(events)) {
     const here = lossIn(e, seat);
-    if (here && here.value > (best?.value ?? 0)) best = here;
+    if (here.value > (best?.value ?? 0)) best = here;
   }
   return best;
 }
@@ -354,13 +352,15 @@ function unseenInBattle(
   // A fleet of the seat joined the union of this battle (the numbers hold only the leading fleet).
   if (known.unions.has(String(e.payload.fleet))) return true;
   // The seat got the battle report but is neither the leading fleet nor the owner of the target: it joined or held.
-  const reports = Array.isArray(e.payload.reports)
-    ? (e.payload.reports as { type?: string; to?: number | null }[])
-    : [];
+  const reports = e.payload.reports;
   return (
     e.seat !== seat &&
     e.payload.target !== seat &&
-    reports.some((r) => r.type === 'battle' && r.to === seat)
+    Array.isArray(reports) &&
+    reports.some(
+      (r: { type?: string; to?: number | null }) =>
+        r.type === 'battle' && r.to === seat,
+    )
   );
 }
 

@@ -922,3 +922,373 @@ describe('constructionValue', () => {
     );
   });
 });
+
+describe('the edges of the reader', () => {
+  const lossOf = (events: RewindEvent[]) => largestLoss(events, ME)!;
+  const base = (extra: RewindEvent[]) => [joined(), ...extra];
+  const worth = (key: string, n: number) => sum3(costOf(key, n));
+
+  describe('what the cards read', () => {
+    it('takes a joining only from an event of the kind joined', () => {
+      const notJoined = ev(0, EVENT_KIND.action, ME, { entry: 'home' });
+      expect(completeFor([notJoined], ME)).toBe(false);
+      expect(completeFor([notJoined, joined()], ME)).toBe(true);
+    });
+
+    it('takes the research cost from a research event only, and counts a missing cost as zero', () => {
+      const other = ev(1, EVENT_KIND.action, ME, { cost: [900, 0, 0] });
+      const noCost = ev(2, EVENT_KIND.research, ME, { key: 'energy' });
+      expect(investmentOf([joined(), other, noCost], ME)).toEqual({
+        buildings: 0,
+        research: 0,
+        fleet: 0,
+        defense: 0,
+      });
+    });
+
+    it('takes the refund of a demolition from every resource', () => {
+      const events = [
+        joined(),
+        action(10, [
+          prod(ME, {
+            m: 10,
+            c: 20,
+            d: 100,
+            built: {
+              key: 'x',
+              lvl: 1,
+              end: 9,
+              cost: [1, 1, 1],
+              back: [1, 2, 40],
+            },
+          }),
+        ]),
+      ];
+      expect(productionOf(events, ME)).toEqual({
+        m: 9,
+        c: 18,
+        d: 60,
+        total: 87,
+      });
+    });
+
+    it('counts the ships of a battle report without the survivors as all lost', () => {
+      const attack = ev(DAY, EVENT_KIND.arrival, ME, {
+        mission: 'attack',
+        target: FOE,
+        battle: { attBefore: { lf: 3 } },
+      });
+      expect(largestLoss([attack], ME)!.value).toBe(worth('lf', 3));
+    });
+
+    it('reads a battle from a fleet event of every kind and from no other', () => {
+      const battle = { attBefore: { lf: 10 }, attAfter: { lf: 4 } };
+      for (const kind of [EVENT_KIND.hold, EVENT_KIND.return]) {
+        const e = ev(DAY, kind, ME, { target: FOE, battle });
+        expect(largestLoss([e], ME)!.value).toBe(worth('lf', 6));
+      }
+      const notFleet = ev(DAY, EVENT_KIND.action, ME, { target: FOE, battle });
+      expect(largestLoss([notFleet], ME)).toBeNull();
+    });
+
+    it('names no opponent that is not a seat number', () => {
+      const battle = { attBefore: { lf: 10 }, attAfter: { lf: 4 } };
+      for (const target of [undefined, 'Karthax', null])
+        expect(
+          largestLoss(
+            [ev(DAY, EVENT_KIND.arrival, ME, { target, battle })],
+            ME,
+          )!.opponent,
+        ).toBeNull();
+    });
+
+    it('takes the gift only from an arrival of the seat that is marked as a gift', () => {
+      const early = [
+        ev(1, EVENT_KIND.hold, ME, { gift: true, ships: { lf: 1 } }),
+        ev(2, EVENT_KIND.arrival, ME, { ships: { hf: 3 }, cargo: {} }),
+        ev(3, EVENT_KIND.action, ME, { gift: true, ships: { lf: 5 } }),
+      ];
+      const ring = ev(4, ENDZEIT_EVENT, 1, { minutes: 5 }, 1);
+      const real = ev(5, EVENT_KIND.arrival, ME, {
+        gift: true,
+        ships: { lf: 42, hf: 42 },
+        cargo: { m: 1, c: 2, d: 3 },
+      });
+      expect(endzeitOf([joined(), ...early, ring, real], ME)).toEqual({
+        at: 4,
+        gift: { ships: 84, cargo: { m: 1, c: 2, d: 3 } },
+      });
+    });
+  });
+
+  describe('the recovery', () => {
+    const loss = [
+      built(DAY, 'lf', 10),
+      fight(2 * DAY, ME, FOE, [{ lf: 10 }, { lf: 4 }]),
+    ];
+    const recover = built(5 * DAY, 'lf', 6);
+    const days = { days: 3, at: 5 * DAY };
+    const recovery = (extra: RewindEvent[]) => {
+      const events = base([...loss, ...extra, recover]);
+      return recoveryOf(events, ME, lossOf(events));
+    };
+
+    it('counts a place without finished units, and the gift of another seat or another kind as no gift', () => {
+      expect(recovery([action(3 * DAY, [prod(ME)])])).toEqual(days);
+      const foreign = ev(3 * DAY, EVENT_KIND.arrival, FOE, {
+        gift: true,
+        ships: { lf: 42 },
+      });
+      expect(recovery([foreign])).toEqual(days);
+      const notArrival = ev(3 * DAY, EVENT_KIND.action, ME, {
+        gift: true,
+        ships: { lf: 42 },
+      });
+      expect(recovery([notArrival])).toEqual(days);
+    });
+
+    it('counts the baseline of the joining of the seat only, and only from that event', () => {
+      // Three ships were built, six fell: the events miss ships, whatever others joined with.
+      const short = (extra: RewindEvent) =>
+        base([
+          built(DAY, 'lf', 3),
+          fight(2 * DAY, ME, FOE, [{ lf: 10 }, { lf: 4 }]),
+          extra,
+          built(5 * DAY, 'lf', 6),
+        ]);
+      for (const extra of [
+        joined(FOE, 'home', { lf: 50 }),
+        ev(DAY / 2, EVENT_KIND.action, ME, { places: [{ ships: { lf: 50 } }] }),
+      ]) {
+        const events = short(extra);
+        expect(recoveryOf(events, ME, lossOf(events))).toBeNull();
+      }
+    });
+
+    it('subtracts the earlier losses from the level before the loss: ships the events miss give no card', () => {
+      const events = base([
+        built(DAY, 'lf', 7),
+        fight(2 * DAY, ME, FOE, [{ lf: 7 }, { lf: 5 }]),
+        fight(3 * DAY, ME, FOE, [{ lf: 6 }, { lf: 0 }]),
+        built(4 * DAY, 'lf', 6),
+      ]);
+      expect(lossOf(events).at).toBe(3 * DAY);
+      expect(recoveryOf(events, ME, lossOf(events))).toBeNull();
+    });
+
+    it('subtracts the later losses of the window', () => {
+      const events = base([
+        built(DAY, 'lf', 20),
+        fight(2 * DAY, ME, FOE, [{ lf: 20 }, { lf: 12 }]),
+        fight(3 * DAY, ME, FOE, [{ lf: 12 }, { lf: 10 }]),
+        built(4 * DAY, 'lf', 8),
+        built(5 * DAY, 'lf', 2),
+      ]);
+      expect(recoveryOf(events, ME, lossOf(events))).toEqual({
+        days: 3,
+        at: 5 * DAY,
+      });
+    });
+
+    it('finds the loss by its time and its size: the same size at another time, the same time with another size', () => {
+      const twice = base([
+        built(DAY, 'lf', 20),
+        fight(2 * DAY, ME, FOE, [{ lf: 20 }, { lf: 14 }]),
+        fight(4 * DAY, ME, FOE, [{ lf: 14 }, { lf: 8 }]),
+        built(6 * DAY, 'lf', 6),
+      ]);
+      const second = { ...lossOf(twice), at: 4 * DAY };
+      expect(recoveryOf(twice, ME, second)).toEqual({ days: 2, at: 6 * DAY });
+      const sameTime = base([
+        built(2 * DAY, 'lf', 10),
+        fight(2 * DAY, ME, FOE, [{ lf: 10 }, { lf: 4 }]),
+        built(5 * DAY, 'lf', 6),
+      ]);
+      expect(recoveryOf(sameTime, ME, lossOf(sameTime))).toEqual({
+        days: 3,
+        at: 5 * DAY,
+      });
+    });
+
+    it('has none for a loss that is not among the events, not even a loss of nothing', () => {
+      const none = {
+        at: 99,
+        points: 0,
+        value: 0,
+        role: 'attacker' as const,
+        opponent: null,
+      };
+      expect(recoveryOf(base([built(DAY, 'lf', 1)]), ME, none)).toBeNull();
+    });
+
+    it('counts the production of the very first event of the round as the level before its loss', () => {
+      const first = fight(0, ME, FOE, [{ lf: 10 }, { lf: 4 }], [{}, {}], {
+        prod: [prod(ME, { unitsCost: { ships: costOf('lf', 10) } })],
+      });
+      const events = [first, joined(), built(DAY, 'lf', 6)];
+      expect(recoveryOf(events, ME, lossOf(events))).toEqual({
+        days: 1,
+        at: DAY,
+      });
+    });
+  });
+
+  describe('what the window consumed that the ledger does not subtract', () => {
+    const loss = [
+      built(DAY, 'lf', 10),
+      fight(2 * DAY, ME, FOE, [{ lf: 10 }, { lf: 4 }]),
+    ];
+    const recover = built(5 * DAY, 'lf', 6);
+    const days = { days: 3, at: 5 * DAY };
+    const recovery = (extra: RewindEvent[], to = recover) => {
+      const events = base([...loss, ...extra, to]);
+      return recoveryOf(events, ME, lossOf(events));
+    };
+    const arrival = (over: object, seat = ME) =>
+      ev(3 * DAY, EVENT_KIND.arrival, seat, {
+        target: null,
+        ships: { lf: 1 },
+        fate: 'back',
+        ...over,
+      });
+    const send = (over: object = {}, kind: string = EVENT_KIND.action) =>
+      ev(DAY + 1, kind, ME, {
+        cause: 'send',
+        input: { union: 'f-lead' },
+        ok: true,
+        ...over,
+      });
+    const lead = (over: object = {}) =>
+      fight(3 * DAY, ME, FOE, [{ lf: 5 }, { lf: 5 }], [{}, {}], {
+        fleet: 'f-lead',
+        ...over,
+      });
+
+    it('counts a colonisation only when it founded a colony', () => {
+      expect(
+        recovery([arrival({ mission: 'colonize', fate: 'gone' })]),
+      ).toEqual(days);
+    });
+
+    it('counts an expedition that was lost without a battle, not one that came back or fought', () => {
+      expect(
+        recovery([arrival({ mission: 'expedition', fate: 'back' })]),
+      ).toEqual(days);
+      const fought = fight(
+        3 * DAY,
+        ME,
+        null,
+        [{ lf: 3 }, { lf: 3 }],
+        [{ lf: 3 }, { lf: 2 }],
+        { mission: 'expedition', fate: 'gone' },
+      );
+      expect(recovery([fought], built(5 * DAY, 'lf', 7))).toEqual(days);
+    });
+
+    it('counts a survey only when it was lost, and a Mondbruch without ships as none', () => {
+      expect(recovery([arrival({ mission: 'survey', fate: 'back' })])).toEqual(
+        days,
+      );
+      expect(
+        recovery([arrival({ mission: 'moonbreak', ships: undefined })]),
+      ).toEqual(days);
+    });
+
+    it('counts the place that another seat lost as no consumption of the seat', () => {
+      const gone = ev(3 * DAY, EVENT_KIND.removed, FOE, { place: 'p1_1_2' });
+      expect(recovery([gone])).toEqual(days);
+    });
+
+    it('counts a loss of ships by an arrival, not by another kind of event', () => {
+      const back = ev(3 * DAY, EVENT_KIND.return, ME, {
+        mission: 'survey',
+        fate: 'gone',
+        ships: { probe: 1 },
+      });
+      expect(recovery([back])).toEqual(days);
+    });
+
+    it('does not take the colony of another seat for one of the seat', () => {
+      const foeColony = [
+        ev(3 * DAY, EVENT_KIND.arrival, FOE, {
+          cause: 'arrival',
+          mission: 'colonize',
+          fate: 'gone',
+        }),
+        ev(3 * DAY, EVENT_KIND.created, FOE, {
+          cause: 'arrival',
+          place: 'p1_1_9',
+          kind: 'planet',
+        }),
+      ];
+      expect(
+        recovery([
+          ...foeColony,
+          arrival({ mission: 'colonize', fate: 'gone' }),
+        ]),
+      ).toEqual(days);
+    });
+
+    it('takes a founded colony only from an event of creation of a planet by an arrival', () => {
+      const colonize = arrival({ mission: 'colonize', fate: 'gone' });
+      for (const e of [
+        ev(3 * DAY, EVENT_KIND.hold, ME, { cause: 'arrival', kind: 'planet' }),
+        ev(3 * DAY, EVENT_KIND.created, ME, { cause: 'send', kind: 'planet' }),
+      ])
+        expect(recovery([colonize, e])).toEqual(days);
+    });
+
+    it('takes a union only from a successful send action of the seat with the id of a fleet', () => {
+      expect(recovery([send(), lead()])).toBeNull();
+      const notUnions = [
+        send({ ok: false }),
+        send({ ok: undefined }),
+        send({ cause: 'build' }),
+        send({ input: {} }),
+        send({ input: undefined }),
+        send({ input: { union: 5 } }),
+        send({}, EVENT_KIND.arrival),
+        { ...send(), seat: FOE },
+      ];
+      for (const s of notUnions) expect(recovery([s, lead()])).toEqual(days);
+      expect(
+        recovery([send({ input: { union: '' } }), lead({ fleet: '' })]),
+      ).toEqual(days);
+    });
+
+    it('counts the leading fleet of a union only in a battle, and only in a fleet event', () => {
+      const without = ev(3 * DAY, EVENT_KIND.return, FOE, { fleet: 'f-lead' });
+      expect(recovery([send(), without])).toEqual(days);
+      const notFleet = ev(3 * DAY, EVENT_KIND.action, ME, {
+        fleet: 'f-lead',
+        battle: { attBefore: { lf: 5 }, attAfter: { lf: 5 } },
+      });
+      expect(recovery([send(), notFleet])).toEqual(days);
+      const garbage = lead({ battle: 'garbage' });
+      expect(recovery([send(), garbage])).toEqual(days);
+    });
+
+    it('counts a battle of another seat that the seat got the report of, and no other', () => {
+      const report = (to: number, type = 'battle') => ({
+        reports: [{ id: 'a', type, to }],
+      });
+      const other = (over: object) =>
+        fight(3 * DAY, FOE, 9, [{ lf: 5 }, { lf: 5 }], [{}, {}], over);
+      expect(recovery([other(report(ME))])).toBeNull();
+      expect(recovery([other(report(FOE))])).toEqual(days);
+      expect(recovery([other(report(ME, 'spy'))])).toEqual(days);
+      expect(recovery([other({ reports: 'none' })])).toEqual(days);
+      // The seat leads the battle, or owns the target: it is no joined fleet.
+      expect(recovery([lead({ fleet: 'x', ...report(ME) })])).toEqual(days);
+      const attacked = fight(
+        3 * DAY,
+        FOE,
+        ME,
+        [{ lf: 5 }, { lf: 5 }],
+        [{}, {}],
+        report(ME),
+      );
+      expect(recovery([attacked])).toEqual(days);
+    });
+  });
+});
