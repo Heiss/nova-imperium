@@ -3,7 +3,7 @@
 // Endzeit marked as one, and the closing settlement. Driven directly like
 // journal-causes.test.ts; the flow through the real actions is in
 // journal.test.ts.
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   EVENT_KIND,
   EVENT_VERSION,
@@ -123,6 +123,54 @@ describe('research.done', () => {
     ctx.players.save(done);
     read(ctx);
     expect(events(ctx, EVENT_KIND.research)).toEqual([]);
+  });
+});
+
+describe('a journal that has nothing to note', () => {
+  /** The test fails when the journal logged a failed write while `run` ran. */
+  const quiet = (run: () => void) => {
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      run();
+      expect(errors).not.toHaveBeenCalled();
+    } finally {
+      errors.mockRestore();
+    }
+  };
+
+  it('logs no failed write for the first save of a player, or one without a finished research', () => {
+    const ctx = setup();
+    beginCause();
+    quiet(() => {
+      addUser(ctx, 'Cleo');
+      ctx.players.save({ ...ctx.players.get('u_Anna')!, name: 'Anna' });
+    });
+    expect(events(ctx, EVENT_KIND.research)).toEqual([]);
+  });
+
+  it('logs no failed write for a research that finishes outside a cause', () => {
+    const ctx = setup();
+    const anna = ctx.players.get('u_Anna')!;
+    anna.rq = {
+      key: 'energy',
+      lvl: 2,
+      start: 0,
+      end: ctx.now() - 1,
+      cost: [1, 1, 1],
+    };
+    ctx.players.save(anna);
+    quiet(() =>
+      ctx.players.save({ ...anna, research: { energy: 2 }, rq: null }),
+    );
+    expect(events(ctx, EVENT_KIND.research)).toEqual([]);
+  });
+
+  it('logs no failed write for the removal of a place that does not exist, and writes no event', () => {
+    const ctx = setup();
+    beginCause();
+    quiet(() => ctx.planets.delete('p9_9_9'));
+    read(ctx);
+    expect(events(ctx, EVENT_KIND.removed)).toEqual([]);
   });
 });
 
@@ -374,6 +422,52 @@ describe('the closing settlement', () => {
     journalClose(ctx, ctx.now());
     expect(ctx.players.get('u_Anna')!.rq).not.toBeNull();
     expect(events(ctx, EVENT_KIND.research)).toEqual([]);
+  });
+
+  /** A player whose research is due `due` ms after now. */
+  const researching = (ctx: TestCtx, name: string, due: number) => {
+    const p = ctx.players.get(`u_${name}`)!;
+    p.rq = {
+      key: 'energy',
+      lvl: 1,
+      start: ctx.now() - HOUR,
+      end: ctx.now() + due,
+      cost: [1, 2, 3],
+    };
+    ctx.players.save(p);
+  };
+
+  it('settles a research that ends exactly at the cutoff', () => {
+    const ctx = setup();
+    researching(ctx, 'Anna', 0);
+    journalClose(ctx, ctx.now());
+    expect(ctx.players.get('u_Anna')).toMatchObject({
+      research: { energy: 1 },
+      rq: null,
+    });
+    expect(payloads<ResearchDone>(ctx, EVENT_KIND.research)).toEqual([
+      expect.objectContaining({ key: 'energy', end: ctx.now() }),
+    ]);
+  });
+
+  it('goes on to the next player after one without a research, and writes no error', () => {
+    const ctx = setup();
+    addUser(ctx, 'Aaron');
+    researching(ctx, 'Anna', -1);
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+    journalClose(ctx, ctx.now());
+    expect(errors).not.toHaveBeenCalled();
+    errors.mockRestore();
+    expect(ctx.players.get('u_Anna')!.rq).toBeNull();
+    expect(events(ctx, EVENT_KIND.research)).toHaveLength(1);
+  });
+
+  it('saves no player whose research is none or not due yet', () => {
+    const ctx = setup();
+    researching(ctx, 'Anna', HOUR);
+    const save = vi.spyOn(ctx.players, 'save');
+    journalClose(ctx, ctx.now());
+    expect(save).not.toHaveBeenCalled();
   });
 
   it('is written even when nothing was produced, and keeps the cause that is collecting', () => {

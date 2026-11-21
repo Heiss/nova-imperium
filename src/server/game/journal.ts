@@ -181,7 +181,6 @@ const causeTime = (ctx: Ctx): number => active?.at ?? ctx.now();
 
 /** A colony or a moon that came into being, or one that is gone, joins the running cause. */
 function notePlace(ctx: Ctx, kind: string, place: Planet): void {
-  if (!active) return;
   safely(() => {
     active!.facts.push({
       kind,
@@ -207,7 +206,7 @@ const isCreation = (repos: Repositories, next: Planet): boolean =>
 
 /** A research that finished with a save of the player joins the running cause. */
 function noteResearch(ctx: Ctx, prev: User | null, next: User): void {
-  if (!active || !prev) return;
+  if (!prev) return;
   safely(() => {
     const done = researchFinished(prev, next, causeTime(ctx));
     if (done)
@@ -234,7 +233,7 @@ function battleOf(report: Record<string, unknown>): JournalBattle {
     'loot',
     'debris',
   ])
-    if (report[k] !== undefined) out[k] = report[k];
+    out[k] = report[k];
   return out as JournalBattle;
 }
 
