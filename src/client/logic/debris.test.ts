@@ -2,13 +2,7 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import {
-  debrisAt,
-  debrisLine,
-  debrisMark,
-  debrisTip,
-  harvestButton,
-} from './debris.ts';
+import { debrisAt, debrisLine, debrisTip } from './debris.ts';
 
 const FIELDS = [
   { id: 'd1_2_6', g: 1, s: 2, p: 6, m: 1800, c: 600.5 },
@@ -39,22 +33,14 @@ describe('Trümmerfelder in the interface', () => {
     );
   });
 
-  it('shows a symbol with the tooltip as its title and text', () => {
-    const tip = 'Trümmerfeld: 1.800 Adamant, 600 Psikristall';
-    expect(debrisMark(FIELDS[0]!)).toBe(
-      `<img class="debris" src="/icons/debris.svg" alt="${tip}" title="${tip}" width="20" height="20">`,
-    );
+  // The symbol (its tooltip as title and text) and the button „Bergung“ are
+  // drawn by views/Galaxy.svelte since #337: see src/client/views/galaxy.test.ts.
+  it('has the file of the symbol', () => {
     const file = path.resolve(
       import.meta.dirname,
       '../static/icons/debris.svg',
     );
     expect(existsSync(file)).toBe(true);
-  });
-
-  it('offers the button „Bergung“ to the position', () => {
-    expect(harvestButton({ g: 1, s: 2, p: 6 })).toBe(
-      '<button class="small" data-act="gfleet" data-m="harvest" data-g="1" data-s="2" data-p="6">Bergung</button>',
-    );
   });
 
   it('says in the battle report that a field formed, and nothing without one', () => {

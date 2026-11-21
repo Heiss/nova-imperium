@@ -940,6 +940,17 @@ code and here in the same pull request.
 * **[V]** Table: „Einstellung | Wert in dieser Runde | Standard“
 * **[V]** Keywords: Universum, Einstellungen, Runde, Tempo, Größe
 
+### Fair spielen (`rule-fair`)
+
+The rule of #181 (owner, 2026-11-21, D5): the game must not be played by an
+AI or a program, and the Spielleitung can check it; no player is told when
+the check is on for them.
+
+* **[V]** Line: „Wer das Spiel bedienen darf.“
+* **[V]** Heading: „Selbst spielen“
+* **[V]** Text: „Das Spiel darf nicht von einer KI oder einem Programm bedient werden: Jede Aktion kommt von dir. Die Spielleitung kann das für einzelne Spieler prüfen.“
+* **[V]** Keywords: KI, Bot, Programm, Automatisierung, Regeln
+
 ## Häufige Fragen
 
 ### Wie bekomme ich mehr Informationen über den Gegner? (`faq-intel`)

@@ -89,7 +89,11 @@ const ratiosSection = (s: LexState): PageSection => {
     'ratios',
     'Verhältnisse und Preise',
     say(
-      'Das Verhältnis nennt, wie viel du für {unit} bekommst, wenn der Preis der Basispreis ist und keine Gebühr anfällt. Jeder Tausch senkt den Preis genau dieses Paares um einen Anteil der getauschten Menge; das umgekehrte Paar behält seinen Preis, damit sich eine Folge von Tauschen nicht lohnt. Danach erholt sich der Preis gleichmäßig bis zum Basispreis, in dieser Runde in {drift}. Der Anteil beträgt {step} Promille je {unit} getauschter Einheiten. Alle Spieler haben denselben Preis.',
+      round.marketDrift === 0
+        ? // No recovery in this round (owner, 2026-11-21, #346): the sentence
+          // of the recovery gives way to the owner's one, the rest stays.
+          'Das Verhältnis nennt, wie viel du für {unit} bekommst, wenn der Preis der Basispreis ist und keine Gebühr anfällt. Jeder Tausch senkt den Preis genau dieses Paares um einen Anteil der getauschten Menge; das umgekehrte Paar behält seinen Preis, damit sich eine Folge von Tauschen nicht lohnt. In dieser Runde erholt sich der Preis nicht. Der Anteil beträgt {step} Promille je {unit} getauschter Einheiten. Alle Spieler haben denselben Preis.'
+        : 'Das Verhältnis nennt, wie viel du für {unit} bekommst, wenn der Preis der Basispreis ist und keine Gebühr anfällt. Jeder Tausch senkt den Preis genau dieses Paares um einen Anteil der getauschten Menge; das umgekehrte Paar behält seinen Preis, damit sich eine Folge von Tauschen nicht lohnt. Danach erholt sich der Preis gleichmäßig bis zum Basispreis, in dieser Runde in {drift}. Der Anteil beträgt {step} Promille je {unit} getauschter Einheiten. Alle Spieler haben denselben Preis.',
       {
         unit: number(RATIO_UNIT),
         drift: hours(round.marketDrift),

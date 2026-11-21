@@ -2,12 +2,11 @@
 // list, the target of the fleet form and the lines of the battle report.
 import { describe, expect, it } from 'vitest';
 import {
+  byPlace,
   MOON_FORMED,
   moonAt,
   moonLines,
-  moonMark,
   moonMarkId,
-  moonPicture,
   moonTarget,
   ownPlaces,
 } from './moon.ts';
@@ -39,23 +38,11 @@ describe('moons in the interface (#53)', () => {
     expect(moonAt([], { g: 1, s: 2, p: 5 })).toBeUndefined();
   });
 
-  it('draws the moon with its name for screen readers', () => {
-    expect(moonPicture('Luna <b> (Mond)', 28)).toBe(
-      '<img class="moon" src="/icons/moon.svg" alt="Luna &lt;b&gt; (Mond)" width="28" height="28">',
-    );
-  });
-
-  it('makes the symbol a button that opens and closes the moon row', () => {
-    const moon = place('moon', 5, 'u_Bert', { name: 'Luna' });
-    expect(moonMark(moon, false)).toBe(
-      '<button type="button" id="moon-m1_2_5" class="moon-btn" data-act="gmoon" data-id="m1_2_5" aria-expanded="false" title="Luna (Mond)"><img class="moon" src="/icons/moon.svg" alt="Luna (Mond)" width="20" height="20"></button>',
-    );
-    expect(moonMark(moon, true)).toContain('aria-expanded="true"');
-    // The same id after a new render keeps the focus on the symbol.
+  // The picture and the symbol of a moon are components since #337: their
+  // markup is tested in src/test/html-pieces-reference.test.ts
+  // (MoonPicture) and src/client/views/galaxy.test.ts (the symbol).
+  it('gives the symbol an id that stays the same after a new render, so the focus stays on it', () => {
     expect(moonMarkId('m1_2_5')).toBe('moon-m1_2_5');
-    expect(moonMark({ ...moon, id: 'm<1>' }, false)).toContain(
-      'id="moon-m&lt;1&gt;"',
-    );
   });
 
   it('lists the own planets and moons, each moon after its planet', () => {
@@ -93,12 +80,34 @@ describe('moons in the interface (#53)', () => {
           .map((x) => x.id)
           .slice(-2),
       ).toEqual(['p1_2_4', 'm1_2_4']);
+    // A long list, as an account with many places has: every moon still
+    // follows its planet, whatever order the engine compares them in.
+    const many = Array.from({ length: 15 }, (_, i) => [
+      place('moon', 15 - i),
+      place('planet', 15 - i),
+    ]).flat();
+    expect(ownPlaces(many, 'u_Anna').map((x) => x.id)).toEqual(
+      Array.from({ length: 15 }, (_, i) => [
+        `p1_2_${i + 1}`,
+        `m1_2_${i + 1}`,
+      ]).flat(),
+    );
     // Planets in the same system by position.
     expect(
       ownPlaces([place('planet', 9), place('planet', 2)], 'u_Anna').map(
         (x) => x.p,
       ),
     ).toEqual([2, 9]);
+  });
+
+  it('orders a moon after its planet, whichever of the two is compared first', () => {
+    const planet = place('planet', 4);
+    const moon = place('moon', 4);
+    expect(byPlace(moon, planet)).toBe(1);
+    expect(byPlace(planet, moon)).toBe(-1);
+    expect(byPlace(planet, place('planet', 4))).toBe(0);
+    expect(byPlace(moon, place('moon', 4))).toBe(0);
+    expect(byPlace(place('moon', 3), planet)).toBeLessThan(0);
   });
 
   it('names a moon target with its owner, or that there is none', () => {

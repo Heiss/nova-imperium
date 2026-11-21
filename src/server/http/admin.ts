@@ -5,6 +5,7 @@ import { errorPage } from '../error-log.ts';
 import { announce, requireAdmin } from '../game/admin.ts';
 import { type Ctx, fail, str } from '../game/context.ts';
 import { orders, playerDetail, playerStats } from '../game/diagnostics.ts';
+import { switchBotCheck } from '../game/bot-check.ts';
 import { adminGuildChat } from '../game/guild-chat.ts';
 import { adminMessageReports } from '../game/private-messages.ts';
 import { moderate } from '../game/moderation.ts';
@@ -185,7 +186,27 @@ function moderationRoutes(
       return { json: { ok: true } };
     }),
     'POST /api/admin/moon': moonCreation(ctx, admin),
+    'POST /api/admin/bot-check': botCheckSwitch(ctx, admin),
   };
+}
+
+/**
+ * „Automatisierung prüfen“ in the player record (#181), an admin write: the
+ * entry names who (actor), whom (target), when and whether on or off.
+ */
+function botCheckSwitch(ctx: Ctx, admin: Admin): Handler {
+  return admin((call, u) => {
+    const entry: AuditEntry = {
+      category: 'admin.write',
+      action: 'botCheck',
+      actor: u.id,
+      requestId: call.requestId,
+    };
+    const botCheck = audited(ctx, entry, () =>
+      switchBotCheck(ctx, call.body, entry),
+    );
+    return { json: { botCheck } };
+  });
 }
 
 /** „Mond anlegen“ in the player record (#53; owner, 2026-11-14), an admin write. */

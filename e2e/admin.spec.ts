@@ -1,6 +1,7 @@
 // The admin: inspecting a player with the audit of the data access, the
 // admin panel, and copying an invitation link.
-import { expect, test } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
+import { expect, test, type Page } from '@playwright/test';
 import { E2E_UNIVERSE } from './env.ts';
 import {
   cli,
@@ -13,6 +14,14 @@ import {
   uniqueName,
   watch,
 } from './helpers.ts';
+
+/** The axe findings of the page (WCAG 2.1 AA, as the other specs), as id and help. */
+async function violations(page: Page): Promise<string[]> {
+  const results = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+  return results.violations.map((v) => `${v.id}: ${v.help}`);
+}
 
 test.describe('admin', () => {
   test('an admin can inspect a player and audit the data access', async ({
@@ -57,6 +66,64 @@ test.describe('admin', () => {
       .getByRole('row', { name: /admin.read \/ player/ })
       .filter({ hasText: name });
     await expect(audit).toContainText(pilot);
+    await other.close();
+  });
+
+  test('the admin switches „Automatisierung prüfen“ on and sees the facts since then; the player sees nothing (#181)', async ({
+    page,
+    browser,
+  }) => {
+    const name = uniqueName('Pruefer');
+    const pilot = uniqueName('Pilot');
+    const other = await browser.newPage();
+    await register(other, pilot);
+    const before = await other.locator('body').innerText();
+    await register(page, name);
+    cli('admin', name);
+    await page.reload();
+    await nav(page, 'admin');
+    await page.getByRole('tab', { name: 'Spieler', exact: true }).click();
+    await page
+      .locator('[data-admin=stats]')
+      .getByRole('button', { name: pilot, exact: true })
+      .click();
+    const check = page.getByLabel('Automatisierung prüfen');
+    await expect(check).not.toBeChecked();
+    await expect(page.locator('[data-admin=bot-check-status]')).toHaveText(
+      'Nicht geprüft',
+    );
+    await check.check();
+    await expect(page.locator('[data-admin=bot-check-status]')).toContainText(
+      'Geprüft seit',
+    );
+    await expect(
+      page.getByText('Noch keine Aktionen seit dem Einschalten.'),
+    ).toBeVisible();
+    expect(await violations(page)).toEqual([]);
+
+    // The player acts and sees nothing of the check.
+    await nav(other, 'buildings');
+    await other.click('[data-act=build][data-k=metal]');
+    await expect(other.getByText('Ausbau auf Stufe 1')).toBeVisible();
+    await other.reload();
+    expect(await other.locator('body').innerText()).not.toContain(
+      'Automatisierung',
+    );
+    expect(before).not.toContain('Automatisierung');
+
+    await page
+      .locator('[data-admin=stats]')
+      .getByRole('button', { name: pilot, exact: true })
+      .click();
+    await expect(page.locator('[data-admin=bot-hints] li')).toHaveCount(1);
+    await expect(page.locator('[data-admin=bot-hints] li')).toContainText(
+      /: 1 Aktion, davon \d+ ohne aktive Spielzeit; 0 Treffer der Aktionsgrenze$/,
+    );
+    await check.uncheck();
+    await expect(page.locator('[data-admin=bot-check-status]')).toHaveText(
+      'Nicht geprüft',
+    );
+    await expect(page.locator('[data-admin=bot-hints]')).toHaveCount(0);
     await other.close();
   });
 

@@ -22,6 +22,7 @@ import {
   refreshInvitations,
   refreshMessageReports,
   setMoon,
+  switchBotCheck,
   showErrors,
   showEvents,
 } from './admin-panels.svelte.ts';
@@ -338,6 +339,23 @@ describe('the record of a player', () => {
       body: { player: 'u1', action: 'ban', hours: '0', reason: 'x' },
     });
     expect(urls().slice(1)).toEqual(['stats', 'player']);
+  });
+
+  it('switches „Automatisierung prüfen“ on and off and reads the record again (#181)', async () => {
+    await switchBotCheck('u1', true);
+    expect(calls[0]).toEqual({
+      url: '/api/admin/bot-check',
+      body: { player: 'u1', on: true },
+    });
+    expect(urls().slice(1)).toEqual(['stats', 'player']);
+    calls = [];
+    await switchBotCheck('u1', false);
+    expect(calls[0]!.body).toEqual({ player: 'u1', on: false });
+    answers['bot-check'] = () => new Error('Spieler nicht gefunden.');
+    calls = [];
+    await switchBotCheck('u9', true);
+    expect(panels.notice).toBe('Spieler nicht gefunden.');
+    expect(urls()).toEqual(['bot-check']);
   });
 
   it('shows a refusal and does not read the record again', async () => {

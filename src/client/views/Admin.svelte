@@ -18,6 +18,7 @@
   import { diagnosticTab, type AdminPage } from '../logic/admin.ts';
   import { adminForm } from '../logic/admin-form.svelte.ts';
   import { panels } from '../logic/admin-panels.svelte.ts';
+  import AdminBotCheck from './AdminBotCheck.svelte';
   import AdminDiagnostics from './AdminDiagnostics.svelte';
   import AdminErrors from './AdminErrors.svelte';
   import AdminInvitations from './AdminInvitations.svelte';
@@ -62,7 +63,8 @@
     <Box title="Diagnose und Protokoll"
       ><div id="admin-diagnostics">
         <AdminDiagnostics players={page.players} />
-      </div></Box
+      </div>
+      <AdminBotCheck /></Box
     >
   </section>
   <!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->

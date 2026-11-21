@@ -81,8 +81,12 @@ export const DEFAULT_RATIOS: Readonly<Record<Pair, number>> = {
  * thousandths. Default 5: 20,000 units given lower the price by about 10 %.
  */
 export const STEP = { min: 1, max: 1000, def: 5 } as const;
-/** The time a price needs to drift back to the base, in whole hours [V]. */
-export const DRIFT_HOURS = { min: 1, max: 720, def: 24 } as const;
+/**
+ * The time a price needs to drift back to the base, in whole hours [V]; 0
+ * means no recovery: a price stays where the last exchange left it until the
+ * round ends (owner, 2026-11-21, #346).
+ */
+export const DRIFT_HOURS = { min: 0, max: 720, def: 24 } as const;
 /**
  * The amount a player may give per UTC day, summed over all resources; 0
  * means no limit (owner, 2026-11-19). The range and the default 100,000 are
@@ -221,7 +225,7 @@ export const roundSettings = [
     ...number,
     key: 'roundMarketDrift',
     name: 'marketDrift',
-    label: 'Marktplatz Preiserholung (Stunden)',
+    label: 'Marktplatz Preiserholung (Stunden, 0 = keine Erholung)',
     order: 400,
     min: DRIFT_HOURS.min,
     max: DRIFT_HOURS.max,
@@ -327,7 +331,9 @@ export interface PriceState {
  * in a straight line and is at the base `driftHours` after the last
  * exchange. The part that is back is rounded down, so the price is never
  * above where the straight line puts it. A pair without a state is at the
- * base.
+ * base. With 0 hours the price does not recover: the stored price stays
+ * (owner, 2026-11-21, #346); the straight line would put it at the base at
+ * once instead.
  */
 export function priceNow(
   state: PriceState | undefined,
@@ -335,6 +341,7 @@ export function priceNow(
   driftHours: number,
 ): number {
   if (!state) return PRICE_UNIT;
+  if (driftHours === 0) return state.price;
   const span = BigInt(driftHours) * BigInt(HOUR_MS);
   const elapsed = BigInt(Math.max(0, now - state.at));
   if (elapsed >= span) return PRICE_UNIT;

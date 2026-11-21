@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  botCheckBlock,
+  botDayLine,
   dateValue,
   dayQuery,
   dayTime,
@@ -401,5 +403,54 @@ describe('the reported private messages (#226)', () => {
 
   it('has no rows for no report', () => {
     expect(reportsPage([]).rows).toEqual([]);
+  });
+});
+
+describe('„Automatisierung prüfen“ in the player record (#181)', () => {
+  const day = Date.UTC(2026, 10, 21);
+  it('says whether the check is on and since when', () => {
+    expect(botCheckBlock({ since: null, days: [] })).toEqual({
+      on: false,
+      status: 'Nicht geprüft',
+      lines: [],
+      empty: '',
+    });
+    expect(botCheckBlock({ since: day + 3600000, days: [] })).toEqual({
+      on: true,
+      status: `Geprüft seit ${dt(day + 3600000)}`,
+      lines: [],
+      empty: 'Noch keine Aktionen seit dem Einschalten.',
+    });
+  });
+
+  it('writes one line of raw facts per day, the gaps only with two actions or more', () => {
+    expect(
+      botDayLine({
+        day,
+        actions: 1234,
+        outsidePlay: 12,
+        limitHits: 1,
+        gaps: { shortest: 0.4, lower: 1.25, median: 2, upper: 10.5 },
+      }),
+    ).toBe(
+      '2026-11-21: 1.234 Aktionen, davon 12 ohne aktive Spielzeit; 1 Treffer der Aktionsgrenze; Abstände: kürzester 0,4 s, Median 2,0 s, mittlere Hälfte 1,3 s bis 10,5 s',
+    );
+    expect(
+      botDayLine({
+        day,
+        actions: 1,
+        outsidePlay: 0,
+        limitHits: 0,
+        gaps: null,
+      }),
+    ).toBe(
+      '2026-11-21: 1 Aktion, davon 0 ohne aktive Spielzeit; 0 Treffer der Aktionsgrenze',
+    );
+    const block = botCheckBlock({
+      since: day,
+      days: [{ day, actions: 2, outsidePlay: 0, limitHits: 0, gaps: null }],
+    });
+    expect(block.lines).toHaveLength(1);
+    expect(block.empty).toBe('');
   });
 });

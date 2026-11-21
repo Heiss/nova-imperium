@@ -12,16 +12,23 @@ import { MISSION } from '../core/missions.ts';
 import { placeName } from '../core/moon.ts';
 import { placeId } from '../core/place.ts';
 import type { Levels, Planet } from '../core/types.ts';
-import { debrisAt, debrisMark, harvestButton } from '../client/logic/debris.ts';
+import { debrisAt } from '../client/logic/debris.ts';
 import { coords, dur, esc, fmt } from '../client/logic/format.ts';
 import { galaxyPage } from '../client/logic/galaxy.ts';
 import { isProtected, nameOf, ranks } from '../client/logic/game.ts';
-import { moonAt, moonMark, moonPicture } from '../client/logic/moon.ts';
+import { moonAt } from '../client/logic/moon.ts';
 import { canScan, scanRows, scanTitle } from '../client/logic/phalanx.ts';
 import type { GalaxyPlanet, GameState } from '../client/logic/types.ts';
-import { planetHTML, type Ui, type V } from '../client/views/common.ts';
+import type { Ui, V } from '../client/views/common.ts';
 import Galaxy from '../client/views/Galaxy.svelte';
 import { planet, U } from './fixtures.ts';
+import {
+  debrisMark,
+  harvestButton,
+  moonMark,
+  moonPicture,
+  planetHTML,
+} from './html-pieces-frozen.ts';
 import { normalize } from './markup.ts';
 
 // ----- frozen: src/client/views/galaxy.ts before #118, bundle 2 -----

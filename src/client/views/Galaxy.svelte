@@ -4,22 +4,24 @@
   // carry data-act, which main.ts handles; the clock of main.ts counts the
   // countdowns of the scan down. A place shows the words of its activity
   // after its name, its owner those of the inactivity (#229), before the
-  // noob protection. The symbols of a moon and a Trümmerfeld,
-  // the button „Bergung“ and the pictures keep their HTML. On a phone (#189)
+  // noob protection. The symbols of a moon and a Trümmerfeld, the button
+  // „Bergung“ and the pictures are components and markup (#337, no `{@html}`
+  // left). On a phone (#189)
   // the actions of a position are behind a „⋯“, which opens them in a bottom
   // sheet (a modal <dialog>, like „Mehr“); the actions stay in the row, which
   // the CSS hides there, so the desktop is as before.
   import type {
     GalaxyAction,
+    GalaxyMark,
     GalaxyPage,
     GalaxyPlace,
     GalaxySheet,
   } from '../logic/galaxy.ts';
   import { galaxyPosition, shown } from '../logic/galaxy-position.svelte.ts';
-  import { moonPicture } from '../logic/moon.ts';
   import { client } from '../logic/state.svelte.ts';
-  import { planetHTML } from './common.ts';
   import Due from './Due.svelte';
+  import MoonPicture from './MoonPicture.svelte';
+  import PlanetPicture from './PlanetPicture.svelte';
 
   let { page }: { page: GalaxyPage } = $props();
   let dialog: HTMLDialogElement | undefined = $state();
@@ -52,9 +54,10 @@
   list: GalaxyAction[],
 )}{#each list as a, i (i)}{#if i}{' · '}{/if}{#if a.kind === 'active'}<span
         class="dim">{a.label}</span
-      >{:else if a.kind === 'html'}{@html a.html}{:else if a.kind === 'link'}<span
-        class="lnk"
-        {...a.attrs}>{a.label}</span
+      >{:else if a.kind === 'harvest'}<button class="small" {...a.attrs}
+        >{a.label}</button
+      >{:else if a.kind === 'link'}<span class="lnk" {...a.attrs}
+        >{a.label}</span
       >{:else}<button class="small" {...a.attrs}>{a.label}</button
       >{/if}{/each}{/snippet}
 
@@ -73,8 +76,23 @@
   >{/snippet}
 
 {#snippet marks(
-  list: string[],
-)}{#each list as mark, i (i)}{' '}{@html mark}{/each}{/snippet}
+  list: GalaxyMark[],
+)}{#each list as mark, i (i)}{' '}{#if mark.kind === 'moon'}<button
+        type="button"
+        id={mark.id}
+        class="moon-btn"
+        data-act="gmoon"
+        data-id={mark.moonId}
+        aria-expanded={mark.open}
+        title={mark.name}><MoonPicture name={mark.name} size={20} /></button
+      >{:else}<img
+        class="debris"
+        src="/icons/debris.svg"
+        alt={mark.tip}
+        title={mark.tip}
+        width="20"
+        height="20"
+      />{/if}{/each}{/snippet}
 
 {#snippet activity(pl: GalaxyPlace)}{#if pl.activity}{' '}<span class="dim"
       >({pl.activity})</span
@@ -177,7 +195,7 @@
             <td class="n">{row.position}</td>
             <td
               ><span class="gal-pl"
-                >{@html planetHTML(row.planet, true)}{row.planet
+                ><PlanetPicture c={row.planet} still />{row.planet
                   .name}{@render activity(row.planet)}{@render marks(
                   row.marks,
                 )}</span
@@ -191,7 +209,7 @@
               <td class="n"></td>
               <td
                 ><span class="gal-pl"
-                  >{@html moonPicture(row.moon.name, 28)}{row.moon
+                  ><MoonPicture name={row.moon.name} size={28} />{row.moon
                     .name}{@render activity(row.moon)}</span
                 ></td
               >
@@ -234,7 +252,9 @@
     {#if sheet.flight}<p class="dim sheet-note">{sheet.flight}</p>{/if}
     <div class="sheet-actions">
       {#each sheet.actions as a, i (i)}
-        {#if a.kind === 'html'}{@html a.html}{:else if a.kind === 'link' || a.kind === 'button'}<button
+        {#if a.kind === 'harvest'}<button class="small" {...a.attrs}
+            >{a.label}</button
+          >{:else if a.kind === 'link' || a.kind === 'button'}<button
             type="button"
             {...a.attrs}>{a.label}</button
           >{/if}

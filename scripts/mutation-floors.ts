@@ -9,7 +9,10 @@
 //        ci.yml) and
 //          - adds the measured score of a file that has no floor,
 //          - raises the floor of a file whose score is above it,
-//          - drops the floor of a file that no longer exists.
+//          - drops the floor of a file that no longer exists,
+//          - never writes a floor above the cap of mutation-standard.json
+//            (95 %), and lowers a floor above it to the cap, for every file
+//            but the sensitive ones of "exact" (owner, 2026-11-21, #338).
 //        A file below its floor (or, without one, below the minimum of a new
 //        file or of a security file) stops everything: the message lists
 //        these files and nothing is written; a floor never goes down. Scores
@@ -44,6 +47,7 @@ import {
 } from './mutation-floorfile.ts';
 import {
   check,
+  limitOf,
   parseStandard,
   scoresOf,
   STANDARD,
@@ -62,6 +66,8 @@ export interface Raised {
   floors: Record<string, number>;
   added: Change[];
   raised: Change[];
+  /** Floors above the cap, lowered to it (#338). */
+  capped: Change[];
   /** Floors of files that no longer exist. */
   removed: string[];
   /** One message per file below its floor: nothing may be written then. */
@@ -134,6 +140,7 @@ export function raise(
     floors: { ...standard.floors },
     added: [],
     raised: [],
+    capped: [],
     removed: [],
     below,
   };
@@ -145,12 +152,14 @@ export function raise(
   ]);
   for (const file of [...files].sort()) {
     const was = standard.floors[file];
-    const next = settle(was, scores[file], exists(file));
+    const next = settle(
+      was,
+      scores[file],
+      exists(file),
+      limitOf(file, standard),
+    );
     if (next.floor !== undefined) floors[file] = next.floor;
-    if (next.change === 'added') out.added.push({ file, to: next.floor });
-    if (next.change === 'raised')
-      out.raised.push({ file, from: was, to: next.floor });
-    if (next.change === 'removed') out.removed.push(file);
+    note(out, file, was, next);
   }
   out.floors = floors;
   return out;
@@ -160,18 +169,39 @@ type Settled =
   | { change?: undefined; floor?: number }
   | { change: 'added'; floor: number }
   | { change: 'raised'; floor: number }
+  | { change: 'capped'; floor: number }
   | { change: 'removed'; floor?: undefined };
 
-/** The floor of one file after the report: was, the score now, the file here. */
+/**
+ * The floor of one file after the report: was, the score now, the file here,
+ * and the most its floor may be (the cap, or 100 for a sensitive file).
+ */
 function settle(
   was: number | undefined,
   now: number | undefined,
   here: boolean,
+  limit: number,
 ): Settled {
   if (!here) return was === undefined ? {} : { change: 'removed' };
+  if (was !== undefined && was > limit)
+    return { change: 'capped', floor: limit };
   if (now === undefined) return was === undefined ? {} : { floor: was };
-  if (was === undefined) return { change: 'added', floor: now };
-  return now > was ? { change: 'raised', floor: now } : { floor: was };
+  const next = Math.min(now, limit);
+  if (was === undefined) return { change: 'added', floor: next };
+  return next > was ? { change: 'raised', floor: next } : { floor: was };
+}
+
+/** Adds the change of one file to its list in <out>. */
+function note(
+  out: Raised,
+  file: string,
+  was: number | undefined,
+  next: Settled,
+): void {
+  if (next.change === 'removed') out.removed.push(file);
+  else if (next.change === 'added') out.added.push({ file, to: next.floor });
+  else if (next.change)
+    out[next.change].push({ file, from: was, to: next.floor });
 }
 
 /** The lines the command prints for a change. */
@@ -179,10 +209,11 @@ export function summary(r: Raised, dryRun: boolean): string[] {
   const lines = [
     ...r.added.map((c) => `added   ${c.file}: ${c.to} %`),
     ...r.raised.map((c) => `raised  ${c.file}: ${c.from} % -> ${c.to} %`),
+    ...r.capped.map((c) => `capped  ${c.file}: ${c.from} % -> ${c.to} %`),
     ...r.removed.map((f) => `removed ${f}: the file is gone`),
   ];
   lines.push(
-    `Floors: ${r.added.length} added, ${r.raised.length} raised, ${r.removed.length} removed${dryRun ? ' (--dry-run: nothing written)' : ''}.`,
+    `Floors: ${r.added.length} added, ${r.raised.length} raised, ${r.capped.length ? `${r.capped.length} capped, ` : ''}${r.removed.length} removed${dryRun ? ' (--dry-run: nothing written)' : ''}.`,
   );
   return lines;
 }

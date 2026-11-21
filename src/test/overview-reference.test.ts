@@ -21,17 +21,12 @@ import { fleetEnd, nameOf, ranks, sortFleets } from '../client/logic/game.ts';
 import { planetLook } from '../client/logic/planet.ts';
 import { client } from '../client/logic/state.svelte.ts';
 import type { ClientFleet, GameState } from '../client/logic/types.ts';
-import {
-  box,
-  cd,
-  planetHTML,
-  type Ui,
-  type V,
-} from '../client/views/common.ts';
+import { box, cd, type Ui, type V } from '../client/views/common.ts';
 import Overview from '../client/views/Overview.svelte';
 import OverviewCards from '../client/views/OverviewCards.svelte';
 import { planet, U } from './fixtures.ts';
 import { fleetView } from './fleet-view.ts';
+import { planetHTML } from './html-pieces-frozen.ts';
 import { normalize } from './markup.ts';
 
 // ----- frozen: src/client/views/overview.ts before #118 -----

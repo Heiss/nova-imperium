@@ -115,6 +115,11 @@ CREATE TABLE audit_events (
     detail TEXT NOT NULL
   ) STRICT;
 
+CREATE TABLE bot_checks (
+      player TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      since INTEGER NOT NULL
+    ) STRICT;
+
 CREATE TABLE daily_rewards (
     user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
     last_day INTEGER NOT NULL,

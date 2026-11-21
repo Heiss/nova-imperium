@@ -1,4 +1,5 @@
 import { DAY } from '../audit.ts';
+import { botCheckOf } from './bot-check.ts';
 import type { Ctx } from './context.ts';
 import { suspension } from './moderation.ts';
 import { dayTable, weekMs } from './playtime.ts';
@@ -68,6 +69,8 @@ function planetsOf(ctx: Ctx, uid: string) {
 export function playerDetail(ctx: Ctx, uid: string) {
   return {
     suspension: suspension(ctx, uid) ?? null,
+    // The check of #181 and its hints, for the admin only (an admin read).
+    botCheck: botCheckOf(ctx, uid),
     planets: planetsOf(ctx, uid),
     // The days with active time or an action: the sums of the player's own view.
     days: dayTable(ctx, uid).filter((d) => d.activeMs > 0 || d.actions > 0),

@@ -1,12 +1,13 @@
 // The page „Marktplatz“ (#171) of the view state: the notices, the form with
-// the market of the shown planet, and the HTML of the preview.
+// the market of the shown planet. The preview is a component since #337
+// (its test is in src/client/views/market.test.ts).
 import { describe, expect, it } from 'vitest';
 import { CLOSED } from '../../core/market-text.ts';
 import { DEFAULT_UNIVERSE } from '../../core/universe.ts';
 import { planet, roundDefaults } from '../../test/fixtures.ts';
 import type { V } from '../views/common.ts';
 import { marketOf } from './market.ts';
-import { marketPage, previewHTML } from './market-page.ts';
+import { marketPage } from './market-page.ts';
 import type { GameState } from './types.ts';
 
 const BASE = 1_000_000;
@@ -53,17 +54,5 @@ describe('the page of the marketplace', () => {
       market: marketOf(v.s, v.P),
     });
     expect(marketOf(v.s, v.P)).not.toBeNull();
-  });
-
-  it('writes the preview that the form is painted with', () => {
-    expect(
-      previewHTML({
-        lines: [{ label: '<Kurs>', value: 'a & b' }],
-        note: 'Note "x"',
-        ok: false,
-      }),
-    ).toBe(
-      '<table class="kv"><tr><td>&lt;Kurs&gt;</td><td>a &amp; b</td></tr></table><p class="bad">Note &quot;x&quot;</p>',
-    );
   });
 });
