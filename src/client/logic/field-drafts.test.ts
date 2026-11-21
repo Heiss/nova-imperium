@@ -34,6 +34,7 @@ describe('the fields that have a draft', () => {
       't_h',
       't_stay',
       't_q',
+      'jg_to',
       'c_m',
       'c_c',
       'c_d',
@@ -60,7 +61,7 @@ describe('the fields that have a draft', () => {
       'audit-outcome',
     ])
       expect(isTracked(id), id).toBe(false);
-    for (const id of ['jg_to', 'o_anim', 'q_lc', 'td_lc'])
+    for (const id of ['o_anim', 'q_lc', 'td_lc'])
       expect(isTracked(id), id).toBe(true);
   });
 
@@ -102,14 +103,14 @@ describe('the drafts of the fields', () => {
 
   it('does not restore onto a disabled option of a select', () => {
     const drafts = new FieldDrafts();
-    drafts.record(f('jg_to', 'm2'));
+    drafts.record(f('td_lc', 'm2'));
     const options = [
       { value: 'm1', disabled: false },
       { value: 'm2', disabled: true },
     ];
-    expect(drafts.restore(f('jg_to', 'm1', { options }))).toEqual({});
+    expect(drafts.restore(f('td_lc', 'm1', { options }))).toEqual({});
     options[1]!.disabled = false;
-    expect(drafts.restore(f('jg_to', 'm1', { options }))).toEqual({
+    expect(drafts.restore(f('td_lc', 'm1', { options }))).toEqual({
       value: 'm2',
     });
   });

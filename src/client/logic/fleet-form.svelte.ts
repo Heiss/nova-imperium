@@ -29,6 +29,8 @@ export interface FleetDraft {
   hold: string | null;
   /** The hours of stay typed for an expedition, or null while 1 is shown. */
   stay: string | null;
+  /** The „Zielmond“ of the Warp-Tor chosen, or null while the first one that is ready is shown. */
+  jump: string | null;
 }
 
 export const fleetForm = formState((): FleetDraft => ({
@@ -42,4 +44,5 @@ export const fleetForm = formState((): FleetDraft => ({
   union: null,
   hold: null,
   stay: null,
+  jump: null,
 }));

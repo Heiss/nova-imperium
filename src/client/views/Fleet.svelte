@@ -4,8 +4,8 @@
   // carry data-act, which main.ts handles; features/fleet.ts reads the form
   // and writes the preview of the flight into its places while the player
   // types. The ships, the position, the kind of target, the mission, the
-  // union, the time at the target, the speed, the cargo and the names to
-  // invite are the state of logic/fleet-form.svelte.ts (#332): a field takes
+  // union, the time at the target, the speed, the cargo, the „Zielmond“ of
+  // the Warp-Tor and the names to invite are the state of logic/fleet-form.svelte.ts (#332): a field takes
   // `value` with `oninput` (a select `selected` with `onchange`), so a
   // half-typed number is never written over. What the lists and the row of the
   // time show for that state is worked out by logic/fleet-choice.ts.
@@ -336,10 +336,17 @@
     <div class="bd">
       <div>
         <label for="jg_to">Zielmond</label>
-        <select id="jg_to" class="jump-to" disabled={!page.jump.targets.length}>
+        <select
+          id="jg_to"
+          class="jump-to"
+          disabled={!page.jump.targets.length}
+          onchange={(e) => (fleetForm.jump = e.currentTarget.value)}
+        >
           {#each page.jump.targets as place (place.value)}<option
               value={place.value}
-              disabled={place.disabled}>{place.label}</option
+              disabled={place.disabled}
+              selected={fleetForm.jump === place.value && !place.disabled}
+              >{place.label}</option
             >{/each}
         </select>
       </div>

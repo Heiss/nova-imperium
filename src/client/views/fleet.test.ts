@@ -394,3 +394,59 @@ describe('the row of the time at the target follows the mission (#55, #93, #332)
     expect(real(fleet(speedy(view({ expo: 4 }, [], 'expedition'))))).toBe('');
   });
 });
+
+describe('the „Zielmond“ of the Warp-Tor after a redraw (#332)', () => {
+  afterEach(forgetForms);
+
+  const moon = (p: number) => ({
+    id: `m1_2_${p}`,
+    kind: 'moon',
+    name: 'Mond',
+    g: 1,
+    s: 2,
+    p,
+    temp: 1,
+    owner: 'u1',
+  });
+
+  /** A moon at 1:2:5 with a Warp-Tor, two other moons with one; the second is cooling down. */
+  function gateView(): V {
+    const v = view({});
+    v.s.galaxy = [moon(5), moon(8), moon(9)] as GameState['galaxy'];
+    v.s.gates = [
+      { id: 'm1_2_5', level: 1, ready: 0 },
+      { id: 'm1_2_8', level: 1, ready: 0 },
+      { id: 'm1_2_9', level: 1, ready: 9000 },
+    ] as GameState['gates'];
+    v.P = planet({
+      id: 'm1_2_5',
+      kind: 'moon',
+      p: 5,
+      s: 2,
+      ships: { lc: 5 },
+      b: { jumpgate: 1 },
+    });
+    return v;
+  }
+  const targets = (html: string): string =>
+    /<select[^>]*id="jg_to"[^]*?<\/select>/.exec(html)![0];
+
+  it('selects no option while nothing was chosen: the first one that is ready shows', () => {
+    const html = targets(fleet(gateView()));
+    expect(html).toContain('<option value="m1_2_8">');
+    expect(html).toContain('<option value="m1_2_9" disabled="">');
+    expect(html).not.toContain('selected');
+  });
+
+  it('selects the moon chosen, as long as its gate is ready', () => {
+    fleetForm.jump = 'm1_2_8';
+    expect(targets(fleet(gateView()))).toContain(
+      '<option value="m1_2_8" selected="">',
+    );
+  });
+
+  it('does not select a target whose gate cools down since', () => {
+    fleetForm.jump = 'm1_2_9';
+    expect(targets(fleet(gateView()))).not.toContain('selected');
+  });
+});
