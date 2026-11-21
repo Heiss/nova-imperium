@@ -5,7 +5,7 @@
 // src/server/game/private-messages.ts checks every action. A message is
 // delivered to two views: each side can hide it from its own view, and the row
 // goes once both did.
-import { PM_HISTORY } from '../../../core/private-messages.ts';
+import { PM_HISTORY, PM_PAGE } from '../../../core/private-messages.ts';
 import type { Db } from '../database.ts';
 import type { RepositoryModule } from './contract.ts';
 import type { Row } from './rows.ts';
@@ -39,6 +39,18 @@ export interface MessageReport {
   text: string;
 }
 
+/** One conversation of a player as the state carries it: the newest messages and the counts of all. */
+export interface ConversationWindow {
+  /** The other account; null for the deleted accounts. */
+  other: string | null;
+  /** Received messages not read yet, over the whole conversation. */
+  unread: number;
+  /** Whether messages older than `messages` exist (not hidden by the player). */
+  more: boolean;
+  /** The newest PM_PAGE messages, oldest first. */
+  messages: PrivateMessage[];
+}
+
 export interface PrivateMessages {
   /** Adds a message and keeps only the newest PM_HISTORY of the conversation; returns its id. */
   add(sender: string, recipient: string, time: number, text: string): number;
@@ -46,6 +58,19 @@ export interface PrivateMessages {
   lastSent(uid: string): number | undefined;
   /** Every message `uid` has not hidden from its own view, oldest first. */
   visibleTo(uid: string): PrivateMessage[];
+  /** Every conversation of `uid`: the newest PM_PAGE messages of each (Q27) with the unread count of all. */
+  windows(uid: string): ConversationWindow[];
+  /**
+   * The page of at most PM_PAGE messages of the conversation of `uid` with
+   * `other` (null: deleted accounts) before the message `before`, oldest
+   * first, and whether still older ones exist. Only messages `uid` did not
+   * hide from its own view.
+   */
+  older(
+    uid: string,
+    other: string | null,
+    before: number,
+  ): { messages: PrivateMessage[]; more: boolean };
   get(id: number): PrivateMessage | undefined;
   /** Marks the messages `from` sent to `uid` as read (`from` null: those of deleted accounts); true when one changed. */
   markRead(uid: string, from: string | null): boolean;
@@ -123,6 +148,60 @@ class SqlitePrivateMessages implements PrivateMessages {
       )
       .all(uid, uid) as Row[];
     return rows.map(messageOf);
+  }
+
+  windows(uid: string): ConversationWindow[] {
+    // `other` is the account on the far side; NULLs (deleted accounts) form one partition.
+    const rows = this.db
+      .prepare(
+        `WITH mine AS (
+           SELECT *, IIF(sender = @uid, recipient, sender) AS other
+           FROM private_messages
+           WHERE (sender = @uid AND hidden_sender = 0)
+              OR (recipient = @uid AND hidden_recipient = 0)
+         ), ranked AS (
+           SELECT *,
+             ROW_NUMBER() OVER (PARTITION BY other ORDER BY id DESC) AS rn,
+             COUNT(*) OVER (PARTITION BY other) AS total,
+             SUM(IIF(recipient = @uid AND read = 0, 1, 0)) OVER (PARTITION BY other) AS unread
+           FROM mine
+         )
+         SELECT * FROM ranked WHERE rn <= @page ORDER BY id`,
+      )
+      .all({ uid, page: PM_PAGE }) as Row[];
+    const groups = new Map<string | null, ConversationWindow>();
+    for (const r of rows) {
+      const other = r.other as string | null;
+      const group = groups.get(other) ?? {
+        other,
+        unread: r.unread as number,
+        more: (r.total as number) > PM_PAGE,
+        messages: [],
+      };
+      group.messages.push(messageOf(r));
+      groups.set(other, group);
+    }
+    return [...groups.values()];
+  }
+
+  older(
+    uid: string,
+    other: string | null,
+    before: number,
+  ): { messages: PrivateMessage[]; more: boolean } {
+    const rows = this.db
+      .prepare(
+        `SELECT * FROM private_messages
+         WHERE id < @before
+           AND ((sender = @uid AND hidden_sender = 0 AND recipient IS @other)
+             OR (recipient = @uid AND hidden_recipient = 0 AND sender IS @other))
+         ORDER BY id DESC LIMIT @limit`,
+      )
+      .all({ uid, other, before, limit: PM_PAGE + 1 }) as Row[];
+    return {
+      messages: rows.slice(0, PM_PAGE).map(messageOf).reverse(),
+      more: rows.length > PM_PAGE,
+    };
   }
 
   get(id: number): PrivateMessage | undefined {

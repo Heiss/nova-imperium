@@ -14,7 +14,10 @@ import type { ClientCtx, ClientFeature } from './contract.ts';
 type Act = ClientCtx['act'];
 
 /** Sends the action a component chose; the name of the call picks the type of its data. */
-function send(act: Act, call: PmCall): Promise<boolean> {
+function send(
+  act: Act,
+  call: Exclude<PmCall, readonly ['olderPrivateMessages', unknown]>,
+): Promise<boolean> {
   switch (call[0]) {
     case 'sendPrivateMessage':
       return act(call[0], call[1]);
@@ -43,7 +46,22 @@ export async function answer(
 ): Promise<void> {
   const question = questionFor(request.call);
   if (question !== null && !confirm(question)) return request.done(false);
-  request.done(await send(request.quiet ? ctx.quiet : ctx.act, request.call));
+  const call = request.call;
+  // Older messages are read, not changed: the answer's data, no new state.
+  if (call[0] === 'olderPrivateMessages') {
+    try {
+      const answer = await ctx.api('/api/action', {
+        type: call[0],
+        ...call[1],
+      });
+      request.done(true, (answer.data ?? {}) as Record<string, unknown>);
+    } catch (error) {
+      ctx.toast((error as Error).message, true);
+      request.done(false);
+    }
+    return;
+  }
+  request.done(await send(request.quiet ? ctx.quiet : ctx.act, call));
 }
 
 export const clientFeature = {

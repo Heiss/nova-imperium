@@ -10,4 +10,6 @@ export const actionInputs = {
   blockPlayer: input<{ name: string }>(),
   unblockPlayer: input<{ name: Attr }>(),
   privateMessageOptions: input<{ friendsOnly: boolean }>(),
+  /** The page of messages before the message `before` of the same conversation (Q27). */
+  olderPrivateMessages: input<{ before: number }>(),
 };

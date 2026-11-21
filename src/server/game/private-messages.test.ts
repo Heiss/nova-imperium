@@ -126,10 +126,14 @@ describe('sending', () => {
     s.say('Anna', 'Cora', 'bleibt');
     for (let i = 0; i < PM_HISTORY + 3; i++)
       s.say(i % 2 ? 'Bert' : 'Anna', i % 2 ? 'Anna' : 'Bert', `m${i}`);
-    const texts = s.texts('Anna', 'Bert')!;
-    expect(texts).toHaveLength(PM_HISTORY);
-    expect(texts[0]).toBe('m3');
-    expect(texts.at(-1)).toBe(`m${PM_HISTORY + 2}`);
+    // The state carries only the newest page (Q27); the 500 kept are in the table.
+    const kept = s.ctx.privateMessages
+      .visibleTo('u_Anna')
+      .filter((m) => m.sender !== 'u_Anna' || m.recipient !== 'u_Cora')
+      .map((m) => m.text);
+    expect(kept).toHaveLength(PM_HISTORY);
+    expect(kept[0]).toBe('m3');
+    expect(kept.at(-1)).toBe(`m${PM_HISTORY + 2}`);
     expect(s.texts('Anna', 'Cora')).toEqual(['bleibt']);
   });
 

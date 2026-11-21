@@ -45,9 +45,15 @@ const OWN: NonNullable<GameState['privateMessages']> = {
     {
       with: 'Bert',
       unread: 2,
+      more: false,
       messages: [line(5, false, false), line(6, true), line(9, false, false)],
     },
-    { with: null, unread: 0, messages: [line(2, false), line(3, true)] },
+    {
+      with: null,
+      unread: 0,
+      more: false,
+      messages: [line(2, false), line(3, true)],
+    },
   ],
 };
 
@@ -109,6 +115,7 @@ describe('the page', () => {
           {
             with: 'Bert',
             unread: 0,
+            more: false,
             messages: [line(1, false, true, '<img src=x onerror=alert(1)>')],
           },
         ],
@@ -137,8 +144,8 @@ describe('the number of unread messages', () => {
         privateMessages: {
           ...OWN,
           conversations: [
-            { with: 'A', unread: 3, messages: [] },
-            { with: 'B', unread: 4, messages: [] },
+            { with: 'A', unread: 3, more: false, messages: [] },
+            { with: 'B', unread: 4, more: false, messages: [] },
           ],
         },
       }),

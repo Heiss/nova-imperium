@@ -25,6 +25,8 @@ import { assembleState } from './assemble.ts';
 import type { StatePart, StateView } from './feature.ts';
 import type { LockedState } from '../../core/state.ts';
 import type { StateShape as Frame } from '../../core/state/frame.ts';
+import type { StateShape as MessagesShape } from '../../core/state/private-messages.ts';
+import { privateMessageState } from './private-messages.ts';
 
 export interface ForeignFleet extends SeenShips {
   id: string;
@@ -136,9 +138,10 @@ function playersOf(
  * holds none of the game: no planet, fleet, report, guild, player or
  * galaxy; only the rules of the round and the universe, the account with
  * its vacation (`me.vacation`, from which and the minimum duration of the
- * round the browser knows the earliest end) and its push settings.
+ * round the browser knows the earliest end), its push settings and, since
+ * 2026-11-21 (Q28), its private messages.
  */
-function lockedState(ctx: Ctx, u: User): LockedState {
+function lockedState(ctx: Ctx, u: User): LockedState & MessagesShape {
   return {
     round: roundRules(ctx),
     now: ctx.now(),
@@ -152,6 +155,9 @@ function lockedState(ctx: Ctx, u: User): LockedState {
     galaxy: [],
     debris: [],
     admin: null,
+    // The lock screen offers „Nachrichten“ (owner, 2026-11-21, Q28): the
+    // player's own conversations, nothing else of the game.
+    privateMessages: privateMessageState(ctx, u.id),
   };
 }
 

@@ -7,8 +7,10 @@ interface PmConversation {
   with: string | null;
   /** Received messages not read yet. */
   unread: number;
-  /** The messages the player did not delete from its own view, oldest first. */
+  /** The newest PM_PAGE messages the player did not delete from its own view, oldest first. */
   messages: PmLine[];
+  /** Whether older messages exist than the ones sent; they load through `olderPrivateMessages`. */
+  more: boolean;
 }
 
 export type StateShape = {

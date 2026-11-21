@@ -26,6 +26,7 @@ const row = (over: Partial<InboxRow> = {}): InboxRow => ({
   name: 'Bert',
   deleted: false,
   unread: 0,
+  more: false,
   last: '21.11., 10:00:00',
   lines: [
     {
@@ -91,6 +92,7 @@ describe('the view „Nachrichten“', () => {
             {
               with: 'Bert',
               unread: 3,
+              more: false,
               messages: [
                 { id: 1, mine: false, time: 1, text: 'x', read: false },
               ],
@@ -119,6 +121,7 @@ describe('the view „Nachrichten“', () => {
             {
               with: '<i>Bert</i>',
               unread: 1,
+              more: false,
               messages: [
                 { id: 1, mine: false, time: 1, text: 'x', read: false },
               ],

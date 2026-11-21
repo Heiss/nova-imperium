@@ -12,7 +12,6 @@ import {
   PM_ERROR_TEXT,
   pmTextError,
   pmTooSoon,
-  pmUnread,
   sendError,
   type PmError,
   type PmLine,
@@ -24,7 +23,7 @@ import type {
   PrivateMessage,
 } from '../db/repos/private-messages.ts';
 import { queuePush } from '../push-store.ts';
-import type { Handler } from './actions.ts';
+import type { Answer, Handler } from './actions.ts';
 import { clean, type Ctx, fail, str } from './context.ts';
 import type { ServerFeature, StatePart } from './feature.ts';
 
@@ -52,6 +51,15 @@ function pmText(value: unknown): string {
   const error = pmTextError(text);
   return error ? refuse(error) : text;
 }
+
+/** One message as its owner sees it. */
+const lineOf = (m: PrivateMessage, uid: string): PmLine => ({
+  id: m.id,
+  mine: m.sender === uid,
+  time: m.time,
+  text: m.text,
+  read: m.read,
+});
 
 const friends = (ctx: Ctx, a: string, b: string): boolean =>
   relationOf(ctx.friends.links(a), a, b) === 'friends';
@@ -138,6 +146,30 @@ const reportPrivateMessage: Handler<'reportPrivateMessage'> = (ctx, u, d) => {
   return PM_TEXT.reported;
 };
 
+/**
+ * The page of messages before the message `d.before` of the same conversation
+ * (Q27), oldest first. The conversation is the one of that message, found by
+ * `ownMessage`: a message of another conversation, a deleted one and an
+ * unknown id are refused with the same words, and the query only reads the
+ * messages the player did not hide from its own view.
+ */
+const olderPrivateMessages: Handler<'olderPrivateMessages'> = (
+  ctx,
+  u,
+  d,
+): Answer => {
+  const m = ownMessage(ctx, u.id, d.before);
+  const other = m.sender === u.id ? m.recipient : m.sender;
+  const page = ctx.privateMessages.older(u.id, other, m.id);
+  return {
+    msg: null,
+    data: {
+      older: page.messages.map((x) => lineOf(x, u.id)),
+      more: page.more,
+    },
+  };
+};
+
 /** Blocks a player: it can no longer send to the blocker (the refusal does not say why). */
 const blockPlayer: Handler<'blockPlayer'> = (ctx, u, d) => {
   const other = ctx.players.byName(str(d.name, 20)) ?? refuse('unknown');
@@ -160,33 +192,22 @@ const privateMessageOptions: Handler<'privateMessageOptions'> = (ctx, u, d) => {
 
 /**
  * The private messages of `uid`: its conversations, newest first, each with
- * the messages it did not delete and the number it did not read. A message
- * of a deleted account shows under the pseudonym of the round archive.
+ * the newest PM_PAGE messages it did not delete (Q27) and the number it did
+ * not read over all of them. A message of a deleted account shows under the
+ * pseudonym of the round archive.
  */
 export function privateMessageState(
   ctx: Ctx,
   uid: string,
 ): StateShape['privateMessages'] {
   const names = new Map(ctx.players.all().map((p) => [p.id, p.name]));
-  const groups = new Map<string | null, PmLine[]>();
-  for (const m of ctx.privateMessages.visibleTo(uid)) {
-    const mine = m.sender === uid;
-    const other = mine ? m.recipient : m.sender;
-    const lines = groups.get(other) ?? [];
-    lines.push({
-      id: m.id,
-      mine,
-      time: m.time,
-      text: m.text,
-      read: m.read,
-    });
-    groups.set(other, lines);
-  }
-  const conversations = [...groups.entries()]
-    .map(([other, messages]) => ({
-      with: other === null ? null : (names.get(other) ?? null),
-      unread: pmUnread(messages),
-      messages,
+  const conversations = ctx.privateMessages
+    .windows(uid)
+    .map((w) => ({
+      with: w.other === null ? null : (names.get(w.other) ?? null),
+      unread: w.unread,
+      more: w.more,
+      messages: w.messages.map((m) => lineOf(m, uid)),
     }))
     .sort((a, b) => b.messages.at(-1)!.id - a.messages.at(-1)!.id);
   return {
@@ -237,6 +258,7 @@ export const serverFeature = {
     blockPlayer,
     unblockPlayer,
     privateMessageOptions,
+    olderPrivateMessages,
   },
   state: {
     order: 230,

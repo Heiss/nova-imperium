@@ -16,13 +16,25 @@
   import PmInbox from './PmInbox.svelte';
   import PmSent from './PmSent.svelte';
 
-  let { viewState }: { viewState: Readable<V> } = $props();
+  // `lock`: the lock screen of the vacation mode (owner, 2026-11-21, Q28)
+  // shows „Posteingang“ and „Gesendet“ only; the reports are no part of it,
+  // and its state holds none.
+  let {
+    viewState,
+    lock = false,
+  }: { viewState: Readable<Pick<V, 's'>>; lock?: boolean } = $props();
 
-  const reports = $derived(messagesPage($viewState));
+  // Outside the lock screen the state is the whole view state.
+  const reports = $derived(lock ? null : messagesPage($viewState as V));
   const mail = $derived(privatePage($viewState));
 
-  const tabs = Object.keys(MESSAGE_TABS) as MessageTab[];
-  let tab = $state<MessageTab>('reports');
+  // `lock` is fixed for the life of the view: it is set when the view is mounted.
+  // svelte-ignore state_referenced_locally
+  const tabs = (Object.keys(MESSAGE_TABS) as MessageTab[]).filter(
+    (key) => !lock || key !== 'reports',
+  );
+  // svelte-ignore state_referenced_locally
+  let tab = $state<MessageTab>(lock ? 'inbox' : 'reports');
 
   /** The arrow keys, Home and End move between the tabs (the pattern of a tab list). */
   function move(event: KeyboardEvent): void {
@@ -57,14 +69,14 @@
   {/each}
 </div>
 <!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
-<section
-  id="messages-panel-reports"
-  role="tabpanel"
-  aria-labelledby="messages-tab-reports"
-  hidden={tab !== 'reports'}
->
-  <Messages page={reports} heading={false} />
-</section>
+{#if reports}<section
+    id="messages-panel-reports"
+    role="tabpanel"
+    aria-labelledby="messages-tab-reports"
+    hidden={tab !== 'reports'}
+  >
+    <Messages page={reports} heading={false} />
+  </section>{/if}
 <!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
 <section
   id="messages-panel-inbox"
@@ -72,7 +84,7 @@
   aria-labelledby="messages-tab-inbox"
   hidden={tab !== 'inbox'}
 >
-  <PmInbox page={mail} />
+  <PmInbox page={mail} {lock} />
 </section>
 <!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
 <section

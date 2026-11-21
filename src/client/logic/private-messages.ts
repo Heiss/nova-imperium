@@ -39,6 +39,7 @@ export const PM_LABELS = {
   empty: 'Keine Nachrichten.',
   noSent: 'Du hast noch nichts gesendet.',
   deleted: DELETED_PLAYER,
+  older: 'Ältere Nachrichten laden',
 } as const;
 
 /** The questions before an action that cannot be taken back [V]. */
@@ -57,12 +58,14 @@ export interface InboxRow {
   /** Whether the other player is a deleted account: no reply is possible. */
   deleted: boolean;
   unread: number;
+  /** Whether older messages exist than the ones the state carries (Q27). */
+  more: boolean;
   /** The time of the newest message. */
   last: string;
   lines: MessageLine[];
 }
 
-interface MessageLine {
+export interface MessageLine {
   id: number;
   mine: boolean;
   time: string;
@@ -91,7 +94,7 @@ export interface PrivatePage {
   unread: number;
 }
 
-const lineOf = (m: PmLine): MessageLine => ({
+export const lineOf = (m: PmLine): MessageLine => ({
   id: m.id,
   mine: m.mine,
   time: dt(m.time),
@@ -116,13 +119,14 @@ export const privateUnread = (
   );
 
 /** What the tabs „Posteingang“ and „Gesendet“ show at the view state `v`. */
-export function privatePage(v: V): PrivatePage {
+export function privatePage(v: Pick<V, 's'>): PrivatePage {
   const own = v.s.privateMessages ?? NONE;
   const inbox = own.conversations.map((c): InboxRow => ({
     key: c.with ?? '',
     name: c.with ?? PM_LABELS.deleted,
     deleted: c.with === null,
     unread: c.unread,
+    more: c.more,
     last: dt(c.messages.at(-1)!.time),
     lines: c.messages.map(lineOf),
   }));
@@ -161,7 +165,8 @@ export type PmCall =
   | ['reportPrivateMessage', ActionInput<'reportPrivateMessage'>]
   | ['blockPlayer', ActionInput<'blockPlayer'>]
   | ['unblockPlayer', ActionInput<'unblockPlayer'>]
-  | ['privateMessageOptions', ActionInput<'privateMessageOptions'>];
+  | ['privateMessageOptions', ActionInput<'privateMessageOptions'>]
+  | ['olderPrivateMessages', ActionInput<'olderPrivateMessages'>];
 
 /** The question to ask before the call, if any. */
 export const questionFor = (call: PmCall): string | null =>
@@ -178,21 +183,38 @@ export interface PmRequest {
   call: PmCall;
   /** The mark „gelesen“ is no action the player asked for: a refusal is no message. */
   quiet: boolean;
-  /** Called once with whether the action went through. */
-  done: (ok: boolean) => void;
+  /** Called once with whether the action went through and the data it answered. */
+  done: (ok: boolean, data?: Record<string, unknown>) => void;
 }
+
+/** What an action answered: whether it went through and its data. */
+export interface PmAnswer {
+  ok: boolean;
+  data: Record<string, unknown>;
+}
+
+/** Asks for `call` from inside a component; resolves with the answer. */
+export const pmAsk = (
+  from: Element,
+  call: PmCall,
+  quiet = false,
+): Promise<PmAnswer> =>
+  new Promise((resolve) =>
+    from.dispatchEvent(
+      new CustomEvent<PmRequest>(PM_EVENT, {
+        bubbles: true,
+        detail: {
+          call,
+          quiet,
+          done: (ok, data) => resolve({ ok, data: data ?? {} }),
+        },
+      }),
+    ),
+  );
 
 /** Asks for `call` from inside a component; resolves with whether it went through. */
 export const pmCall = (
   from: Element,
   call: PmCall,
   quiet = false,
-): Promise<boolean> =>
-  new Promise((done) =>
-    from.dispatchEvent(
-      new CustomEvent<PmRequest>(PM_EVENT, {
-        bubbles: true,
-        detail: { call, quiet, done },
-      }),
-    ),
-  );
+): Promise<boolean> => pmAsk(from, call, quiet).then((a) => a.ok);

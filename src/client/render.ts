@@ -23,7 +23,7 @@ import {
 } from './views/frame.ts';
 import { forgetAdminPanel } from './logic/admin-panels.svelte.ts';
 import { mountAuth } from './views/auth.ts';
-import { renderGate } from './views/vacation-lock.ts';
+import { forgetLock, renderGate } from './views/vacation-lock.ts';
 import { ANEW, type Mounted, MOUNTED, mountView } from './views/mount.ts';
 import { $, keepChatScroll } from './dom.ts';
 import { rememberCompletions, renderCompletions } from './completions.ts';
@@ -53,6 +53,7 @@ function paintPlanets(root: ParentNode): void {
 
 function renderLoggedOut(view: HTMLElement): void {
   client.forget();
+  forgetLock();
   unmountViews();
   clearFrame();
   view.replaceChildren();

@@ -16,7 +16,10 @@
   import PmSettings from './PmSettings.svelte';
   import PmThread from './PmThread.svelte';
 
-  let { page }: { page: PrivatePage } = $props();
+  // `lock`: on the lock screen of the vacation mode (owner, 2026-11-21, Q28) a
+  // player reads and replies; there is no new message, no recipient list and
+  // no settings there.
+  let { page, lock = false }: { page: PrivatePage; lock?: boolean } = $props();
 
   const READ_DELAY_MS = 600;
 
@@ -41,25 +44,25 @@
 </script>
 
 <div bind:this={root}>
-  <div class="box">
-    <div class="bd">
-      <button
-        type="button"
-        aria-expanded={composing}
-        aria-controls="pm-compose"
-        onclick={() => (composing = !composing)}>{PM_LABELS.compose}</button
-      >
-      {#if composing}
-        <PmCompose
-          names={page.names}
-          sent={(to) => {
-            composing = false;
-            open = to;
-          }}
-        />
-      {/if}
-    </div>
-  </div>
+  {#if !lock}<div class="box">
+      <div class="bd">
+        <button
+          type="button"
+          aria-expanded={composing}
+          aria-controls="pm-compose"
+          onclick={() => (composing = !composing)}>{PM_LABELS.compose}</button
+        >
+        {#if composing}
+          <PmCompose
+            names={page.names}
+            sent={(to) => {
+              composing = false;
+              open = to;
+            }}
+          />
+        {/if}
+      </div>
+    </div>{/if}
   <div class="box">
     <div class="bd">
       {#if page.inbox.length}
@@ -84,5 +87,8 @@
     </div>
   </div>
   {#if current}{#key current.key}<PmThread row={current} />{/key}{/if}
-  <PmSettings friendsOnly={page.friendsOnly} blocked={page.blocked} />
+  {#if !lock}<PmSettings
+      friendsOnly={page.friendsOnly}
+      blocked={page.blocked}
+    />{/if}
 </div>

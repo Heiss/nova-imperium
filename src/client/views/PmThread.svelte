@@ -4,22 +4,67 @@
   // view only), „Antworten“ unless the other account is deleted, and
   // „Unterhaltung löschen“ and „Blockieren“. Every text from a player is shown
   // as text. The buttons ask features/private-messages.ts through `pmCall`.
+  import type { PmLine } from '../../core/private-messages.ts';
   import {
+    lineOf,
     PM_LABELS,
+    pmAsk,
     pmCall,
     type InboxRow,
+    type MessageLine,
   } from '../logic/private-messages.ts';
   import PmCompose from './PmCompose.svelte';
 
   let { row }: { row: InboxRow } = $props();
+
+  // Older messages (Q27): the state carries the newest page only; a page the
+  // player asked for is kept here, next to the state's lines, for as long as
+  // the state's window starts where it did then (else a gap could open, and
+  // the page is dropped: the next click loads the messages before the window).
+  let older = $state<MessageLine[]>([]);
+  let anchor = $state(0);
+  let olderMore = $state(false);
+  let loading = $state(false);
+
+  const windowStart = $derived(row.lines[0]?.id ?? 0);
+  const kept = $derived(older.length > 0 && anchor === windowStart);
+  const lines = $derived(kept ? [...older, ...row.lines] : row.lines);
+  const more = $derived(kept ? olderMore : row.more);
+
+  async function loadOlder(event: MouseEvent): Promise<void> {
+    const first = lines[0];
+    if (loading || !first) return;
+    loading = true;
+    const answer = await pmAsk(event.currentTarget as Element, [
+      'olderPrivateMessages',
+      { before: first.id },
+    ]);
+    loading = false;
+    if (!answer.ok) return;
+    const page = (answer.data.older as PmLine[]).map(lineOf);
+    older = [...page, ...(kept ? older : [])];
+    anchor = windowStart;
+    olderMore = answer.data.more === true;
+  }
 </script>
 
 <div class="box" id="pm-thread">
   <div class="bd">
     <h3>{row.name}</h3>
+    {#if more}
+      <p>
+        <button
+          type="button"
+          class="small"
+          id="pm-older"
+          disabled={loading}
+          onclick={loadOlder}>{PM_LABELS.older}</button
+        >
+      </p>
+    {/if}
     <div class="chat-log" role="log" aria-label={row.name}>
       <ol>
-        {#each row.lines as line (line.id)}
+        {#each lines as line (line.id)}
           <li>
             {#if line.mine}<b>Ich</b>{:else if row.deleted}<i>{row.name}</i
               >{:else}<b>{row.name}</b>{/if}
