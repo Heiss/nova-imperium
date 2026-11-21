@@ -9,7 +9,6 @@
 import { canFly } from '../../core/catalog.ts';
 import { distance, fleetSpeed, flightMs } from '../../core/flight.ts';
 import { expeditionLevel } from '../../core/expedition.ts';
-import { canOffer } from '../../core/mission-fit.ts';
 import { MISSION } from '../../core/missions.ts';
 import { placeName } from '../../core/moon.ts';
 import { placeId } from '../../core/place.ts';
@@ -18,7 +17,7 @@ import type { V } from '../views/common.ts';
 import { freePosition } from './abandon.ts';
 import { activityNote, inactivityNote } from './activity.ts';
 import { debrisAt, debrisMark, harvestButton } from './debris.ts';
-import { fitTarget } from './fleet-target.ts';
+import { offeredMissions } from './fleet-target.ts';
 import { coords, dur, fmt } from './format.ts';
 import { isProtected, nameOf, ranks } from './game.ts';
 import { canLaunch } from './missiles.ts';
@@ -183,19 +182,17 @@ function foreignActions(v: V, pl: GalaxyPlanet): GalaxyAction[] {
 
 /**
  * The Mondbruch at a foreign moon (#95; owner, 2026-11-21): offered at every
- * moon of another player, whatever ships the shown planet has; it opens the
- * fleet form with the Mondbruch, which refuses a send without a Weltenbrecher.
+ * moon of another player, whatever ships the shown planet has. It asks the
+ * list of the fleet form (`offeredMissions`), so the Sternenkarte offers it
+ * exactly where the form lists it; the form refuses a send without a
+ * Weltenbrecher.
  */
 const moonbreakLink = (
   v: V,
   pl: GalaxyPlanet,
   where: Record<string, string>,
 ): GalaxyAction[] =>
-  canOffer(
-    'moonbreak',
-    { owner: v.s.me.id, from: v.P.id },
-    fitTarget(v.s, pl, v.now),
-  )
+  offeredMissions(v.s, v.P.id, pl, v.now).includes('moonbreak')
     ? [fleetTo('link', 'moonbreak', MISSION.moonbreak, where)]
     : [];
 
