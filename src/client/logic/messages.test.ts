@@ -90,7 +90,7 @@ describe('the body of a report', () => {
     });
   });
 
-  it('is HTML for a battle, an espionage and a survey report', () => {
+  it('holds the values of a battle, an espionage and a survey report', () => {
     const spy = body({
       type: 'spy',
       name: 'Beta',
@@ -99,6 +99,7 @@ describe('the body of a report', () => {
       res: { m: 1, c: 2, d: 3 },
       counter: 0,
     });
-    expect(spy.kind).toBe('html');
+    expect(spy.kind).toBe('report');
+    expect(spy).toMatchObject({ body: { kind: 'spy', counter: '0' } });
   });
 });

@@ -191,11 +191,10 @@ description: 'The client as generic Svelte components with a state module, the c
   from `messagesPage(v)` of the new `logic/messages.ts`: the count, „Alle
   löschen“, each report newest first with its title, time, the marks `new`
   and `open`, and its body, which is a text, an update message (its lines
-  and the link to „Neuigkeiten“) or HTML. The bodies of battle, espionage
-  and survey reports stay HTML for now: the functions moved unchanged from
-  `views/messages.ts` to `logic/report-body.ts` (`reportBodyHTML()`), and
-  the component renders them with `{@html}`; they become components of
-  their own after the update (#330). `News.svelte`, mounted by `mountNews()` of
+  and the link to „Neuigkeiten“) or the values of a battle, espionage or
+  survey report. The bodies of these reports were HTML at first
+  (`reportBodyHTML()`, rendered with `{@html}`); since #330 they are
+  components, see the next entry. `News.svelte`, mounted by `mountNews()` of
   `views/news.ts`, renders „Neuigkeiten“ from `newsPage()` of
   `logic/news.ts` (`newsHTML()` and `updateMessageHTML()` are gone; the
   link of the update message is `UPDATE_LINK`). Both views leave `VIEWS` of
@@ -203,6 +202,24 @@ description: 'The client as generic Svelte components with a state module, the c
   every render (`ANEW`), as their HTML was rendered anew: an opened report
   stays open (`client.ui.openRep`, toggled by `features/reports.ts`) and
   the news render again once they have loaded. No visible change.
+* **[V]** Built with #330 (the bodies of the reports as components, no
+  visible change, `{@html}` gone from `Messages.svelte`): `reportBody()`
+  of `logic/report-body.ts` turns a stored battle, espionage or survey
+  report into plain values (`BattleBody`, `SpyBody`, and `SurveyBody` of
+  `surveyReport()` in `logic/survey.ts`: the lines, the rows of the unit
+  tables, the sections with their lists, and `null` where a part is
+  missing), and `ReportBody.svelte` hands them to `BattleReport.svelte`
+  (with `UnitTable.svelte`), `SpyReport.svelte` or `SurveyReport.svelte`,
+  which only render. A player's text (planet, player and guild names)
+  reaches the page as text; no value was shown as HTML on purpose (what
+  the old strings did not escape were numbers and words of the game). The
+  old functions are deleted; the frozen copy lives in
+  `src/test/report-body-reference.test.ts`, which compares it with the
+  components on generated reports of every kind (seed 330, sampled once)
+  and hand-built cases, among them the shapes older versions stored
+  (battle reports without tech, loot, debris, moon, `held` or `attackers`;
+  espionage reports without `activity`). `Messages.svelte` and its
+  reference test take the bodies from `ReportBody.svelte` too.
 * **[E]** Bundle 5 after bundle 4 (owner, 2026-11-15 and 2026-11-16: the
   order of the bundles of #118 „Geklärt, Nachtrag 3“, unchanged by
   „Nachtrag 4“): Highscore, Achievements, and Hilfe & Optionen.
