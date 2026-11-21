@@ -11,6 +11,7 @@ import {
   samePlace,
   type Sync,
 } from './act.ts';
+import { ApiError } from './transport.ts';
 import type { GameState } from './types.ts';
 
 const state = (player: string, planet: string | null): GameState =>
@@ -255,8 +256,20 @@ describe('act', () => {
       throw new Error('Zu wenig Rohstoffe.');
     });
     expect(await t.act('build')).toBe('failed');
-    expect(t.toast).toHaveBeenCalledWith('Zu wenig Rohstoffe.', true);
+    expect(t.toast).toHaveBeenCalledWith(
+      'Zu wenig Rohstoffe.',
+      expect.objectContaining({ message: 'Zu wenig Rohstoffe.' }),
+    );
     expect(t.apply).not.toHaveBeenCalled();
+  });
+
+  it('hands the toast the error of the failed call itself, so „Problem melden“ names that call', async () => {
+    const refused = new ApiError('Interner Fehler. Vorgang: a1', 'a1');
+    const t = setup(async () => {
+      throw refused;
+    });
+    expect(await t.act('build')).toBe('failed');
+    expect(t.toast).toHaveBeenCalledWith(refused.message, refused);
   });
 
   it('keeps the refusal of a quiet action to itself and still answers failed (#301)', async () => {

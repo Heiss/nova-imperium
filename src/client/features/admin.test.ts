@@ -279,7 +279,10 @@ describe('the tabs and the invitations', () => {
       }),
     });
     await acts(ctx).revoke!({ id: 'i1' });
-    expect(ctx.toast).toHaveBeenCalledWith('Nicht gefunden.', true);
+    expect(ctx.toast).toHaveBeenCalledWith(
+      'Nicht gefunden.',
+      expect.objectContaining({ message: 'Nicht gefunden.' }),
+    );
     expect(panel.refreshInvitations).not.toHaveBeenCalled();
   });
 
@@ -315,7 +318,10 @@ describe('the tabs and the invitations', () => {
       }),
     });
     await clientFeature.forms(ctx).inviteform!();
-    expect(ctx.toast).toHaveBeenCalledWith('Schon eingeladen.', true);
+    expect(ctx.toast).toHaveBeenCalledWith(
+      'Schon eingeladen.',
+      expect.objectContaining({ message: 'Schon eingeladen.' }),
+    );
     expect(client.ui.lastLink).toBeNull();
     expect(ctx.render).not.toHaveBeenCalled();
   });
@@ -360,7 +366,10 @@ describe('the message to all players', () => {
       }),
     });
     await clientFeature.forms(failing).announceform!();
-    expect(failing.toast).toHaveBeenCalledWith('Zu lang.', true);
+    expect(failing.toast).toHaveBeenCalledWith(
+      'Zu lang.',
+      expect.objectContaining({ message: 'Zu lang.' }),
+    );
     expect(adminForm.announce).toBe('Wartung um 22 Uhr');
     expect(failing.setInput).not.toHaveBeenCalled();
     const again = fakeCtx({ api: vi.fn(async () => ({ recipients: 1 })) });

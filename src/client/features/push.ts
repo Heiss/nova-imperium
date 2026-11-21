@@ -18,7 +18,7 @@ async function togglePush(
         : 'Benachrichtigungen deaktiviert.',
     );
   } catch (e) {
-    toast((e as Error).message, true);
+    toast((e as Error).message, e as Error);
   }
 }
 

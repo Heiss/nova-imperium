@@ -1,5 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createApi, RETRY_AFTER_MS, type TransportDeps } from './transport.ts';
+import {
+  ApiError,
+  createApi,
+  requestIdOf,
+  RETRY_AFTER_MS,
+  type TransportDeps,
+} from './transport.ts';
 
 const answer = (
   status: number,
@@ -102,6 +108,51 @@ describe('a call', () => {
       detail: '',
       requestId: 'abc',
     });
+  });
+
+  it('keeps the id of a failed call with its error while another call answers before its body is read', async () => {
+    let release!: (body: unknown) => void;
+    const failed = {
+      status: 500,
+      ok: false,
+      headers: new Headers({ 'x-request-id': 'failed-id' }),
+      json: () => new Promise((resolve) => (release = resolve)),
+    } as unknown as Response;
+    const { api, deps } = setup(
+      failed,
+      answer(200, { state: 1 }, { 'x-request-id': 'poll-id' }),
+    );
+    let last = '';
+    deps.requestId.mockImplementation((id: string) => (last = id));
+    const action = api('/api/action', { type: 'build' }).catch(
+      (error: unknown) => error,
+    );
+    await vi.waitFor(() => expect(last).toBe('failed-id'));
+    // The poll of the state answers while the body of the failure is read.
+    expect(await api('/api/state')).toEqual({ state: 1 });
+    expect(last).toBe('poll-id');
+    release({ error: 'Interner Fehler.' });
+    const error = await action;
+    expect(error).toBeInstanceOf(ApiError);
+    expect((error as ApiError).message).toBe(
+      'Interner Fehler. Vorgang: failed-id',
+    );
+    expect(requestIdOf(error)).toBe('failed-id');
+  });
+
+  it('gives a refusal its id without naming it in the text, and an error of no call none', async () => {
+    const { api } = setup(
+      answer(400, { error: 'Zu wenig Rohstoffe.' }, { 'x-request-id': 'r9' }),
+      answer(409, { error: 'Schon da.' }),
+    );
+    const refused = await api('/api/action', {}).catch((e: unknown) => e);
+    expect((refused as Error).message).toBe('Zu wenig Rohstoffe.');
+    expect(requestIdOf(refused)).toBe('r9');
+    expect(
+      requestIdOf(await api('/api/action', {}).catch((e: unknown) => e)),
+    ).toBeNull();
+    expect(requestIdOf(new Error('x'))).toBeNull();
+    expect(requestIdOf('x')).toBeNull();
   });
 
   it('reports a call without an answer and passes the failure on', async () => {

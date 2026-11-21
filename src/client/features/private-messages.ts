@@ -57,7 +57,7 @@ export async function answer(
       });
       request.done(true, (answer.data ?? {}) as Record<string, unknown>);
     } catch (error) {
-      ctx.toast((error as Error).message, true);
+      ctx.toast((error as Error).message, error as Error);
       request.done(false);
     }
     return;

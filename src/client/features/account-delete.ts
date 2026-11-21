@@ -16,7 +16,7 @@ export async function deleteAccount(
   try {
     await ctx.api('/api/account/delete', { password });
   } catch (error) {
-    ctx.toast((error as Error).message, true);
+    ctx.toast((error as Error).message, error as Error);
     return false;
   }
   await disablePush(async () => ({})).catch(() => null);

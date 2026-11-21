@@ -23,7 +23,8 @@ export interface ActDeps {
   /** The state the client shows now. */
   state: () => GameState | null;
   apply: (state: GameState) => void;
-  toast: (msg: string, err?: boolean) => void;
+  /** `err`: true for an error message, or the error itself (its call is named). */
+  toast: (msg: string, err?: boolean | Error) => void;
   /** Fields every action's request carries besides its own: the open conversation of the private messages (Q32). */
   extra?: () => object;
   /**
@@ -84,7 +85,7 @@ export function createAct(deps: ActDeps): Sync {
   const run = async (
     type: string,
     data: object,
-    refused: (message: string) => void,
+    refused: (error: Error) => void,
   ): Promise<ActResult> => {
     const ticket = {};
     lastAction = ticket;
@@ -106,7 +107,7 @@ export function createAct(deps: ActDeps): Sync {
       if (j.msg) deps.toast(String(j.msg));
       return here ? 'done' : 'stale';
     } catch (e) {
-      refused((e as Error).message);
+      refused(e as Error);
       return 'failed';
     } finally {
       running--;
@@ -120,7 +121,7 @@ export function createAct(deps: ActDeps): Sync {
     return () => idle && ticket === lastRefresh && at === lastAction;
   };
   const send: Sync['send'] = (type, ...[data]) =>
-    run(type, data ?? {}, (message) => deps.toast(message, true));
+    run(type, data ?? {}, (error) => deps.toast(error.message, error));
   const quiet: Sync['quiet'] = (type, ...[data]) =>
     run(type, data ?? {}, () => {});
   return { send, quiet, refresh };

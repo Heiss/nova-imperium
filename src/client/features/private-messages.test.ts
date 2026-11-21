@@ -105,7 +105,7 @@ describe('answer', () => {
       await answer(ctx, r, () => true);
       expect(ctx.toast).toHaveBeenCalledWith(
         'Diese Nachricht gibt es nicht.',
-        true,
+        expect.objectContaining({ message: 'Diese Nachricht gibt es nicht.' }),
       );
       expect(done).toHaveBeenCalledExactlyOnceWith(false);
     }
@@ -124,7 +124,7 @@ describe('answer', () => {
     await answer(ctx, r, () => true);
     expect(ctx.toast).toHaveBeenCalledWith(
       'Diese Nachricht gibt es nicht.',
-      true,
+      expect.objectContaining({ message: 'Diese Nachricht gibt es nicht.' }),
     );
     expect(done).toHaveBeenCalledExactlyOnceWith(false);
   });

@@ -27,7 +27,7 @@ async function submitReport(
     if (id === 'reportform-dialog' && form.isConnected) modal('');
     toast(String(j.msg));
   } catch (e) {
-    toast((e as Error).message, true);
+    toast((e as Error).message, e as Error);
   }
 }
 

@@ -67,7 +67,7 @@ async function submitAuth(ctx: ClientCtx): Promise<void> {
     ui.invite = null;
     signedIn(ctx, j, !!registering);
   } catch (e) {
-    ctx.toast((e as Error).message, true);
+    ctx.toast((e as Error).message, e as Error);
   }
 }
 
@@ -75,7 +75,7 @@ async function loginByPasskey(ctx: ClientCtx): Promise<void> {
   try {
     signedIn(ctx, await signInWithPasskey(ctx.api, rememberChosen()));
   } catch (error) {
-    ctx.toast((error as Error).message, true);
+    ctx.toast((error as Error).message, error as Error);
   }
 }
 
@@ -89,7 +89,7 @@ async function submitLoginCode(ctx: ClientCtx): Promise<void> {
     login.challenge = null;
     signedIn(ctx, j);
   } catch (e) {
-    ctx.toast((e as Error).message, true);
+    ctx.toast((e as Error).message, e as Error);
   }
 }
 
@@ -102,7 +102,7 @@ async function submitForgot(ctx: ClientCtx): Promise<void> {
       'Falls die Adresse hinterlegt ist, erhältst du einen Link per E-Mail.',
     );
   } catch (e) {
-    ctx.toast((e as Error).message, true);
+    ctx.toast((e as Error).message, e as Error);
   }
 }
 
@@ -127,7 +127,7 @@ async function submitPassword(ctx: ClientCtx, reset: boolean): Promise<void> {
     ctx.render(true);
     ctx.toast('Passwort gespeichert. Melde dich mit deinem neuen Passwort an.');
   } catch (e) {
-    ctx.toast((e as Error).message, true);
+    ctx.toast((e as Error).message, e as Error);
   }
 }
 

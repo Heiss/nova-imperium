@@ -64,7 +64,10 @@ describe('the list of passkeys', () => {
       }),
     });
     await clientFeature.acts(ctx).listPasskeys();
-    expect(ctx.toast).toHaveBeenCalledWith('Nein.', true);
+    expect(ctx.toast).toHaveBeenCalledWith(
+      'Nein.',
+      expect.objectContaining({ message: 'Nein.' }),
+    );
   });
 });
 
@@ -94,7 +97,10 @@ describe('removing a passkey', () => {
     });
     const ctx = fakeCtx({ api });
     await clientFeature.acts(ctx).removePasskey({ id: 'k0' });
-    expect(ctx.toast).toHaveBeenCalledWith('Nicht erlaubt.', true);
+    expect(ctx.toast).toHaveBeenCalledWith(
+      'Nicht erlaubt.',
+      expect.objectContaining({ message: 'Nicht erlaubt.' }),
+    );
     expect(api).toHaveBeenCalledTimes(1);
   });
 });
@@ -116,7 +122,10 @@ describe('the form of a new passkey', () => {
     optionsForm.passkey = 'geheim';
     const ctx = fakeCtx();
     await clientFeature.forms(ctx).passkeyform();
-    expect(ctx.toast).toHaveBeenCalledWith('Abgebrochen.', true);
+    expect(ctx.toast).toHaveBeenCalledWith(
+      'Abgebrochen.',
+      expect.objectContaining({ message: 'Abgebrochen.' }),
+    );
     expect(optionsForm.passkey).toBe('geheim');
     expect(ctx.setInput).not.toHaveBeenCalled();
     expect(ctx.api).not.toHaveBeenCalled();

@@ -59,7 +59,7 @@ async function adminCall(
     if (j.msg) toast(String(j.msg), j.mailed === false);
     return j;
   } catch (e) {
-    toast((e as Error).message, true);
+    toast((e as Error).message, e as Error);
     return null;
   }
 }
@@ -93,7 +93,7 @@ const adminForms = (ctx: ClientCtx): Record<string, () => unknown> => ({
         `Servernachricht für ${Number(result.recipients)} Spieler veröffentlicht.`,
       );
     } catch (error) {
-      ctx.toast((error as Error).message, true);
+      ctx.toast((error as Error).message, error as Error);
     } finally {
       announcementPending = false;
     }

@@ -48,7 +48,10 @@ describe('Web Push on this device', () => {
     vi.mocked(enablePush).mockRejectedValueOnce(new Error('Nicht verfügbar.'));
     const ctx = fakeCtx();
     await clientFeature.acts(ctx).pushEnable();
-    expect(ctx.toast).toHaveBeenCalledWith('Nicht verfügbar.', true);
+    expect(ctx.toast).toHaveBeenCalledWith(
+      'Nicht verfügbar.',
+      expect.objectContaining({ message: 'Nicht verfügbar.' }),
+    );
   });
 });
 

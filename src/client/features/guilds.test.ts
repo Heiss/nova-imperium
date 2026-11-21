@@ -265,7 +265,10 @@ describe('the chat of a guild for the admin', () => {
       }),
     });
     await open(ctx);
-    expect(ctx.toast).toHaveBeenCalledWith('Kein Zugriff.', true);
+    expect(ctx.toast).toHaveBeenCalledWith(
+      'Kein Zugriff.',
+      expect.objectContaining({ message: 'Kein Zugriff.' }),
+    );
     expect(ctx.modal).not.toHaveBeenCalled();
   });
 });

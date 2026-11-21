@@ -61,6 +61,11 @@ async function reportFromToast(page: Page): Promise<Locator> {
   await expect(toast).toContainText(`Serverfehler. Vorgang: ${REQUEST}`);
   // The failed call went into the error log on its own.
   expect((await reported).status()).toBe(200);
+  // Another call answers before the button is used (the poll of the state):
+  // „Problem melden“ still names the failed call, not the last answer.
+  await page.waitForResponse((r) => r.url().includes('/api/state'), {
+    timeout: 15000,
+  });
   await toast.getByRole('button', { name: 'Problem melden' }).click();
   const dialog = page.locator('#reportform-dialog');
   await expect(dialog).toContainText('Seite: buildings');

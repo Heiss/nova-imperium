@@ -24,7 +24,7 @@ async function showPasskeys({ api, toast }: ClientCtx): Promise<void> {
         '</ul>'
       : '<p>Keine Passkeys gespeichert.</p>';
   } catch (error) {
-    toast((error as Error).message, true);
+    toast((error as Error).message, error as Error);
   }
 }
 
@@ -35,7 +35,7 @@ async function submitPasskey(ctx: ClientCtx): Promise<void> {
     ctx.toast('Passkey gespeichert.');
     await showPasskeys(ctx);
   } catch (error) {
-    ctx.toast((error as Error).message, true);
+    ctx.toast((error as Error).message, error as Error);
   }
 }
 
@@ -49,7 +49,7 @@ export const clientFeature = {
         await ctx.api('/api/passkeys/remove', { id: d.id });
         await showPasskeys(ctx);
       } catch (error) {
-        ctx.toast((error as Error).message, true);
+        ctx.toast((error as Error).message, error as Error);
       }
     },
   }),

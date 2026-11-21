@@ -151,6 +151,9 @@ describe('the forms that send a report', () => {
     await clientFeature.forms(ctx).reportform();
     expect(forms.reportform.reset).not.toHaveBeenCalled();
     expect(optionsForm.report).toBe('Es ging nicht.');
-    expect(ctx.toast).toHaveBeenCalledWith('Zu oft.', true);
+    expect(ctx.toast).toHaveBeenCalledWith(
+      'Zu oft.',
+      expect.objectContaining({ message: 'Zu oft.' }),
+    );
   });
 });

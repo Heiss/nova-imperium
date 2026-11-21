@@ -38,7 +38,7 @@ async function openAdminChat(
     );
     keepChatScroll($('#modalIn')!, true)();
   } catch (error) {
-    toast((error as Error).message, true);
+    toast((error as Error).message, error as Error);
   }
 }
 
