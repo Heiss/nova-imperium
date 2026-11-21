@@ -151,11 +151,23 @@ function galaxy(v: V): string {
  * The rows of the planet positions: the row of the expedition position
  * after them (#93) is new and tested in src/client/logic/galaxy.test.ts.
  */
-const renderNew = (v: V): string => {
+const renderOnce = (v: V): string => {
   const page = galaxyPage(v);
   return render(Galaxy, {
     props: { page: { ...page, rows: page.rows.slice(0, v.s.cfg.positions) } },
   }).body;
+};
+
+/**
+ * The new map of a state, rendered once: the comparison and the check of the
+ * marks show the same states, and rendering is what takes the time. A state
+ * is never changed by a rendering.
+ */
+const rendered = new WeakMap<V, string>();
+const renderNew = (v: V): string => {
+  const html = rendered.get(v) ?? renderOnce(v);
+  rendered.set(v, html);
+  return html;
 };
 
 /**
@@ -358,27 +370,53 @@ const MARKS = [
   'aria-label="Aktionen für ',
 ];
 
-const SAMPLE = { seed: 118, numRuns: 300 };
+const RUNS = 300;
+const SLICE = 100;
 
-describe('Galaxy against the view before #118, bundle 2', () => {
-  it('renders the Sternenkarte as before', () => {
+/**
+ * The sample (seed 118, 300 runs), generated once and used by every test that
+ * needs it. The comparison takes it in slices of the one array.
+ */
+let sample: V[] | undefined;
+function SAMPLE(): V[] {
+  if (!sample) {
+    const states: V[] = [];
     fc.assert(
       fc.property(state, (v) => {
-        expect(normalize(renderNew(v))).toBe(normalize(galaxy(v)));
+        states.push(v);
       }),
-      SAMPLE,
+      { seed: 118, numRuns: RUNS },
     );
+    sample = states;
+  }
+  return sample;
+}
+const SLICES = Array.from({ length: RUNS / SLICE }, (_, i) => i);
+
+describe('Galaxy against the view before #118, bundle 2', () => {
+  it('compares the whole sample, in slices of it', () => {
+    expect(SAMPLE()).toHaveLength(SLICES.length * SLICE);
+    expect(
+      SLICES.flatMap((i) => SAMPLE().slice(i * SLICE, (i + 1) * SLICE)),
+    ).toEqual(SAMPLE());
+  });
+
+  it.each(SLICES)('renders the Sternenkarte as before, slice %i', (i) => {
+    SAMPLE()
+      .slice(i * SLICE, (i + 1) * SLICE)
+      .forEach((v, j) => {
+        expect(normalize(renderNew(v)), `run ${i * SLICE + j}`).toBe(
+          normalize(galaxy(v)),
+        );
+      });
   });
 
   it('reaches every branch', () => {
     const seen = new Set<string>();
-    fc.assert(
-      fc.property(state, (v) => {
-        const html = normalize(renderNew(v));
-        for (const mark of MARKS) if (html.includes(mark)) seen.add(mark);
-      }),
-      SAMPLE,
-    );
+    for (const v of SAMPLE()) {
+      const html = normalize(renderNew(v));
+      for (const mark of MARKS) if (html.includes(mark)) seen.add(mark);
+    }
     expect([...seen].sort()).toEqual([...MARKS].sort());
   });
 });
