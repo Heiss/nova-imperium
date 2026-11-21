@@ -41,11 +41,12 @@ type Seen = Pick<GameState, 'gates' | 'galaxy'>;
 /** An option of „Zielmond“, or null when the gate is no target of `from`. */
 function targetOf(s: Seen, from: Gate, view: GateView, now: number) {
   const place = s.galaxy.find((g) => g.id === view.id);
-  if (!place) return null;
   const gate = { ...place, b: { jumpgate: view.level }, ready: view.ready };
-  const error = targetError(from, gate, now);
+  // A gate whose moon is not in the galaxy has no kind and no owner, so
+  // targetError answers noTarget: past this line the place exists.
+  const error = targetError(from, gate as Gate, now);
   if (error && error !== 'targetCooling') return null;
-  const name = `${placeName(place)} ${coords(place)}`;
+  const name = `${placeName(place!)} ${coords(place!)}`;
   return error
     ? {
         id: view.id,
