@@ -10,6 +10,7 @@ import {
   FLEET_MISSIONS,
   fitError,
   missionRules,
+  type SendFleet,
   type SendTarget,
 } from './missions.ts';
 import type { Mission } from './types.ts';
@@ -28,13 +29,29 @@ export type FitTarget = Pick<
  */
 export function missionsFor(fleet: FitFleet, target: FitTarget): Mission[] {
   if (target.planet?.id === fleet.from) return [];
-  // The browser knows neither the protection nor the vacation of another player.
-  const known: SendTarget = {
-    ...target,
-    protects: () => false,
-    vacation: () => false,
-  };
+  const known = knownTarget(target);
   return FLEET_MISSIONS.filter(
     (m) => fitError(missionRules(m)!, fleet, known) === undefined,
   );
 }
+
+/** The browser knows neither the protection nor the vacation of another player. */
+const knownTarget = (target: FitTarget): SendTarget => ({
+  ...target,
+  protects: () => false,
+  vacation: () => false,
+});
+
+/**
+ * Whether a button for the mission at the target is offered (#95, the
+ * Sternenkarte): the target fits (`missionsFor`) and the ships of the fleet
+ * pass the check of the mission itself (`canSend`, e.g. a Weltenbrecher for
+ * the Mondbruch).
+ */
+export const canOffer = (
+  mission: Mission,
+  fleet: SendFleet,
+  target: FitTarget,
+): boolean =>
+  missionsFor(fleet, target).includes(mission) &&
+  missionRules(mission)!.canSend(fleet, knownTarget(target)) === undefined;

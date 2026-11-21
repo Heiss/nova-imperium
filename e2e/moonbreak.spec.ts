@@ -76,10 +76,18 @@ async function toTheMoon(page: Page, a: string, b: string): Promise<void> {
   await openSystemOf(page, b);
   const row = galaxyRow(page, b);
   await row.getByRole('button', { name: 'Mond (Mond)' }).click();
-  await (
-    await galaxyAction(page, page.locator('tr.moon-row'), 'Sturmangriff')
-  ).click();
+  const action = await galaxyAction(
+    page,
+    page.locator('tr.moon-row'),
+    'Mondbruch',
+  );
+  // The action of the Sternenkarte (#95; owner, 2026-11-21); on a phone it
+  // is in the sheet and at least 44 px high.
+  if ((page.viewportSize()?.width ?? 1280) <= 760)
+    expect((await action.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+  await action.click();
   await expect(page.getByLabel('Zielart')).toHaveValue('moon');
+  await expect(page.getByLabel('Auftrag')).toHaveValue('moonbreak');
 }
 
 /** Sends the Mondbruch from the fleet form and lets it arrive now. */

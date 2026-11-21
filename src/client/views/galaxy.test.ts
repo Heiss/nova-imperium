@@ -486,3 +486,51 @@ describe('the actions of a position behind „⋯“ on a phone (#189)', () => {
     expect(galaxy(v)).not.toContain('Flugzeit');
   });
 });
+
+describe('the Mondbruch on the Sternenkarte (#95)', () => {
+  const LINK =
+    'data-act="gfleet" data-m="moonbreak" data-g="1" data-s="2" data-p="6" data-k="moon">Mondbruch';
+
+  /** Anna with `ships` on her planet; the moons at [1:2:5] (hers) and [1:2:6] (Bert's) are open. */
+  function withMoons(ships: Planet['ships'], sheet: string | null = null): V {
+    const v = view([], ships);
+    for (const [p, owner] of [
+      [5, 'u_Anna'],
+      [6, 'u_Bert'],
+    ] as const)
+      v.s.galaxy.push({
+        id: `m1_2_${p}`,
+        kind: 'moon',
+        name: 'Mond',
+        g: 1,
+        s: 2,
+        p,
+        temp: 20,
+        owner,
+      });
+    v.ui.gmoon = 'm1_2_6';
+    v.ui.gsheet = sheet;
+    return v;
+  }
+
+  it('offers it at a foreign moon, beside the Sturmangriff, with a Weltenbrecher', () => {
+    const html = galaxy(withMoons({ dstar: 1 }));
+    expect(html).toContain(LINK);
+    expect(html.match(/data-m="moonbreak"/g)).toHaveLength(1);
+  });
+
+  it('offers it in the sheet of a phone too', () => {
+    const html = galaxy(withMoons({ dstar: 1 }, 'm1_2_6'));
+    expect(html.match(/data-m="moonbreak"/g)).toHaveLength(2);
+    expect(html).toContain('class="sheet gal-sheet"');
+  });
+
+  it('offers it neither without a Weltenbrecher nor at an own moon nor at a planet', () => {
+    expect(galaxy(withMoons({ sc: 2 }))).not.toContain('moonbreak');
+    const v = withMoons({ dstar: 1 });
+    v.ui.gmoon = 'm1_2_5';
+    expect(galaxy(v)).not.toContain('moonbreak');
+    v.s.galaxy = v.s.galaxy.filter((p) => p.kind === 'planet');
+    expect(galaxy(v)).not.toContain('moonbreak');
+  });
+});

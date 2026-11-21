@@ -782,3 +782,46 @@ describe('the sheet „⋯“ of a position on a phone (#189)', () => {
     expect(galaxyPage(free).sheet?.id).toBe('free-9');
   });
 });
+
+describe('the Mondbruch (#95)', () => {
+  const galaxy = (): GalaxyPlanet[] => [
+    place('planet', 5, 'u1'),
+    place('moon', 5, 'u1'),
+    place('planet', 6, 'u2'),
+    place('moon', 6, 'u2', 'Mond'),
+  ];
+  const labels = (a: GalaxyAction[]): (string | undefined)[] =>
+    a.map((x) => ('label' in x ? x.label : undefined));
+  const open = (P: Partial<Planet>, id = 'm1_2_6') =>
+    rowAt(
+      view({ galaxy: galaxy(), P, ui: { gmoon: id } }),
+      Number(id.slice(-1)),
+    );
+  const link: GalaxyAction = {
+    kind: 'link',
+    label: 'Mondbruch',
+    attrs: { 'data-act': 'gfleet', 'data-m': 'moonbreak', ...at(6, true) },
+  };
+
+  it('is offered at a foreign moon with a Weltenbrecher on the shown planet, after the supply, with the moon as the target', () => {
+    const r = open({ ships: { dstar: 1 } });
+    expect(r.moon!.actions).toEqual([...foreign(6, true), link]);
+    expect(r.moon!.sheet!.actions).toEqual([...foreign(6, true), link]);
+  });
+
+  it('is not offered without a Weltenbrecher', () => {
+    expect(labels(open({ ships: { sc: 3 } }).moon!.actions)).not.toContain(
+      'Mondbruch',
+    );
+    expect(labels(open({ ships: { dstar: 0 } }).moon!.actions)).not.toContain(
+      'Mondbruch',
+    );
+  });
+
+  it('is not offered at a foreign planet, nor at an own moon', () => {
+    const r = open({ ships: { dstar: 1 } });
+    expect(labels(r.planet!.actions)).not.toContain('Mondbruch');
+    const mine = open({ ships: { dstar: 1 } }, 'm1_2_5');
+    expect(labels(mine.moon!.actions)).not.toContain('Mondbruch');
+  });
+});

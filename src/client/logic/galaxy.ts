@@ -9,6 +9,7 @@
 import { canFly } from '../../core/catalog.ts';
 import { distance, fleetSpeed, flightMs } from '../../core/flight.ts';
 import { expeditionLevel } from '../../core/expedition.ts';
+import { canOffer } from '../../core/mission-fit.ts';
 import { MISSION } from '../../core/missions.ts';
 import { placeName } from '../../core/moon.ts';
 import { placeId } from '../../core/place.ts';
@@ -17,6 +18,7 @@ import type { V } from '../views/common.ts';
 import { freePosition } from './abandon.ts';
 import { activityNote, inactivityNote } from './activity.ts';
 import { debrisAt, debrisMark, harvestButton } from './debris.ts';
+import { fitTarget } from './fleet-target.ts';
 import { coords, dur, fmt } from './format.ts';
 import { isProtected, nameOf, ranks } from './game.ts';
 import { canLaunch } from './missiles.ts';
@@ -173,10 +175,30 @@ function foreignActions(v: V, pl: GalaxyPlanet): GalaxyAction[] {
     },
     fleetTo('link', 'attack', 'Sturmangriff', where),
     fleetTo('link', 'transport', 'Versorgungsflug', where),
+    ...moonbreakLink(v, pl, where),
     ...scanButton(v, pl),
     ...missileButton(v, pl),
   ];
 }
+
+/**
+ * The Mondbruch at a foreign moon (#95; owner, 2026-11-21): offered when the
+ * rules allow it for this target, a moon of another player, and the shown
+ * planet has a Weltenbrecher, as „Landnahme“ asks for a colony ship; it
+ * opens the fleet form with the Mondbruch.
+ */
+const moonbreakLink = (
+  v: V,
+  pl: GalaxyPlanet,
+  where: Record<string, string>,
+): GalaxyAction[] =>
+  canOffer(
+    'moonbreak',
+    { owner: v.s.me.id, from: v.P.id, ships: v.P.ships },
+    fitTarget(v.s, pl, v.now),
+  )
+    ? [fleetTo('link', 'moonbreak', MISSION.moonbreak, where)]
+    : [];
 
 /**
  * The Raketenangriff at a foreign planet or moon (#54): from a planet with
