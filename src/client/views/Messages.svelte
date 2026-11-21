@@ -6,10 +6,12 @@
   import type { MessagesPage } from '../logic/messages.ts';
   import ReportBody from './ReportBody.svelte';
 
-  let { page }: { page: MessagesPage } = $props();
+  // `heading` is false inside the tabs of MessagesTabs, which has the heading.
+  let { page, heading = true }: { page: MessagesPage; heading?: boolean } =
+    $props();
 </script>
 
-<h2>Nachrichten</h2>
+{#if heading}<h2>Nachrichten</h2>{/if}
 <div class="box">
   <div class="hd flex between">
     Berichte ({page.count})

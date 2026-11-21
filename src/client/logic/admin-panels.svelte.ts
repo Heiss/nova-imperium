@@ -17,6 +17,7 @@ import {
   type EventPage,
   type Fields,
   type Invitation,
+  type MessageReport,
   type Order,
   type PlayerDetail,
   type PlayerStats,
@@ -72,6 +73,11 @@ class AdminPanels {
     null,
   );
 
+  // The reported private messages (#226): the list, or what the server refused.
+  messageReports = $state.raw<
+    { list: MessageReport[] } | { error: string } | null
+  >(null);
+
   /** The `<details>` the admin opened (an event, an error, the rules of a round), by key. */
   readonly #open = new SvelteSet<string>();
 
@@ -103,6 +109,7 @@ let runRequest = 0;
 let errorBefore = 0;
 let errorRequest = 0;
 let invitationRequest = 0;
+let reportRequest = 0;
 
 /** Drops the panels, for a render that is no longer the page „Admin“ of an admin. */
 export function forgetAdminPanel(): void {
@@ -119,6 +126,7 @@ function reset(user: string, now: number): void {
   panels.range = errorRange(now);
   panels.errorNotice = panels.errors = null;
   panels.invitations = null;
+  panels.messageReports = null;
   panels.closeAll();
   query = {};
   before = errorBefore = 0;
@@ -129,6 +137,7 @@ function reset(user: string, now: number): void {
   runRequest++;
   errorRequest++;
   invitationRequest++;
+  reportRequest++;
 }
 
 /**
@@ -288,6 +297,22 @@ export async function refreshInvitations(): Promise<void> {
   }
 }
 
+// ----- the reported private messages -----
+
+/** Loads the reported messages; each call is one opening, which the server records. */
+export async function refreshMessageReports(): Promise<void> {
+  if (panels.user === null || !deps) return;
+  const id = ++reportRequest;
+  try {
+    const reply = await deps.api('/api/admin/message-reports', {});
+    if (id === reportRequest)
+      panels.messageReports = { list: reply.reports as MessageReport[] };
+  } catch (error) {
+    if (id === reportRequest)
+      panels.messageReports = { error: (error as Error).message };
+  }
+}
+
 // ----- the tabs -----
 
 /** Shows the tab and loads what it needs. */
@@ -305,6 +330,7 @@ export function openAdminTab(tab: AdminTab, value?: string): void {
   }
   if (tab === 'invitations') void refreshInvitations();
   if (tab === 'errors') void runErrors(() => loadErrors());
+  if (tab === 'reports') void refreshMessageReports();
 }
 
 /** The arrow keys, Home and End move between the tabs (the pattern of a tab list). */

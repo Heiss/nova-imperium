@@ -60,6 +60,16 @@ export interface Invitation {
   created: number;
   expires: number;
 }
+/** A reported private message (#226): a copy of the text, the players and the times. */
+export interface MessageReport {
+  id: number;
+  sender: string;
+  recipient: string;
+  reporter: string;
+  sent: number;
+  reported: number;
+  text: string;
+}
 export interface EventPage {
   events: EventRow[];
   page: number;
@@ -434,5 +444,19 @@ export const invitationsPage = (list: Invitation[]): TablePage =>
       dt(i.created),
       dt(i.expires),
       { kind: 'revoke', id: i.id },
+    ]),
+  );
+
+/** The reported private messages (#226, Q24): the message with its sender, recipient, time and the player who reported it [V]. */
+export const reportsPage = (list: MessageReport[]): TablePage =>
+  table(
+    ['Von', 'An', 'Gesendet', 'Gemeldet von', 'Gemeldet', 'Nachricht'],
+    list.map((r): Cell[] => [
+      r.sender,
+      r.recipient,
+      dt(r.sent),
+      r.reporter,
+      dt(r.reported),
+      r.text,
     ]),
   );

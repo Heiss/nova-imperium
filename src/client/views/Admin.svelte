@@ -19,6 +19,7 @@
   import AdminDiagnostics from './AdminDiagnostics.svelte';
   import AdminErrors from './AdminErrors.svelte';
   import AdminInvitations from './AdminInvitations.svelte';
+  import AdminReports from './AdminReports.svelte';
   import Box from './Box.svelte';
   import RoundArchive from './RoundArchive.svelte';
 
@@ -70,6 +71,15 @@
     hidden={shown !== 'errors'}
   >
     <Box title="Fehler"><div id="admin-errors"><AdminErrors /></div></Box>
+  </section>
+  <!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
+  <section
+    id="admin-panel-reports"
+    role="tabpanel"
+    aria-labelledby="admin-tab-reports"
+    hidden={shown !== 'reports'}
+  >
+    <Box title="Gemeldete Nachrichten"><AdminReports /></Box>
   </section>
   <!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
   <section

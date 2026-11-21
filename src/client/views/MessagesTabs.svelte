@@ -1,0 +1,85 @@
+<script lang="ts">
+  // „Nachrichten“ with its tabs (#226; owner, 2026-11-21): „Berichte“ (the
+  // list of reports of Messages.svelte, unchanged), „Posteingang“ and
+  // „Gesendet“. One menu entry and one mark for all of them. The view is
+  // mounted once and follows the state (`viewState`), so the open tab, the
+  // open conversation and what is typed stay over the poll of the state.
+  import type { Readable } from 'svelte/store';
+  import { messagesPage } from '../logic/messages.ts';
+  import {
+    MESSAGE_TABS,
+    privatePage,
+    type MessageTab,
+  } from '../logic/private-messages.ts';
+  import type { V } from './common.ts';
+  import Messages from './Messages.svelte';
+  import PmInbox from './PmInbox.svelte';
+  import PmSent from './PmSent.svelte';
+
+  let { viewState }: { viewState: Readable<V> } = $props();
+
+  const reports = $derived(messagesPage($viewState));
+  const mail = $derived(privatePage($viewState));
+
+  const tabs = Object.keys(MESSAGE_TABS) as MessageTab[];
+  let tab = $state<MessageTab>('reports');
+
+  /** The arrow keys, Home and End move between the tabs (the pattern of a tab list). */
+  function move(event: KeyboardEvent): void {
+    const moves: Record<string, number> = {
+      ArrowLeft: tabs.indexOf(tab) - 1,
+      ArrowRight: tabs.indexOf(tab) + 1,
+      Home: 0,
+      End: tabs.length - 1,
+    };
+    if (!Object.hasOwn(moves, event.key)) return;
+    event.preventDefault();
+    tab = tabs[(moves[event.key]! + tabs.length) % tabs.length]!;
+    document.getElementById(`messages-tab-${tab}`)?.focus();
+  }
+</script>
+
+<h2>Nachrichten</h2>
+<div role="tablist" aria-label="Nachrichten" class="flex pm-tabs">
+  {#each tabs as key (key)}
+    <button
+      id="messages-tab-{key}"
+      type="button"
+      role="tab"
+      aria-selected={tab === key}
+      aria-controls="messages-panel-{key}"
+      tabindex={tab === key ? 0 : -1}
+      onclick={() => (tab = key)}
+      onkeydown={move}
+      >{MESSAGE_TABS[key]}{#if key === 'inbox' && mail.unread}
+        ({mail.unread}){/if}</button
+    >
+  {/each}
+</div>
+<!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
+<section
+  id="messages-panel-reports"
+  role="tabpanel"
+  aria-labelledby="messages-tab-reports"
+  hidden={tab !== 'reports'}
+>
+  <Messages page={reports} heading={false} />
+</section>
+<!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
+<section
+  id="messages-panel-inbox"
+  role="tabpanel"
+  aria-labelledby="messages-tab-inbox"
+  hidden={tab !== 'inbox'}
+>
+  <PmInbox page={mail} />
+</section>
+<!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
+<section
+  id="messages-panel-sent"
+  role="tabpanel"
+  aria-labelledby="messages-tab-sent"
+  hidden={tab !== 'sent'}
+>
+  <PmSent rows={mail.sent} />
+</section>

@@ -12,6 +12,7 @@ import {
   eventDetail,
   eventsPage,
   invitationsPage,
+  reportsPage,
   nameOf,
   ordersPage,
   pagerPage,
@@ -368,5 +369,37 @@ describe('the invitations', () => {
 
   it('has no rows for no invitation', () => {
     expect(invitationsPage([]).rows).toEqual([]);
+  });
+});
+
+describe('the reported private messages (#226)', () => {
+  it('lists sender, recipient, times, reporter and the text', () => {
+    expect(
+      reportsPage([
+        {
+          id: 1,
+          sender: 'Anna',
+          recipient: 'Bert',
+          reporter: 'Bert',
+          sent: 1,
+          reported: 2,
+          text: '<b>x</b>',
+        },
+      ]),
+    ).toEqual({
+      headers: [
+        'Von',
+        'An',
+        'Gesendet',
+        'Gemeldet von',
+        'Gemeldet',
+        'Nachricht',
+      ],
+      rows: [['Anna', 'Bert', dt(1), 'Bert', dt(2), '<b>x</b>']],
+    });
+  });
+
+  it('has no rows for no report', () => {
+    expect(reportsPage([]).rows).toEqual([]);
   });
 });
