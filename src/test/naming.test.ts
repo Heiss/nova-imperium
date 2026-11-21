@@ -80,6 +80,32 @@ const ALLOWED: readonly string[] = [
 const found = (file: string, texts: string[]): string[] =>
   texts.flatMap((t) => classicIn(t).map((w) => `${file}: ${w}`));
 
+type Kind = 'ts' | 'svelte' | 'asset';
+
+/** Every file the scan reads, with how it is read. */
+const SCANNED: [string, Kind][] = [
+  ...(['client', 'server', 'core', 'features'] as const).flatMap((dir) =>
+    sources(dir, /\.ts$/).map((f): [string, Kind] => [f, 'ts']),
+  ),
+  ...sources('client', /\.svelte$/).map((f): [string, Kind] => [f, 'svelte']),
+  ...sources('client', /\.(svg|html)$/).map((f): [string, Kind] => [
+    f,
+    'asset',
+  ]),
+];
+
+/** The group of a file: its folder, down to two levels (the feature folders as one). */
+const groupOf = (file: string): string =>
+  path
+    .dirname(file)
+    .split(path.sep)
+    .slice(0, file.startsWith(`features${path.sep}`) ? 1 : 2)
+    .join('/');
+
+const GROUPS: [string, [string, Kind][]][] = [
+  ...Map.groupBy(SCANNED, ([f]) => groupOf(f)).entries(),
+];
+
 const CATALOG = { ...BUILD, ...RES, ...SHIPS, ...DEF };
 /** The display texts of every catalog entry (#113). */
 const TEXTS = Object.keys(CATALOG).map((k) => [k, text(k)!] as const);
@@ -118,29 +144,43 @@ describe('grimdark naming (#94)', () => {
     expect(Object.keys(NAMES).sort()).toEqual(Object.keys(CATALOG).sort());
   });
 
-  it('shows no classic name in the interface, the server messages or the icons', () => {
-    const files = [
-      ...sources('client', /\.ts$/),
-      ...sources('server', /\.ts$/),
-      ...sources('core', /\.ts$/),
-      ...sources('features', /\.ts$/),
-    ];
-    const hits = [
-      ...files.flatMap((f) =>
-        found(f, literals(readFileSync(path.join(ROOT, f), 'utf8'))),
-      ),
-      ...sources('client', /\.svelte$/).flatMap((f) =>
-        found(f, svelte(readFileSync(path.join(ROOT, f), 'utf8'))),
-      ),
-      ...sources('client', /\.(svg|html)$/).flatMap((f) =>
-        found(f, [readFileSync(path.join(ROOT, f), 'utf8')]),
-      ),
-    ];
-    expect(files.length).toBeGreaterThan(50);
-    expect(hits.filter((h) => !ALLOWED.includes(h))).toEqual([]);
-    // Each allowed word is still needed; remove it once it is not.
-    expect(ALLOWED.filter((a) => !hits.includes(a))).toEqual([]);
+  it('scans every source file of the interface, the server and the icons, each in exactly one group', () => {
+    expect(SCANNED.filter(([, kind]) => kind === 'ts').length).toBeGreaterThan(
+      50,
+    );
+    expect(
+      GROUPS.flatMap(([, members]) => members.map(([f]) => f)).sort(),
+    ).toEqual(SCANNED.map(([f]) => f).sort());
+    const names = new Set(GROUPS.map(([name]) => name));
+    for (const a of ALLOWED)
+      expect(names, a).toContain(groupOf(a.split(': ')[0]!));
   });
+
+  // The scan parses every file, which takes seconds on a slow runner: one test
+  // per group of folders, so that each stays far below the limit of a test.
+  it.each(GROUPS)(
+    'shows no classic name in the interface, the server messages or the icons in %s',
+    (name, files) => {
+      const hits = files.flatMap(([f, kind]) => {
+        const code = readFileSync(path.join(ROOT, f), 'utf8');
+        return found(
+          f,
+          kind === 'ts'
+            ? literals(code)
+            : kind === 'svelte'
+              ? svelte(code)
+              : [code],
+        );
+      });
+      expect(hits.filter((h) => !ALLOWED.includes(h))).toEqual([]);
+      // Each allowed word is still needed; remove it once it is not.
+      expect(
+        ALLOWED.filter(
+          (a) => groupOf(a.split(': ')[0]!) === name && !hits.includes(a),
+        ),
+      ).toEqual([]);
+    },
+  );
 
   it('notices a classic name in the interface (self-test)', () => {
     expect(
