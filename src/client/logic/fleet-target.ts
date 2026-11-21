@@ -95,27 +95,63 @@ export const offeredMissions = (
 /** The text of the list while no mission fits the target [V]. */
 export const NO_MISSION = 'Kein Auftrag passt zum Ziel';
 
+/** One option of the list „Auftrag“. */
+export interface MissionOption {
+  value: string;
+  label: string;
+  selected: boolean;
+  disabled: boolean;
+}
+
 /**
  * The options of the list „Auftrag“: the missions that fit, the chosen one
  * selected while it still fits, else the first (#253); one disabled entry
  * with the words `NO_MISSION` when none fits. `selected` is the mission the
  * list ends on, or the empty string.
  */
-export function missionOptions(
+export function missionChoices(
   offered: readonly Mission[],
   chosen: string | null | undefined,
-): { html: string; selected: string } {
+): { options: MissionOption[]; selected: string } {
   if (!offered.length)
     return {
-      html: `<option value="" selected disabled>${NO_MISSION}</option>`,
+      options: [
+        { value: '', label: NO_MISSION, selected: true, disabled: true },
+      ],
       selected: '',
     };
   const selected = offered.find((m) => m === chosen) ?? offered[0]!;
   return {
-    html: offered
+    options: offered.map((m) => ({
+      value: m,
+      label: MISSION[m],
+      selected: m === selected,
+      disabled: false,
+    })),
+    selected,
+  };
+}
+
+/**
+ * The same options as HTML, as the fleet view wrote them before the
+ * component (#118, bundle 3): the frozen reference test of the view
+ * (src/test/fleet-reference.test.ts) compares the component with it.
+ */
+export function missionOptions(
+  offered: readonly Mission[],
+  chosen: string | null | undefined,
+): { html: string; selected: string } {
+  const { options, selected } = missionChoices(offered, chosen);
+  if (!offered.length)
+    return {
+      html: `<option value="" selected disabled>${NO_MISSION}</option>`,
+      selected,
+    };
+  return {
+    html: options
       .map(
-        (m) =>
-          `<option value="${m}" ${m === selected ? 'selected' : ''}>${MISSION[m]}</option>`,
+        (o) =>
+          `<option value="${o.value}" ${o.selected ? 'selected' : ''}>${o.label}</option>`,
       )
       .join(''),
     selected,

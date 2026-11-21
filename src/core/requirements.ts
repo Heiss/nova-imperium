@@ -3,13 +3,16 @@
 // Everything belongs to the shown planet: research starts and is paid on any
 // own planet with a Forschungslabor, so the buildings it needs are built
 // there too (issue #49, replaces the home planet rule of #64 D4).
-import { BUILD, buildable, RES } from './catalog.ts';
-import { energyNeed, energyShort } from './components/energy-threshold.ts';
-import { afford, lvlCost, reqMissing } from './economy.ts';
-import { fieldsFull } from './fields.ts';
-import { labUpgrading, waitsForLab } from './lab.ts';
+import { BUILD, RES } from './catalog.ts';
+import { energyNeed } from './components/energy-threshold.ts';
+import {
+  type BuildError,
+  buildErrors,
+  type ResearchError,
+  researchErrors,
+} from './economy-checks.ts';
+import { lvlCost, reqMissing } from './economy.ts';
 import { text } from './text.ts';
-import { waitsForYard } from './yard.ts';
 import type {
   Cost,
   Planet,
@@ -131,17 +134,29 @@ const lacking = (p: Planet, c: Cost, energy: boolean): string[] => [
   ...(energy ? ['Energie'] : []),
 ];
 
-function busyReason(n: Need, p: Planet, r: ResearchState): string | undefined {
-  if (n.kind === 'r') {
-    if (r.rq) return 'Es wird bereits geforscht';
-    return labUpgrading(p) ? 'Scholarium wird ausgebaut' : undefined;
-  }
-  if (p.bq) return 'Bauschleife belegt';
-  if (waitsForYard(p, n.key)) return 'Schiffsschmiede arbeitet gerade';
-  if (waitsForLab(r, n.key)) return 'Das Scholarium forscht gerade';
-  return undefined;
-}
+/**
+ * The waits of the list, in its order: the next level is ready, but its
+ * queue is in use (codes of `buildErrors` and `researchErrors`, F18).
+ */
+const BUILD_WAITS: Readonly<Partial<Record<BuildError, string>>> = {
+  busy: 'Bauschleife belegt',
+  yardBusy: 'Schiffsschmiede arbeitet gerade',
+  labBusy: 'Das Scholarium forscht gerade',
+};
+const RESEARCH_WAITS: Readonly<Partial<Record<ResearchError, string>>> = {
+  busy: 'Es wird bereits geforscht',
+  labUpgrading: 'Scholarium wird ausgebaut',
+};
 
+/**
+ * Whether the next level can start now and why not, in the order of the
+ * list (#64): the place, the requirements, the fields, the price and the
+ * energy, then the waits. The checks are those of the actions, `buildErrors`
+ * and `researchErrors` (#214, F18, owner 2026-11-16); the list keeps its
+ * own short reasons and its order, and names no reason of the actions it
+ * never showed (a research the round does not have, its highest level, a
+ * place without a lab).
+ */
 export function needState(n: Need, pl: Places): NeedState {
   const p = pl.here;
   const def = defOf(n.kind, n.key)!;
@@ -151,20 +166,29 @@ export function needState(n: Need, pl: Places): NeedState {
   const base: NeedState = energy
     ? { ready: false, cost, energy }
     : { ready: false, cost };
-  if (n.kind === 'b' && !buildable(n.key, p.kind))
+  const build = n.kind === 'b';
+  const errors: readonly string[] = build
+    ? buildErrors(p, pl.research, n.key, pl.cfg, n.have)
+    : researchErrors(p, pl.research, n.key, pl.cfg, n.have);
+  if (errors.includes('place'))
     return { ...base, reason: PLACE_REASON[p.kind] };
-  const missing = reqMissing(def, p, pl.research);
-  if (missing.length)
-    return { ...base, reason: `braucht ${missing.join(', ')}` };
+  if (errors.includes('locked'))
+    return {
+      ...base,
+      reason: `braucht ${reqMissing(def, p, pl.research).join(', ')}`,
+    };
   // Every building level takes a field (#51).
-  if (n.kind === 'b' && fieldsFull(p, pl.cfg))
+  if (errors.includes('full'))
     return { ...base, reason: 'Keine freien Felder' };
-  const short = energyShort(def, level, p, pl.cfg, pl.research.research) > 0;
-  if (!afford(p, cost) || short)
+  const short = errors.includes('noEnergy');
+  if (errors.includes('cost') || short)
     return {
       ...base,
       reason: `zu wenig ${lacking(p, cost, short).join(', ')}`,
     };
-  const busy = busyReason(n, p, pl.research);
+  const waits: Readonly<Record<string, string | undefined>> = build
+    ? BUILD_WAITS
+    : RESEARCH_WAITS;
+  const busy = errors.map((code) => waits[code]).find(Boolean);
   return busy ? { ...base, ready: true, busy } : { ...base, ready: true };
 }

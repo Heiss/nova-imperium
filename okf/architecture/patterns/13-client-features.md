@@ -81,7 +81,7 @@ description: 'A client feature exports its handlers as clientFeature from its ow
   (`maintenance.ts`), the toasts with „Problem melden“ (`toast.ts`) and the
   error log (`error-log.ts`) are modules of their own. The state and the
   render are `sync.ts` (apply, act, refresh), `render.ts`, `completions.ts`,
-  `field-drafts.ts`, `news.ts`, `routing.ts`, `view-address.ts`, `dispatch.ts`
+  `news.ts`, `routing.ts`, `view-address.ts`, `dispatch.ts`
   (the click and submit dispatch with the context of the features),
   `clock.ts`, `boot.ts` and `ui-init.ts`. The frame handlers (sheet „Mehr“,
   dialog, planet choice, logout), the share of a producer, the animations,
@@ -94,33 +94,35 @@ description: 'A client feature exports its handlers as clientFeature from its ow
   the message of the guild chat and the name of a new buddy show a draft of
   `logic/drafts.svelte.ts`.
 * **[E]** Owner, 2026-11-20 („all now“): `keepInputs` is gone and so is every
-  `data-nokeep`. The field drafts below ship with the update; the state of
-  each form in its own component follows after it (#332). **[V]** Every other field of a view with an id has a draft
-  (`logic/field-drafts.ts`, `field-drafts.ts`): the change of a field is
-  recorded when it happens (input and change), a button or feature that fills
-  a field writes it through `writeField` (also `setInput`, `setById`), and a
-  view that is drawn anew gets the drafts back (`restoreFields` in `render.ts`;
-  not onto a disabled option, ticks of the rank boxes, not a disabled box). The
-  drafts are dropped where the typed fields were dropped before: a fresh render
-  and a logout. Fields without a draft show the state of the server: the
+  `data-nokeep`. The uniform field drafts that shipped with the update
+  (`logic/field-drafts.ts`, `field-drafts.ts`, `restoreFields` in `render.ts`)
+  are deleted again (#332, 2026-11-21): every form that the poll redraws keeps
+  its fields as the state of its component (section „Per-form component
+  state“), and nothing restores a field after a redraw. A fresh render (another
+  view or planet) and a logout drop that state, as they dropped the typed
+  fields before. Fields without state show the state of the server: the
   settings of the universe (`logic/settings-draft.ts` keeps their draft), the
   link of the invitation and the confirmation of a dissolving (a modal outside
-  `#view`); chat and buddy name have their own drafts. The position of the
-  Sternenkarte (`g_g`, `g_s`) has a draft, kept until Enter, an arrow or
-  „zum Heimatsystem“ draws the page anew (a fresh render drops it).
-  **[E]** Owner, 2026-11-20: no client code sets the value, tick or chosen
-  option of a field except through `writeField` (or `setInput`/`setById`,
-  which use it): a write that goes round it is not recorded, and the next poll
-  redraw puts the older draft back over it. The guard
-  `src/test/field-writes.test.ts` reads the syntax trees of `src/client`
-  (TypeScript and Svelte, tests excluded) and fails on `.value =`, `.checked =`,
-  `.selectedIndex =`, `.selected =` (also `+=`, `++`, `["value"] =`) and
-  `setAttribute('value', …)`. Allow-list: `field-drafts.ts` (it implements
-  `writeField` and `restoreFields`). A Svelte `bind:` or `value={…}` is no
-  write. The scan found one bypass, the settings of the universe put back by
-  `features/admin.ts`, now written with `setById`.
-  `normalize()` of `src/test/markup.ts` ignores `data-nokeep`, so the frozen
-  HTML of the reference tests stays as it was. E2E: `e2e/redraw-drafts.spec.ts`.
+  `#view`); chat and buddy name have their own drafts
+  (`logic/drafts.svelte.ts`). The amounts of the four lists (`q_<key>`,
+  `td_<key>`) keep their value in the page: the lists are redrawn in place
+  (`renderMounted`, they are not `anew`) and the two fields carry no value,
+  binding or handler of the component, so the poll never writes or replaces
+  them (`src/client/views/list-fields.test.ts`, E2E
+  `e2e/redraw-drafts.spec.ts`).
+* **[E]** Owner, 2026-11-20, made stricter by #332: no client code sets the
+  value, tick or chosen option of a field, except `setField` of
+  `src/client/dom.ts`, which `setInput` and `setById` use for the fields that
+  hold their value in the page (the amounts of the lists, the settings of the
+  universe). A field of a form with state is shown by its component and
+  written through that state. The guard `src/test/field-writes.test.ts` reads
+  the syntax trees of `src/client` (TypeScript and Svelte, tests excluded) and
+  fails on `.value =`, `.checked =`, `.selectedIndex =`, `.selected =` (also
+  `+=`, `++`, `["value"] =`) and `setAttribute('value', …)` anywhere but inside
+  `setField`; it has no allow-list of files. A Svelte `bind:` or `value={…}` is
+  no write. `normalize()` of `src/test/markup.ts` ignores `data-nokeep`, so the
+  frozen HTML of the reference tests stays as it was. E2E:
+  `e2e/redraw-drafts.spec.ts`.
 * **[E]** Owner, 2026-11-20: `acts()` and `forms()` are free of side effects.
   A feature registers its page listeners (change, input, keydown, submit,
   window events) in the optional hook `listen(ctx)`, which the assembly calls
@@ -136,22 +138,42 @@ description: 'A client feature exports its handlers as clientFeature from its ow
   cannot lose them and no restore step is needed; when no form depends on
   the field drafts, `field-drafts.ts`, `logic/field-drafts.ts`,
   `restoreFields` and the allow-list entry of the guard are deleted. No
-  visible change.
+  visible change. Done on 2026-11-21: the last fields (the fleet form, part
+  two) were converted, the drafts are deleted, and the guard has no allow-list.
 * **[V]** The state of a form is a module of its own, as a view that is
   mounted anew loses what its component held: `formState()` of
   `logic/form-state.svelte.ts` (dropped by a fresh render and a logout,
   `forgetForms` in `render.ts`), or a `$state` of the form's own module
   where the form never dropped its draft (the marketplace,
   `logic/market-form.svelte.ts`). The component binds it and the handler
-  reads and writes it; a field that leaves the drafts is added to
-  `UNTRACKED` of `logic/field-drafts.ts`. Built: the filter of the
+  reads and writes it. Built: the filter of the
   achievements (`logic/achievement-filter.svelte.ts`), the position of the
   Sternenkarte (`logic/galaxy-position.svelte.ts`), the marketplace, and the
   ships, position, speed, cargo and names to invite of the fleet form
   (`logic/fleet-form.svelte.ts`, read by `readFleetForm`, written by the
   handlers of `features/fleet.ts` and `features/union.ts`; a field of the
   position that nobody typed in shows the target of the page, `fleetTarget`
-  of `logic/fleet.ts`). A handler that dispatches an input event after it
+  of `logic/fleet-choice.ts`). Part two of the fleet form: the kind of target,
+  the mission, the union, the holding time and the stay, and the „Zielmond“ of
+  the Warp-Tor are state of the same module as well, and what the lists and the
+  row of the time show for that state is worked out by one pure function,
+  `fleetChoice()` of `logic/fleet-choice.ts`, which `Fleet.svelte` asks (the
+  page gives it as `form.choose`) and the handlers read (`readFleetForm`):
+  the list „Auftrag“ (`missionChoices` of `logic/fleet-target.ts`), the note of
+  the limit of planets, the state of „Flotte losschicken“, the row „Haltezeit“
+  (stay with its real time, or the holding time, hidden for a mission that
+  does not hold), the moon option and the union all come from it, with no HTML
+  string and no write into the DOM after a render. A field nobody touched shows
+  the page (`ui.ft`, `ui.fm`, `ui.fk`, `ui.union`, which also carry the choice
+  over to the next form of a fresh render); `fleetCalc` settles the state on
+  every input (a moon that is not there goes back to the planet, the mission
+  the list ended on is kept, the row of the other time starts again with 1
+  hour). The „Schnellwahl“ has no state: it enters the target into the state
+  and goes back to „– wählen –“. The list of missions follows the kind as asked
+  and `fleetCalc` settles a moon that is not there before it reads the mission,
+  so the first frame of a form that aims at a moon that is not there equals the
+  frozen reference markup (`src/test/fleet-reference.test.ts`, unchanged).
+  A handler that dispatches an input event after it
   wrote the state calls `flushSync()` first, else the component's `oninput`
   would read the old value back from the field. „Optionen“
   (`logic/options-form.svelte.ts`): the choices, the passwords and the text
@@ -186,75 +208,58 @@ description: 'A client feature exports its handlers as clientFeature from its ow
     the `form.reset()` case as a defect;
   * the fleet form, part two: the mission list, the row of holding time and
     stay and the moon option are derived in `Fleet.svelte` from the state
-    of the component; the frozen reference test is the judge;
+    of the component; the frozen reference test is the judge (done, the
+    reference test is unchanged);
   * the amounts of the four lists (`q_*`, `td_*`) do not depend on the
     drafts (a poll redraw does not mount them anew; a test shows it), so the
     drafts are deleted after the fleet form, part two; if the test shows
-    otherwise for a field, the deletion stops.
+    otherwise for a field, the deletion stops (the test shows it, the drafts
+    are deleted).
 
-### Inventory: the fields that still depend on the drafts (2026-11-21)
+### Inventory: where each field keeps its value (2026-11-21, after the last conversion)
 
-A field has a draft only when it has an id and stands inside `#view`
-(`note()` and `restoreFields` of `field-drafts.ts`), and `restoreFields`
-runs only for a signed-in player. A checkbox gets its tick back only when it
-is a rank box (`data-rank-right`); for every other checkbox the restore puts
-back its `value`, which never changes, so no other tick depends on the
-drafts. „Written by“ names the code that writes the field through
-`writeField`, `setInput` or `setById`; that write moves to the state with
-the conversion.
+No field depends on the drafts any more. A field with an id inside `#view`
+keeps its value in one of these places:
 
-* **Flotte** (`Fleet.svelte`, mounted anew; the rest of the form is read by
-  id in `features/fleet.ts`, `readFleetForm`). Converted (2026-11-21):
-  `f_<ship>`, `t_g`, `t_s`, `t_p`, `t_v`, `c_m`, `c_c`, `c_d` and
-  `un_name_<union>`. Still on the drafts:
-  * `t_q` „Schnellwahl“: component select; set back to „– wählen –“ by
-    `quickChoice`.
-  * `t_k` „Zielart“: component, `selected={target.toMoon}`, „Mond“ disabled
-    where no moon is; also kept in `client.ui.fk`, written by `moonOption`,
-    `quickChoice` and `features/union.ts`.
-  * `t_m` „Auftrag“: component, options as HTML (`{@html form.missions}`),
-    rewritten by `missionList`; also kept in `client.ui.fm`; written by
-    `missionList` and `features/union.ts`.
-  * `t_u` „Verband“: component, `selected` of the page; written by
-    `features/union.ts`.
-  * `t_h` (Halten) and `t_stay` (expedition): HTML string of
-    `logic/fleet-time.ts` inside `{@html form.time}`, replaced by `timeRow`
-    when the mission changes between a stay and a holding time.
-  * `jg_to` „Zielmond“: component select with disabled options; the draft
-    is kept only while its option is enabled (`keeps` of
-    `logic/jump-gate.ts`).
-* **Optionen** (`Options.svelte`): converted (2026-11-21), `o_probes`,
+* **Flotte** (`Fleet.svelte`, mounted anew): all fields are state of
+  `logic/fleet-form.svelte.ts`, dropped by a fresh render: `f_<ship>`, `t_g`,
+  `t_s`, `t_p`, `t_v`, `c_m`, `c_c`, `c_d`, `un_name_<union>` (converted
+  earlier today) and `t_k`, `t_m`, `t_u`, `t_h`, `t_stay` and `jg_to`
+  (part two); `t_q` „Schnellwahl“ has no state to keep (see above). The
+  handlers read what the form shows through `fleetChoice()`, not from the
+  fields, as a read of the field right after a state change would see the
+  old value (the component updates the DOM after the handler).
+* **Optionen** (`Options.svelte`): `logic/options-form.svelte.ts` for `o_probes`,
   `o_explain`, `o_levels`, `o_main`, `pw_current`, `pw_next`, `pw_confirm`,
   `passkey-password` and `reportform-text`. `o_anim` and the push boxes are
-  checkboxes (see above) and depend on nothing; `o_anim` is applied at once
-  by `features/options.ts`.
-* **Gilden**: converted (2026-11-21), `guild_tag`, `guild_name`,
-  `guild_description`, `rank_name_<rank>`, `rank_<rank>_<right>`,
-  `rank_new` and `rank_of_<member>`. `chat_text` has its own draft
-  (`logic/drafts.svelte.ts`).
-* **Admin**: converted (2026-11-21), `inv_email` and `announce-text`;
-  `audit-player` and `audit-outcome` of `AdminDiagnostics.svelte` left the
-  drafts, as the filter keeps its own state (`panels.fields` of
-  `logic/admin-panels.svelte.ts`); the other filter fields have no id.
-  `set_*` (`logic/settings-draft.ts`) and `inv_link` have no draft.
-* **Gebäude, Forschung, Schiffsschmiede, Verteidigung**
-  (`CatalogList.svelte`): `q_<key>` (written by `features/queue.ts`) and
-  `td_<key>` (emptied by `features/missiles.ts`). The lists are not mounted
-  anew (`renderMounted` updates them in place), and a fresh render, which
-  drops the drafts, mounts them again; so the restore puts back what the
-  field still holds. They keep the drafts only while a list is mounted again
-  without a fresh render.
+  checkboxes whose state is the setting applied at once by
+  `features/options.ts`.
+* **Gilden**: `logic/guild-form.svelte.ts` for `guild_tag`, `guild_name`,
+  `guild_description`, `rank_name_<rank>`, `rank_<rank>_<right>`, `rank_new` and
+  `rank_of_<member>`. `chat_text` has its own draft (`logic/drafts.svelte.ts`).
+* **Admin**: `logic/admin-form.svelte.ts` for `inv_email` and `announce-text`;
+  `audit-player` and `audit-outcome` and the other filters keep theirs in
+  `logic/admin-panels.svelte.ts`. `set_*` (`logic/settings-draft.ts`) and
+  `inv_link` show the server.
+* **Marktplatz**, the filter of the achievements and the position of the
+  Sternenkarte: their own state modules (`logic/market-form.svelte.ts`,
+  `logic/achievement-filter.svelte.ts`, `logic/galaxy-position.svelte.ts`).
+* **Gebäude, Forschung, Schiffsschmiede, Verteidigung** (`CatalogList.svelte`):
+  `q_<key>` (written by `features/queue.ts`) and `td_<key>` (emptied by
+  `features/missiles.ts`) hold their value in the page, through `setField`;
+  they are redrawn in place and never written by a render
+  (`views/list-fields.test.ts`).
 
 Fields with nothing to convert: „Freunde“ (`friend_name` has its own
 draft); the search of the Lexicanum (no id, its state is
-`views/lexicanum-state.svelte.ts`); the login (`Auth.svelte`: restored
-only for a signed-in player); the list „Aktiver Planet“ (`planet_select`,
-in the header); every dialog of `#modal` („Neue Runde“ `RoundDialog`,
+`views/lexicanum-state.svelte.ts`); the login (`Auth.svelte`: no signed-in
+player, nothing to redraw); the list „Aktiver Planet“ (`planet_select`, in the
+header); every dialog of `#modal` („Neue Runde“ `RoundDialog`,
 `EndzeitDialog`, „Übergeben“ and „Auflösen“ `GuildDialogs`, „Account
 löschen“, „Problem melden“, the missiles, renaming, abandoning): outside
-`#view`, never drafted. The redraw is checked by `e2e/redraw-drafts.spec.ts`
-(fleet, marketplace, new guild, Sternenkarte, achievements, both filters of
-the admin).
+`#view`. The redraw is checked by `e2e/redraw-drafts.spec.ts` (fleet,
+marketplace, new guild, Sternenkarte, achievements, both filters of the admin,
+the amounts of the lists).
 
 ## The actions are typed (#317, #118; owner, 2026-11-20)
 
