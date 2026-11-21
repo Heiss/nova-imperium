@@ -51,7 +51,7 @@
     "@types/nodemailer": "^8.0.2",
     "@types/web-push": "3.6.4",
     "@vitest/coverage-v8": "^5.1.0",
-    "dependency-cruiser": "18.7.2",
+    "dependency-cruiser": "18.8.0",
     "eslint": "^10.14.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-sonarjs": "4.2.2",
