@@ -3,10 +3,12 @@
 import { describe, expect, it } from 'vitest';
 import { DAY_MS } from '../../core/activity.ts';
 import { METHOD_VERSION, type Report } from '../../core/playtime.ts';
+import { EVENT_KIND } from '../../core/round-events.ts';
 import { record } from '../audit.ts';
 import { addPlanet, addUser, testCtx, type TestCtx } from '../test-helpers.ts';
 import { GameError } from './context.ts';
 import { runAction } from './dispatch.ts';
+import { addMoon } from './moons.ts';
 import { playerDetail, playerStats } from './diagnostics.ts';
 import { ownActivity, recordPlaytime } from './playtime.ts';
 
@@ -262,6 +264,27 @@ describe('the own statistics', () => {
     ]);
   });
 
+  it('applies the same classes to the audit rows of the days before the journal (#335)', () => {
+    const ctx = testCtx(10 * DAY_MS + 1000);
+    const u = addUser(ctx, 'Anna');
+    for (const action of [
+      'build',
+      'scan',
+      'roundArchive',
+      'roundHistory',
+      'read',
+      'seeGuildChat',
+      'unknown',
+    ])
+      record(ctx, { category: 'game', action, actor: u.id });
+    record(
+      ctx,
+      { category: 'game', action: 'rateLimit', actor: u.id },
+      'rejected',
+    );
+    expect(ownActivity(ctx, u).days[0]).toMatchObject({ actions: 2 });
+  });
+
   it('shows the capture start, the last activity, the round and the whole account', () => {
     const ctx = testCtx(START);
     const u = addUser(ctx, 'Anna');
@@ -353,14 +376,52 @@ describe('the play actions from the round journal (#231, #235)', () => {
   }
   const today = (ctx: TestCtx, u: ReturnType<typeof addUser>): number =>
     ownActivity(ctx, u).days[0]!.actions;
+  /** An action that changes something and needs no input (`delall`: counted). */
   const play = (ctx: TestCtx, u: ReturnType<typeof addUser>, n = 1): void => {
-    for (let i = 0; i < n; i++) runAction(ctx, u.id, { type: 'roundArchive' });
+    for (let i = 0; i < n; i++) runAction(ctx, u.id, { type: 'delall' });
   };
+  const send = (ctx: TestCtx, u: ReturnType<typeof addUser>, type: string) =>
+    runAction(ctx, u.id, { type });
 
-  it('counts every succeeded action of the account, a read too, as the audit count did', () => {
+  it('counts every succeeded action that changes something', () => {
     const { ctx, u } = world();
     play(ctx, u, 3);
     expect(today(ctx, u)).toBe(3);
+  });
+
+  it('does not count the two archive reads a view makes by itself (#335)', () => {
+    const { ctx, u } = world();
+    play(ctx, u);
+    send(ctx, u, 'roundArchive');
+    send(ctx, u, 'roundHistory');
+    expect(today(ctx, u)).toBe(1);
+  });
+
+  it('does not count the automatic marking of the reports as read (#335)', () => {
+    const { ctx, u } = world();
+    send(ctx, u, 'read');
+    const journaled = ctx.db
+      .prepare('SELECT COUNT(*) AS n FROM round_events WHERE kind = ?')
+      .get(EVENT_KIND.action);
+    expect(journaled).toEqual({ n: 1 });
+    expect(today(ctx, u)).toBe(0);
+  });
+
+  it('counts a deliberate read, the Phalanx-Scan (#335)', () => {
+    const { ctx, u } = world();
+    const home = addPlanet(ctx, u.id, { g: 1, s: 1, p: 3 });
+    const moon = addMoon(ctx, home, 10, ctx.now());
+    ctx.planets.save({
+      ...moon,
+      b: { moonbase: 1, phalanx: 2 },
+      res: { m: 100, c: 200, d: 12000 },
+    });
+    runAction(ctx, u.id, {
+      type: 'scan',
+      planet: moon.id,
+      target: 'p1_1_2',
+    });
+    expect(today(ctx, u)).toBe(1);
   });
 
   it('does not count a refused action, an unknown one or an admin action of the account', () => {
@@ -387,7 +448,7 @@ describe('the play actions from the round journal (#231, #235)', () => {
   it('is not removed by the 30-day purge of the audit log', () => {
     const { ctx, u } = world();
     for (let i = 0; i < 2; i++)
-      record(ctx, { category: 'game', action: 'roundArchive', actor: u.id });
+      record(ctx, { category: 'game', action: 'build', actor: u.id });
     play(ctx, u, 2);
     ctx.admin.purge(ctx.now() + 1, DAY_MS);
     expect(
@@ -415,6 +476,20 @@ describe('the play actions from the round journal (#231, #235)', () => {
       [5, 0],
       [4, 0],
     ]);
+  });
+
+  it('keeps the larger of the journal and the audit count on the first journal day, with the classes applied (#335)', () => {
+    const { ctx, u } = world();
+    play(ctx, u, 2);
+    // The audit log knows 4 builds and 6 archive reads of that day: 4 count, not 10.
+    for (let i = 0; i < 4; i++)
+      record(ctx, { category: 'game', action: 'build', actor: u.id });
+    for (let i = 0; i < 6; i++)
+      record(ctx, { category: 'game', action: 'roundArchive', actor: u.id });
+    expect(today(ctx, u)).toBe(4);
+    // More journal events than audit rows: the journal count is the larger.
+    play(ctx, u, 3);
+    expect(today(ctx, u)).toBe(5);
   });
 
   it('keeps the count of a round that ended, for the same account', () => {
