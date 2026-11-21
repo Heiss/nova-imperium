@@ -64,6 +64,7 @@ okf_version: "0.2"
 
 * [Invitations](/features/invitations.md) - registration only by invitation, mail or copied link
 * [Admin](/features/admin.md) - operator roles, diagnostics, audit log, moderation and live universe settings
+* [Check for automated play](/features/bot-check.md) - „Automatisierung prüfen“ per player for the admin, raw facts from the server since the switch-on, 30 days, no score, the rule „Fair spielen“ (#181)
 * [Round, administration and sign-in update](/features/release-checklist.md) - combined release checklist
 
 # Security

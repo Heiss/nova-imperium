@@ -227,6 +227,13 @@ export const setMoon = (planet: string, chance: number): Promise<void> =>
     await loadPlayers();
   });
 
+/** „Automatisierung prüfen“ on or off for the open record (#181), then the record again. */
+export const switchBotCheck = (player: string, on: boolean): Promise<void> =>
+  run(async () => {
+    await call('bot-check', { player, on });
+    await loadPlayers();
+  });
+
 /** A moderation of the open record (revoke the sessions, ban, unban), then the record again. */
 export const moderate = (values: Record<string, unknown>): Promise<void> =>
   run(async () => {

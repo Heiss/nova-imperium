@@ -6,6 +6,7 @@
 // the state they read and the calls that fill it are
 // logic/admin-panels.svelte.ts. The texts and the columns are those of the
 // DOM modules these panels were before.
+import type { BotDay } from '../../core/bot-hints.ts';
 import { MAX_MOON_CHANCE, MIN_MOON_CHANCE } from '../../core/moon.ts';
 import { dt, fmt } from './format.ts';
 import type { Players } from './types.ts';
@@ -40,11 +41,19 @@ interface PlayerPlanet {
   p: number;
   moon: boolean;
 }
+/** The check of #181 of a player as the server sends it with the record. */
+export interface BotCheck {
+  since: number | null;
+  days: BotDay[];
+}
+
 export interface PlayerDetail {
   days: { day: number; activeMs: number; actions: number }[];
   suspension: { reason: string; until: number | null } | null;
   /** The planets of the player, for „Mond anlegen“ (#53). */
   planets: PlayerPlanet[];
+  /** „Automatisierung prüfen“ and its hints (#181): since when on, or null. */
+  botCheck?: BotCheck;
 }
 export interface Order {
   kind: string;
@@ -342,6 +351,42 @@ export const ordersPage = (
       o.processed === null ? '—' : dt(o.processed),
     ]),
   );
+
+/** Seconds with one decimal, German style („2,5 s“). */
+const secs = (s: number): string => `${s.toFixed(1).replace('.', ',')} s`;
+
+/**
+ * One line of the hints of #181 [V]: raw facts of one UTC day, no verdict.
+ * The middle half of the gaps: half of them lie between the two values.
+ */
+export function botDayLine(d: BotDay): string {
+  const date = new Date(d.day).toISOString().slice(0, 10);
+  const parts = [
+    `${fmt(d.actions)} ${d.actions === 1 ? 'Aktion' : 'Aktionen'}, davon ${fmt(d.outsidePlay)} ohne aktive Spielzeit`,
+    `${fmt(d.limitHits)} Treffer der Aktionsgrenze`,
+  ];
+  if (d.gaps)
+    parts.push(
+      `Abstände: kürzester ${secs(d.gaps.shortest)}, Median ${secs(d.gaps.median)}, mittlere Hälfte ${secs(d.gaps.lower)} bis ${secs(d.gaps.upper)}`,
+    );
+  return `${date}: ${parts.join('; ')}`;
+}
+
+/** The block „Automatisierung prüfen“ of the record (#181) [V]. */
+export function botCheckBlock(check: BotCheck) {
+  return {
+    on: check.since !== null,
+    status:
+      check.since === null
+        ? 'Nicht geprüft'
+        : `Geprüft seit ${dt(check.since)}`,
+    lines: check.days.map(botDayLine),
+    empty:
+      check.since !== null && !check.days.length
+        ? 'Noch keine Aktionen seit dem Einschalten.'
+        : '',
+  };
+}
 
 /** The record of a player: the state of the access, the days, the planets and, for a player who is no admin, the moderation. */
 export function playerPage(person: PlayerStats, detail: PlayerDetail) {

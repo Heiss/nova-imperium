@@ -1,5 +1,6 @@
 // Admin data (#117): the settings of the universe and the round, the audit
-// log, player activity, suspensions and the retention of the error log.
+// log, player activity, suspensions, the check for control by an AI or a
+// program (#181) and the retention of the error log.
 // The error log itself is still raw SQL in error-log.ts until a follow-up.
 import { UNIVERSE_SPECS } from '../../../core/universe.ts';
 import type { Universe } from '../../../core/types.ts';
@@ -58,6 +59,12 @@ export interface Admin {
   suspension(uid: string, now: number): Suspension | undefined;
   suspend(uid: string, reason: string, until: number | null): void;
   unsuspend(uid: string): void;
+  /** Since when the check of #181 is on for the player, or null (off, the default). */
+  botCheckSince(uid: string): number | null;
+  /** Switches the check on from `since`, or off with null (#181). */
+  setBotCheck(uid: string, since: number | null): void;
+  /** The game actions of the audit log of `actor` from `from`, by time (#181). */
+  gameActions(actor: string, from: number): { time: number; action: string }[];
 }
 
 const EVENT_WHERE = `
@@ -200,6 +207,35 @@ class SqliteAdmin implements Admin {
   unsuspend(uid: string): void {
     this.db.prepare('DELETE FROM suspensions WHERE player = ?').run(uid);
   }
+
+  botCheckSince(uid: string): number | null {
+    const row = this.db
+      .prepare('SELECT since FROM bot_checks WHERE player = ?')
+      .get(uid) as { since: number } | undefined;
+    return row?.since ?? null;
+  }
+
+  setBotCheck(uid: string, since: number | null): void {
+    if (since === null)
+      this.db.prepare('DELETE FROM bot_checks WHERE player = ?').run(uid);
+    else
+      this.db
+        .prepare(
+          `INSERT INTO bot_checks (player, since) VALUES (?, ?)
+           ON CONFLICT(player) DO UPDATE SET since = excluded.since`,
+        )
+        .run(uid, since);
+  }
+
+  gameActions(actor: string, from: number): { time: number; action: string }[] {
+    return this.db
+      .prepare(
+        `SELECT time, action FROM audit_events
+         WHERE actor = ? AND category = 'game' AND time >= ?
+         ORDER BY time, id`,
+      )
+      .all(actor, from) as { time: number; action: string }[];
+  }
 }
 
 /** The `admin` repository on `Ctx`. */
@@ -208,9 +244,15 @@ export const repository = {
   make: (db: Db): Admin => new SqliteAdmin(db),
 } as const satisfies RepositoryModule;
 
-/** The settings, the audit, the suspensions and the activity are not bound to a round. */
+/** The settings, the audit, the suspensions, the activity and the checks of #181 are not bound to a round. */
 export const roundReset = [
   {
-    keeps: ['settings', 'audit_events', 'suspensions', 'player_activity'],
+    keeps: [
+      'settings',
+      'audit_events',
+      'suspensions',
+      'player_activity',
+      'bot_checks',
+    ],
   },
 ] satisfies readonly RoundReset[];
