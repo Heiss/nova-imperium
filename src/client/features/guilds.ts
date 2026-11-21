@@ -3,8 +3,9 @@
 // of a guild; the forms of a guild, of a transfer and of a dissolution. The
 // chat and the buddy list of the members are in features/social.ts, the
 // markup in views/guilds.ts.
-import { $, byId, keepChatScroll, setById, val } from '../dom.ts';
+import { $, byId, keepChatScroll, val } from '../dom.ts';
 import { sameSignIn } from '../logic/guild-chat.ts';
+import { guildForm } from '../logic/guild-form.svelte.ts';
 import { client } from '../logic/state.svelte.ts';
 import {
   adminChatDialog,
@@ -37,7 +38,7 @@ async function openAdminChat(
     );
     keepChatScroll($('#modalIn')!, true)();
   } catch (error) {
-    toast((error as Error).message, true);
+    toast((error as Error).message, error as Error);
   }
 }
 
@@ -78,7 +79,7 @@ const rankActs = (ctx: ClientCtx): Record<string, Handler> => {
       act('assignGuildRank', { uid: d.uid, rank: byId(`rank_of_${d.uid}`) }),
     rankCreate: async () => {
       if (await act('createGuildRank', { name: byId('rank_new') }))
-        setById('rank_new', '');
+        guildForm.rankNew = '';
     },
     rankRename: (d) =>
       act('renameGuildRank', {

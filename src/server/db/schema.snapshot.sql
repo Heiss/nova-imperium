@@ -39,6 +39,12 @@ CREATE INDEX invitations_email ON invitations(email);
 
 CREATE INDEX last_targets_user ON last_targets (user_id, at DESC);
 
+CREATE INDEX message_blocks_blocked ON message_blocks (blocked);
+
+CREATE INDEX message_reports_recipient ON message_reports (recipient);
+
+CREATE INDEX message_reports_sender ON message_reports (sender);
+
 CREATE INDEX passkey_challenges_expiry ON passkey_challenges(expires);
 
 CREATE INDEX passkeys_owner ON passkeys(user_id);
@@ -48,6 +54,13 @@ CREATE INDEX planets_owner ON planets(owner, created);
 CREATE INDEX playtime_events_round ON playtime_events (round, user_id);
 
 CREATE INDEX playtime_events_user_start ON playtime_events (user_id, start_ms);
+
+CREATE INDEX private_messages_pair
+      ON private_messages (min(sender, recipient), max(sender, recipient), id);
+
+CREATE INDEX private_messages_recipient ON private_messages (recipient);
+
+CREATE INDEX private_messages_sender ON private_messages (sender, time);
 
 CREATE INDEX push_due ON push_jobs(retry_at);
 
@@ -261,6 +274,28 @@ CREATE TABLE market_usage (
       PRIMARY KEY (user_id, day)
     ) STRICT;
 
+CREATE TABLE message_blocks (
+      blocker TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      blocked TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      PRIMARY KEY (blocker, blocked),
+      CHECK (blocker != blocked)
+    ) STRICT;
+
+CREATE TABLE message_options (
+      user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      friends_only INTEGER NOT NULL CHECK (friends_only IN (0, 1))
+    ) STRICT;
+
+CREATE TABLE message_reports (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      message INTEGER NOT NULL UNIQUE,
+      sender TEXT REFERENCES users(id) ON DELETE SET NULL,
+      recipient TEXT REFERENCES users(id) ON DELETE SET NULL,
+      sent INTEGER NOT NULL,
+      reported INTEGER NOT NULL,
+      text TEXT NOT NULL CHECK (length(text) BETWEEN 1 AND 1000)
+    ) STRICT;
+
 CREATE TABLE passkey_challenges (
     id TEXT PRIMARY KEY,
     challenge TEXT NOT NULL,
@@ -354,6 +389,18 @@ CREATE TABLE position_locks (
       p INTEGER NOT NULL,
       until INTEGER NOT NULL,
       PRIMARY KEY (g, s, p)
+    ) STRICT;
+
+CREATE TABLE private_messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      sender TEXT REFERENCES users(id) ON DELETE SET NULL,
+      recipient TEXT REFERENCES users(id) ON DELETE SET NULL,
+      time INTEGER NOT NULL,
+      text TEXT NOT NULL CHECK (length(text) BETWEEN 1 AND 1000),
+      read INTEGER NOT NULL DEFAULT 0 CHECK (read IN (0, 1)),
+      hidden_sender INTEGER NOT NULL DEFAULT 0 CHECK (hidden_sender IN (0, 1)),
+      hidden_recipient INTEGER NOT NULL DEFAULT 0 CHECK (hidden_recipient IN (0, 1)),
+      CHECK (sender != recipient)
     ) STRICT;
 
 CREATE TABLE push_jobs (
@@ -492,6 +539,11 @@ CREATE TABLE users (
   , explain_mode TEXT NOT NULL DEFAULT 'icon'
     CHECK (explain_mode IN ('always', 'icon', 'hidden')), rq_planet TEXT, main_planet TEXT, main_switched INTEGER, active_at INTEGER, vacation INTEGER, level_table TEXT NOT NULL DEFAULT 'icon'
       CHECK (level_table IN ('always', 'icon', 'hidden'))) STRICT;
+
+CREATE TRIGGER private_messages_orphans AFTER DELETE ON users
+    BEGIN
+      DELETE FROM private_messages WHERE sender IS NULL AND recipient IS NULL;
+    END;
 
 CREATE TRIGGER round_participants_deleted_account BEFORE DELETE ON users
     BEGIN

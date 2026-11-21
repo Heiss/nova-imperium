@@ -2,6 +2,8 @@
 // by name, and joining by „Beitreten“ or by the choice „Verband“ of the fleet
 // form, which fills in the target and the mission of the union.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { fleetForm } from '../logic/fleet-form.svelte.ts';
+import { forgetForms } from '../logic/form-state.svelte.ts';
 import { client } from '../logic/state.svelte.ts';
 import type { GameState, UnionState } from '../logic/types.ts';
 import type { V } from '../views/common.ts';
@@ -20,14 +22,14 @@ const union = (over: Partial<UnionState> = {}): UnionState => ({
   ...over,
 });
 
-let fields: Record<string, { value: string }>;
 let listeners: Record<string, (e: unknown) => void>;
 const input = vi.fn();
 
 beforeEach(() => {
   listeners = {};
   input.mockClear();
-  fields = { un_name_f1: { value: '  Bert ' } };
+  // The name typed into the field of the union f1 (#332: the state of the fleet form).
+  fleetForm.invite.f1 = '  Bert ';
   vi.stubGlobal(
     'Event',
     class {
@@ -39,7 +41,7 @@ beforeEach(() => {
   );
   vi.stubGlobal('document', {
     getElementById: (id: string) =>
-      id === 't_g' ? { dispatchEvent: input } : (fields[id] ?? null),
+      id === 't_g' ? { dispatchEvent: input } : null,
     addEventListener: (type: string, fn: (e: unknown) => void) => {
       listeners[type] = fn;
     },
@@ -61,11 +63,12 @@ beforeEach(() => {
 });
 afterEach(() => {
   vi.unstubAllGlobals();
+  forgetForms();
   client.view = null;
 });
 
 const acts = (ctx = fakeCtx()): Record<string, Handler> => {
-  clientFeature.listen!(ctx);
+  clientFeature.listen!();
   return clientFeature.acts(ctx);
 };
 
@@ -82,13 +85,13 @@ describe('opening and inviting', () => {
       id: 'f1',
       name: 'Bert',
     });
-    expect(fields.un_name_f1!.value).toBe('');
+    expect(fleetForm.invite.f1).toBe('');
   });
   it('keeps the name when the invitation was refused, and sends nothing without a name', async () => {
     const ctx = fakeCtx({ act: vi.fn(async () => false) });
     await acts(ctx).inviteUnion!({ id: 'f1' });
-    expect(fields.un_name_f1!.value).toBe('  Bert ');
-    fields.un_name_f1!.value = '   ';
+    expect(fleetForm.invite.f1).toBe('  Bert ');
+    fleetForm.invite.f1 = '   ';
     await acts(ctx).inviteUnion!({ id: 'f1' });
     expect(ctx.act).toHaveBeenCalledTimes(1);
   });
@@ -103,41 +106,38 @@ describe('joining', () => {
       ft: { g: 1, s: 4, p: 8, kind: 'planet' },
       fm: 'attack',
     });
-    expect(ctx.setInput).toHaveBeenCalledTimes(6);
-    for (const [sel, v] of [
-      ['#t_u', 'f1'],
-      ['#t_g', 1],
-      ['#t_s', 4],
-      ['#t_p', 8],
-      ['#t_k', 'planet'],
-      ['#t_m', 'attack'],
-    ] as const)
-      expect(ctx.setInput).toHaveBeenCalledWith(sel, v);
+    expect(fleetForm.to).toEqual({ g: '1', s: '4', p: '8' });
+    expect(fleetForm.kind).toBe('planet');
+    expect(fleetForm.mission).toBe('attack');
+    expect(fleetForm.union).toBe('f1');
+    expect(ctx.setInput).not.toHaveBeenCalled();
     expect(input).toHaveBeenCalledTimes(1);
   });
   it('aims at the moon of a union that flies to a moon', () => {
     const ctx = fakeCtx();
     acts(ctx).joinUnion!({ id: 'f2' });
     expect(client.ui.ft).toEqual({ g: 1, s: 2, p: 3, kind: 'moon' });
-    expect(ctx.setInput).toHaveBeenCalledWith('#t_k', 'moon');
+    expect(fleetForm.kind).toBe('moon');
   });
   it('does the same when the choice of the form changes', () => {
     const ctx = fakeCtx();
     acts(ctx);
     listeners.change!({ target: { id: 't_u', value: 'f1' } });
     expect(client.ui).toMatchObject({ union: 'f1', fm: 'attack' });
-    expect(ctx.setInput).toHaveBeenCalledWith('#t_g', 1);
-    expect(ctx.setInput).toHaveBeenCalledWith('#t_p', 8);
+    expect(fleetForm.to).toEqual({ g: '1', s: '4', p: '8' });
     listeners.change!({ target: { id: 't_u', value: 'f2' } });
     expect(client.ui.union).toBe('f2');
-    expect(ctx.setInput).toHaveBeenCalledWith('#t_k', 'moon');
+    expect(fleetForm.union).toBe('f2');
+    expect(fleetForm.kind).toBe('moon');
   });
   it('forgets the union when „Kein Verband“ is chosen, and ignores every other field', () => {
     const ctx = fakeCtx();
     acts(ctx);
     client.ui.union = 'f1';
+    fleetForm.union = 'f1';
     listeners.change!({ target: { id: 't_u', value: '' } });
     expect(client.ui.union).toBeNull();
+    expect(fleetForm.union).toBe('');
     client.ui.union = 'f1';
     listeners.change!({ target: { id: 't_m', value: 'transport' } });
     expect(client.ui.union).toBe('f1');
@@ -145,10 +145,14 @@ describe('joining', () => {
   });
   it('forgets a union that is not there any more and writes nothing', () => {
     const ctx = fakeCtx();
+    fleetForm.union = 'f1';
     acts(ctx).joinUnion!({ id: 'gone' });
     expect(client.ui.union).toBeNull();
+    expect(fleetForm.union).toBe('');
     expect(client.ui.ft).toBeNull();
     expect(ctx.setInput).not.toHaveBeenCalled();
+    expect(fleetForm.to).toEqual({ g: null, s: null, p: null });
+    expect(fleetForm.kind).toBeNull();
     acts(ctx).joinUnion!({});
     expect(ctx.setInput).not.toHaveBeenCalled();
   });

@@ -1,7 +1,11 @@
+import type { AchievementState } from '../../core/achievements.ts';
 import {
-  ACHIEVEMENTS,
-  type AchievementState,
-} from '../../core/achievements.ts';
+  achievementOf,
+  claimError,
+  type ClaimError,
+  dailyError,
+  type DailyError,
+} from '../../core/reward-checks.ts';
 import type { RoundRules } from '../../core/round.ts';
 import {
   dailyReward,
@@ -155,21 +159,34 @@ function credit(ctx: Ctx, p: Planet, reward: Cost): void {
   ctx.planets.save(p);
 }
 
+/** The refusals of `claimError` (#214). */
+const CLAIM_ERROR: Readonly<Record<ClaimError, string>> = {
+  off: 'Achievements sind in dieser Runde deaktiviert.',
+  unknown: 'Unbekanntes Achievement.',
+  planet: 'Du brauchst einen Planeten.',
+  open: 'Dieses Achievement ist noch offen.',
+};
+
+/** The refusals of `dailyError` (#214). */
+const DAILY_ERROR: Readonly<Record<DailyError, string>> = {
+  off: 'Tagesbelohnungen sind in dieser Runde deaktiviert.',
+  planet: 'Du brauchst einen Planeten.',
+};
+
 const claimAchievement: Handler<'claimAchievement'> = (ctx, u, data) => {
-  if (!roundRules(ctx).achievements)
-    fail('Achievements sind in dieser Runde deaktiviert.');
-  const achievement =
-    ACHIEVEMENTS.find((item) => item.id === data.id) ??
-    fail('Unbekanntes Achievement.');
-  const p = settledPlanet(ctx, u.id) ?? fail('Du brauchst einen Planeten.');
-  const progress = recordProgress(ctx, u, p);
-  if ((progress[achievement.metric] ?? 0) < achievement.target)
-    fail('Dieses Achievement ist noch offen.');
+  // Gathered in the order of the checks: the planet only for a known
+  // achievement in a round with achievements, the progress only with it.
+  const on = roundRules(ctx).achievements;
+  const achievement = on ? achievementOf(data.id) : undefined;
+  const p = achievement ? settledPlanet(ctx, u.id) : null;
+  const progress = p ? recordProgress(ctx, u, p) : {};
+  const error = claimError(on, achievement, p !== null, progress);
+  if (error) fail(CLAIM_ERROR[error]);
   const insert = ctx.db
     .prepare('INSERT OR IGNORE INTO achievement_claims VALUES (?, ?)')
-    .run(u.id, achievement.id);
+    .run(u.id, achievement!.id);
   if (!insert.changes) fail('Diese Belohnung wurde schon abgeholt.');
-  credit(ctx, p, achievement.reward);
+  credit(ctx, p!, achievement!.reward);
   return 'Achievement-Belohnung abgeholt.';
 };
 
@@ -178,9 +195,10 @@ export const claimDailyReward: Handler<'claimDailyReward'> = (live, u) => {
   // midnight does not record one day and credit the next one's reward.
   const at = live.now();
   const ctx: Ctx = { ...live, now: () => at };
-  if (!roundRules(ctx).daily)
-    fail('Tagesbelohnungen sind in dieser Runde deaktiviert.');
-  const p = settledPlanet(ctx, u.id) ?? fail('Du brauchst einen Planeten.');
+  const on = roundRules(ctx).daily;
+  const p = on ? settledPlanet(ctx, u.id) : null;
+  const error = dailyError(on, p !== null);
+  if (error) fail(DAILY_ERROR[error]);
   const day = dayOf(ctx);
   recordDay(ctx, u.id, day);
   const update = ctx.db
@@ -193,7 +211,7 @@ export const claimDailyReward: Handler<'claimDailyReward'> = (live, u) => {
     .run(day, u.id, day, day);
   if (!update.changes) fail('Die heutige Belohnung wurde schon abgeholt.');
   // The streak no longer changes the reward (#220 D3).
-  credit(ctx, p, rewardNow(ctx).reward);
+  credit(ctx, p!, rewardNow(ctx).reward);
   return 'Tägliche Belohnung abgeholt.';
 };
 

@@ -85,6 +85,7 @@ describe('push options in „Hilfe & Optionen“ (#192)', () => {
       'Neue Version',
       'Gildenereignisse',
       'Nachrichten im Gilden-Chat',
+      'Persönliche Nachrichten',
     ]);
   });
 

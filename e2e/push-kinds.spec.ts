@@ -24,6 +24,7 @@ test.describe('push kinds (#192)', () => {
     'Neue Version',
     'Gildenereignisse',
     'Nachrichten im Gilden-Chat',
+    'Persönliche Nachrichten',
   ];
   const kinds = (page: Page): Locator =>
     page.getByRole('group', { name: 'Welche Meldungen per Push kommen' });

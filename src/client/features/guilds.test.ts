@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { forgetForms } from '../logic/form-state.svelte.ts';
+import { guildForm } from '../logic/guild-form.svelte.ts';
 import { client } from '../logic/state.svelte.ts';
 import type { GameState } from '../logic/types.ts';
 import { clientFeature } from './guilds.ts';
@@ -51,6 +53,7 @@ beforeEach(() => {
 });
 afterEach(() => {
   vi.unstubAllGlobals();
+  forgetForms();
   client.game = null;
 });
 
@@ -146,6 +149,7 @@ describe('the handlers of the guilds', () => {
     fields.rank_of_u1 = { value: 'r2' };
     fields.rank_name_r2 = { value: 'Offizier' };
     fields.rank_new = { value: 'Neu' };
+    guildForm.rankNew = 'Neu';
     acts(ctx).guildAssign!({ uid: 'u1' });
     acts(ctx).rankRename!({ rank: 'r2' });
     await acts(ctx).rankCreate!({});
@@ -160,14 +164,17 @@ describe('the handlers of the guilds', () => {
     expect(ctx.act).toHaveBeenNthCalledWith(3, 'createGuildRank', {
       name: 'Neu',
     });
-    expect(fields.rank_new!.value).toBe('');
+    // The field shows the state of the form (#332).
+    expect(guildForm.rankNew).toBe('');
   });
 
   it('keeps the name of a new rank when the server refused it', async () => {
     const ctx = fakeCtx({ act: vi.fn(async () => false) });
     fields.rank_new = { value: 'Neu' };
+    guildForm.rankNew = 'Neu';
     await acts(ctx).rankCreate!({});
     expect(fields.rank_new.value).toBe('Neu');
+    expect(guildForm.rankNew).toBe('Neu');
   });
 
   it('sends the checked rights of the rank, the disabled ones included', () => {
@@ -258,7 +265,10 @@ describe('the chat of a guild for the admin', () => {
       }),
     });
     await open(ctx);
-    expect(ctx.toast).toHaveBeenCalledWith('Kein Zugriff.', true);
+    expect(ctx.toast).toHaveBeenCalledWith(
+      'Kein Zugriff.',
+      expect.objectContaining({ message: 'Kein Zugriff.' }),
+    );
     expect(ctx.modal).not.toHaveBeenCalled();
   });
 });

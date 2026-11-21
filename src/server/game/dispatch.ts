@@ -81,7 +81,8 @@ function run(
   tick(ctx);
   beginCause();
   const u: User = ctx.players.get(uid) ?? fail('Bitte einloggen.');
-  // Nothing but the end and the push settings during the vacation mode (#223).
+  // Nothing but the end, the push settings and the private messages during
+  // the vacation mode (#223; the messages since Q25, Q28, #226).
   if (vacationRefuses(type, u.vacation)) fail(VACATION_REFUSED);
   if (GUILD_ACTIONS.has(type)) requireGuilds(ctx);
   const result = fn(ctx, u, d, event);

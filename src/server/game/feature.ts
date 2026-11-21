@@ -4,6 +4,7 @@
 // them is generated (scripts/gen-features.ts, src/server/features.gen.ts), so
 // dispatch.ts and state.ts name no feature and a new one edits no shared place.
 import type { ActivityLimits } from '../../core/activity.ts';
+import type { PmOpen } from '../../core/private-messages.ts';
 import type { Main } from '../../core/main-planet.ts';
 import type { RoundRules } from '../../core/round.ts';
 import type { Planet } from '../../core/types.ts';
@@ -22,6 +23,8 @@ export interface StateView {
   /** The points of every player. */
   pts: Readonly<Record<string, number>>;
   limits: ActivityLimits;
+  /** The conversation of the private messages the browser has open (Q32), if it names one. */
+  pmOpen?: PmOpen;
 }
 
 /**

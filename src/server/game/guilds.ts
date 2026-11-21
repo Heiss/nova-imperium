@@ -1,4 +1,13 @@
 import MarkdownIt from 'markdown-it';
+import {
+  applyError,
+  createGuildError,
+  leaveError,
+  manageMemberError,
+  reviewError,
+  updateGuildError,
+  type GuildProfile,
+} from '../../core/guild-checks.ts';
 import type { Wire } from '../../core/actions.ts';
 import type { Handler } from './actions.ts';
 import type { Guild, GuildPlayer } from '../db/repos/guilds.ts';
@@ -7,12 +16,13 @@ import { chatState } from './guild-chat.ts';
 import { memberEvent, rankEvent } from './guild-events.ts';
 import {
   actor,
-  below,
-  handOverRank,
+  asRule,
+  GUILD_ERROR,
   memberOf,
-  need,
   placeOf,
+  rankId,
   rankState,
+  refuse,
   type Actor,
 } from './guild-ranks.ts';
 import type { ServerFeature, StatePart } from './feature.ts';
@@ -22,51 +32,62 @@ const markdown = new MarkdownIt({ html: false, linkify: false }).disable(
   'image',
 );
 
-function guild(ctx: Ctx, id: unknown): Guild {
-  return ctx.guilds.get(str(id, 32)) ?? fail('Diese Gilde gibt es nicht.');
+const JOINED = 'Du hast bereits eine Gilde oder eine offene Bewerbung.';
+const NO_GUILD = 'Diese Gilde gibt es nicht.';
+
+/** The refusals of a guild profile (#68), by the codes of `profileError` (#214). */
+const PROFILE_ERROR = {
+  tag: 'Das Kürzel braucht 2 bis 8 Buchstaben oder Ziffern.',
+  name: 'Der Gildenname braucht 3 bis 32 Zeichen.',
+  text: 'Der Gildentext darf höchstens 6.000 Zeichen haben.',
+  taken: 'Das Kürzel oder der Name ist schon vergeben.',
+};
+
+/** The profile as sent: the tag in upper case, all trimmed. */
+function profile(d: Wire<'createGuild' | 'updateGuild'>): GuildProfile {
+  return {
+    tag: str(d.tag, 30).toUpperCase(),
+    name: str(d.name, 100),
+    description: String(d.description ?? '').trim(),
+  };
 }
 
-function profile(
-  ctx: Ctx,
-  d: Wire<'createGuild' | 'updateGuild'>,
-  except = '',
-) {
-  const tag = str(d.tag, 30).toUpperCase();
-  const name = str(d.name, 100);
-  const description = String(d.description ?? '').trim();
-  if (!/^[A-Z0-9]{2,8}$/.test(tag))
-    fail('Das Kürzel braucht 2 bis 8 Buchstaben oder Ziffern.');
-  if (name.length < 3 || name.length > 32)
-    fail('Der Gildenname braucht 3 bis 32 Zeichen.');
-  if (description.length > 6000)
-    fail('Der Gildentext darf höchstens 6.000 Zeichen haben.');
-  if (ctx.guilds.taken(except, tag, name))
-    fail('Das Kürzel oder der Name ist schon vergeben.');
-  return { tag, name, description };
-}
+/** Whether a guild other than `except` has the tag or the name. */
+const taken = (ctx: Ctx, p: GuildProfile, except = ''): boolean =>
+  ctx.guilds.taken(except, p.tag, p.name);
+
+/** Whether the player is in a guild or has an open application. */
+const joined = (ctx: Ctx, uid: string): boolean => !!ctx.guilds.membership(uid);
 
 const createGuild: Handler<'createGuild'> = (ctx, user, d) => {
-  if (ctx.guilds.membership(user.id))
-    fail('Du hast bereits eine Gilde oder eine offene Bewerbung.');
-  const { tag, name, description } = profile(ctx, d);
+  const p = profile(d);
+  refuse(createGuildError(joined(ctx, user.id), p, taken(ctx, p)), {
+    member: JOINED,
+    ...PROFILE_ERROR,
+  });
   const id = ctx.id();
-  ctx.guilds.create(id, tag, name, description, user.id);
+  ctx.guilds.create(id, p.tag, p.name, p.description, user.id);
   return 'Gilde gegründet.';
 };
 
 const updateGuild: Handler<'updateGuild'> = (ctx, user, d) => {
   const a = actor(ctx, user.id);
-  need(a, 'profile');
-  const { tag, name, description } = profile(ctx, d, a.guild.id);
-  ctx.guilds.update(a.guild.id, tag, name, description);
+  const p = profile(d);
+  refuse(updateGuildError(asRule(a), p, taken(ctx, p, a.guild.id)), {
+    right: GUILD_ERROR.right,
+    ...PROFILE_ERROR,
+  });
+  ctx.guilds.update(a.guild.id, p.tag, p.name, p.description);
   return 'Gildenprofil gespeichert.';
 };
 
 const applyToGuild: Handler<'applyToGuild'> = (ctx, user, d) => {
-  if (ctx.guilds.membership(user.id))
-    fail('Du hast bereits eine Gilde oder eine offene Bewerbung.');
-  const target = guild(ctx, d.id);
-  ctx.guilds.apply(user.id, target.id);
+  const target = ctx.guilds.get(str(d.id, 32));
+  refuse(applyError(joined(ctx, user.id), !!target), {
+    member: JOINED,
+    guild: NO_GUILD,
+  });
+  ctx.guilds.apply(user.id, target!.id);
   return 'Bewerbung gesendet.';
 };
 
@@ -76,52 +97,67 @@ const reviewGuildApplication: Handler<'reviewGuildApplication'> = (
   d,
 ) => {
   const a = actor(ctx, user.id);
-  need(a, 'applications');
   const applicant = ctx.guilds.membership(str(d.uid, 40));
-  if (applicant?.guild_id !== a.guild.id || applicant.status !== 'pending')
-    return fail('Diese Bewerbung gibt es nicht.');
+  const open =
+    applicant?.guild_id === a.guild.id && applicant.status === 'pending';
+  refuse(reviewError(asRule(a), open), {
+    right: GUILD_ERROR.right,
+    application: 'Diese Bewerbung gibt es nicht.',
+  });
+  const uid = applicant!.user_id;
   if (d.accept === true) {
-    ctx.guilds.accept(applicant.user_id);
-    memberEvent(ctx, a.guild.id, 'join', applicant.user_id, user.id);
+    ctx.guilds.accept(uid);
+    memberEvent(ctx, a.guild.id, 'join', uid, user.id);
     return 'Bewerbung angenommen.';
   }
-  ctx.guilds.removeMember(applicant.user_id);
+  ctx.guilds.removeMember(uid);
   return 'Bewerbung abgelehnt.';
 };
 
 const leaveGuild: Handler<'leaveGuild'> = (ctx, user) => {
-  const member =
-    ctx.guilds.membership(user.id) ?? fail('Du bist in keiner Gilde.');
-  const own = guild(ctx, member.guild_id);
-  if (own.founder === user.id) {
-    if (ctx.guilds.hasOtherMembers(own.id, user.id))
-      fail('Übergib zuerst die Gildenleitung.');
-    ctx.guilds.delete(own.id);
+  const member = ctx.guilds.membership(user.id);
+  const own = member && (ctx.guilds.get(member.guild_id) ?? fail(NO_GUILD));
+  const lead = own?.founder === user.id;
+  const others = lead && ctx.guilds.hasOtherMembers(own!.id, user.id);
+  refuse(leaveError(!!member, lead, others), {
+    none: 'Du bist in keiner Gilde.',
+    handover: 'Übergib zuerst die Gildenleitung.',
+  });
+  if (lead) {
+    ctx.guilds.delete(own!.id);
     return 'Gilde aufgelöst.';
   }
   ctx.guilds.removeMember(user.id);
-  if (member.status === 'pending') return 'Bewerbung zurückgezogen.';
-  memberEvent(ctx, own.id, 'leave', user.id);
+  if (member!.status === 'pending') return 'Bewerbung zurückgezogen.';
+  memberEvent(ctx, own!.id, 'leave', user.id);
   return 'Gilde verlassen.';
 };
 
 const manageGuildMember: Handler<'manageGuildMember'> = (ctx, user, d) => {
   const a = actor(ctx, user.id);
   const target = memberOf(ctx, a, d.uid);
-  if (target.user_id === user.id)
-    return fail('Dieses Gildenmitglied gibt es nicht.');
-  if (d.transfer === true) {
-    const own = handOverRank(a, d.rank);
-    ctx.guilds.transfer(a.guild.id, target.user_id, own.id);
+  const transfer = d.transfer === true;
+  const rank = rankId(d.rank);
+  const error = manageMemberError(
+    asRule(a),
+    target && { place: placeOf(a, target), self: target.user_id === user.id },
+    transfer ? { ranks: a.ranks, rank } : null,
+  );
+  refuse(error, {
+    ...GUILD_ERROR,
+    leitung: 'Wähle für dich einen Rang unter der Leitung.',
+  });
+  const uid = target!.user_id;
+  if (transfer) {
+    const own = a.ranks.find((r) => r.id === rank)!;
+    ctx.guilds.transfer(a.guild.id, uid, own.id);
     // Two new ranks (owner, 2026-11-15): the new Leitung and the old one.
-    rankEvent(ctx, a.guild.id, target.user_id, a.ranks[0]!.name, user.id);
+    rankEvent(ctx, a.guild.id, uid, a.ranks[0]!.name, user.id);
     rankEvent(ctx, a.guild.id, user.id, own.name, user.id);
     return 'Gildenleitung übergeben.';
   }
-  need(a, 'remove');
-  below(a, placeOf(a, target));
-  ctx.guilds.removeMember(target.user_id);
-  memberEvent(ctx, a.guild.id, 'remove', target.user_id, user.id);
+  ctx.guilds.removeMember(uid);
+  memberEvent(ctx, a.guild.id, 'remove', uid, user.id);
   return 'Mitglied entfernt.';
 };
 

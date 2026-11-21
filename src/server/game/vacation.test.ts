@@ -859,8 +859,23 @@ describe('the Warp-Tor, giving up a colony and the Auspex-Phalanx (#230, #224, #
     const ctx = world();
     start(ctx);
     // The allow list of the decision (owner, 2026-11-18): the end of the
-    // vacation and the push settings. The guild actions are refused too.
-    const allowed = new Set(['endVacation', 'pushOptions']);
+    // vacation and the push settings, and the private messages go on as
+    // normal (owner, 2026-11-21, Q25). The guild actions are refused too.
+    const allowed = new Set([
+      'endVacation',
+      'pushOptions',
+      'sendPrivateMessage',
+      'readPrivateMessages',
+      'deletePrivateMessage',
+      'deletePrivateConversation',
+      'reportPrivateMessage',
+      'blockPlayer',
+      'unblockPlayer',
+      'privateMessageOptions',
+      'olderPrivateMessages',
+      'openPrivateConversation',
+      'sentPrivateMessages',
+    ]);
     const refused = Object.keys(ACTIONS).filter((type) => !allowed.has(type));
     expect(refused).toEqual(
       expect.arrayContaining(['jump', 'abandon', 'sendGuildChat', 'options']),
@@ -1110,8 +1125,58 @@ describe('the state', () => {
       galaxy: [],
       debris: [],
       admin: null,
+      // The lock screen offers „Nachrichten“ (owner, 2026-11-21, Q28).
+      privateMessages: { friendsOnly: false, blocked: [], conversations: [] },
     });
     expect(shown.round.vacationHours).toBe(48);
+  });
+
+  it('carries the own private messages on the lock screen and nothing of the conversations of others (owner, 2026-11-21, Q28)', () => {
+    const ctx = world();
+    const say = (from: string, to: string, text: string) => {
+      ctx.clock.t += 3000;
+      act(ctx, 'sendPrivateMessage', { name: to, text }, `u_${from}`);
+    };
+    say('Bert', 'Carl', 'GEHEIM-ZWISCHEN-BERT-UND-CARL');
+    start(ctx);
+    say('Bert', 'Anna', 'Hallo im Urlaub');
+    const shown = stateFor(ctx, anna(ctx)) as {
+      privateMessages: {
+        conversations: { with: string; unread: number; last: { id: number } }[];
+      };
+      reports: unknown[];
+    };
+    expect(shown.privateMessages.conversations).toMatchObject([
+      { with: 'Bert', unread: 1, more: false },
+    ]);
+    expect(JSON.stringify(shown)).not.toContain('GEHEIM');
+    expect(shown.reports).toEqual([]);
+    // The player replies, reads and pages in the vacation; the reports stay locked.
+    const id = shown.privateMessages.conversations[0]!.last;
+    act(ctx, 'readPrivateMessages', { name: 'Bert' });
+    expect(act(ctx, 'olderPrivateMessages', { before: id.id })).toMatchObject({
+      data: { older: [], more: false },
+    });
+    // Both loads work on the lock screen (Q34): a conversation, and „Gesendet“.
+    expect(act(ctx, 'openPrivateConversation', { name: 'Bert' })).toMatchObject(
+      { data: { messages: [{ text: 'Hallo im Urlaub' }], more: false } },
+    );
+    expect(act(ctx, 'sentPrivateMessages', {})).toMatchObject({
+      data: { sent: [], more: false },
+    });
+    say('Anna', 'Bert', 'Antwort aus dem Urlaub');
+    expect(act(ctx, 'sentPrivateMessages', {})).toMatchObject({
+      data: { sent: [{ to: 'Bert', text: 'Antwort aus dem Urlaub' }] },
+    });
+    // The lock state delivers the newer messages of the open conversation too.
+    const open = (
+      stateFor(ctx, anna(ctx), undefined, { name: 'Bert', after: id.id }) as {
+        privateMessages: { open?: { with: string; messages: unknown[] } };
+      }
+    ).privateMessages.open;
+    expect(open).toMatchObject({ with: 'Bert', messages: [{ mine: true }] });
+    expect(() => act(ctx, 'read')).toThrow(VACATION_REFUSED);
+    expect(anna(ctx).vacation).not.toBeNull();
   });
 
   it('lists every player exactly: `vacation: true` only for the ones in vacation mode, with their scores (#78, #223)', () => {
@@ -1204,6 +1269,7 @@ describe('the state', () => {
         galaxy: [],
         debris: [],
         admin: null,
+        privateMessages: { friendsOnly: false, blocked: [], conversations: [] },
       });
     // A second device selects a planet, or sends anything: the same lock screen.
     for (const selected of ['p1_1_5', 'm1_1_5', 5, {}, null])

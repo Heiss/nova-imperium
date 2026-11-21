@@ -20,6 +20,7 @@ import {
   openAdminTab,
   panels,
   refreshInvitations,
+  refreshMessageReports,
   setMoon,
   showErrors,
   showEvents,
@@ -496,5 +497,81 @@ describe('the arrow keys on the tabs', () => {
     expect(press('ArrowRight', false).preventDefault).not.toHaveBeenCalled();
     expect(panels.tab).toBe('events');
     expect(focused).toEqual([]);
+  });
+});
+
+describe('the reported private messages (#226)', () => {
+  beforeEach(async () => {
+    enterAdminPanels('u_a', 1.7e12);
+    await settle();
+    calls = [];
+  });
+
+  it('are read when the tab opens, each opening one request, the refusal standing in the place of the list', async () => {
+    answers['message-reports'] = () => ({ reports: [] });
+    openAdminTab('reports');
+    await settle();
+    expect(urls()).toEqual(['message-reports']);
+    expect(panels.messageReports).toEqual({ list: [] });
+    openAdminTab('reports');
+    await settle();
+    expect(urls()).toEqual(['message-reports', 'message-reports']);
+    answers['message-reports'] = () => new Error('Nein.');
+    await refreshMessageReports();
+    expect(panels.messageReports).toEqual({ error: 'Nein.' });
+  });
+
+  it('show only the newest answer', async () => {
+    const waiting: ((answer: Record<string, unknown>) => void)[] = [];
+    api.mockImplementationOnce(
+      () => new Promise((resolve) => waiting.push(resolve)),
+    );
+    const old = refreshMessageReports();
+    answers['message-reports'] = () => ({ reports: [] });
+    await refreshMessageReports();
+    waiting[0]!({ reports: [{ id: 9 }] });
+    await old;
+    expect(panels.messageReports).toEqual({ list: [] });
+  });
+
+  it('are dropped for another admin', () => {
+    panels.messageReports = { list: [] };
+    enterAdminPanels('u_b', 1.7e12);
+    expect(panels.messageReports).toBeNull();
+  });
+
+  it('show no refusal that arrives after a newer answer', async () => {
+    const waiting: ((error: Error) => void)[] = [];
+    api.mockImplementationOnce(
+      () => new Promise((_, reject) => waiting.push(reject)),
+    );
+    const old = refreshMessageReports();
+    answers['message-reports'] = () => ({ reports: [] });
+    await refreshMessageReports();
+    waiting[0]!(new Error('Zu spät.'));
+    await old;
+    expect(panels.messageReports).toEqual({ list: [] });
+  });
+
+  it('are not read without an admin', async () => {
+    forgetAdminPanel();
+    await refreshMessageReports();
+    expect(calls).toEqual([]);
+    expect(panels.messageReports).toBeNull();
+  });
+
+  it('drop the late answer for the admin before, after the new admin opened them too', async () => {
+    const waiting: ((answer: Record<string, unknown>) => void)[] = [];
+    api.mockImplementationOnce(
+      () => new Promise((resolve) => waiting.push(resolve)),
+    );
+    const old = refreshMessageReports();
+    enterAdminPanels('u_b', 1.7e12);
+    await settle();
+    answers['message-reports'] = () => ({ reports: [] });
+    await refreshMessageReports();
+    waiting[0]!({ reports: [{ id: 9 }] });
+    await old;
+    expect(panels.messageReports).toEqual({ list: [] });
   });
 });

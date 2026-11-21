@@ -37,6 +37,8 @@ export const ADMIN_TABS = {
   players: 'Spieler',
   orders: 'Aufträge',
   errors: 'Fehler',
+  // [E] the name of the tab (owner, 2026-11-21, Q24).
+  reports: 'Gemeldete Nachrichten',
   invitations: 'Einladungen',
   universe: 'Universum',
   announce: 'Servernachricht',

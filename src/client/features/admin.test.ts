@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { adminForm } from '../logic/admin-form.svelte.ts';
+import { forgetForms } from '../logic/form-state.svelte.ts';
 import { client } from '../logic/state.svelte.ts';
 import type { GameState } from '../logic/types.ts';
 import { clientFeature } from './admin.ts';
@@ -47,6 +49,7 @@ beforeEach(() => {
 });
 afterEach(() => {
   vi.unstubAllGlobals();
+  forgetForms();
   client.game = null;
 });
 
@@ -276,7 +279,10 @@ describe('the tabs and the invitations', () => {
       }),
     });
     await acts(ctx).revoke!({ id: 'i1' });
-    expect(ctx.toast).toHaveBeenCalledWith('Nicht gefunden.', true);
+    expect(ctx.toast).toHaveBeenCalledWith(
+      'Nicht gefunden.',
+      expect.objectContaining({ message: 'Nicht gefunden.' }),
+    );
     expect(panel.refreshInvitations).not.toHaveBeenCalled();
   });
 
@@ -312,7 +318,10 @@ describe('the tabs and the invitations', () => {
       }),
     });
     await clientFeature.forms(ctx).inviteform!();
-    expect(ctx.toast).toHaveBeenCalledWith('Schon eingeladen.', true);
+    expect(ctx.toast).toHaveBeenCalledWith(
+      'Schon eingeladen.',
+      expect.objectContaining({ message: 'Schon eingeladen.' }),
+    );
     expect(client.ui.lastLink).toBeNull();
     expect(ctx.render).not.toHaveBeenCalled();
   });
@@ -325,6 +334,7 @@ describe('the message to all players', () => {
     confirm.mockReset();
     vi.stubGlobal('window', { confirm });
     fields['#announce-text'] = { value: 'Wartung um 22 Uhr' };
+    adminForm.announce = 'Wartung um 22 Uhr';
   });
 
   it('sends nothing unless the admin confirms', async () => {
@@ -341,7 +351,8 @@ describe('the message to all players', () => {
     expect(ctx.api).toHaveBeenCalledWith('/api/admin/announce', {
       message: 'Wartung um 22 Uhr',
     });
-    expect(ctx.setInput).toHaveBeenCalledWith('#announce-text', '');
+    // The field shows the state of the form (#332).
+    expect(adminForm.announce).toBe('');
     expect(ctx.toast).toHaveBeenCalledWith(
       'Servernachricht für 4 Spieler veröffentlicht.',
     );
@@ -355,7 +366,11 @@ describe('the message to all players', () => {
       }),
     });
     await clientFeature.forms(failing).announceform!();
-    expect(failing.toast).toHaveBeenCalledWith('Zu lang.', true);
+    expect(failing.toast).toHaveBeenCalledWith(
+      'Zu lang.',
+      expect.objectContaining({ message: 'Zu lang.' }),
+    );
+    expect(adminForm.announce).toBe('Wartung um 22 Uhr');
     expect(failing.setInput).not.toHaveBeenCalled();
     const again = fakeCtx({ api: vi.fn(async () => ({ recipients: 1 })) });
     await clientFeature.forms(again).announceform!();

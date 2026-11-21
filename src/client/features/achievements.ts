@@ -1,30 +1,35 @@
 // The achievements and the daily reward: the claim buttons, and the filter
-// above the list (search, category, status), which hides what does not match
-// and every group that has nothing left. The markup is in
+// above the list (search, category, status; its state is
+// logic/achievement-filter.svelte.ts, bound by the component), which hides
+// what does not match and every group that has nothing left. The markup is in
 // views/achievements.ts.
-import { val } from '../dom.ts';
+import {
+  achievementFilter,
+  groupHides,
+  hides,
+} from '../logic/achievement-filter.svelte.ts';
 import { toggleFold } from '../logic/achievement-fold.ts';
 import { client } from '../logic/state.svelte.ts';
 import type { ClientFeature } from './contract.ts';
 
 function filterAchievements(): void {
-  const query = val('#achievement_search').trim().toLocaleLowerCase('de');
-  const category = val('#achievement_category');
-  const status = val('#achievement_status');
+  const filter = achievementFilter;
   document
     .querySelectorAll<HTMLElement>('[data-achievement]')
     .forEach((item) => {
-      item.hidden =
-        (!!category && item.dataset.category !== category) ||
-        (!!status && item.dataset.status !== status) ||
-        !item.dataset.search!.includes(query);
+      item.hidden = hides(filter, {
+        category: item.dataset.category,
+        status: item.dataset.status,
+        search: item.dataset.search!,
+      });
     });
   document
     .querySelectorAll<HTMLElement>('[data-achievement-group]')
     .forEach((group) => {
-      group.hidden =
-        !!group.querySelector('[data-achievement]') &&
-        !group.querySelector('[data-achievement]:not([hidden])');
+      group.hidden = groupHides(
+        !!group.querySelector('[data-achievement]'),
+        !!group.querySelector('[data-achievement]:not([hidden])'),
+      );
     });
 }
 

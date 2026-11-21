@@ -20,9 +20,13 @@ import {
   EVENT_KIND,
   type JournalAction,
   type JournalBattle,
+  type JournalClose,
   type JournalFleet,
   type JournalReport,
+  type PlaceChanged,
   type Produced,
+  researchFinished,
+  unitsPaid,
 } from '../../core/round-events.ts';
 import { settle, settleR } from '../../core/settle.ts';
 import type { Fleet, Levels, Planet } from '../../core/types.ts';
@@ -32,17 +36,38 @@ import type { Ctx } from './context.ts';
 import { hiddenTexts, inputOf } from './journal-input.ts';
 import { seatOf, writeRoundEvent } from './round-events.ts';
 
+/** An event of its own that a cause noticed: a research that finished, a place that came or went. */
+interface Fact {
+  kind: string;
+  seat: number | null;
+  at: number;
+  payload: Record<string, unknown>;
+}
+
 /** What the running cause has seen so far; null outside an action or an arrival. */
 interface Cause {
+  /** The logical time of the cause: the clock for an action, the due time of a fleet. */
+  at: number | null;
   prod: Produced[];
   reports: JournalReport[];
+  facts: Fact[];
   battle?: JournalBattle;
 }
 let active: Cause | null = null;
 
-/** Starts collecting what the next action or arrival produces. */
-export function beginCause(): void {
-  active = { prod: [], reports: [] };
+const fresh = (at: number | null): Cause => ({
+  at,
+  prod: [],
+  reports: [],
+  facts: [],
+});
+
+/**
+ * Starts collecting what the next action or arrival produces. `at` is the
+ * logical time of an arrival (its due time); an action has none and runs now.
+ */
+export function beginCause(at: number | null = null): void {
+  active = fresh(at);
 }
 
 /** Forgets the running cause (the transaction rolled back or an error ended it). */
@@ -58,10 +83,16 @@ export function dropCause(): void {
 export const causePending = (): boolean => active !== null;
 
 const take = (): Cause => {
-  const c = active ?? { prod: [], reports: [] };
+  const c = active ?? fresh(null);
   active = null;
   return c;
 };
+
+/** Writes what a cause noticed as events of their own, each with the cause that led to it. */
+function writeFacts(ctx: Ctx, cause: Cause, name: string): void {
+  for (const f of cause.facts)
+    writeRoundEvent(ctx, f.kind, f.seat, { ...f.payload, cause: name }, f.at);
+}
 
 /** The journal must never break the game: a failed write is logged and the game goes on. */
 function safely(write: () => void): void {
@@ -92,7 +123,13 @@ function finishedBuilding(prev: Planet, s: Planet): Produced['built'] {
   const q = prev.bq;
   // The settlement only ever ends a queue: one that is still there has not finished.
   if (!q || s.bq) return undefined;
-  return { key: q.key, lvl: q.lvl, end: q.end, cost: q.cost };
+  return {
+    key: q.key,
+    lvl: q.lvl,
+    end: q.end,
+    cost: q.cost,
+    ...(q.back && { back: q.back }),
+  };
 }
 
 /** What the settlement from the stored state `prev` to the saved time produced, or null when nothing. */
@@ -106,7 +143,10 @@ function producedBy(ctx: Ctx, prev: Planet, next: Planet): Produced | null {
     d: two(s.res.d - prev.res.d),
   };
   const built = finishedBuilding(prev, s);
-  const units = { ...added(prev.ships, s.ships), ...added(prev.def, s.def) };
+  const ships = added(prev.ships, s.ships);
+  const defense = added(prev.def, s.def);
+  const units = { ...ships, ...defense };
+  const paid = unitsPaid(ships, defense);
   const credited = credit.m || credit.c || credit.d;
   if (!credited && !built && !Object.keys(units).length) return null;
   const research = owner ? settleR(owner, prev.t).research : {};
@@ -119,6 +159,7 @@ function producedBy(ctx: Ctx, prev: Planet, next: Planet): Produced | null {
     f: Math.round(prod(prev, u, research).f * 1000) / 1000,
     ...(built && { built }),
     ...(Object.keys(units).length && { units }),
+    ...(paid && { unitsCost: paid }),
   };
 }
 
@@ -132,6 +173,49 @@ function noteSave(ctx: Ctx, prev: Planet | null, next: Planet): void {
   safely(() => {
     const made = producedBy(ctx, prev, next);
     if (made) active!.prod.push(made);
+  });
+}
+
+/** The logical time of the running cause: a fleet's due time, else now. */
+const causeTime = (ctx: Ctx): number => active?.at ?? ctx.now();
+
+/** A colony or a moon that came into being, or one that is gone, joins the running cause. */
+function notePlace(ctx: Ctx, kind: string, place: Planet): void {
+  safely(() => {
+    active!.facts.push({
+      kind,
+      seat: seatOfAccount(ctx, place.owner),
+      at: causeTime(ctx),
+      payload: {
+        place: place.id,
+        kind: place.kind,
+        g: place.g,
+        s: place.s,
+        p: place.p,
+      } satisfies Omit<PlaceChanged, 'cause'>,
+    });
+  });
+}
+
+/**
+ * A new place is a creation unless it is the first place of its owner: that
+ * one is their joining (`participant.joined`, the home planet of a new round).
+ */
+const isCreation = (repos: Repositories, next: Planet): boolean =>
+  next.kind === 'moon' || repos.planets.ofOwner(next.owner).length > 0;
+
+/** A research that finished with a save of the player joins the running cause. */
+function noteResearch(ctx: Ctx, prev: User | null, next: User): void {
+  if (!prev) return;
+  safely(() => {
+    const done = researchFinished(prev, next, causeTime(ctx));
+    if (done)
+      active!.facts.push({
+        kind: EVENT_KIND.research,
+        seat: seatOfAccount(ctx, next.id),
+        at: done.end,
+        payload: done,
+      });
   });
 }
 
@@ -149,7 +233,7 @@ function battleOf(report: Record<string, unknown>): JournalBattle {
     'loot',
     'debris',
   ])
-    if (report[k] !== undefined) out[k] = report[k];
+    out[k] = report[k];
   return out as JournalBattle;
 }
 
@@ -175,19 +259,38 @@ function noteReport(ctx: Ctx, uid: string, report: Record<string, unknown>) {
 export function journaled(
   ctx: Ctx,
   repos: Repositories,
-): Pick<Repositories, 'planets' | 'reports'> {
+): Pick<Repositories, 'planets' | 'reports' | 'players'> {
   // Plain assignments, so a test can still spy on `save` and `add`.
   const planets = Object.create(repos.planets) as Repositories['planets'];
   planets.save = (next: Planet): void => {
-    if (active) noteSave(ctx, repos.planets.get(next.id), next);
+    if (active) {
+      const prev = repos.planets.get(next.id);
+      noteSave(ctx, prev, next);
+      if (!prev && isCreation(repos, next))
+        notePlace(ctx, EVENT_KIND.created, next);
+    }
     repos.planets.save(next);
+  };
+  planets.delete = (id: string): void => {
+    const prev = active ? repos.planets.get(id) : null;
+    if (prev) {
+      // What the place produced up to its end still counts.
+      noteSave(ctx, prev, { ...prev, t: causeTime(ctx) });
+      notePlace(ctx, EVENT_KIND.removed, prev);
+    }
+    repos.planets.delete(id);
+  };
+  const players = Object.create(repos.players) as Repositories['players'];
+  players.save = (next: User): void => {
+    if (active) noteResearch(ctx, repos.players.get(next.id), next);
+    repos.players.save(next);
   };
   const reports = Object.create(repos.reports) as Repositories['reports'];
   reports.add = (uid, report, keep): void => {
     repos.reports.add(uid, report, keep);
     noteReport(ctx, uid, report);
   };
-  return { planets, reports };
+  return { planets, reports, players };
 }
 
 /**
@@ -229,6 +332,7 @@ export function journalAction(
       ...(cause.reports.length && { reports: cause.reports }),
     } satisfies JournalAction),
   );
+  safely(() => writeFacts(ctx, cause, type));
 }
 
 /**
@@ -310,6 +414,7 @@ export function journalFleet(
         ships: before.ships,
         cargo: before.cargo,
         fate: fateOf(ctx, f.id),
+        ...(f.gift && { gift: true as const }),
         ...(cause.battle && { battle: cause.battle }),
         ...(cause.prod.length && { prod: cause.prod }),
         ...(cause.reports.length && { reports: cause.reports }),
@@ -317,4 +422,47 @@ export function journalFleet(
       at,
     ),
   );
+  safely(() => writeFacts(ctx, cause, kind.slice('journal.'.length)));
+}
+
+/**
+ * Settles every place and every finished research up to the cutoff of a
+ * closing round and writes what that produced as `journal.close` (version 2).
+ * Without it the span from the last save of a place to the cutoff would be
+ * missing from the journal. The settled state is the one the game reads at
+ * that time anyway (the same pure function), so nothing changes in the game.
+ * It is written even when it produced nothing: it marks a journal that was
+ * closed with its last spans. The cause that is collecting (the action that
+ * closes) is kept as it was.
+ */
+export function journalClose(ctx: Ctx, cutoff: number): void {
+  const outer = active;
+  active = fresh(cutoff);
+  safely(() => {
+    const u = ctx.admin.universe();
+    for (const place of ctx.planets.all())
+      ctx.planets.save(settle(place, cutoff, u, ctx.players.get(place.owner)));
+    for (const player of ctx.players.all()) {
+      if (!player.rq || player.rq.end > cutoff) continue;
+      const r = settleR(player, cutoff);
+      player.research = r.research;
+      player.rq = r.rq;
+      ctx.players.save(player);
+    }
+  });
+  const cause = take();
+  active = outer;
+  safely(() => {
+    writeRoundEvent(
+      ctx,
+      EVENT_KIND.close,
+      null,
+      {
+        cause: 'close',
+        ...(cause.prod.length && { prod: cause.prod }),
+      } satisfies JournalClose,
+      cutoff,
+    );
+    writeFacts(ctx, cause, 'close');
+  });
 }

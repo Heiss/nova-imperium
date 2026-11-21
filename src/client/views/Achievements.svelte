@@ -2,9 +2,11 @@
   // „Achievements“ and, in a round with the daily reward only,
   // „Belohnungen“ (#118, bundle 5; okf/architecture/patterns.md, section 9),
   // from achievementsPage() of logic/achievements.ts: the daily reward, the
-  // filter and the groups. The filter, the buttons and the ids belong to
-  // features/achievements.ts, the attributes `data-later`, `data-fold` and
+  // filter and the groups. The filter keeps its fields in
+  // logic/achievement-filter.svelte.ts (#332); the filtering, the buttons and
+  // the ids belong to features/achievements.ts, the attributes `data-later`, `data-fold` and
   // `data-all` to the phone layout of style.css (#189).
+  import { achievementFilter } from '../logic/achievement-filter.svelte.ts';
   import type { AchievementsPage } from '../logic/achievements.ts';
 
   let { page }: { page: AchievementsPage } = $props();
@@ -33,16 +35,23 @@
     <div class="bd">
       <div class="flex">
         <label for="achievement_search">Suchen</label>
-        <input id="achievement_search" type="search" />
+        <input
+          id="achievement_search"
+          type="search"
+          bind:value={achievementFilter.search}
+        />
         <label for="achievement_category">Kategorie</label>
-        <select id="achievement_category">
+        <select
+          id="achievement_category"
+          bind:value={achievementFilter.category}
+        >
           <option value="">Alle</option>
           {#each page.list.filter.categories as choice (choice.key)}
             <option value={choice.key}>{choice.label}</option>
           {/each}
         </select>
         <label for="achievement_status">Status</label>
-        <select id="achievement_status">
+        <select id="achievement_status" bind:value={achievementFilter.status}>
           <option value="">Alle</option>
           {#each page.list.filter.statuses as choice (choice.key)}
             <option value={choice.key}>{choice.label}</option>

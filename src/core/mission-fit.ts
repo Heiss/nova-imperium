@@ -28,13 +28,28 @@ export type FitTarget = Pick<
  */
 export function missionsFor(fleet: FitFleet, target: FitTarget): Mission[] {
   if (target.planet?.id === fleet.from) return [];
-  // The browser knows neither the protection nor the vacation of another player.
-  const known: SendTarget = {
-    ...target,
-    protects: () => false,
-    vacation: () => false,
-  };
+  const known = knownTarget(target);
   return FLEET_MISSIONS.filter(
     (m) => fitError(missionRules(m)!, fleet, known) === undefined,
   );
 }
+
+/** The browser knows neither the protection nor the vacation of another player. */
+const knownTarget = (target: FitTarget): SendTarget => ({
+  ...target,
+  protects: () => false,
+  vacation: () => false,
+});
+
+/**
+ * Whether a button for the mission at the target is offered (#95, the
+ * Sternenkarte): the target fits (`missionsFor`), as in the list of the fleet
+ * form. The ships are not asked (owner, 2026-11-21): the Mondbruch shows at
+ * every foreign moon, and the fleet form refuses a send without a
+ * Weltenbrecher.
+ */
+export const canOffer = (
+  mission: Mission,
+  fleet: FitFleet,
+  target: FitTarget,
+): boolean => missionsFor(fleet, target).includes(mission);

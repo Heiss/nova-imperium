@@ -1,15 +1,17 @@
 // What the views show of holding (#55): the row „Haltezeit“ of the fleet
 // form, and every fleet that held as a defender of its own in the battle
 // report.
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import type { RoundRules } from '../../core/round.ts';
 import { text } from '../../core/text.ts';
 import { DEFAULT_UNIVERSE, UNIVERSE_SPECS } from '../../core/universe.ts';
-import { roundDefaults } from '../../test/fixtures.ts';
+import { planet, roundDefaults, U } from '../../test/fixtures.ts';
 import { messagesView as messages } from '../../test/messages-view.ts';
-import type { Report } from '../logic/types.ts';
+import type { GameState, Report } from '../logic/types.ts';
 import type { V } from './common.ts';
-import { holdRow } from '../logic/fleet-time.ts';
+import { fleetView } from '../../test/fleet-view.ts';
+import { fleetForm } from '../logic/fleet-form.svelte.ts';
+import { forgetForms } from '../logic/form-state.svelte.ts';
 import {
   adminMarkup as admin,
   roundDialogMarkup as roundDialog,
@@ -105,18 +107,54 @@ describe('held fleets in the spy report in the dialog „Neue Runde“ and the u
 });
 
 describe('the row „Haltezeit“ of the fleet form', () => {
+  afterEach(forgetForms);
+
   const OPTIONS =
     '<option value="0">0 Stunden</option><option value="1" selected>1 Stunde</option><option value="2">2 Stunden</option><option value="4">4 Stunden</option><option value="8">8 Stunden</option><option value="16">16 Stunden</option><option value="32">32 Stunden</option>';
 
+  /** The row of the fleet form for the mission chosen, aimed at a foreign planet at 1:2:6. */
+  const row = (mission: string): string => {
+    fleetForm.mission = mission;
+    const s = {
+      cfg: U,
+      me: { id: 'u1', research: {} },
+      players: { u1: { name: 'Anna' } },
+      galaxy: [
+        {
+          id: 'p1_2_6',
+          kind: 'planet',
+          name: 'Beta',
+          g: 1,
+          s: 2,
+          p: 6,
+          temp: 1,
+          owner: 'u2',
+        },
+      ],
+      debris: [],
+      fleets: [],
+    } as unknown as GameState;
+    const html = fleetView({
+      s,
+      P: planet({ ships: { lc: 5 } }),
+      R: { research: {}, rq: null },
+      now: 0,
+      ui: { ft: { g: 1, s: 2, p: 6 }, fm: 'attack' } as V['ui'],
+    });
+    return /<tr[^>]*id="t_hold"[^]*?<\/tr>/.exec(html)![0];
+  };
+
   it('offers the classic holding times, 1 hour preselected, for a Halten', () => {
-    expect(holdRow('hold')).toBe(
-      `<tr id="t_hold"><td><label for="t_h">Haltezeit</label></td><td><select id="t_h">${OPTIONS}</select></td></tr>`,
+    expect(normalize(row('hold'))).toBe(
+      normalize(
+        `<tr id="t_hold"><td><label for="t_h">Haltezeit</label></td><td><select id="t_h">${OPTIONS}</select></td></tr>`,
+      ),
     );
   });
 
   it('is hidden for every other mission', () => {
-    for (const m of ['attack', 'transport', 'deploy', 'nope'])
-      expect(holdRow(m), m).toMatch(/^<tr id="t_hold" hidden>/);
+    for (const m of ['attack', 'transport', 'nope'])
+      expect(row(m), m).toMatch(/^<tr id="t_hold" hidden="">/);
   });
 });
 
@@ -205,7 +243,8 @@ describe('a spy report of a planet where fleets hold (#55)', () => {
       { name: 'Anna', ships: { lf: 3, bs: 1 } },
       { name: 'Emil', ships: {} },
     ]);
-    expect(html).toContain(
+    // The component writes `<br/>`; normalize() gives the markup a browser shows.
+    expect(normalize(html)).toContain(
       `<div class="mt"><b>Gehaltene Flotten</b><br>Anna: ${text('lf')!.n}: 3 · ${text('bs')!.n}: 1<br>Emil: <span class="dim">keine</span></div>`,
     );
     expect(html.indexOf('<b>Flotte</b>')).toBeLessThan(

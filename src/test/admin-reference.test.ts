@@ -243,6 +243,7 @@ export const ADMIN_TABS = {
   players: 'Spieler',
   orders: 'Aufträge',
   errors: 'Fehler',
+  reports: 'Gemeldete Nachrichten',
   invitations: 'Einladungen',
   universe: 'Universum',
   announce: 'Servernachricht',
@@ -278,6 +279,7 @@ function resetPanels(tab: AdminTab = 'events'): void {
     errorNotice: null,
     errors: null,
     invitations: null,
+    messageReports: null,
   });
 }
 
@@ -299,6 +301,7 @@ export function admin(v: V): string {
       .join('')}</div>
     <section id="admin-panel-diagnostics" role="tabpanel"${labelled('diagnostics')}${hide('diagnostics')}>${box('Diagnose und Protokoll', `<div id="admin-diagnostics">${diagnosticsPanel(v.s.players, { tab: diagnosticTab(painted) ? painted : ('none' as never) })}</div>`)}</section>
     <section id="admin-panel-errors" role="tabpanel" aria-labelledby="admin-tab-errors"${hide('errors')}>${box('Fehler', `<div id="admin-errors">${errorsPanel(NOW)}</div>`)}</section>
+    <section id="admin-panel-reports" role="tabpanel" aria-labelledby="admin-tab-reports"${hide('reports')}>${box('Gemeldete Nachrichten', '<div id="admin-message-reports"></div>')}</section>
     <section id="admin-panel-invitations" role="tabpanel" aria-labelledby="admin-tab-invitations"${hide('invitations')}>${box('Einladungen', invitations(v.ui))}</section>
     <section id="admin-panel-universe" role="tabpanel" aria-labelledby="admin-tab-universe"${hide('universe')}>
       ${box('Universum', settingsForm(v.s, a))}
@@ -511,8 +514,8 @@ describe('Admin against the view before #118, bundle 7', () => {
       'id="announce-text"',
     ])
       expect(html, mark).toContain(mark);
-    // The fields of the settings and of the invitation link have no field draft
-    // (logic/field-drafts.ts); the page carries no `data-nokeep` any more.
+    // The fields of the settings and of the invitation link show the server, and
+    // the page carries no `data-nokeep` any more.
     expect(html).toMatch(/id="set_speed"/);
     expect(html).toMatch(/id="inv_link"/);
     expect(html).not.toContain('data-nokeep');

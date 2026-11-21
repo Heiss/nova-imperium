@@ -9,6 +9,23 @@ import { maintenanceNotice } from './maintenance.ts';
 /** The error of a 401: the caller stops, the login is on the page. */
 export class AuthError extends Error {}
 
+/**
+ * The refusal or failure of one call, with the id the server gave that call:
+ * „Problem melden“ of its error message names it, whatever other call
+ * answered meanwhile.
+ */
+export class ApiError extends Error {
+  readonly requestId: string | null;
+  constructor(message: string, requestId: string | null) {
+    super(message);
+    this.requestId = requestId;
+  }
+}
+
+/** The id of the call an error comes from, or null when it is none of a call. */
+export const requestIdOf = (error: unknown): string | null =>
+  error instanceof ApiError ? error.requestId : null;
+
 /** The pause before a busy action is sent once more, in milliseconds. */
 export const RETRY_AFTER_MS = 300;
 
@@ -35,11 +52,11 @@ const isRetryableAction = (
 ): boolean =>
   retry && response.status === 503 && body.code === 'ACTION_DB_BUSY';
 
-/** The error of a refusal: the server's words, a server error with its id. */
-function apiError(response: Response, error: unknown): Error {
-  const id =
-    response.status >= 500 ? response.headers.get('x-request-id') : null;
-  return new Error(String(error ?? 'Fehler') + (id ? ` Vorgang: ${id}` : ''));
+/** The error of a refusal: the server's words, a server error with its id in the text. */
+function apiError(response: Response, error: unknown): ApiError {
+  const id = response.headers.get('x-request-id');
+  const shown = response.status >= 500 && id ? ` Vorgang: ${id}` : '';
+  return new ApiError(String(error ?? 'Fehler') + shown, id);
 }
 
 /** The call `api(url, body?)`: a GET, or a POST with a body; the answer is the JSON. */

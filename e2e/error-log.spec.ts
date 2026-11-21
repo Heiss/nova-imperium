@@ -61,6 +61,11 @@ async function reportFromToast(page: Page): Promise<Locator> {
   await expect(toast).toContainText(`Serverfehler. Vorgang: ${REQUEST}`);
   // The failed call went into the error log on its own.
   expect((await reported).status()).toBe(200);
+  // Another call answers before the button is used (the poll of the state):
+  // „Problem melden“ still names the failed call, not the last answer.
+  await page.waitForResponse((r) => r.url().includes('/api/state'), {
+    timeout: 15000,
+  });
   await toast.getByRole('button', { name: 'Problem melden' }).click();
   const dialog = page.locator('#reportform-dialog');
   await expect(dialog).toContainText('Seite: buildings');
@@ -94,7 +99,8 @@ async function downloadZip(page: Page, tab: Locator) {
 test.describe('error log and problem reports (#126)', () => {
   test('a player reports a problem in „Hilfe & Optionen“', async ({ page }) => {
     const w = watch(page);
-    await register(page, uniqueName('Melder'));
+    const name = uniqueName('Melder');
+    await register(page, name);
     await nav(page, 'help');
     const form = page.locator('#reportform');
     await expect(form).toContainText('Seite: help');
@@ -104,6 +110,18 @@ test.describe('error log and problem reports (#126)', () => {
       '1000',
     );
     await sendReport(page, form, 'Die Flotte ist verschwunden.');
+    await expect(form.getByLabel('Was ist passiert?')).toHaveValue('');
+    // The sent text does not come back with the next redraw by the poll (in
+    // 26.11.23 the field drafts put it back after about 4 s): change the state,
+    // wait until the poll drew the field anew, and it is still empty.
+    await page.evaluate(() => {
+      document.querySelector<HTMLElement>('#reportform-text')!.dataset.mark =
+        'old';
+    });
+    seed({ name, res: { m: 0, c: 0, d: 10001 } });
+    await expect(page.locator('#reportform-text[data-mark]')).toHaveCount(0, {
+      timeout: 15000,
+    });
     await expect(form.getByLabel('Was ist passiert?')).toHaveValue('');
     expect(w.problems).toEqual([]);
   });

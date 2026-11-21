@@ -2,13 +2,18 @@
 // in vacation mode sees it after the login instead of the game. It holds the
 // notice, „Urlaubsmodus beenden“ (disabled, with its reason in the text
 // next to it, until the minimum duration is over), „Logout“ and the account
-// options: password, passkeys, push settings and deleting the account. The
+// options: password, passkeys, push settings and deleting the account, and
+// since 2026-11-21 (owner, Q28) „Nachrichten“: the inbox with replying and
+// the sent messages, no reports and nothing else of the interface. The
 // server sends no game to such a player (src/server/game/state.ts).
+import { mount, unmount } from 'svelte';
+import { writable, type Writable } from 'svelte/store';
 import { lockLeft, lockNote, locked } from '../logic/vacation.ts';
 import { client } from '../logic/state.svelte.ts';
 import type { GameState } from '../logic/types.ts';
-import type { Ui } from './common.ts';
+import type { Ui, V } from './common.ts';
 import { clearFrame } from './frame.ts';
+import MessagesTabs from './MessagesTabs.svelte';
 import {
   deleteAccountBox,
   notificationBoxes,
@@ -29,14 +34,48 @@ const endBox = (s: GameState, now: number): string => {
   return `<div class="box"><div class="bd"><p>Dein Konto ist im Urlaubsmodus.</p>${note}<p>${end} <button type="button" data-act="logout">Logout</button></p></div></div>`;
 };
 
+/** The place of „Nachrichten“ on the lock screen (Q28). */
+const MESSAGES_HOST = 'lock-messages';
+
 /** The lock screen at `now`. */
 export const lockHTML = (s: GameState, ui: Ui, now: number): string =>
   `<h2>Urlaubsmodus</h2>
  ${endBox(s, now)}
+ <div id="${MESSAGES_HOST}"></div>
  ${passwordBox(ui)}
  ${passkeysBox()}
  ${notificationBoxes(s, ui)}
  ${deleteAccountBox(s.round)}`;
+
+/** „Nachrichten“ of the lock screen: mounted once, so the open conversation and what is typed stay over a render. */
+let messages: {
+  host: HTMLElement;
+  state: Writable<Pick<V, 's'>>;
+  destroy: () => void;
+} | null = null;
+
+/** Lets go of „Nachrichten“ of the lock screen (the vacation ended, or the player left). */
+export function forgetLock(): void {
+  messages?.destroy();
+  messages = null;
+}
+
+/** Puts „Nachrichten“ in its place on the freshly set lock screen, with the state of this render. */
+function showMessages(view: HTMLElement, s: GameState): void {
+  const place = view.querySelector(`#${MESSAGES_HOST}`)!;
+  if (!messages) {
+    const host = document.createElement('div');
+    host.id = MESSAGES_HOST;
+    const state = writable<Pick<V, 's'>>({ s });
+    const component = mount(MessagesTabs, {
+      target: host,
+      props: { viewState: state, lock: true },
+    });
+    messages = { host, state, destroy: () => void unmount(component) };
+  }
+  messages.state.set({ s });
+  place.replaceWith(messages.host);
+}
 
 /** The clock of the open lock screen. */
 let timer: ReturnType<typeof setInterval> | undefined;
@@ -75,6 +114,7 @@ export function renderGate(
 ): boolean {
   clearInterval(timer);
   if (!locked(s.me)) {
+    forgetLock();
     if (s.planet) return false;
     client.view = null;
     before();
@@ -84,7 +124,11 @@ export function renderGate(
   before();
   client.forget();
   clearFrame();
+  const focus = document.activeElement?.id;
   view.innerHTML = lockHTML(s, ui, client.now());
+  showMessages(view, s);
+  // A reply being typed keeps the focus over the render.
+  if (focus) document.getElementById(focus)?.focus();
   if (lockLeft(s, client.now()) > 0)
     timer = setInterval(() => tick(view, s), 1000);
   return true;

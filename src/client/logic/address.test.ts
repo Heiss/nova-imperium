@@ -47,4 +47,25 @@ describe('the address of the state', () => {
     expect(stateUrl('')).toBe('/api/state');
     expect(stateUrl('p 1&x')).toBe('/api/state?planet=p%201%26x');
   });
+
+  it('names the open conversation of the private messages when there is one (Q32)', () => {
+    expect(stateUrl(undefined, { pm: 'Bert', pmAfter: 12 })).toBe(
+      '/api/state?pm=Bert&pmAfter=12',
+    );
+    expect(stateUrl('p1', { pm: 'Ärger & Co', pmAfter: 0 })).toBe(
+      '/api/state?planet=p1&pm=%C3%84rger%20%26%20Co&pmAfter=0',
+    );
+    // The deleted accounts: the empty name.
+    expect(stateUrl(undefined, { pm: '', pmAfter: 3 })).toBe(
+      '/api/state?pm=&pmAfter=3',
+    );
+    // Half of it names nothing.
+    expect(stateUrl(undefined, { pm: 'Bert' })).toBe('/api/state');
+    expect(stateUrl(undefined, {})).toBe('/api/state');
+  });
+
+  it('names no conversation for a newest message without a name', () => {
+    expect(stateUrl(undefined, { pmAfter: 5 })).toBe('/api/state');
+    expect(stateUrl('p1', { pmAfter: 0 })).toBe('/api/state?planet=p1');
+  });
 });

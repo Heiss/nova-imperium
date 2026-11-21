@@ -66,7 +66,10 @@ describe('choosing a planet', () => {
       }),
     });
     await selectPlanet(ctx, 'p2');
-    expect(ctx.toast).toHaveBeenCalledWith('Nicht dein Planet.', true);
+    expect(ctx.toast).toHaveBeenCalledWith(
+      'Nicht dein Planet.',
+      expect.objectContaining({ message: 'Nicht dein Planet.' }),
+    );
   });
 });
 

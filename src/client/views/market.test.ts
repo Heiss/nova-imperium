@@ -7,8 +7,9 @@ import { DEFAULT_UNIVERSE } from '../../core/universe.ts';
 import { planet, roundDefaults } from '../../test/fixtures.ts';
 import { marketView } from '../../test/market-view.ts';
 import { normalize } from '../../test/markup.ts';
-import { draft, newDraft, preview } from '../logic/market.ts';
-import { previewHTML, targetOptions } from '../logic/market-page.ts';
+import { newDraft, preview } from '../logic/market.ts';
+import { draft } from '../logic/market-form.svelte.ts';
+import { previewHTML } from '../logic/market-page.ts';
 import type { GameState } from '../logic/types.ts';
 import type { V } from './common.ts';
 import { menu } from './index.ts';
@@ -110,12 +111,14 @@ describe('the view „Marktplatz“', () => {
     expect(html).not.toContain('<b>');
   });
 
-  it('lists the resources to get for a resource: every other one, the chosen selected', () => {
-    expect(targetOptions({ give: 'm', get: 'd', amount: '' })).toBe(
-      '<option value="c">Psikristall</option><option value="d" selected>Promethium</option>',
+  it('lists every other resource to get, the chosen one selected', () => {
+    Object.assign(draft, { give: 'd', get: 'm' });
+    expect(market(view())).toContain(
+      '<select id="market-get"><option selected value="m">Adamant</option><option value="c">Psikristall</option></select>',
     );
-    expect(targetOptions({ give: 'd', get: 'm', amount: '' })).toBe(
-      '<option value="m" selected>Adamant</option><option value="c">Psikristall</option>',
+    Object.assign(draft, { give: 'm', get: 'd' });
+    expect(market(view())).toContain(
+      '<select id="market-get"><option value="c">Psikristall</option><option selected value="d">Promethium</option></select>',
     );
   });
 });

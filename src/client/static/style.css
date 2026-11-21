@@ -1465,6 +1465,29 @@ dialog.sheet::backdrop {
   font-style: italic;
 }
 
+/* The private messages (#226): the tabs of „Nachrichten“ and the inbox. */
+.pm-tabs {
+  margin-bottom: 0.5rem;
+}
+.pm-tabs [aria-selected='true'] {
+  font-weight: bold;
+}
+.pm-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.pm-list li {
+  padding: 0.2rem 0;
+}
+/* The preview of a conversation (Q32): the newest message on one line. */
+.pm-preview {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* The Lexicanum (#285): the page, the side panel and the shared article
    (layout of the design study #287). */
 .lx {

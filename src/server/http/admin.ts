@@ -6,6 +6,7 @@ import { announce, requireAdmin } from '../game/admin.ts';
 import { type Ctx, fail, str } from '../game/context.ts';
 import { orders, playerDetail, playerStats } from '../game/diagnostics.ts';
 import { adminGuildChat } from '../game/guild-chat.ts';
+import { adminMessageReports } from '../game/private-messages.ts';
 import { moderate } from '../game/moderation.ts';
 import { createMoon } from '../game/moons.ts';
 import { stateFor } from '../game/state.ts';
@@ -97,6 +98,14 @@ function diagnosticRoutes(ctx: Ctx, read: Read): Record<string, Handler> {
       const guild = str(body.guild, 32);
       entry.detail = { guild };
       return adminGuildChat(ctx, guild);
+    }),
+    // The reported private messages, nothing else of any conversation (#226,
+    // owner, 2026-11-21, Q24); each opening is an entry that names the reports
+    // it showed, never a text.
+    'POST /api/admin/message-reports': read('messageReports', (entry) => {
+      const reports = adminMessageReports(ctx);
+      entry.detail = { reports: reports.map((r) => r.id) };
+      return { reports };
     }),
   };
 }

@@ -5,8 +5,10 @@
 // sign-out and the account options. The server refuses every action but
 // the end and an early end. Another player sees „(u)“ on the Sternenkarte
 // and the server refuses an attack. After the minimum duration the button
-// turns on by itself and ends it. Desktop and phone, with axe on the
-// options and on the lock screen.
+// turns on by itself and ends it. The lock screen also offers „Nachrichten“
+// (owner, 2026-11-21, Q28): the inbox with replying and the sent messages, no
+// reports, no new message and nothing else of the interface. Desktop and
+// phone, with axe on the options and on the lock screen.
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import {
@@ -101,6 +103,59 @@ async function expectLocked(page: Page): Promise<void> {
   await expect(startButton(page)).toHaveCount(0);
 }
 
+/** Another player writes to the away player; returns the name of the writer. */
+async function writeToAway(page: Page, away: string): Promise<string> {
+  const writer = uniqueName('Schreiber');
+  await register(page, writer);
+  expect(
+    await refusal(page, {
+      type: 'sendPrivateMessage',
+      name: away,
+      text: 'Hallo in den Urlaub',
+    }),
+  ).toBeUndefined();
+  await page.context().clearCookies();
+  return writer;
+}
+
+/** The lock screen offers „Nachrichten“ (Q28): the inbox, replying and the sent messages, nothing else. */
+async function expectMessages(page: Page, writer: string): Promise<void> {
+  const tabs = page.getByRole('tablist', { name: 'Nachrichten' });
+  await expect(tabs.getByRole('tab')).toHaveText([
+    /^Posteingang\s*\(1\)$/,
+    'Gesendet',
+  ]);
+  await expect(page.getByRole('tab', { name: 'Berichte' })).toHaveCount(0);
+  await expect(
+    page.getByRole('button', { name: 'Neue Nachricht' }),
+  ).toHaveCount(0);
+  await expect(page.getByText('Blockierte Spieler')).toHaveCount(0);
+  await expect(page.locator('#menu')).toBeEmpty();
+  // The inbox shows the newest message as the preview; the conversation
+  // loads when it is opened (Q32). Read it and reply.
+  await expect(page.locator('.pm-list')).toContainText('Hallo in den Urlaub');
+  await expect(page.locator('#pm-thread')).toHaveCount(0);
+  await page.getByRole('button', { name: new RegExp(`^${writer}`) }).click();
+  await expect(page.locator('#pm-thread')).toContainText('Hallo in den Urlaub');
+  await page.locator('#pm-reply-text').fill('Antwort aus dem Urlaub');
+  await page.getByRole('button', { name: 'Antworten', exact: true }).click();
+  await expect(page.locator('#pm-thread')).toContainText(
+    'Antwort aus dem Urlaub',
+  );
+  // „Gesendet“ loads when its tab is opened (Q33), on the lock screen too.
+  await page.getByRole('tab', { name: 'Gesendet' }).click();
+  await expect(page.locator('#messages-panel-sent')).toContainText(
+    'Antwort aus dem Urlaub',
+  );
+  await expect(page.locator('#messages-panel-sent')).toContainText(writer);
+  // Still locked: the reports and the game stay refused.
+  await expect(page.locator('#lock-note')).toBeVisible();
+  expect(await refusal(page, { type: 'read' })).toBe(
+    'Im Urlaubsmodus nicht möglich.',
+  );
+  expect(await violations(page)).toEqual([]);
+}
+
 /** Another player sees the mark and cannot attack. */
 async function visit(page: Page, away: string): Promise<void> {
   const visitor = uniqueName('Besuch');
@@ -132,6 +187,7 @@ async function vacationFlow(page: Page): Promise<void> {
   await page.context().clearCookies();
   await visit(page, away);
   await page.context().clearCookies();
+  const writer = await writeToAway(page, away);
 
   // A login shows the lock screen; its button turns on by itself at the end.
   await page.goto('/');
@@ -139,6 +195,7 @@ async function vacationFlow(page: Page): Promise<void> {
   await page.fill('#a_pw', 'ein-sicheres-testpasswort');
   await page.click('button[type=submit]');
   await expectLocked(page);
+  await expectMessages(page, writer);
   seed({ name: away, vacationAgo: 48 * HOUR - 3000 });
   await page.reload();
   await expectLocked(page);

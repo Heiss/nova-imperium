@@ -84,9 +84,17 @@ test.describe('fleet and battle (#68)', () => {
     await expect(arrived).toBeVisible();
     await page.getByRole('button', { name: 'Alle löschen' }).click();
     await expect(page.locator('.box .hd')).toContainText('Berichte (0)');
-    await expect(page.getByText('Keine Nachrichten.')).toBeVisible();
+    await expect(
+      page
+        .getByRole('tabpanel', { name: 'Berichte' })
+        .getByText('Keine Nachrichten.'),
+    ).toBeVisible();
     await page.reload();
-    await expect(page.getByText('Keine Nachrichten.')).toBeVisible();
+    await expect(
+      page
+        .getByRole('tabpanel', { name: 'Berichte' })
+        .getByText('Keine Nachrichten.'),
+    ).toBeVisible();
     expect(w.problems).toEqual([]);
   });
 

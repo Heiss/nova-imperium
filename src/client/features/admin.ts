@@ -5,6 +5,7 @@
 // page is views/admin.ts (#118, bundle 7).
 import { $, setById, val } from '../dom.ts';
 import { ADMIN_TABS, type AdminTab } from '../logic/admin.ts';
+import { adminForm } from '../logic/admin-form.svelte.ts';
 import {
   adminTabKey,
   bindAdminPanel,
@@ -58,7 +59,7 @@ async function adminCall(
     if (j.msg) toast(String(j.msg), j.mailed === false);
     return j;
   } catch (e) {
-    toast((e as Error).message, true);
+    toast((e as Error).message, e as Error);
     return null;
   }
 }
@@ -87,12 +88,12 @@ const adminForms = (ctx: ClientCtx): Record<string, () => unknown> => ({
       const result = await ctx.api('/api/admin/announce', {
         message: val('#announce-text'),
       });
-      ctx.setInput('#announce-text', '');
+      adminForm.announce = '';
       ctx.toast(
         `Servernachricht für ${Number(result.recipients)} Spieler veröffentlicht.`,
       );
     } catch (error) {
-      ctx.toast((error as Error).message, true);
+      ctx.toast((error as Error).message, error as Error);
     } finally {
       announcementPending = false;
     }

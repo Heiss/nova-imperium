@@ -179,17 +179,20 @@ function reportOf(ctx: Ctx, u: User, number: number): RoundReport {
 
 /** The line of one round for the reader; a running round carries no data for a player. */
 function entryOf(ctx: Ctx, u: User, r: RoundRow): RoundEntry {
-  const rows =
-    r.status === 'closed' ? archivedRows(ctx, r.number, u.id).rows : [];
-  const you = rows.find((x) => x.you);
-  return {
+  const entry = {
     number: r.number,
     status: r.status,
     started: r.started,
     closed: r.closed,
     coverage: r.coverage,
     locked: r.status === 'active' && !u.admin,
-    participants: r.status === 'closed' ? rows.length : null,
+  };
+  if (r.status !== 'closed') return { ...entry, participants: null, you: null };
+  const rows = archivedRows(ctx, r.number, u.id).rows;
+  const you = rows.find((x) => x.you);
+  return {
+    ...entry,
+    participants: rows.length,
     you: you ? standingOf(rows, you.seat) : null,
   };
 }
@@ -263,7 +266,7 @@ const roundReport: Handler<'roundReport'> = (ctx, u, d): Answer => {
 };
 
 /**
- * The thin Rewind of the reader in a finished round (#235, view G): the cards
+ * The Rewind of the reader in a finished round (#235, view G): the cards
  * come from the same report and the same access check as `roundReport`, so a
  * round the reader may not open answers like one that does not exist. The
  * running round has none (not even for the admin), and neither has a reader
@@ -272,8 +275,14 @@ const roundReport: Handler<'roundReport'> = (ctx, u, d): Answer => {
 function rewindFor(ctx: Ctx, u: User, number: number): Rewind {
   const report = reportOf(ctx, u, number);
   const seat = report.rows.find((r) => r.you)?.seat;
-  const rewind = seat === undefined ? null : rewindOf(report, seat);
-  return rewind?.cards.length ? rewind : fail(UNAVAILABLE);
+  if (seat === undefined) return fail(UNAVAILABLE);
+  // The events of a finished round feed the cards 2 to 5 and 7; the access was checked by `reportOf`.
+  // Only the events these cards read for the seat are loaded, not the whole round.
+  const events = report.round.provisional
+    ? []
+    : ctx.rounds.eventsForSeat(number, seat);
+  const rewind = rewindOf(report, seat, events);
+  return rewind.cards.length ? rewind : fail(UNAVAILABLE);
 }
 
 const roundRewind: Handler<'roundRewind'> = (ctx, u, d): Answer => {

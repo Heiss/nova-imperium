@@ -80,7 +80,9 @@ function statsPanel(people: PlayerStats[]): string {
             ? `${fmt(p.failedLogins)} abgelehnte Logins in 1 Std.`
             : '',
           p.recentActions >= 30
-            ? `${fmt(p.recentActions)} Spielaktionen in 1 Min.`
+            ? // Renamed on purpose (coordinator, 2026-11-21): the player's own
+              // „Spielaktionen“ count only changes and clicks since #335.
+              `${fmt(p.recentActions)} Aktionen in 1 Min.`
             : '',
         ]
           .filter(Boolean)

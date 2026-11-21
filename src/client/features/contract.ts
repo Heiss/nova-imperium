@@ -43,7 +43,8 @@ export interface ClientCtx {
   /** Calls the server; a refusal throws an error with the server's words. */
   api: (url: string, body?: unknown) => Promise<Record<string, unknown>>;
   /** Shows a note that goes away by itself; `err` for a refusal. */
-  toast: (msg: string, err?: boolean) => void;
+  /** `err`: true for an error message, or the error itself (its call is named). */
+  toast: (msg: string, err?: boolean | Error) => void;
   /** Sets the value of an input, when it is there. */
   setInput: (sel: string, v: string | number) => void;
   /** Takes over the state an answer of the server brought; the views render when it changed, or at once when `fresh`. */

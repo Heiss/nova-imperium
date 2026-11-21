@@ -70,7 +70,7 @@ const rewindActs = (ctx: ClientCtx) => ({
       ctx.render();
       document.getElementById('round-rewind-card-h')?.focus();
     } catch (e) {
-      ctx.toast((e as Error).message, true);
+      ctx.toast((e as Error).message, e as Error);
     }
   },
   rewindBack: () => {
@@ -92,7 +92,7 @@ const adminActs = (ctx: ClientCtx) => ({
       ctx.render();
       ctx.toast('Vorschau aktualisiert.');
     } catch (e) {
-      ctx.toast((e as Error).message, true);
+      ctx.toast((e as Error).message, e as Error);
     }
   },
   // The drilldown of one participant, for the admin; the server refuses a player.
@@ -106,7 +106,7 @@ const adminActs = (ctx: ClientCtx) => ({
       ctx.render();
       document.getElementById('round-participant-h')?.focus();
     } catch (e) {
-      ctx.toast((e as Error).message, true);
+      ctx.toast((e as Error).message, e as Error);
     }
   },
   roundPersonBack: () => {
@@ -133,7 +133,7 @@ export const clientFeature = {
           ctx.render();
           document.getElementById('round-report-h')?.focus();
         } catch (e) {
-          ctx.toast((e as Error).message, true);
+          ctx.toast((e as Error).message, e as Error);
         }
       },
       roundBack: () => {

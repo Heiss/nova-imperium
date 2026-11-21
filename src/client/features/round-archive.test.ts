@@ -63,7 +63,9 @@ describe('opening a report', () => {
     await clientFeature.acts(ctx).roundOpen!({ round: '9' });
     expect(ctx.toast).toHaveBeenCalledWith(
       'Dieser Rundenbericht ist nicht verfügbar.',
-      true,
+      expect.objectContaining({
+        message: 'Dieser Rundenbericht ist nicht verfügbar.',
+      }),
     );
     expect(archive.report).toBeNull();
     expect(ctx.render).not.toHaveBeenCalled();
@@ -115,7 +117,9 @@ describe('the provisional report and the drilldown of the admin (#235, view H)',
     expect(archive.report).toEqual(REPORT);
     expect(ctx.toast).toHaveBeenCalledWith(
       'Dieser Rundenbericht ist nicht verfügbar.',
-      true,
+      expect.objectContaining({
+        message: 'Dieser Rundenbericht ist nicht verfügbar.',
+      }),
     );
   });
 
@@ -150,7 +154,9 @@ describe('the provisional report and the drilldown of the admin (#235, view H)',
     expect(archive.participant).toBeNull();
     expect(ctx.toast).toHaveBeenCalledWith(
       'Dieser Rundenbericht ist nicht verfügbar.',
-      true,
+      expect.objectContaining({
+        message: 'Dieser Rundenbericht ist nicht verfügbar.',
+      }),
     );
   });
 });
@@ -194,7 +200,9 @@ describe('opening the Rewind', () => {
     await clientFeature.acts(ctx).rewindOpen!({ round: '9' });
     expect(ctx.toast).toHaveBeenCalledWith(
       'Dieser Rundenbericht ist nicht verfügbar.',
-      true,
+      expect.objectContaining({
+        message: 'Dieser Rundenbericht ist nicht verfügbar.',
+      }),
     );
     expect(archive.rewind).toBeNull();
     expect(ctx.render).not.toHaveBeenCalled();

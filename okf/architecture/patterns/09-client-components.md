@@ -136,8 +136,8 @@ description: 'The client as generic Svelte components with a state module, the c
   `client.ui.highscore` and the folds of #189 (`unfolded` of
   `logic/achievement-fold.ts`), which stay there. Bundle 5, second part
   (Optionen) moved none either: the old view kept the input of its fields
-  in the DOM, which `keepInputs()` of `main.ts` still carries over a
-  render. Bundle 6 (Gilden) moved none either: the old view kept
+  in the DOM, which `keepInputs()` of `main.ts` then still carried over a
+  render (gone since #332: the fields are state of the component). Bundle 6 (Gilden) moved none either: the old view kept
   `client.ui.guild`, which stays there; the dialog function `modal()` moved
   from `main.ts` to `src/client/modal.ts`. Still rendered as HTML: the view
   Admin (Marktplatz and Freunde, which came after the bundles were proposed,
@@ -173,8 +173,8 @@ description: 'The client as generic Svelte components with a state module, the c
   `holdRow()`, `timeRow()` and `realStay()` moved from `views/fleet.ts` to
   the new `logic/fleet-time.ts`). `quickOptions()` is gone: the component
   renders the options of „Schnellwahl“ itself. The view is mounted anew on
-  every render (`ANEW`), as its HTML was rendered anew: `keepInputs` keeps
-  the typed numbers, the chosen target, mission and speed and the focus by
+  every render (`ANEW`), as its HTML was rendered anew: `keepInputs` kept
+  (until #332, which made them state of the component) the typed numbers, the chosen target, mission and speed and the focus by
   id, and the clock counts the countdowns down, as before. Reading the
   form, the preview and the click actions stay in `features/fleet.ts`; the
   box and the row of the unions lost their HTML (`views/union.ts` is gone).
@@ -191,11 +191,10 @@ description: 'The client as generic Svelte components with a state module, the c
   from `messagesPage(v)` of the new `logic/messages.ts`: the count, „Alle
   löschen“, each report newest first with its title, time, the marks `new`
   and `open`, and its body, which is a text, an update message (its lines
-  and the link to „Neuigkeiten“) or HTML. The bodies of battle, espionage
-  and survey reports stay HTML for now: the functions moved unchanged from
-  `views/messages.ts` to `logic/report-body.ts` (`reportBodyHTML()`), and
-  the component renders them with `{@html}`; they become components of
-  their own after the update (#330). `News.svelte`, mounted by `mountNews()` of
+  and the link to „Neuigkeiten“) or the values of a battle, espionage or
+  survey report. The bodies of these reports were HTML at first
+  (`reportBodyHTML()`, rendered with `{@html}`); since #330 they are
+  components, see the next entry. `News.svelte`, mounted by `mountNews()` of
   `views/news.ts`, renders „Neuigkeiten“ from `newsPage()` of
   `logic/news.ts` (`newsHTML()` and `updateMessageHTML()` are gone; the
   link of the update message is `UPDATE_LINK`). Both views leave `VIEWS` of
@@ -203,6 +202,29 @@ description: 'The client as generic Svelte components with a state module, the c
   every render (`ANEW`), as their HTML was rendered anew: an opened report
   stays open (`client.ui.openRep`, toggled by `features/reports.ts`) and
   the news render again once they have loaded. No visible change.
+* **[V]** Built with #330 (the bodies of the reports as components, no
+  visible change, `{@html}` gone from `Messages.svelte`): `reportBody()`
+  of `logic/report-body.ts` turns a stored battle, espionage or survey
+  report into plain values (`BattleBody`, `SpyBody`, and `SurveyBody` of
+  `surveyReport()` in `logic/survey.ts`: the lines, the rows of the unit
+  tables, the sections with their lists, and `null` where a part is
+  missing), and `ReportBody.svelte` hands them to `BattleReport.svelte`
+  (with `UnitTable.svelte`), `SpyReport.svelte` or `SurveyReport.svelte`,
+  which only render. A player's text (planet, player and guild names)
+  reaches the page as text; no value was shown as HTML on purpose (what
+  the old strings did not escape were numbers and words of the game). The
+  old functions are deleted; the frozen copy lives in
+  `src/test/report-body-reference.test.ts`, which compares it with the
+  components on generated reports of every kind (seed 330, sampled once)
+  and hand-built cases, among them the shapes older versions stored
+  (battle reports without tech, loot, debris, moon, `held` or `attackers`;
+  espionage reports without `activity`). `Messages.svelte` and its
+  reference test take the bodies from `ReportBody.svelte` too.
+* **[E]** Scope of #330 (D1): only the report bodies; the other `{@html}`
+  pieces (the option list and time row of `Fleet.svelte`, the options and
+  preview of `Market.svelte`, the guild profile of `Guilds.svelte`,
+  `costHTML`/`requirementsHTML` of `CatalogList`) stay as they are and get
+  an issue of their own later (owner, 2026-11-21, through the coordinator).
 * **[E]** Bundle 5 after bundle 4 (owner, 2026-11-15 and 2026-11-16: the
   order of the bundles of #118 „Geklärt, Nachtrag 3“, unchanged by
   „Nachtrag 4“): Highscore, Achievements, and Hilfe & Optionen.
@@ -283,7 +305,8 @@ description: 'The client as generic Svelte components with a state module, the c
   takes HTML or a `Dialog` (a function that mounts into `#modalIn` and
   returns how to unmount) and takes the earlier one down whenever it shows
   anything, so `modal('')` still closes. The view is mounted anew on every
-  render (`ANEW`), as its HTML was: `keepInputs` (inputs by id, the ticked
+  render (`ANEW`), as its HTML was: `keepInputs` (until #332, which made the
+  fields state of the component; inputs by id, the ticked
   rights by `data-rank-right`, `data-nokeep` of the dissolve field),
   `keepChatScroll` (`.chat-log`) and the draft of the chat work on the new
   markup as before; the ids, `data-act`, form ids and `data-*` hooks are those
@@ -336,8 +359,9 @@ description: 'The client as generic Svelte components with a state module, the c
   market is off for the round, no prices came, or the planet has no
   Handelsposten, else the form (what to give, what to get, the amount with
   „max“, the preview, „Tauschen“). The draft stays `draft` of
-  `logic/market.ts` and the typed values stay with `keepInputs()` of
-  `main.ts` (by id), as before; `features/market.ts` still reads the form by
+  `logic/market.ts` and the typed values stayed with `keepInputs()` of
+  `main.ts` (by id; since #332 they are state of the component,
+  `logic/market-form.svelte.ts`); `features/market.ts` still reads the form by
   its ids and writes the list of what to get and the preview into
   their places while the player types, so those two lists and the preview
   are HTML in the model (`targetOptions()`, `previewHTML()`, moved from
@@ -381,7 +405,8 @@ description: 'The client as generic Svelte components with a state module, the c
   pictures, so `logic/moon.ts` and `logic/debris.ts` stay as they are.
   The data come as a property (`page`), as for the frame. The view is
   mounted anew on every render (`ANEW` in `main.ts`, with the overview),
-  as its HTML was rendered anew: `keepInputs` gives the focus back by id
+  as its HTML was rendered anew: `keepInputs` gave the focus back by id
+  (until #332; the position is state of the component since)
   (the field „System“ after Enter, the symbol of a moon), the typed system
   does not come back, `paintPlanets` paints the textures and the clock
   counts the countdowns of the scan down, as before. The click actions

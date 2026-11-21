@@ -166,6 +166,7 @@ test.describe('admin (#68)', () => {
       'Spieler',
       'Aufträge',
       'Fehler',
+      'Gemeldete Nachrichten',
       'Einladungen',
       'Universum',
       'Servernachricht',
@@ -196,13 +197,13 @@ test.describe('admin (#68)', () => {
 
     // End and Home jump to the last and the first.
     await page.keyboard.press('End');
-    await expectOn(order[6]!);
+    await expectOn(order.at(-1)!);
     await expect(page.locator('#admin-panel-announce')).toBeVisible();
     // Past the last it wraps to the first, and before the first to the last.
     await page.keyboard.press('ArrowRight');
     await expectOn(order[0]!);
     await page.keyboard.press('ArrowLeft');
-    await expectOn(order[6]!);
+    await expectOn(order.at(-1)!);
     await page.keyboard.press('Home');
     await expectOn(order[0]!);
     await expect(page.locator('[data-admin=events]')).toBeVisible();

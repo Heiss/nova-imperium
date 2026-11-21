@@ -107,7 +107,12 @@ branch, so it is built there, not in a Svelte component.
   mission that is not among those options, and the select came back empty.
   `missionList` therefore also keeps the choice in `client.ui.fm` and
   continues from it when the select is empty; a mission that no longer fits
-  still falls back to the first one that fits.
+  still falls back to the first one that fits. Since #332 the fleet form
+  keeps the mission, the kind of target and every other field as the state
+  of its component (`logic/fleet-form.svelte.ts`, derived by
+  `logic/fleet-choice.ts`); `keepInputs`, `missionList` and `moonOption` are
+  gone, and `client.ui.fm` / `client.ui.fk` carry the choice only to the next
+  form after a fresh render.
 * **[V]** The same redraw reset „Mond“ in „Zielart“: the fresh select is
   built for the start planet or `ui.ft`, where „Mond“ is disabled, and
   `keepInputs` does not restore onto a disabled option, so a fleet went to

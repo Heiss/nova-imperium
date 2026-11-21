@@ -37,7 +37,10 @@ describe('deleting the account', () => {
       }),
     });
     expect(await deleteAccount(ctx, 'falsch')).toBe(false);
-    expect(ctx.toast).toHaveBeenCalledWith('Das Passwort stimmt nicht.', true);
+    expect(ctx.toast).toHaveBeenCalledWith(
+      'Das Passwort stimmt nicht.',
+      expect.objectContaining({ message: 'Das Passwort stimmt nicht.' }),
+    );
     expect(client.game).not.toBeNull();
     expect(ctx.modal).not.toHaveBeenCalled();
     expect(disablePush).not.toHaveBeenCalled();

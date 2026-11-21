@@ -1,10 +1,17 @@
-// The bodies of the battle, espionage and survey reports as HTML (#118,
-// bundle 4), on reports built by hand: the exact markup, so a changed word,
-// number or tag shows. `src/test/messages-reference.test.ts` compares them
-// with the frozen view on generated states.
+// The values of the bodies of the battle, espionage and survey reports (#330;
+// the HTML of #118, bundle 4), on reports built by hand: the exact rows and
+// texts, so a changed word, number or flag shows.
+// `src/test/report-body-reference.test.ts` compares the components that show
+// them with the frozen HTML on generated reports.
 import { describe, expect, it } from 'vitest';
 import { text } from '../../core/text.ts';
-import { reportBodyHTML } from './report-body.ts';
+import {
+  reportBody,
+  type BattleBody,
+  type BattleSide,
+  type SpyBody,
+  type UnitRow,
+} from './report-body.ts';
 import type { Report } from './types.ts';
 
 const n = (key: string): string => text(key)!.n;
@@ -19,30 +26,29 @@ const report = (type: Report['type'], o: Record<string, unknown>): Report => ({
   ...o,
 });
 
-const html = (type: Report['type'], o: Record<string, unknown>): string =>
-  reportBodyHTML(report(type, o))!;
+/** A battle with only the fields it must have; the sides hold no units. */
+const battle = (o: Record<string, unknown> = {}): BattleBody =>
+  reportBody(
+    report('battle', {
+      rounds: 1,
+      attName: 'A',
+      defName: 'B',
+      winner: 'att',
+      ...o,
+    }),
+  ) as BattleBody;
 
-const HEAD =
-  '<table class="mini"><tr><th>Einheit</th><th class="n">vorher</th><th class="n">nachher</th><th class="n">Verlust</th></tr>';
+const row = (key: string, b: string, a: string, lost: string, bad: boolean) =>
+  ({ name: n(key), before: b, after: a, lost, bad }) satisfies UnitRow;
 
 const TECH = (w: number, s: number, a: number): string =>
-  `<div class="dim">Waffen ${w}% · Schilde ${s}% · Panzerung ${a}%</div>`;
-
-/** A battle with only the fields it must have; the sides hold no units. */
-const battle = (o: Record<string, unknown> = {}): string =>
-  html('battle', {
-    rounds: 1,
-    attName: 'A',
-    defName: 'B',
-    winner: 'att',
-    ...o,
-  });
+  `Waffen ${w}% · Schilde ${s}% · Panzerung ${a}%`;
 
 describe('the body of a report', () => {
   it('is only made for a battle, an espionage and a survey report', () => {
-    expect(reportBodyHTML(report('info', { text: 'Hallo' }))).toBeNull();
+    expect(reportBody(report('info', { text: 'Hallo' }))).toBeNull();
     expect(
-      reportBodyHTML(
+      reportBody(
         report('survey', {
           tier: 'rough',
           orbit: 'middle',
@@ -51,20 +57,18 @@ describe('the body of a report', () => {
           around: 20,
           planetType: 'normal',
         }),
-      ),
-    ).toMatch(/^<div>Vermessung \[1:2:6\] – Messung ungenau\./);
-    expect(reportBodyHTML(report('battle', { rounds: 1 }))).toMatch(
-      /^<div>Schlacht bei /,
+      )?.kind,
+    ).toBe('survey');
+    expect(reportBody(report('battle', { rounds: 1 }))?.kind).toBe('battle');
+    expect(reportBody(report('spy', { res: { m: 0, c: 0, d: 0 } }))?.kind).toBe(
+      'spy',
     );
-    expect(
-      reportBodyHTML(report('spy', { res: { m: 0, c: 0, d: 0 } })),
-    ).toMatch(/^<div>Rohstoffe auf /);
   });
 });
 
 describe('the body of a battle report', () => {
   it('shows the sides, the loss of each unit, the winner and what the battle left', () => {
-    const body = html('battle', {
+    const body = battle({
       rounds: 3,
       attName: 'Anna',
       defName: 'Bert',
@@ -91,127 +95,236 @@ describe('the body of a battle report', () => {
       moonbreak: { chance: 30, broken: true, loss: 10, lost: true },
       moonLost: true,
     });
-    expect(body).toBe(
-      `<div>Schlacht bei Beta &lt;i&gt; [1:2:6] · 3 Runde(n)</div>
-  <div class="cols mt"><div><b class="fl-attack">Angreifer Anna</b>${TECH(20, 10, 0)}${HEAD}<tr><td>${n('lf')}</td><td class="n">4</td><td class="n">1</td><td class="n bad">3</td></tr></table></div>
-  <div><b class="good">Verteidiger Bert</b>${TECH(0, 0, 30)}${HEAD}<tr><td>${n('lf')}</td><td class="n">2</td><td class="n">0</td><td class="n bad">2</td></tr><tr><td>${n('rl')}</td><td class="n">3</td><td class="n">1</td><td class="n bad">2</td></tr></table><div class="dim">Wiederhergestellte Verteidigung: 2 ${n('rl')}, 1 ${n('ll')}</div></div><div><b class="good">Verteidiger Cora &lt;b&gt;</b>${TECH(10, 0, 0)}${HEAD}<tr><td>${n('sc')}</td><td class="n">5</td><td class="n">5</td><td class="n ">0</td></tr></table></div></div>
-  <p><b>Der Angreifer hat die Schlacht gewonnen!</b><br>Erbeutet: Adamant 5 · Psikristall 4 · Promethium 3<br>Es entstand ein Trümmerfeld mit 1.000 Adamant und 20 Psikristall.<br>Mondchance: 12 %<br>Die enormen Mengen an freiem Adamant und Psikristall ziehen sich an und formen einen Trabanten um den Planeten.<br>Der Mond ist zerbrochen (Chance 30 %).<br>Die Weltenbrecher wurden vom eigenen Schuss zerrissen (Chance 10 %).<br>Dein Mond bei [1:2:6] wurde zerstört.</p>`,
-    );
+    expect(body).toEqual({
+      kind: 'battle',
+      head: 'Schlacht bei Beta <i> [1:2:6] · 3 Runde(n)',
+      sides: [
+        {
+          cls: 'fl-attack',
+          title: 'Angreifer Anna',
+          tech: TECH(20, 10, 0),
+          units: [row('lf', '4', '1', '3', true)],
+          rebuilt: null,
+          share: null,
+        },
+        {
+          cls: 'good',
+          title: 'Verteidiger Bert',
+          tech: TECH(0, 0, 30),
+          units: [
+            row('lf', '2', '0', '2', true),
+            row('rl', '3', '1', '2', true),
+          ],
+          rebuilt: `2 ${n('rl')}, 1 ${n('ll')}`,
+          share: null,
+        },
+        {
+          cls: 'good',
+          title: 'Verteidiger Cora <b>',
+          tech: TECH(10, 0, 0),
+          units: [row('sc', '5', '5', '0', false)],
+          rebuilt: null,
+          share: null,
+        },
+      ],
+      winner: 'Der Angreifer hat die Schlacht gewonnen!',
+      loot: 'Adamant 5 · Psikristall 4 · Promethium 3',
+      lines: [
+        'Es entstand ein Trümmerfeld mit 1.000 Adamant und 20 Psikristall.',
+        'Mondchance: 12 %',
+        'Die enormen Mengen an freiem Adamant und Psikristall ziehen sich an und formen einen Trabanten um den Planeten.',
+        'Der Mond ist zerbrochen (Chance 30 %).',
+        'Die Weltenbrecher wurden vom eigenen Schuss zerrissen (Chance 10 %).',
+        'Dein Mond bei [1:2:6] wurde zerstört.',
+      ],
+    });
   });
 
-  it('says „keine Einheiten“ for a side without units and shows no extra lines', () => {
-    expect(battle({ winner: 'def' })).toBe(
-      `<div>Schlacht bei Beta &lt;i&gt; [1:2:6] · 1 Runde(n)</div>
-  <div class="cols mt"><div><b class="fl-attack">Angreifer A</b>${TECH(0, 0, 0)}<span class="dim">keine Einheiten</span></div>
-  <div><b class="good">Verteidiger B</b>${TECH(0, 0, 0)}<span class="dim">keine Einheiten</span></div></div>
-  <p><b>Der Verteidiger hat die Schlacht gewonnen!</b></p>`,
-    );
+  it('has no units for a side without units and shows no extra lines', () => {
+    expect(battle({ winner: 'def' })).toEqual({
+      kind: 'battle',
+      head: 'Schlacht bei Beta <i> [1:2:6] · 1 Runde(n)',
+      sides: [
+        {
+          cls: 'fl-attack',
+          title: 'Angreifer A',
+          tech: TECH(0, 0, 0),
+          units: [],
+          rebuilt: null,
+          share: null,
+        },
+        {
+          cls: 'good',
+          title: 'Verteidiger B',
+          tech: TECH(0, 0, 0),
+          units: [],
+          rebuilt: null,
+          share: null,
+        },
+      ],
+      winner: 'Der Verteidiger hat die Schlacht gewonnen!',
+      loot: null,
+      lines: [],
+    });
   });
 
   it('names the winner, or nothing for an unknown result', () => {
-    expect(battle({ winner: 'att' })).toContain(
-      '<b>Der Angreifer hat die Schlacht gewonnen!</b>',
+    expect(battle({ winner: 'att' }).winner).toBe(
+      'Der Angreifer hat die Schlacht gewonnen!',
     );
-    expect(battle({ winner: 'draw' })).toContain(
-      '<b>Die Schlacht endet unentschieden.</b>',
+    expect(battle({ winner: 'draw' }).winner).toBe(
+      'Die Schlacht endet unentschieden.',
     );
-    expect(battle({ winner: 'x' })).toContain('<p><b></b></p>');
-    expect(battle({ winner: undefined })).toContain('<p><b></b></p>');
+    expect(battle({ winner: 'x' }).winner).toBe('');
+    expect(battle({ winner: undefined }).winner).toBe('');
   });
 
   it('lists only the units that were there, ships for the attacker, ships and defense for the defender', () => {
-    const body = battle({
+    const [att, def] = battle({
       attBefore: { lf: 3, rl: 4 },
       attAfter: { lf: 5 },
       defBefore: { lf: 1, rl: 4, sc: 0 },
       defAfter: {},
-    });
+    }).sides;
     // A unit that grew is no loss, and a defense is no ship of the attacker.
-    expect(body).toContain(
-      `${HEAD}<tr><td>${n('lf')}</td><td class="n">3</td><td class="n">5</td><td class="n ">-2</td></tr></table>`,
-    );
-    expect(body).toContain(
-      `${HEAD}<tr><td>${n('lf')}</td><td class="n">1</td><td class="n">0</td><td class="n bad">1</td></tr><tr><td>${n('rl')}</td><td class="n">4</td><td class="n">0</td><td class="n bad">4</td></tr></table>`,
-    );
-    expect(body).not.toContain(n('sc'));
+    expect(att!.units).toEqual([row('lf', '3', '5', '-2', false)]);
+    expect(def!.units).toEqual([
+      row('lf', '1', '0', '1', true),
+      row('rl', '4', '0', '4', true),
+    ]);
+  });
+
+  it('marks a unit only when some of it was lost', () => {
+    const units = (before: number, after: number): UnitRow[] =>
+      battle({ attBefore: { lf: before }, attAfter: { lf: after } }).sides[0]!
+        .units;
+    expect(units(2, 1)[0]!.bad).toBe(true);
+    expect(units(2, 2)[0]!.bad).toBe(false);
+    expect(units(2, 3)[0]!.bad).toBe(false);
   });
 
   it('shows the loot only when something was taken', () => {
-    expect(battle({ loot: { m: 0, c: 0, d: 0 } })).not.toContain('Erbeutet');
-    expect(battle({})).not.toContain('Erbeutet');
-    expect(battle({ loot: { m: 0, c: 0, d: 2 } })).toContain(
-      '<br>Erbeutet: Adamant 0 · Psikristall 0 · Promethium 2',
+    expect(battle({ loot: { m: 0, c: 0, d: 0 } }).loot).toBeNull();
+    expect(battle({}).loot).toBeNull();
+    expect(battle({ loot: { m: 0, c: 0, d: 2 } }).loot).toBe(
+      'Adamant 0 · Psikristall 0 · Promethium 2',
     );
-    expect(battle({ loot: { m: 1, c: 0, d: 0 } })).toContain('Erbeutet');
-    expect(battle({ loot: { m: 0, c: 3, d: 0 } })).toContain('Erbeutet');
-    // Resources do not cancel out.
-    expect(battle({ loot: { m: 1, c: 1, d: 0 } })).toContain('Erbeutet');
-    expect(battle({ loot: { m: 1, c: 0, d: 1 } })).toContain('Erbeutet');
+    for (const loot of [
+      { m: 1, c: 0, d: 0 },
+      { m: 0, c: 3, d: 0 },
+      // Resources do not cancel out.
+      { m: 1, c: 1, d: 0 },
+      { m: 1, c: 0, d: 1 },
+    ])
+      expect(battle({ loot }).loot).not.toBeNull();
   });
 
   it('shows the rebuilt defense only when something was rebuilt', () => {
-    expect(battle({ rebuilt: {} })).not.toContain('Wiederhergestellte');
-    expect(battle({ rebuilt: { rl: 0 } })).not.toContain('Wiederhergestellte');
-    expect(battle({})).not.toContain('Wiederhergestellte');
-    expect(battle({ rebuilt: { rl: 1000 } })).toContain(
-      `<div class="dim">Wiederhergestellte Verteidigung: 1.000 ${n('rl')}</div></div>`,
+    const rebuilt = (o: Record<string, unknown>): string | null =>
+      battle(o).sides[1]!.rebuilt;
+    expect(rebuilt({ rebuilt: {} })).toBeNull();
+    expect(rebuilt({ rebuilt: { rl: 0 } })).toBeNull();
+    expect(rebuilt({})).toBeNull();
+    expect(rebuilt({ rebuilt: { rl: 1000 } })).toBe(`1.000 ${n('rl')}`);
+  });
+
+  it('keeps the key of a rebuilt unit that has no name', () => {
+    expect(battle({ rebuilt: { unknownUnit: 2 } }).sides[1]!.rebuilt).toBe(
+      '2 unknownUnit',
     );
   });
 
-  it('shows the lines after the winner one per line, and none for nothing', () => {
-    expect(battle({ debris: { m: 0, c: 0 } })).toContain('</b></p>');
-    expect(battle({ debris: { m: 0, c: 7 } })).toContain(
-      '</b><br>Es entstand ein Trümmerfeld mit 0 Adamant und 7 Psikristall.</p>',
-    );
-    expect(battle({ moonChance: 5, moonLost: true })).toContain(
-      '</b><br>Mondchance: 5 %<br>Dein Mond bei [1:2:6] wurde zerstört.</p>',
-    );
+  it('lists the lines after the winner one per line, and none for nothing', () => {
+    expect(battle({ debris: { m: 0, c: 0 } }).lines).toEqual([]);
+    expect(battle({ debris: { m: 0, c: 7 } }).lines).toEqual([
+      'Es entstand ein Trümmerfeld mit 0 Adamant und 7 Psikristall.',
+    ]);
+    expect(battle({ moonChance: 5, moonLost: true }).lines).toEqual([
+      'Mondchance: 5 %',
+      'Dein Mond bei [1:2:6] wurde zerstört.',
+    ]);
   });
 
   it('shows each fleet that held as a defender of its own, none when none held', () => {
-    expect(battle({ held: [] })).not.toContain('Verteidiger Cora');
-    const body = battle({
+    const defenders = (o: Record<string, unknown>): BattleSide[] =>
+      battle(o).sides.filter((s) => s.cls === 'good');
+    expect(defenders({ held: [] })).toHaveLength(1);
+    expect(defenders({})).toHaveLength(1);
+    const [, cora, dirk] = defenders({
       held: [
         { name: 'Cora', before: { sc: 2 }, after: { sc: 1 }, tech: {} },
         { name: 'Dirk', before: {}, after: {}, tech: { shield: 2 } },
       ],
     });
-    expect(body).toContain(
-      `<div><b class="good">Verteidiger Cora</b>${TECH(0, 0, 0)}${HEAD}<tr><td>${n('sc')}</td><td class="n">2</td><td class="n">1</td><td class="n bad">1</td></tr></table></div><div><b class="good">Verteidiger Dirk</b>${TECH(0, 20, 0)}<span class="dim">keine Einheiten</span></div></div>`,
-    );
+    expect(cora).toEqual({
+      cls: 'good',
+      title: 'Verteidiger Cora',
+      tech: TECH(0, 0, 0),
+      units: [row('sc', '2', '1', '1', true)],
+      rebuilt: null,
+      share: null,
+    });
+    expect(dirk).toMatchObject({ tech: TECH(0, 20, 0), units: [] });
   });
 
-  it('escapes the names and the number of rounds', () => {
+  it('lists only ships for a fleet that held, and nothing of a missing side', () => {
+    const [, , held] = battle({
+      held: [{ name: 'Cora', before: { sc: 2, rl: 3 } }],
+    }).sides;
+    expect(held!.units).toEqual([row('sc', '2', '0', '2', true)]);
+  });
+
+  it('keeps the names and the number of rounds as they are, text a component escapes', () => {
     const body = battle({ attName: '<a>', defName: '"b"', rounds: '<6>' });
-    expect(body).toContain('Angreifer &lt;a&gt;</b>');
-    expect(body).toContain('Verteidiger &quot;b&quot;</b>');
-    expect(body).toContain('&lt;6&gt; Runde(n)');
+    expect(body.sides.map((s) => s.title)).toEqual([
+      'Angreifer <a>',
+      'Verteidiger "b"',
+    ]);
+    expect(body.head).toContain('<6> Runde(n)');
+  });
+
+  it('shows nothing for a name, place or rounds an old report lacks', () => {
+    expect(
+      reportBody({
+        ...report('battle', {}),
+        name: undefined,
+        coords: undefined,
+      }),
+    ).toMatchObject({
+      head: 'Schlacht bei  [?] ·  Runde(n)',
+      sides: [{ title: 'Angreifer ' }, { title: 'Verteidiger ' }],
+    });
   });
 });
 
 describe('the body of an espionage report', () => {
-  const spy = (o: Record<string, unknown> = {}): string =>
-    html('spy', {
-      defName: 'Bert <i>',
-      res: { m: 5, c: 4, d: 3 },
-      counter: 12,
-      ...o,
-    });
-  const TOP =
-    '<div>Rohstoffe auf Beta &lt;i&gt; [1:2:6] (Spieler Bert &lt;i&gt;):<br><b>Adamant 5 · Psikristall 4 · Promethium 3</b></div>\n   ';
+  const spy = (o: Record<string, unknown> = {}): SpyBody =>
+    reportBody(
+      report('spy', {
+        defName: 'Bert <i>',
+        res: { m: 5, c: 4, d: 3 },
+        counter: 12,
+        ...o,
+      }),
+    ) as SpyBody;
+  const titles = (b: SpyBody): string[] => b.sections.map((s) => s.title);
 
   it('shows the resources and the chance of the counter-espionage, and a hint for a report with no details', () => {
-    expect(spy()).toBe(
-      `${TOP}\n   <div class="dim mt">Chance auf Auspex-Abwehr: 12 % · Mehr Spähschädel oder Auspex-Lehre zeigen mehr Details.</div>`,
-    );
+    expect(spy()).toEqual({
+      kind: 'spy',
+      head: 'Rohstoffe auf Beta <i> [1:2:6] (Spieler Bert <i>):',
+      res: 'Adamant 5 · Psikristall 4 · Promethium 3',
+      sections: [],
+      counter: '12',
+      lost: false,
+      hint: true,
+    });
   });
 
   it('says that the spy skulls were destroyed, without the hint', () => {
     const body = spy({ lost: true });
-    expect(body).toContain(
-      '<div class="dim mt">Chance auf Auspex-Abwehr: 12 % – <span class="bad">deine Spähschädel wurden zerstört!</span></div>',
-    );
-    expect(body).not.toContain('Mehr Spähschädel');
+    expect(body.lost).toBe(true);
+    expect(body.hint).toBe(false);
   });
 
   it('shows every part that the spy saw, in its order', () => {
@@ -226,46 +339,72 @@ describe('the body of an espionage report', () => {
       b: { metal: 3 },
       r: { spy: 2 },
     });
-    expect(body).toBe(
-      `${TOP}<div class="mt"><b>Aktivität</b><br>Aktiv</div><div class="mt"><b>Flotte</b><br>${n('sc')}: 1.000 · ${n('lf')}: 2</div><div class="mt"><b>Gehaltene Flotten</b><br>Cora: ${n('sc')}: 1 · ${n('lf')}: 2<br>Dirk &lt;b&gt;: <span class="dim">keine</span></div><div class="mt"><b>Verteidigung</b><br>${n('rl')}: 3</div><div class="mt"><b>Gebäude</b><br>${n('metal')}: 3</div><div class="mt"><b>Forschung</b><br>${n('spy')}: 2</div>\n   <div class="dim mt">Chance auf Auspex-Abwehr: 12 %</div>`,
-    );
+    expect(body.sections).toEqual([
+      { title: 'Aktivität', entries: [{ label: null, list: 'Aktiv' }] },
+      {
+        title: 'Flotte',
+        entries: [{ label: null, list: `${n('sc')}: 1.000 · ${n('lf')}: 2` }],
+      },
+      {
+        title: 'Gehaltene Flotten',
+        entries: [
+          { label: 'Cora', list: `${n('sc')}: 1 · ${n('lf')}: 2` },
+          { label: 'Dirk <b>', list: null },
+        ],
+      },
+      {
+        title: 'Verteidigung',
+        entries: [{ label: null, list: `${n('rl')}: 3` }],
+      },
+      {
+        title: 'Gebäude',
+        entries: [{ label: null, list: `${n('metal')}: 3` }],
+      },
+      {
+        title: 'Forschung',
+        entries: [{ label: null, list: `${n('spy')}: 2` }],
+      },
+    ]);
   });
 
-  it('says „keine“ for a part without any unit, and leaves out a part the spy did not see', () => {
+  it('has no list for a part without any unit, and leaves out a part the spy did not see', () => {
     const body = spy({ ships: {}, def: { rl: 0 } });
-    expect(body).toContain(
-      '<div class="mt"><b>Flotte</b><br><span class="dim">keine</span></div>',
-    );
-    expect(body).toContain(
-      '<div class="mt"><b>Verteidigung</b><br><span class="dim">keine</span></div>',
-    );
-    expect(body).not.toContain('Gebäude');
-    expect(body).not.toContain('Forschung');
-    expect(body).not.toContain('Gehaltene Flotten');
+    expect(body.sections).toEqual([
+      { title: 'Flotte', entries: [{ label: null, list: null }] },
+      { title: 'Verteidigung', entries: [{ label: null, list: null }] },
+    ]);
   });
 
   it('shows no held fleets for an empty list', () => {
-    expect(spy({ held: [] })).not.toContain('Gehaltene Flotten');
+    expect(titles(spy({ held: [] }))).toEqual([]);
   });
 
   it('shows the activity of the target: its words, or that there was none, or nothing for an old report', () => {
-    expect(spy({ activity: { minutes: 15 } })).toContain(
-      '<div class="mt"><b>Aktivität</b><br>Aktivität vor 15 Minuten</div>',
-    );
-    expect(spy({ activity: null })).toContain(
-      '<div class="mt"><b>Aktivität</b><br>Keine Aktivität in der letzten Stunde.</div>',
-    );
-    expect(spy({})).not.toContain('Aktivität');
+    expect(spy({ activity: { minutes: 15 } }).sections).toEqual([
+      {
+        title: 'Aktivität',
+        entries: [{ label: null, list: 'Aktivität vor 15 Minuten' }],
+      },
+    ]);
+    expect(spy({ activity: null }).sections).toEqual([
+      {
+        title: 'Aktivität',
+        entries: [
+          { label: null, list: 'Keine Aktivität in der letzten Stunde.' },
+        ],
+      },
+    ]);
+    expect(titles(spy({}))).toEqual([]);
   });
 
   it('adds the hint when the report shows no ships and no skulls were lost', () => {
-    expect(spy()).toContain(
-      'Chance auf Auspex-Abwehr: 12 % · Mehr Spähschädel oder Auspex-Lehre zeigen mehr Details.</div>',
-    );
-    expect(spy({ ships: { lf: 1 } })).not.toContain('Mehr Spähschädel');
+    expect(spy().hint).toBe(true);
+    expect(spy({ ships: { lf: 1 } }).hint).toBe(false);
+    expect(spy({ lost: true, ships: { lf: 1 } }).hint).toBe(false);
   });
 
-  it('escapes the counter value', () => {
-    expect(spy({ counter: '<1>' })).toContain('Abwehr: &lt;1&gt; %');
+  it('keeps the counter value as it is, text a component escapes', () => {
+    expect(spy({ counter: '<1>' }).counter).toBe('<1>');
+    expect(spy({ counter: undefined }).counter).toBe('');
   });
 });

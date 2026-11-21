@@ -79,6 +79,17 @@ const KINDS: Record<string, Kinds> = {
   sendGuildChat: { length: ['text'] },
   deleteGuildChat: { keep: ['id'] },
   seeGuildChat: { keep: ['id'] },
+  sendPrivateMessage: { name: ['name'], length: ['text'] },
+  readPrivateMessages: { name: ['name'] },
+  deletePrivateMessage: { keep: ['id'] },
+  deletePrivateConversation: { name: ['name'] },
+  reportPrivateMessage: { keep: ['id'] },
+  blockPlayer: { name: ['name'] },
+  unblockPlayer: { name: ['name'] },
+  privateMessageOptions: { keep: ['friendsOnly'] },
+  olderPrivateMessages: { keep: ['before'] },
+  openPrivateConversation: { name: ['name'] },
+  sentPrivateMessages: { keep: ['before'] },
   roundArchive: {},
   roundHistory: {},
   roundParticipant: { keep: ['round', 'seat'] },
@@ -232,6 +243,21 @@ describe('the input allow-list, action by action', () => {
         deep: { a: 1 },
       }),
     ).toStrictEqual({ speed: 2, open: false, zero: 0 });
+  });
+
+  it('never stores the open conversation the browser names in every request (#226)', () => {
+    const { ctx, seat } = setup();
+    expect(
+      inputOf(ctx, seat, 'reset', { type: 'reset', speed: 2, pmAfter: 41 }),
+    ).toStrictEqual({ speed: 2 });
+    expect(
+      inputOf(ctx, seat, 'build', {
+        type: 'build',
+        key: 'metal',
+        pm: 'Anna',
+        pmAfter: 41,
+      }),
+    ).toStrictEqual({ key: 'metal' });
   });
 });
 

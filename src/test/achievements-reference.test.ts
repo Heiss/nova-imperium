@@ -104,10 +104,13 @@ function filters(): string {
   const statuses = Object.entries(statusLabels)
     .map(([key, label]) => `<option value="${key}">${label}</option>`)
     .join('');
+  // #332: the fields are bound to the state of the form, so Svelte writes the
+  // value of the search (empty) and marks the chosen option („Alle“) in the
+  // markup; the browser shows the same page.
   return `<div class="flex">
-  <label for="achievement_search">Suchen</label> <input id="achievement_search" type="search">
-  <label for="achievement_category">Kategorie</label> <select id="achievement_category"><option value="">Alle</option>${categories}</select>
-  <label for="achievement_status">Status</label> <select id="achievement_status"><option value="">Alle</option>${statuses}</select>
+  <label for="achievement_search">Suchen</label> <input id="achievement_search" type="search" value="">
+  <label for="achievement_category">Kategorie</label> <select id="achievement_category"><option selected value="">Alle</option>${categories}</select>
+  <label for="achievement_status">Status</label> <select id="achievement_status"><option selected value="">Alle</option>${statuses}</select>
   </div>`;
 }
 

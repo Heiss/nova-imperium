@@ -16,6 +16,7 @@ import { answerOf } from '../game/actions.ts';
 import { ACTIONS, ADMIN_ACTIONS, runAction } from '../game/dispatch.ts';
 import { recordActivity } from '../game/activity.ts';
 import { mainPlanet } from '../game/main-planet.ts';
+import { pmOpenOf } from '../game/private-messages.ts';
 import { stateFor } from '../game/state.ts';
 import { type Mailer, invitationMail } from '../mail.ts';
 import {
@@ -438,7 +439,12 @@ function actionReply(ctx: Ctx, u: User, call: Call): Reply {
       ok: true,
       msg: answer.msg,
       ...(answer.data ? { data: answer.data } : {}),
-      state: stateFor(ctx, ctx.players.get(u.id)!, call.body.planet),
+      state: stateFor(
+        ctx,
+        ctx.players.get(u.id)!,
+        call.body.planet,
+        pmOpenOf(call.body),
+      ),
     },
   };
 }
@@ -457,15 +463,22 @@ function gameRoutes(
 ): Record<string, Handler> {
   const { ctx } = d;
   return {
-    'GET /api/state': (call) => ({
-      json: stateFor(
-        ctx,
-        sessionUserOf(ctx, call),
-        new URL(call.req.url ?? '/', 'http://localhost').searchParams.get(
-          'planet',
+    'GET /api/state': (call) => {
+      const query = new URL(call.req.url ?? '/', 'http://localhost')
+        .searchParams;
+      return {
+        json: stateFor(
+          ctx,
+          sessionUserOf(ctx, call),
+          query.get('planet'),
+          // The open conversation of the private messages (Q32).
+          pmOpenOf({
+            pm: query.get('pm') ?? undefined,
+            pmAfter: query.get('pmAfter') ?? undefined,
+          }),
         ),
-      ),
-    }),
+      };
+    },
     'GET /api/news': (call) => {
       sessionUserOf(ctx, call);
       return { json: d.news ?? { version: null, versions: [] } };

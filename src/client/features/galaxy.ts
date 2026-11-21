@@ -3,9 +3,9 @@
 // of the Phalanx (#69) and the shortcuts to the fleet form and to a spy
 // probe, and the bottom sheet of a position on a phone (#189). The markup is in views/galaxy.ts and the Svelte components; the
 // Raketenangriff is in features/missiles.ts.
-import { $, val } from '../dom.ts';
-import { clampInt } from '../logic/format.ts';
+import { $ } from '../dom.ts';
 import { galaxyStep } from '../logic/game.ts';
+import { galaxyPosition, wanted } from '../logic/galaxy-position.svelte.ts';
 import { targetOf } from '../logic/galaxy.ts';
 import { client } from '../logic/state.svelte.ts';
 import type { ClientCtx, ClientFeature, Handler } from './contract.ts';
@@ -19,8 +19,7 @@ const moveActs = ({ go, render }: ClientCtx): Record<string, Handler> => ({
     render(true);
   },
   ggo: () => {
-    ui.gal = clampInt(val('#g_g'), 1, client.game!.cfg.galaxies);
-    ui.sys = clampInt(val('#g_s'), 1, client.game!.cfg.systems);
+    Object.assign(ui, wanted(galaxyPosition, ui, client.game!.cfg));
     render(true);
   },
   ghome: () => {

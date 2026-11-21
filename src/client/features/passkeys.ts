@@ -3,6 +3,7 @@
 // part of the login in main.ts; the browser calls are in ../passkeys.ts.
 import { $, val } from '../dom.ts';
 import { dt, esc } from '../logic/format.ts';
+import { optionsForm } from '../logic/options-form.svelte.ts';
 import { addPasskey } from '../passkeys.ts';
 import type { ClientCtx, ClientFeature } from './contract.ts';
 
@@ -23,18 +24,18 @@ async function showPasskeys({ api, toast }: ClientCtx): Promise<void> {
         '</ul>'
       : '<p>Keine Passkeys gespeichert.</p>';
   } catch (error) {
-    toast((error as Error).message, true);
+    toast((error as Error).message, error as Error);
   }
 }
 
 async function submitPasskey(ctx: ClientCtx): Promise<void> {
   try {
     await addPasskey(ctx.api, val('#passkey-password'));
-    ctx.setInput('#passkey-password', '');
+    optionsForm.passkey = '';
     ctx.toast('Passkey gespeichert.');
     await showPasskeys(ctx);
   } catch (error) {
-    ctx.toast((error as Error).message, true);
+    ctx.toast((error as Error).message, error as Error);
   }
 }
 
@@ -48,7 +49,7 @@ export const clientFeature = {
         await ctx.api('/api/passkeys/remove', { id: d.id });
         await showPasskeys(ctx);
       } catch (error) {
-        ctx.toast((error as Error).message, true);
+        ctx.toast((error as Error).message, error as Error);
       }
     },
   }),

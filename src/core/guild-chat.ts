@@ -57,6 +57,50 @@ export function canDeleteChat(
 }
 
 /**
+ * `sendGuildChat` (#214): the right „Chat schreiben“; a text (`text` the
+ * body as the server cleaned it, anything but a string is empty) of 1 to
+ * MAX_CHAT_TEXT characters; and the pause CHAT_INTERVAL since the member's
+ * last message at `last` (none: undefined).
+ */
+export function sendChatError(
+  actor: RankRule,
+  text: unknown,
+  now: number,
+  last: number | undefined,
+): 'right' | 'empty' | 'length' | 'wait' | null {
+  if (!actor.rights.includes('chat-write')) return 'right';
+  if (typeof text !== 'string') return 'empty';
+  const error = chatTextError(text);
+  if (error) return error;
+  return now - (last ?? -Infinity) < CHAT_INTERVAL ? 'wait' : null;
+}
+
+/** A message of the chat as the checks see it: its kind, own, the place of its author. */
+export interface ChatTarget {
+  kind: string;
+  own: boolean;
+  author: number;
+}
+
+/**
+ * `deleteGuildChat` (#214): the right „Chatnachrichten löschen“, a message
+ * of the own guild (`message`, else undefined), no event, and `canDeleteChat`.
+ */
+export function deleteChatError(
+  actor: RankRule,
+  message: ChatTarget | undefined,
+): 'right' | 'message' | 'event' | 'lower' | null {
+  if (!actor.rights.includes('chat-delete')) return 'right';
+  if (!message) return 'message';
+  if (message.kind !== 'message') return 'event';
+  return canDeleteChat(actor, message.own, message.author) ? null : 'lower';
+}
+
+/** `seeGuildChat` (#214): the right „Chat lesen“. */
+export const seeChatError = (actor: RankRule): 'right' | null =>
+  actor.rights.includes('chat-read') ? null : 'right';
+
+/**
  * The event messages, written by the server and never deleted (#169 D3,
  * D4): a member joined, left or was removed, a member has a new rank, and
  * the launch of an attack on a member (owner, 2026-11-14 and 2026-11-15).

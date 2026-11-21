@@ -185,6 +185,13 @@ export interface MissionRules {
    * does not stay this way.
    */
   readonly maxStay?: (research: Levels, hoursPerLevel: number) => number;
+  /**
+   * The refusal of a launch without ships when it is not the general
+   * „no ships“: the Auspex-Erkundung names the probes, as the Sternenkarte
+   * does (F12, owner 2026-11-21; `startError`, fleet-checks.ts). Missing:
+   * the general one.
+   */
+  readonly withoutShips?: 'noProbes';
   /** The check of the mission itself, after the target kind; a code or nothing. */
   canSend(fleet: SendFleet, target: SendTarget): SendError | undefined;
 }

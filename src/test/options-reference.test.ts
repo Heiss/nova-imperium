@@ -135,6 +135,7 @@ const PUSH_LABELS: Record<PushTopic, string> = {
   news: 'Neue Version',
   'guild-events': 'Gildenereignisse',
   'guild-chat': 'Nachrichten im Gilden-Chat',
+  'private-messages': 'Persönliche Nachrichten',
 };
 function pushOptionsHTML(
   off: readonly string[] | undefined,

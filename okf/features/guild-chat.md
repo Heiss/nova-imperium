@@ -28,7 +28,7 @@ words are quoted) and the D-numbers of the issue they belong to:
 
 | Owner (2026-11-14) | Issue | Decision |
 | --- | --- | --- |
-| only a guild chat | D1 | The non-goal „messages between players“ is lifted for the guild chat only; private messages and chats between guilds stay non-goals. Private messages stay a non-goal after the Classic features too (owner, 2026-11-16, #226 stays an idea). |
+| only a guild chat | D1 | The non-goal „messages between players“ is lifted for the guild chat only; chats between guilds stay a non-goal. Private messages stay a non-goal here: they were lifted later (owner, 2026-11-21, #226, [Private messages](/features/private-messages.md)). |
 | „Lesen, Schreiben, Löschen“ | D2 | Three new rights in the list of #163: „Chat lesen“, „Chat schreiben“, „Chatnachrichten löschen“. The Leitung has all of them; the default rank gets read and write. |
 | „Nur beim Start“ | D3 | An attack shows an event message only when the hostile fleet is launched, with the arrival time; no message about the outcome. |
 | the events: joining and leaving, rank changes | D4 | Event messages when a member joined or left the guild or was removed, and for rank changes; no espionage events. |
@@ -184,7 +184,9 @@ The answers of the comment „Geklärt, Nachtrag“ (owner, 2026-11-15) to O15:
   `CHAT_INTERVAL` (2,000 ms), `chatLength`, `chatTextError` and
   `canDeleteChat` (right and order, plain values as the rank rules);
   `CHAT_EVENTS`, `chatEventText` (the sentences of the owner) and
-  `chatUnread` (the red mark).
+  `chatUnread` (the red mark); the check of each action as one function
+  that returns a code (#214): `sendChatError`, `deleteChatError` (also the
+  flag `delete` of each message) and `seeChatError`.
 * `src/server/game/guild-events.ts` (a security file, mutation target
   90 %): `memberEvent`, `rankEvent` and `attackEvent`, called by the guild
   actions (`guilds.ts`), the rank actions (`guild-ranks.ts`) and `send`
@@ -199,7 +201,8 @@ The answers of the comment „Geklärt, Nachtrag“ (owner, 2026-11-15) to O15:
   `dispatch.ts`, so `requireGuilds` refuses them while guilds are off;
   `chatState` (the chat of the state for a member) and `adminGuildChat`
   (the read of the admin). Every action finds the acting member with
-  `actor` of #163 and checks the right of its rank on the server.
+  `actor` of #163 and checks the right of its rank on the server, with the
+  checks of `src/core/guild-chat.ts`, and words their codes.
 * `POST /api/admin/guild-chat` (`src/server/http/admin.ts`): an admin read,
   audited as `admin.read` / `guildChat`.
 * A new round deletes all chats (`guilds.clearChats()` in `newRound`),

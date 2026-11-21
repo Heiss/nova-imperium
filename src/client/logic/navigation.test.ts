@@ -147,6 +147,23 @@ describe('navigation', () => {
     );
   });
 
+  it('counts the unread private messages in the one mark of „Nachrichten“ and in the bell (#226)', () => {
+    const own = (unread: number) => ({
+      privateMessages: {
+        friendsOnly: false,
+        blocked: [],
+        conversations: [{ with: 'Bert', unread, messages: [] }],
+      },
+    });
+    const messages = (l: ReturnType<typeof nav>) =>
+      l.more.find((x) => x.view === 'messages')!;
+    const s = state({ reports: [{ time: 100 }, { time: 101 }], ...own(3) });
+    expect(messages(nav(s)).hint).toBe('4 ungelesene Nachrichten');
+    expect(nav(s).bell.unread).toBe(4);
+    expect(messages(nav(state(own(2)))).hint).toBe('2 ungelesene Nachrichten');
+    expect(messages(nav(state(own(0)))).hint).toBe(undefined);
+  });
+
   it('marks „Mehr“ only for something new under it', () => {
     // The unread messages are under „Mehr“ now, next to the bell (#189).
     const s = state({ reports: [{ time: 101 }] });

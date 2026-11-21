@@ -2,13 +2,15 @@
 // „Verbandsangriff“ with the invitation field for the leader and „Beitreten“
 // for everyone, the row „Verband“ of the fleet form, and the buttons of the
 // fleet movements.
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { roundDefaults } from '../../test/fixtures.ts';
 import { fleetView } from '../../test/fleet-view.ts';
 import { normalize } from '../../test/markup.ts';
 import type { RoundRules } from '../../core/round.ts';
 import type { ClientFleet, GameState, UnionState } from '../logic/types.ts';
 import type { V } from './common.ts';
+import { fleetForm } from '../logic/fleet-form.svelte.ts';
+import { forgetForms } from '../logic/form-state.svelte.ts';
 
 /** The fleet view as a browser shows it. */
 const fleet = (v: V): string => normalize(fleetView(v));
@@ -108,6 +110,32 @@ describe('the row „Verband“ of the fleet form', () => {
   });
 });
 
+describe('the union chosen after a redraw (#332)', () => {
+  afterEach(forgetForms);
+
+  const other = { ...union, id: 'f9' };
+  const selected = (html: string): string[] =>
+    [
+      .../<select id="t_u"[^]*?<\/select>/
+        .exec(html)![0]
+        .matchAll(/<option selected value="([^"]*)">/g),
+    ].map((m) => m[1]!);
+
+  it('shows the union chosen, not the one of the page, and none for the choice of no union', () => {
+    const v = (): V => view([union, other], 'u1', { union: 'un<1>' });
+    expect(selected(fleet(v()))).toEqual(['un&lt;1>']);
+    fleetForm.union = 'f9';
+    expect(selected(fleet(v()))).toEqual(['f9']);
+    fleetForm.union = '';
+    expect(selected(fleet(v()))).toEqual([]);
+  });
+
+  it('shows none for a union the player cannot join any more', () => {
+    fleetForm.union = 'gone';
+    expect(selected(fleet(view([union, other])))).toEqual([]);
+  });
+});
+
 describe('opening a union from an own Sturmangriff', () => {
   const html = (f: ClientFleet, unions: UnionState[] = []) =>
     fleet(view(unions, 'u1', {}, [f]));
@@ -139,5 +167,19 @@ describe('opening a union from an own Sturmangriff', () => {
       'Ruft der Anführer seine Flotte zurück, kehren alle Flotten des Verbands um',
     );
     expect(fleet(view([union]))).toContain('Ruft der Anführer');
+  });
+});
+
+describe('the name typed to invite (#332)', () => {
+  afterEach(forgetForms);
+
+  it('stays in the field of its union over a redraw, and is empty for another', () => {
+    const other = { ...union, id: 'f9', leader: 'u1' };
+    fleetForm.invite['un<1>'] = 'Bert & Co';
+    const html = fleet(view([union, other]));
+    expect(html).toMatch(/id="un_name_un&lt;1>"[^>]*value="Bert &amp; Co"/);
+    expect(/<input[^>]*id="un_name_f9"[^>]*>/.exec(html)![0]).not.toContain(
+      'value',
+    );
   });
 });

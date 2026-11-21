@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { forgetForms } from '../logic/form-state.svelte.ts';
+import { galaxyPosition } from '../logic/galaxy-position.svelte.ts';
 import { client } from '../logic/state.svelte.ts';
 import type { GameState } from '../logic/types.ts';
 import type { V } from '../views/common.ts';
@@ -15,6 +17,7 @@ let fields: Record<string, Field>;
 let keydown: (e: { key: string; target: { id: string } }) => void;
 
 beforeEach(() => {
+  forgetForms();
   fields = {};
   vi.stubGlobal('CSS', { escape: (s: string) => s });
   vi.stubGlobal('document', {
@@ -69,11 +72,18 @@ describe('stepping through the map', () => {
 
   it('goes to the galaxy and system typed, kept inside the universe', () => {
     const ctx = fakeCtx();
-    fields['#g_g'] = { value: '9' };
-    fields['#g_s'] = { value: '0' };
+    galaxyPosition.gal = '9';
+    galaxyPosition.sys = '0';
     acts(ctx).ggo!({});
     expect(client.ui).toMatchObject({ gal: 4, sys: 1 });
     expect(ctx.render).toHaveBeenCalledWith(true);
+  });
+
+  it('goes where the page is for a field nobody typed in', () => {
+    const ctx = fakeCtx();
+    galaxyPosition.sys = '6';
+    acts(ctx).ggo!({});
+    expect(client.ui).toMatchObject({ gal: 2, sys: 6 });
   });
 
   it('goes to the main planet, else to the shown one', () => {
@@ -96,8 +106,8 @@ describe('stepping through the map', () => {
   it('goes to the position typed on Enter in a field of the position only', () => {
     const ctx = fakeCtx();
     acts(ctx);
-    fields['#g_g'] = { value: '3' };
-    fields['#g_s'] = { value: '8' };
+    galaxyPosition.gal = '3';
+    galaxyPosition.sys = '8';
     keydown({ key: 'Enter', target: { id: 'g_g' } });
     expect(client.ui).toMatchObject({ gal: 3, sys: 8 });
     expect(ctx.render).toHaveBeenCalledTimes(1);

@@ -26,7 +26,7 @@ async function openInvite(token: string): Promise<void> {
     ui.auth = 'register';
   } catch (e) {
     ui.auth = 'login';
-    toast((e as Error).message, true);
+    toast((e as Error).message, e as Error);
   }
 }
 

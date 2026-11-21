@@ -3,7 +3,7 @@
 // the target offers none; the browser asks the same check as the server.
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
-import { type FitTarget, missionsFor } from './mission-fit.ts';
+import { canOffer, type FitTarget, missionsFor } from './mission-fit.ts';
 import {
   FLEET_MISSIONS,
   fitError,
@@ -229,5 +229,41 @@ describe('the list and the server', () => {
       const error = sendError(missionRules(m)!, fleetFor(m), known(at));
       expect(error, m).toBeUndefined();
     }
+  });
+});
+
+describe('a button for a mission at a target (#95)', () => {
+  const ships = (n: number): SendFleet => ({ ...FROM, ships: { dstar: n } });
+  const moon = (over: Partial<FitTarget> = {}): FitTarget =>
+    target({ planet: planetOf('bert', 'm1_2_6'), moon: true, ...over });
+
+  it('offers the Mondbruch at a foreign moon', () => {
+    expect(canOffer('moonbreak', ships(1), moon())).toBe(true);
+  });
+
+  it('offers it without a Weltenbrecher too: the ships are not asked (owner, 2026-11-21)', () => {
+    expect(canOffer('moonbreak', ships(0), moon())).toBe(true);
+    expect(canOffer('moonbreak', FROM, moon())).toBe(true);
+  });
+
+  it('offers it not at a planet, an own moon, the start place, or nothing', () => {
+    expect(
+      canOffer('moonbreak', ships(1), target({ planet: planetOf('bert') })),
+    ).toBe(false);
+    expect(
+      canOffer(
+        'moonbreak',
+        ships(1),
+        moon({ planet: planetOf('anna', 'm1_2_6') }),
+      ),
+    ).toBe(false);
+    expect(
+      canOffer(
+        'moonbreak',
+        ships(1),
+        moon({ planet: planetOf('bert', FROM.from) }),
+      ),
+    ).toBe(false);
+    expect(canOffer('moonbreak', ships(1), moon({ planet: null }))).toBe(false);
   });
 });

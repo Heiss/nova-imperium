@@ -11,6 +11,7 @@ import {
   samePlace,
   type Sync,
 } from './act.ts';
+import { ApiError } from './transport.ts';
 import type { GameState } from './types.ts';
 
 const state = (player: string, planet: string | null): GameState =>
@@ -60,6 +61,51 @@ describe('placeOf and samePlace', () => {
     expect(samePlace(null, here)).toBe(false);
     expect(samePlace(null, {})).toBe(false);
     expect(samePlace(state('u1', null), { player: 'u1' })).toBe(true);
+  });
+});
+
+describe('the extra fields of every request (Q32)', () => {
+  it("adds what `extra` gives to every action, before the action's own fields, and nothing when there is no `extra`", async () => {
+    const api = vi.fn<ActDeps['api']>(async () => ({
+      state: state('u1', 'p1'),
+    }));
+    const open = { pm: 'Bert', pmAfter: 7 };
+    const sync = createAct({
+      api,
+      state: () => state('u1', 'p1'),
+      apply: vi.fn(),
+      toast: vi.fn(),
+      extra: () => open,
+    });
+    await (sync.send as unknown as Send)('readPrivateMessages', {
+      name: 'Bert',
+    });
+    expect(api).toHaveBeenLastCalledWith('/api/action', {
+      type: 'readPrivateMessages',
+      planet: 'p1',
+      pm: 'Bert',
+      pmAfter: 7,
+      name: 'Bert',
+    });
+    // The action's own fields win; the quiet way carries it too.
+    await (sync.quiet as unknown as Send)('read', { pm: 'own' });
+    expect(api).toHaveBeenLastCalledWith('/api/action', {
+      type: 'read',
+      planet: 'p1',
+      pm: 'own',
+      pmAfter: 7,
+    });
+    const plain = createAct({
+      api,
+      state: () => state('u1', 'p1'),
+      apply: vi.fn(),
+      toast: vi.fn(),
+    });
+    await (plain.send as unknown as Send)('read');
+    expect(api).toHaveBeenLastCalledWith('/api/action', {
+      type: 'read',
+      planet: 'p1',
+    });
   });
 });
 
@@ -210,8 +256,20 @@ describe('act', () => {
       throw new Error('Zu wenig Rohstoffe.');
     });
     expect(await t.act('build')).toBe('failed');
-    expect(t.toast).toHaveBeenCalledWith('Zu wenig Rohstoffe.', true);
+    expect(t.toast).toHaveBeenCalledWith(
+      'Zu wenig Rohstoffe.',
+      expect.objectContaining({ message: 'Zu wenig Rohstoffe.' }),
+    );
     expect(t.apply).not.toHaveBeenCalled();
+  });
+
+  it('hands the toast the error of the failed call itself, so „Problem melden“ names that call', async () => {
+    const refused = new ApiError('Interner Fehler. Vorgang: a1', 'a1');
+    const t = setup(async () => {
+      throw refused;
+    });
+    expect(await t.act('build')).toBe('failed');
+    expect(t.toast).toHaveBeenCalledWith(refused.message, refused);
   });
 
   it('keeps the refusal of a quiet action to itself and still answers failed (#301)', async () => {

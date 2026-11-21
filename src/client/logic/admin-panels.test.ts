@@ -12,6 +12,7 @@ import {
   eventDetail,
   eventsPage,
   invitationsPage,
+  reportsPage,
   nameOf,
   ordersPage,
   pagerPage,
@@ -211,9 +212,9 @@ describe('the player records and the orders', () => {
   it('notes 5 failed logins and 30 actions in a minute, not 4 and 29', () => {
     const hints = (over: object) => statsPage([stats(over)]).rows[0]![4];
     expect(hints({ failedLogins: 5 })).toBe('5 abgelehnte Logins in 1 Std.');
-    expect(hints({ recentActions: 30 })).toBe('30 Spielaktionen in 1 Min.');
+    expect(hints({ recentActions: 30 })).toBe('30 Aktionen in 1 Min.');
     expect(hints({ failedLogins: 5, recentActions: 30 })).toBe(
-      '5 abgelehnte Logins in 1 Std. · 30 Spielaktionen in 1 Min.',
+      '5 abgelehnte Logins in 1 Std. · 30 Aktionen in 1 Min.',
     );
     expect(hints({ failedLogins: 4, recentActions: 29 })).toBe('—');
   });
@@ -368,5 +369,37 @@ describe('the invitations', () => {
 
   it('has no rows for no invitation', () => {
     expect(invitationsPage([]).rows).toEqual([]);
+  });
+});
+
+describe('the reported private messages (#226)', () => {
+  it('lists sender, recipient, times, reporter and the text', () => {
+    expect(
+      reportsPage([
+        {
+          id: 1,
+          sender: 'Anna',
+          recipient: 'Bert',
+          reporter: 'Bert',
+          sent: 1,
+          reported: 2,
+          text: '<b>x</b>',
+        },
+      ]),
+    ).toEqual({
+      headers: [
+        'Von',
+        'An',
+        'Gesendet',
+        'Gemeldet von',
+        'Gemeldet',
+        'Nachricht',
+      ],
+      rows: [['Anna', 'Bert', dt(1), 'Bert', dt(2), '<b>x</b>']],
+    });
+  });
+
+  it('has no rows for no report', () => {
+    expect(reportsPage([]).rows).toEqual([]);
   });
 });

@@ -87,7 +87,10 @@ describe('the login', () => {
       }),
     });
     await forms(ctx).authform!();
-    expect(ctx.toast).toHaveBeenCalledWith('Falsches Passwort.', true);
+    expect(ctx.toast).toHaveBeenCalledWith(
+      'Falsches Passwort.',
+      expect.objectContaining({ message: 'Falsches Passwort.' }),
+    );
     expect(ctx.render).not.toHaveBeenCalled();
     expect(client.ui.auth).toBe('login');
   });

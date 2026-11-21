@@ -1,6 +1,8 @@
 <script lang="ts">
   // The form to found a guild, or for its Leitung to change it (#163); sent by
-  // features/guilds.ts (`guildform`, which reads `data-edit`).
+  // features/guilds.ts (`guildform`, which reads `data-edit`). What was typed
+  // is the state of logic/guild-form.svelte.ts (#332).
+  import { guildForm } from '../logic/guild-form.svelte.ts';
   import type { ProfileFormModel } from '../logic/guilds.ts';
 
   let { form }: { form: ProfileFormModel } = $props();
@@ -14,7 +16,8 @@
       required
       minlength="2"
       maxlength="8"
-      value={form.tag}
+      value={guildForm.tag ?? form.tag}
+      oninput={(e) => (guildForm.tag = e.currentTarget.value)}
     />
   </div>
   <div>
@@ -24,7 +27,8 @@
       required
       minlength="3"
       maxlength="32"
-      value={form.name}
+      value={guildForm.name ?? form.name}
+      oninput={(e) => (guildForm.name = e.currentTarget.value)}
     />
   </div>
   <div>
@@ -34,7 +38,9 @@
       class="wide"
       rows="6"
       maxlength="6000"
-      value={form.description}></textarea>
+      value={guildForm.description ?? form.description}
+      oninput={(e) => (guildForm.description = e.currentTarget.value)}
+    ></textarea>
   </div>
   <button type="submit"
     >{form.edit ? 'Profil speichern' : 'Gilde gründen'}</button

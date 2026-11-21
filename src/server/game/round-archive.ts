@@ -10,6 +10,7 @@
 // per participant, `guild.final` per guild, `round.closed`), no totals: the
 // report derives its numbers on read (okf/features/round-archive.md).
 import { production } from '../../core/economy.ts';
+import { ENDZEIT_EVENT } from '../../core/round-events.ts';
 import {
   type FinalPlace,
   type MeasuredInterval,
@@ -26,6 +27,7 @@ import type { RoundRow } from '../db/repos/rounds.ts';
 import type { User } from '../db/repos/players.ts';
 import { type Ctx, fail, universe } from './context.ts';
 import { categoryScores } from './highscore.ts';
+import { journalClose } from './journal.ts';
 import { pointsMap } from './points.ts';
 import { roundRules, roundStart } from './round.ts';
 
@@ -39,7 +41,7 @@ export const ROUND_EVENT = {
   closed: 'round.closed',
   /** An admin intervention the history must annotate (issue #235, section 3): the settings and the Endzeit. */
   settings: 'admin.settings',
-  endzeit: 'admin.endzeit',
+  endzeit: ENDZEIT_EVENT,
 } as const;
 
 /** What a round holds at one moment: its participants and guilds, by seat. */
@@ -109,9 +111,7 @@ export function roundFacts(ctx: Ctx): RoundFacts {
   // A player keeps the seat they got when they joined (`participant.joined`);
   // one who has none yet (a round without those events) gets the next free one.
   const seated = ctx.rounds.participants(roundRules(ctx).number);
-  const known = new Map(
-    seated.filter((p) => p.player).map((p) => [p.player!, p.seat]),
-  );
+  const known = new Map(seated.map((p) => [p.player, p.seat]));
   let free = Math.max(0, ...seated.map((p) => p.seat)) + 1;
   const players: RoundFacts['players'] = [];
   for (const user of ctx.players.all()) {
@@ -217,6 +217,8 @@ export function closeActiveRound(ctx: Ctx): RoundRow {
   const number = round.number;
   const cutoff = ctx.now();
   const rules = roundRules(ctx);
+  // The last spans up to the cutoff go into the journal first (version 2).
+  journalClose(ctx, cutoff);
   const facts = roundFacts(ctx);
   const before = ctx.rounds.countEvents(number);
   let written = 0;

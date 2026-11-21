@@ -2,6 +2,7 @@
 // okf/features/own-activity.md): the reports of the browser become accepted
 // intervals, and every total is derived from the intervals on read. A
 // player reads only their own; the admin diagnostics use the same sums.
+import { countsAsPlayAction } from '../../core/action-kind.ts';
 import { DAY_MS } from '../../core/activity.ts';
 import { EVENT_KIND } from '../../core/round-events.ts';
 import {
@@ -73,9 +74,11 @@ export function recordPlaytime(
  * round journal (#231, #235): the events `journal.action` that succeeded, by
  * the seats the account held in the rounds, kept until the admin deletes the
  * round (the 30-day purge of the audit log does not reach them). What counts
- * is what the audit count counted: a succeeded request to an action that is
- * not an admin action, reads included; a refused action (`ok` false), a limited
- * one and an unknown one do not.
+ * is what the audit count counted, narrowed by #335: a succeeded request to an
+ * action that is not an admin action and that counts (`countsAsPlayAction`: the
+ * changes and the reads the player starts by a click, not the reads a view makes
+ * by itself); a refused action (`ok` false), a limited one and an unknown one do
+ * not.
  */
 function journalActions(
   ctx: Ctx,
@@ -99,15 +102,17 @@ function journalActions(
   }[];
   const days = new Map<number, number>();
   for (const r of rows)
-    if (!ADMIN_ACTIONS.has(r.cause))
+    if (!ADMIN_ACTIONS.has(r.cause) && countsAsPlayAction(r.cause))
       days.set(r.day, (days.get(r.day) ?? 0) + r.actions);
   return days;
 }
 
 /**
- * The successful actions of the audit log per UTC day since `from`: only for
- * the days from before the journal existed, which has no count of them. The
- * audit log keeps 30 days.
+ * The successful actions of the audit log per UTC day since `from` that count
+ * as play actions (the same table as the journal, #335; `audit_events.action`
+ * holds the action name, `'unknown'` for an unknown one, which does not count,
+ * and the rows of `rateLimit` are rejected): only for the days from before the
+ * journal existed, which has no count of them. The audit log keeps 30 days.
  */
 function auditActions(
   ctx: Ctx,
@@ -116,12 +121,21 @@ function auditActions(
 ): Map<number, number> {
   const rows = ctx.db
     .prepare(
-      `SELECT time - time % ? AS day, COUNT(*) AS actions FROM audit_events
+      `SELECT time - time % ? AS day, action, COUNT(*) AS actions
+       FROM audit_events
        WHERE actor = ? AND category = 'game' AND outcome = 'ok' AND time >= ?
-       GROUP BY day`,
+       GROUP BY day, action`,
     )
-    .all(DAY_MS, uid, from) as { day: number; actions: number }[];
-  return new Map(rows.map((r) => [r.day, r.actions]));
+    .all(DAY_MS, uid, from) as {
+    day: number;
+    action: string;
+    actions: number;
+  }[];
+  const days = new Map<number, number>();
+  for (const r of rows)
+    if (countsAsPlayAction(r.action))
+      days.set(r.day, (days.get(r.day) ?? 0) + r.actions);
+  return days;
 }
 
 /** The first moment the journal recorded an action, null before the first one. */

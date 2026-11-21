@@ -316,8 +316,32 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   minor update, not a pin), and the digest cases (GitHub Actions) need
   GitHub's API. The first such security pull request on GitHub shows it.
 
-* **[E]** Every push to `main` runs the full suite with an incremental mutation
-  run (owner, 2026-11-11); the release pull request and the nightly run in
+* **[E]** A push to `main` or `hotfix/**` does not repeat what already ran
+  green on identical content, and the tag accepts that proof (owner,
+  2026-11-21, #342; it replaces the rule „every push to `main` runs the full
+  suite“ of 2026-11-11). The CI looks up the pull request the pushed commit
+  merged and compares the Git tree of the pushed commit with the tree of the
+  head commit that pull request was tested on. With an identical tree each
+  expensive job (lint, types, unit tests and build; E2E; the complete
+  mutation run; the Docker image with the Compose stack; the documentation
+  website) is skipped exactly when the same job succeeded in a green CI run
+  of that head (event `pull_request`, this repository, workflow „CI“); a job
+  that did not run there, or ran only in part (the mutation run of the
+  changed files, #309), runs on the push. Every other case runs everything:
+  no pull request, two of them, a different tree, a direct push, a red or
+  missing run, an error of the lookup (the rule fails closed). The CI Gate
+  of a push requires for every job its own success or the named proof and
+  prints it. `tag.yml` is unchanged: it still needs a green CI push run of
+  the tagged commit, which after a release merge now takes minutes. The
+  build: [Proofs of a push run](/ops/testing/push-proofs.md). A push after a
+  pull request with a partial mutation run does not run the complete shards:
+  the pull request's own mutation jobs, complete or partial, prove them, and
+  so does a run that found nothing to mutate ([V], coordinator, 2026-11-21;
+  not a result taken over from another tree, #167); the
+  release pull request and the nightly run are enough for the complete run,
+  and the shards run on a push only when its tree is not proven (owner,
+  2026-11-21, O23).
+* **[E]** The release pull request and the nightly run in
   `.github/workflows/mutation.yml` test every mutant. All of them run in 4
   parallel shards with a gate job on the merged report (owner, 2026-11-12,
   #131).

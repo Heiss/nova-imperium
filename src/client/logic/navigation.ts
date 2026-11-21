@@ -8,6 +8,7 @@ import { menu, type MenuEntry, phoneMenu } from '../views/index.ts';
 import { catalogKind } from './catalog-list.ts';
 import { unread } from './game.ts';
 import { menuHints } from './menu-hints.ts';
+import { privateUnread } from './private-messages.ts';
 import { newsHint } from './news.ts';
 import type { GameState } from './types.ts';
 
@@ -48,11 +49,9 @@ export function navigation(
   completed: ReadonlyMap<string, string>,
   href: (view: string) => string,
 ): Navigation {
-  const hints = menuHints(
-    state,
-    completed,
-    unread(state.reports, state.me.readAt),
-  );
+  // The one mark of „Nachrichten“ counts the reports and the private messages (#226).
+  const fresh = unread(state.reports, state.me.readAt) + privateUnread(state);
+  const hints = menuHints(state, completed, fresh);
   const news = newsHint(ui.news, ui.newsSeen);
   if (news) hints.set('news', news);
   const link = (entry: MenuEntry): NavLink => ({
@@ -76,7 +75,7 @@ export function navigation(
     moreHint: more.some((i) => hints.has(i.view)),
     bell: {
       href: href('messages'),
-      unread: unread(state.reports, state.me.readAt),
+      unread: fresh,
       on: ui.view === 'messages',
     },
     commander: state.me.name,

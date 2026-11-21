@@ -227,9 +227,13 @@ above.
 * **[V]** Highscore (#78): the points are worked out from what stands on the
   planets, so they fall at once by the cost of the missiles torn down, in
   the total only (missiles are no category); nothing is stored or booked.
-* **[V]** A missile in store is torn down only in the list „Verteidigung“,
-  which a planet without a Schiffsschmiede does not show; the amount typed
-  stays like the fields of the order (field draft by the id `td_<key>`).
+* **[E]** (owner, 2026-11-21) A missile in store is torn down only in the
+  list „Verteidigung“, which a planet without a Schiffsschmiede does not
+  show: a planet whose Schiffsschmiede was demolished while missiles are
+  stored cannot tear them down until it has one again; this rare case is
+  accepted. **[V]** The amount typed stays like the fields of the order
+  (the field `td_<key>` of the list, which the poll redraws in place without
+  touching it, #332; `src/client/views/list-fields.test.ts`).
 * **[V]** Vacation mode (#223, built into the bundle with #54): the check of
   the target asks it after the range and before the noob protection, as
   for a fleet (`vacationProtects`, `src/core/vacation.ts`): a place of a

@@ -30,7 +30,7 @@ export async function selectPlanet(
     client.forget();
     apply(state, true);
   } catch (e) {
-    toast((e as Error).message, true);
+    toast((e as Error).message, e as Error);
   }
 }
 
