@@ -40,12 +40,20 @@ description: 'Mutation standard per file, coverage, ESLint complexity and code h
   and lowers one above it to the cap („capped“ in its summary). The
   coordinator rewrites `mutation-floors.txt` once from the report of a
   complete run with that script, never by hand. A standard without `cap`
-  reads as no cap (100) and no list: the stricter reading. Still open for the
-  owner: who may mark a mutant of a file of the list with
-  `// Stryker disable next-line <mutator>: <reason>` and how a mark is
-  reviewed (none is marked yet), whether a new file still needs 80 % (it
-  does, unchanged), and whether a drop above the cap is shown as a notice
-  (it is not yet).
+  reads as no cap (100) and no list: the stricter reading. **[E]** (owner,
+  2026-11-21, the three open points of #338): the building agent may mark a
+  mutant that no test can kill with
+  `// Stryker disable next-line <Mutator>: <reason>`, only in a file of the
+  list, each mark with a reason that says why no test can tell the mutation,
+  and every mark is listed in the report of the pull request
+  (`node scripts/mutation-marks.ts` prints them); the guard test
+  `src/test/mutation-marks.test.ts` checks every file Stryker mutates and
+  fails on a mark outside the list, in another form (a whole file, `all`,
+  `restore`) or without a reason ([V]: a reason of fewer than 10 characters
+  counts as none). A new file still needs 80 % (a new security file 90 %).
+  A drop above the cap is a notice of the run, no failure:
+  `scripts/mutation-gate.ts` prints `::notice` per file whose score fell
+  below its recorded floor and stays at or above the cap.
 
 * **[E]** Coverage blocks below 90 % of the lines and 85 % of the branches.
 

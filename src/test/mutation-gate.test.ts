@@ -2,6 +2,7 @@ import { spawnSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
 import {
   check,
+  dropsAboveCap,
   checkTotal,
   failures,
   floorOf,
@@ -86,6 +87,37 @@ describe('mutation gate', () => {
     expect(check({ 'src/core/high.ts': 94.99 }, capped)).toEqual([
       'src/core/high.ts: 94.99 % < 95 % (recorded floor 100 %, capped (#338))',
     ]);
+  });
+
+  it('gives a notice, no failure, for a drop above the cap, and none for a sensitive file (#338)', () => {
+    const capped: Standard = {
+      ...standard,
+      cap: 95,
+      exact: ['src/server/auth.ts'],
+      floors: {
+        'src/core/high.ts': 100,
+        'src/core/same.ts': 98,
+        'src/core/low.ts': 90,
+        'src/server/auth.ts': 99,
+      },
+    };
+    expect(
+      dropsAboveCap(
+        {
+          'src/core/same.ts': 98,
+          'src/core/high.ts': 95,
+          'src/core/low.ts': 89,
+          'src/core/new.ts': 96,
+          'src/server/auth.ts': 98,
+        },
+        capped,
+      ),
+    ).toEqual([
+      '::notice file=src/core/high.ts::src/core/high.ts: 95 % is below its recorded floor of 100 %, above the cap of 95 %: no failure (#338)',
+    ]);
+    // Below the cap it is a failure instead of a notice.
+    expect(dropsAboveCap({ 'src/core/high.ts': 94.99 }, capped)).toEqual([]);
+    expect(check({ 'src/core/high.ts': 95 }, capped)).toEqual([]);
   });
 
   it('reads the cap and the sensitive files of the standard', () => {

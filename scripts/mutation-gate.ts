@@ -250,7 +250,31 @@ export function table(report: Report): string[] {
     });
 }
 
+/**
+ * A notice per file that fell below its recorded floor but stays at or above
+ * the cap (#338, owner, 2026-11-21): no failure, but the drop stays visible.
+ * A sensitive file of `exact` has no cap, so its drop fails instead.
+ */
+export function dropsAboveCap(
+  scores: Readonly<Record<string, number>>,
+  standard: Standard,
+): string[] {
+  return Object.keys(scores)
+    .sort()
+    .flatMap((file) => {
+      const s = scores[file]!;
+      const recorded = standard.floors[file];
+      const limit = limitOf(file, standard);
+      return recorded !== undefined && s < recorded && s >= limit
+        ? [
+            `::notice file=${file}::${file}: ${s} % is below its recorded floor of ${recorded} %, above the cap of ${limit} %: no failure (#338)`,
+          ]
+        : [];
+    });
+}
+
 function notices(scores: Record<string, number>, standard: Standard): void {
+  for (const line of dropsAboveCap(scores, standard)) console.log(line);
   for (const f of standard.security) {
     const s = scores[f];
     if (s !== undefined && s < standard.securityTarget)
