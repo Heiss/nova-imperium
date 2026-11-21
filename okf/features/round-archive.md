@@ -575,7 +575,26 @@ Rewind below, the full one comes with these events.
   rules of „The thin Runden-Rewind“. The opponent of card 4 is the name of the
   report row of the other seat (a deleted account: „Gelöschter Spieler“); an
   opponent without a row stays unnamed.
-* **[V]** Cost of the read: `roundRewind` loads all events of the round (about
-  50 MB of payload for a round of 20 players, see above) and filters in memory;
-  it is a rare read. A filter by seat in the repository is the next step if it
-  is felt. [U]
+* **[V]** Cost of the read, measured 2026-11-21 (a scratch test, not kept):
+  a closed round of 20 players, 30 days, 300 actions and 100 arrivals per player
+  and day (the estimate of `journal-cost.test.ts`), 240,062 rows and 50.6 MB of
+  payload, built from the real payload shapes of that test. `roundRewind` loading
+  the whole round (`ctx.rounds.events`) held +199 MB of heap while the events
+  were in memory (peak about +220 MB in the call, 1.4 s) and kept nothing after
+  it (`process.memoryUsage().heapUsed` after `gc()`, before the call, with the
+  events loaded, after the call). That is too much for a small machine, so the
+  query reads only what the cards of the seat can read (`eventsForSeat` in
+  `src/server/db/repos/rounds.ts`, parameterised SQL): the events of the seat;
+  the events whose `target` is the seat; the battle reports (`reports`) that went
+  to the seat; the events with a place of the seat in their `prod`; the fleet
+  events of a union the seat sent a fleet into (`send` with `ok` true and
+  `input.union`); `admin.endzeit`; and one event of version 1 of the journal if
+  the round holds one (`completeFor` only asks whether there is one). The same
+  round then loads 15,004 events (+14.8 MB of heap, peak about +17 MB, 0.9 s),
+  and the cards are the same: `round-rewind-seat-filter.test.ts` compares the
+  results of every function of the reader on generated rounds, for every seat,
+  with the filtered and the unfiltered events, and
+  `round-rewind-consumption.test.ts` does it for events of real arrivals. The
+  query reads every row of the round once (it opens the JSON of the payload in
+  SQLite); a more selective read would need columns for the target and the
+  owners of the places, which the journal does not have.

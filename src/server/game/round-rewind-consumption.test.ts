@@ -50,8 +50,11 @@ const fleet = (ctx: TestCtx, id: string, owner: string, over: Partial<Fleet>) =>
     ...over,
   });
 
-const journal = (ctx: TestCtx): RewindEvent[] =>
-  ctx.rounds.events(1).map((e) => ({
+const journal = (ctx: TestCtx, seat?: number): RewindEvent[] =>
+  (seat === undefined
+    ? ctx.rounds.events(1)
+    : ctx.rounds.eventsForSeat(1, seat)
+  ).map((e) => ({
     at: e.at,
     kind: e.kind,
     seat: e.seat,
@@ -136,6 +139,8 @@ describe('the facts that show an unrecorded consumption, in the real journal', (
     expect(colony).toMatchObject({ seat: me, at: arrival.at });
     expect(colony.payload).toMatchObject({ kind: 'planet', cause: 'arrival' });
     expect(around(me, events)).toBeNull();
+    // The seat filter keeps the facts: the same answer from the events of the seat only.
+    expect(around(me, journal(ctx, me))).toBeNull();
   });
 
   it('a joined fleet: the report of the battle goes to the seat that is neither the leader nor the target', () => {
@@ -158,6 +163,7 @@ describe('the facts that show an unrecorded consumption, in the real journal', (
       ]),
     );
     expect(around(me, journal(ctx))).toBeNull();
+    expect(around(me, journal(ctx, me))).toBeNull();
   });
 
   it('a held fleet: the report of the battle goes to the owner of the fleet that defended', () => {
@@ -186,6 +192,7 @@ describe('the facts that show an unrecorded consumption, in the real journal', (
       ]),
     );
     expect(around(me, journal(ctx))).toBeNull();
+    expect(around(me, journal(ctx, me))).toBeNull();
   });
 
   it('a clean window shows the card', () => {

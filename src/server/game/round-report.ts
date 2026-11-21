@@ -273,7 +273,11 @@ function rewindFor(ctx: Ctx, u: User, number: number): Rewind {
   const report = reportOf(ctx, u, number);
   const seat = report.rows.find((r) => r.you)?.seat;
   // The events of a finished round feed the cards 2 to 5 and 7; the access was checked by `reportOf`.
-  const events = report.round.provisional ? [] : ctx.rounds.events(number);
+  // Only the events these cards read for the seat are loaded, not the whole round.
+  const events =
+    report.round.provisional || seat === undefined
+      ? []
+      : ctx.rounds.eventsForSeat(number, seat);
   const rewind = seat === undefined ? null : rewindOf(report, seat, events);
   return rewind?.cards.length ? rewind : fail(UNAVAILABLE);
 }
