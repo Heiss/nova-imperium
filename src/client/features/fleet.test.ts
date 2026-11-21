@@ -20,6 +20,16 @@ vi.mock('../logic/game.ts', async (importOriginal) => ({
 vi.mock('../../core/settle.ts', () => ({ settle: vi.fn(() => ({ id: 'p' })) }));
 
 type Input = Record<string, unknown>;
+const moon = (g: number, s: number, p: number) => ({
+  id: `m${g}_${s}_${p}`,
+  kind: 'moon',
+  name: 'Mond',
+  g,
+  s,
+  p,
+  temp: 1,
+  owner: 'u2',
+});
 let fields: Record<string, Input>;
 /** The ship fields the view lists, by their kind. */
 let ships: { dataset: Record<string, string> }[];
@@ -34,27 +44,25 @@ beforeEach(() => {
     to: { g: '2', s: '30', p: '4' },
     speed: '5',
     cargo: { m: '10', c: '', d: '3' },
+    kind: 'moon',
+    mission: 'attack',
+    hold: '4',
   });
   fields = {
     // The form is on the page.
     '#t_g': {},
-    '#t_k': { value: 'moon', querySelector: () => ({ disabled: false }) },
     // The preview writes the target info first: that is one calculation.
     '#t_info': {
       set innerHTML(_html: string) {
         calc();
       },
     },
-    '#t_hold': { hidden: false },
     ...Object.fromEntries(
       ['i_dist', 'i_dur', 'i_arr', 'i_fuel', 'i_cap'].map((id) => [
         `#${id}`,
         { innerHTML: '' },
       ]),
     ),
-    // No mission fits a moon that is not there: the list stays empty, as the stub holds it.
-    '#t_m': { value: 'attack', options: [] },
-    '#t_h': { value: '' },
   };
   vi.stubGlobal('document', {
     querySelector: (sel: string) => fields[sel] ?? null,
@@ -68,8 +76,11 @@ beforeEach(() => {
   client.game = {
     cfg: { galaxies: 4, systems: 100, positions: 15 },
     planet: { id: 'p' },
-    me: {},
-    galaxy: [],
+    me: { id: 'u1', research: {} },
+    fleets: [],
+    debris: [],
+    // A moon at the target of the tests (and at the page's, 3:12:9): the kind „Mond“ holds there only.
+    galaxy: [moon(2, 30, 4), moon(3, 12, 9)],
     players: [],
   } as unknown as GameState;
   client.view = {
@@ -140,7 +151,7 @@ describe('the cargo', () => {
 describe('the fields the player did not touch', () => {
   it('send the target of the page, the first speed and no cargo', async () => {
     forgetForms();
-    client.ui.ft = { g: 3, s: 12, p: 9, kind: 'planet' };
+    client.ui.ft = { g: 3, s: 12, p: 9, kind: 'moon' };
     fleetForm.ships = { fighter: '1' };
     const ctx = fakeCtx();
     await acts(ctx).send!({});
@@ -165,7 +176,7 @@ describe('the fields the player did not touch', () => {
     await acts(ctx).send!({});
     expect(ctx.actHere).toHaveBeenCalledWith(
       'send',
-      expect.objectContaining({ to: { g: 2, s: 7, p: 11, kind: 'moon' } }),
+      expect.objectContaining({ to: { g: 2, s: 7, p: 11, kind: 'planet' } }),
     );
   });
 });
@@ -182,16 +193,46 @@ describe('sending, recalling and jumping', () => {
       ships: { fighter: 4, probe: 2 },
       to: { g: 2, s: 30, p: 4, kind: 'moon' },
       mission: 'attack',
-      hold: 0,
-      // The stay of an expedition (#93); the field is absent here, so 1.
+      // The holding time chosen (#55); no stay for a mission that does not stay.
+      hold: 4,
       stay: 1,
       pct: 5,
       cargo: { m: 10, c: 0, d: 3 },
     });
   });
 
+  it('sends the stay typed for an expedition (#93) and no holding time', async () => {
+    client.view = {
+      ...client.view!,
+      R: { research: { expo: 4 }, rq: null },
+    } as unknown as V;
+    Object.assign(fleetForm, {
+      to: { g: '2', s: '30', p: '16' },
+      kind: 'planet',
+      mission: 'expedition',
+      stay: '3',
+    });
+    const ctx = fakeCtx();
+    await acts(ctx).send!({});
+    expect(ctx.actHere).toHaveBeenCalledWith(
+      'send',
+      expect.objectContaining({ mission: 'expedition', hold: 0, stay: 3 }),
+    );
+  });
+
   it('adds the attack union chosen in the form to the order, and forgets the choice once sent (#225)', async () => {
-    fields['#t_u'] = { value: 'f9' };
+    client.game!.unions = [
+      {
+        id: 'f9',
+        leader: 'u2',
+        to: 'p1_2_6',
+        toC: { g: 1, s: 2, p: 6 },
+        arr: 5000,
+        fleets: [{ id: 'f9', owner: 'u2' }],
+        invited: ['u1'],
+      },
+    ];
+    fleetForm.union = 'f9';
     client.ui.union = 'f9';
     const ctx = fakeCtx();
     await acts(ctx).send!({});
@@ -200,6 +241,17 @@ describe('sending, recalling and jumping', () => {
       expect.objectContaining({ union: 'f9', mission: 'attack' }),
     );
     expect(client.ui.union).toBeNull();
+  });
+
+  it('sends no union that is not among those the player can join, or none chosen', async () => {
+    const ctx = fakeCtx();
+    for (const union of ['gone', '']) {
+      fleetForm.union = union;
+      await acts(ctx).send!({});
+    }
+    for (const call of vi.mocked(ctx.actHere).mock.calls)
+      expect(call[1]).not.toHaveProperty('union');
+    expect(ctx.actHere).toHaveBeenCalledTimes(2);
   });
 
   it('forgets the target and renders anew once the fleet is on its way', async () => {
