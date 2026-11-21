@@ -127,6 +127,51 @@ test.describe('admin', () => {
     await other.close();
   });
 
+  test('a refused „Automatisierung prüfen“ leaves the box as the server has it (#181)', async ({
+    page,
+    browser,
+  }) => {
+    const name = uniqueName('Pruefer');
+    const pilot = uniqueName('Pilot');
+    const other = await browser.newPage();
+    await register(other, pilot);
+    await other.close();
+    await register(page, name);
+    cli('admin', name);
+    await page.reload();
+    await nav(page, 'admin');
+    await page.getByRole('tab', { name: 'Spieler', exact: true }).click();
+    await page
+      .locator('[data-admin=stats]')
+      .getByRole('button', { name: pilot, exact: true })
+      .click();
+    const check = page.getByLabel('Automatisierung prüfen');
+    await expect(check).not.toBeChecked();
+    // The server refuses the switch: the box shows the state it confirmed.
+    await page.route('**/api/admin/bot-check', (route) =>
+      route.fulfill({
+        status: 400,
+        json: { error: 'Spieler nicht gefunden.' },
+      }),
+    );
+    await check.click();
+    await expect(page.getByText('Spieler nicht gefunden.')).toBeVisible();
+    // At once, not after the next redraw of the poll (which would set it
+    // back about 4 s later): checked without waiting.
+    expect(await check.isChecked()).toBe(false);
+    await expect(check).not.toBeChecked();
+    await expect(page.locator('[data-admin=bot-check-status]')).toHaveText(
+      'Nicht geprüft',
+    );
+    // Once the server takes it, the box is ticked.
+    await page.unroute('**/api/admin/bot-check');
+    await check.click();
+    await expect(page.locator('[data-admin=bot-check-status]')).toContainText(
+      'Geprüft seit',
+    );
+    await expect(check).toBeChecked();
+  });
+
   test('only an admin made by the operator sees the admin panel', async ({
     page,
   }) => {

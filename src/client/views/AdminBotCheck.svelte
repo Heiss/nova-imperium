@@ -22,8 +22,13 @@
         type="checkbox"
         id="bot-check"
         checked={check.on}
-        onchange={(event) =>
-          void switchBotCheck(record.person.id, event.currentTarget.checked)}
+        onchange={async (event) => {
+          const box = event.currentTarget;
+          await switchBotCheck(record.person.id, box.checked);
+          // A refused switch leaves `check.on` as it was, so Svelte does not
+          // redraw the box: set it back to what the server has.
+          if (check) box.checked = check.on;
+        }}
       /> Automatisierung prüfen</label
     >
     <p data-admin="bot-check-status">{check.status}</p>
