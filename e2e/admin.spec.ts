@@ -148,4 +148,65 @@ test.describe('admin (#68)', () => {
     cli('unadmin', name);
     expect(w.problems).toEqual([]);
   });
+
+  test('the arrow keys, Home and End move between the tabs of the admin (the pattern of a tab list)', async ({
+    page,
+  }) => {
+    const w = watch(page);
+    const name = uniqueName('Tastatur');
+    await register(page, name);
+    cli('admin', name);
+    await page.reload();
+    await nav(page, 'admin');
+    const tab = (label: string) =>
+      page.getByRole('tab', { name: label, exact: true });
+    // The tabs in their order; the panels of the first three share one.
+    const order = [
+      'Ereignisprotokoll',
+      'Spieler',
+      'Aufträge',
+      'Fehler',
+      'Einladungen',
+      'Universum',
+      'Servernachricht',
+    ];
+    /** Only the shown tab is selected and in the tab order, and it has the focus. */
+    const expectOn = async (label: string): Promise<void> => {
+      await expect(tab(label)).toHaveAttribute('aria-selected', 'true');
+      await expect(tab(label)).toBeFocused();
+      await expect(page.getByRole('tab', { selected: true })).toHaveCount(1);
+      await expect(page.locator('[role=tab][tabindex="0"]')).toHaveCount(1);
+      await expect(tab(label)).toHaveAttribute('tabindex', '0');
+    };
+    await expect(page.getByRole('tab')).toHaveText(order);
+    await tab(order[0]!).focus();
+    await expectOn(order[0]!);
+
+    // Right and left, one tab each; the panel of the tab shows.
+    await page.keyboard.press('ArrowRight');
+    await expectOn(order[1]!);
+    await expect(page.locator('[data-admin=stats]')).toBeVisible();
+    await page.keyboard.press('ArrowRight');
+    await expectOn(order[2]!);
+    await page.keyboard.press('ArrowRight');
+    await expectOn(order[3]!);
+    await expect(page.locator('#admin-panel-errors')).toBeVisible();
+    await page.keyboard.press('ArrowLeft');
+    await expectOn(order[2]!);
+
+    // End and Home jump to the last and the first.
+    await page.keyboard.press('End');
+    await expectOn(order[6]!);
+    await expect(page.locator('#admin-panel-announce')).toBeVisible();
+    // Past the last it wraps to the first, and before the first to the last.
+    await page.keyboard.press('ArrowRight');
+    await expectOn(order[0]!);
+    await page.keyboard.press('ArrowLeft');
+    await expectOn(order[6]!);
+    await page.keyboard.press('Home');
+    await expectOn(order[0]!);
+    await expect(page.locator('[data-admin=events]')).toBeVisible();
+    cli('unadmin', name);
+    expect(w.problems).toEqual([]);
+  });
 });

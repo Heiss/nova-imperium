@@ -20,11 +20,20 @@ async function waitForRedraw(
   id: string,
   change: () => void,
 ): Promise<void> {
-  await page.evaluate((i) => {
-    document.getElementById(i)!.dataset.mark = 'old';
-  }, id);
+  await waitForReplaced(page, `#${id}`, change);
+}
+
+/** Marks the node of `selector`, runs `change` and waits until the poll drew it anew. */
+async function waitForReplaced(
+  page: Page,
+  selector: string,
+  change: () => void,
+): Promise<void> {
+  await page.evaluate((sel) => {
+    document.querySelector<HTMLElement>(sel)!.dataset.mark = 'old';
+  }, selector);
   change();
-  await expect(page.locator(`#${id}[data-mark]`)).toHaveCount(0, {
+  await expect(page.locator(`${selector}[data-mark]`)).toHaveCount(0, {
     timeout: 15000,
   });
 }
@@ -195,5 +204,71 @@ test.describe('a redraw by the poll keeps the draft of a form', () => {
     await expect(row.first().locator('details')).toHaveAttribute('open', '');
     await expect(row.first()).toContainText(`Vorgang ${request}`);
     cli('unadmin', name);
+  });
+
+  test('what the admin chose and typed in the filter of the event log stays over a redraw', async ({
+    page,
+  }) => {
+    const w = watch(page);
+    const name = uniqueName('EntwurfFilter');
+    await register(page, name);
+    cli('admin', name);
+    await page.reload();
+    await nav(page, 'admin');
+    const events = page.locator('[data-admin=events]');
+    await expect(events.getByRole('status')).toHaveText(/ Ereignisse$/);
+    const filter = page.locator('#diagnostics-filter');
+    const player = filter.getByLabel('Spieler', { exact: true });
+    const outcome = filter.getByLabel('Ergebnis');
+    const action = filter.getByLabel('Aktion');
+    const since = filter.getByLabel('Von');
+    await player.selectOption({ label: name });
+    await outcome.selectOption({ label: 'Abgelehnt' });
+    await action.fill('build');
+    await since.fill('2026-11-01');
+
+    await waitForRedraw(page, 'audit-outcome', () =>
+      seed({ name, res: { m: 0, c: 0, d: 10006 } }),
+    );
+    await expect(player.locator('option:checked')).toHaveText(name);
+    await expect(outcome.locator('option:checked')).toHaveText('Abgelehnt');
+    await expect(action).toHaveValue('build');
+    await expect(since).toHaveValue('2026-11-01');
+    cli('unadmin', name);
+    expect(w.problems).toEqual([]);
+  });
+
+  test('what the admin chose in the filter of the error log stays over a redraw', async ({
+    page,
+  }) => {
+    const w = watch(page);
+    const name = uniqueName('EntwurfFehlerFilter');
+    await register(page, name);
+    cli('admin', name);
+    await page.reload();
+    await nav(page, 'admin');
+    await page.getByRole('tab', { name: 'Fehler' }).click();
+    const tab = page.locator('#admin-errors');
+    const kind = tab.getByLabel('Art');
+    const size = tab.getByLabel('Anzahl je Seite');
+    const since = tab.getByLabel('Zeitraum von');
+    // A choice asks the server at once; wait for that answer, so the redraw
+    // below is the one of the poll.
+    const answered = page.waitForResponse('**/api/admin/errors');
+    await kind.selectOption({ label: 'Problemmeldungen' });
+    await answered;
+    const resized = page.waitForResponse('**/api/admin/errors');
+    await size.selectOption('50');
+    await resized;
+    await since.fill('2026-11-01');
+
+    await waitForReplaced(page, '#errors-filter select[name=kind]', () =>
+      seed({ name, res: { m: 0, c: 0, d: 10007 } }),
+    );
+    await expect(kind.locator('option:checked')).toHaveText('Problemmeldungen');
+    await expect(size).toHaveValue('50');
+    await expect(since).toHaveValue('2026-11-01');
+    cli('unadmin', name);
+    expect(w.problems).toEqual([]);
   });
 });
