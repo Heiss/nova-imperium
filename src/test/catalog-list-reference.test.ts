@@ -53,13 +53,8 @@ import { levelsRow } from '../client/logic/level-mode.ts';
 import { client } from '../client/logic/state.svelte.ts';
 import type { GameState } from '../client/logic/types.ts';
 import CatalogList from '../client/views/CatalogList.svelte';
-import {
-  cd,
-  costHTML,
-  requirementsHTML,
-  type Ui,
-  type V,
-} from '../client/views/common.ts';
+import { cd, type Ui, type V } from '../client/views/common.ts';
+import { costHTML, requirementsHTML } from './html-pieces-frozen.ts';
 import Buildings from './catalog-reference/Buildings.svelte';
 import { planet, U } from './fixtures.ts';
 import { normalize } from './markup.ts';
