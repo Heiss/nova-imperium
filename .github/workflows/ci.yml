@@ -1,7 +1,14 @@
 name: CI
 
-# Every push to main or hotfix/* runs the full suite. Pull requests run what
-# their changes need: documentation only skips the code checks; the Docker
+# Every push to main or hotfix/* runs the full suite, except an expensive job
+# that already succeeded on the identical tree: when the pushed commit merged
+# one pull request whose tested head has the same Git tree, each of the checks,
+# the E2E tests, the complete mutation run, the image with the Compose stack
+# and the website is skipped when the same job succeeded in a green CI run of
+# that head (scripts/already-tested.ts, owner, 2026-11-21, #342); every other
+# case and every error of the lookup runs everything, and the CI Gate names
+# the run and the job of each proof. Pull requests run what their changes
+# need: documentation only skips the code checks; the Docker
 # image, Trivy and the Compose stack with the upgrade test run when the image
 # can change, and always in a release pull request (owner, 2026-11-12). The
 # mutation tests run when a pull request changes what Stryker mutates, a test,
@@ -10,8 +17,9 @@ name: CI
 # (#167). A pull request that is no release pull request and goes into no
 # hotfix branch mutates only the files it changes and the sources of the
 # tests it changes, in one job (#309); the complete run in 12 shards stays for
-# the release pull requests, the pushes, the nightly run and a change of the
-# mutation configuration or the test tool chain; a change of the floors alone
+# the release pull requests, the pushes (unless proven on the identical tree,
+# #342), the nightly run and a change of the mutation configuration or the
+# test tool chain; a change of the floors alone
 # in mutation-floors.txt adds those files to the partial run, and a set of
 # more than 12 files (PARTIAL_LIMIT) runs the complete run too.
 # The release pull request of main is a draft after every rebuild: its run
@@ -40,32 +48,65 @@ permissions:
   contents: read
 
 jobs:
-  # Only pull requests use changed files to decide which checks to run.
+  # Only pull requests use changed files to decide which checks to run; a
+  # push looks for the proofs of the identical tree (#342).
   changes:
     name: Detect changes
     runs-on: ubuntu-latest
-    # checks: read for the check runs of the previous head (#167).
+    # checks: read for the check runs of the previous head (#167); actions
+    # and pull-requests: read for the pull request and the run of a push
+    # (#342). Read only.
     permissions:
       contents: read
       checks: read
+      actions: read
+      pull-requests: read
     outputs:
       code: ${{ steps.diff.outputs.code }}
       image: ${{ steps.diff.outputs.image }}
       mutation: ${{ steps.diff.outputs.mutation }}
       mutation-files: ${{ steps.diff.outputs.mutation-files }}
       site: ${{ steps.diff.outputs.site }}
+      proof-check: ${{ steps.proof.outputs.proof-check }}
+      proof-e2e: ${{ steps.proof.outputs.proof-e2e }}
+      proof-mutation: ${{ steps.proof.outputs.proof-mutation }}
+      proof-compose: ${{ steps.proof.outputs.proof-compose }}
+      proof-site: ${{ steps.proof.outputs.proof-site }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         if: github.event_name == 'pull_request'
         with:
           fetch-depth: 0
           persist-credentials: false
-      # scripts/mutation-changes.ts needs Node only, no dependencies.
+      # A push checks out its own commit of main or the hotfix branch, the
+      # scripts only; nothing of a pull request.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: github.event_name == 'push'
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts
+      # scripts/mutation-changes.ts and scripts/already-tested.ts need Node
+      # only, no dependencies.
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        if: github.event_name == 'pull_request'
         with:
           node-version-file: .node-version
           package-manager-cache: false
+      # The proofs of a push: the jobs that succeeded in the green CI run of
+      # the pull request it merged, on the identical tree (#342). The script
+      # proves nothing on any error; a failure of the step itself proves
+      # nothing either, and only the five proof lines reach the outputs.
+      - id: proof
+        if: github.event_name == 'push'
+        env:
+          HEAD_SHA: ${{ github.sha }}
+          BRANCH: ${{ github.ref_name }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if proofs=$(node scripts/already-tested.ts decide "$HEAD_SHA" "$BRANCH"); then
+            grep -E '^proof-(check|e2e|mutation|compose|site)=' <<< "$proofs" >> "$GITHUB_OUTPUT" || true
+          else
+            echo "::warning::No lookup of an earlier run: this push runs everything."
+          fi
       - id: diff
         env:
           EVENT: ${{ github.event_name }}
@@ -216,7 +257,7 @@ jobs:
   check:
     name: Lint, types, unit tests with coverage, build
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: needs.changes.outputs.code == 'true' && needs.changes.outputs.proof-check == ''
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -249,7 +290,7 @@ jobs:
   e2e:
     name: E2E tests (browser)
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: needs.changes.outputs.code == 'true' && needs.changes.outputs.proof-e2e == ''
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -289,7 +330,7 @@ jobs:
   mutation-plan:
     name: Mutation plan
     needs: changes
-    if: needs.changes.outputs.mutation == 'true'
+    if: needs.changes.outputs.mutation == 'true' && needs.changes.outputs.proof-mutation == ''
     runs-on: ubuntu-latest
     outputs:
       plan: ${{ steps.plan.outputs.plan }}
@@ -358,7 +399,7 @@ jobs:
   mutation-shard:
     name: Mutation tests (shard ${{ matrix.shard }} of ${{ strategy.job-total }})
     needs: [changes, mutation-plan]
-    if: needs.changes.outputs.mutation == 'true'
+    if: needs.changes.outputs.mutation == 'true' && needs.changes.outputs.proof-mutation == ''
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -418,7 +459,7 @@ jobs:
   mutation:
     name: Mutation tests
     needs: [changes, mutation-plan, mutation-shard]
-    if: needs.changes.outputs.mutation == 'true'
+    if: needs.changes.outputs.mutation == 'true' && needs.changes.outputs.proof-mutation == ''
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -525,7 +566,7 @@ jobs:
   compose:
     name: Docker image and Compose stack
     needs: changes
-    if: needs.changes.outputs.image == 'true'
+    if: needs.changes.outputs.image == 'true' && needs.changes.outputs.proof-compose == ''
     runs-on: ubuntu-latest
     env:
       NOVA_VERSION: ci-${{ github.run_id }}-${{ github.run_attempt }}
@@ -762,7 +803,7 @@ jobs:
   site:
     name: Documentation website
     needs: changes
-    if: needs.changes.outputs.site == 'true'
+    if: needs.changes.outputs.site == 'true' && needs.changes.outputs.proof-site == ''
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -846,6 +887,11 @@ jobs:
           COMPOSE: ${{ needs.compose.result }}
           SITE_SOURCES: ${{ needs.changes.outputs.site }}
           SITE: ${{ needs.site.result }}
+          PROOF_CHECK: ${{ needs.changes.outputs.proof-check }}
+          PROOF_E2E: ${{ needs.changes.outputs.proof-e2e }}
+          PROOF_MUTATION: ${{ needs.changes.outputs.proof-mutation }}
+          PROOF_COMPOSE: ${{ needs.changes.outputs.proof-compose }}
+          PROOF_SITE: ${{ needs.changes.outputs.proof-site }}
           EVENT: ${{ github.event_name }}
           PR_HEAD: ${{ github.event.pull_request.head.sha }}
           HEAD_REF: ${{ github.head_ref }}
@@ -860,6 +906,26 @@ jobs:
             fi
           }
 
+          # A job of a push that already succeeded on the identical tree is
+          # skipped with its proof, the run and the job that succeeded there
+          # (#342): the proof counts only on a push and only for that job,
+          # which must then be skipped; without a proof the job must succeed.
+          require_success_or_proof() {
+            if [ -z "$3" ]; then
+              require_success "$1" "$2"
+              return
+            fi
+            if [ "$EVENT" != "push" ]; then
+              echo "::error::$1: a proof of an earlier run counts only on a push."
+              exit 1
+            fi
+            if [ "$2" != "skipped" ]; then
+              echo "::error::$1 has a proof and must be skipped (result: $2)"
+              exit 1
+            fi
+            echo "$1: skipped, it succeeded on the identical tree: $3"
+          }
+
           require_success "Detect changes" "$CHANGES"
           require_success "Secrets and dependencies" "$SECURITY"
           require_success "Migrations append-only" "$MIGRATIONS"
@@ -867,7 +933,7 @@ jobs:
           require_success "CodeQL" "$CODEQL"
 
           if [ "$EVENT" = "push" ] && { [ "$CODE" != "true" ] || [ "$IMAGE" != "true" ] || [ "$MUTATED" != "true" ] || [ "$SITE_SOURCES" != "true" ]; }; then
-            echo "::error::Pushes to main and hotfix/* must run the full suite."
+            echo "::error::Pushes to main and hotfix/* must run the full suite; a job is skipped only with its proof (#342)."
             exit 1
           fi
           if [ "$EVENT" = "pull_request" ]; then
@@ -905,8 +971,8 @@ jobs:
 
           case "$CODE" in
             true)
-              require_success "Lint, types, unit tests and build" "$CHECK"
-              require_success "E2E tests" "$E2E"
+              require_success_or_proof "Lint, types, unit tests and build" "$CHECK" "$PROOF_CHECK"
+              require_success_or_proof "E2E tests" "$E2E" "$PROOF_E2E"
               ;;
             false) echo "Documentation-only change." ;;
             *) echo "::error::Missing or invalid change detection output: $CODE"; exit 1 ;;
@@ -920,9 +986,9 @@ jobs:
           # changed files instead of the shards (#309).
           case "$MUTATED" in
             true)
-              require_success "Mutation plan" "$MUTATION_PLAN"
-              require_success "Mutation tests (shards)" "$MUTATION_SHARDS"
-              require_success "Mutation tests" "$MUTATION"
+              require_success_or_proof "Mutation plan" "$MUTATION_PLAN" "$PROOF_MUTATION"
+              require_success_or_proof "Mutation tests (shards)" "$MUTATION_SHARDS" "$PROOF_MUTATION"
+              require_success_or_proof "Mutation tests" "$MUTATION" "$PROOF_MUTATION"
               ;;
             partial)
               case "$EVENT:$HEAD_REF:$BASE_REF" in
@@ -937,7 +1003,7 @@ jobs:
                 exit 1
               fi
               ;;
-            false) echo "No mutated file, test, mutation configuration or test tool chain changed: the mutation jobs run on every push to main and hotfix/** and every night." ;;
+            false) echo "No mutated file, test, mutation configuration or test tool chain changed: the mutation jobs run on every push to main and hotfix/** (unless proven on the identical tree) and every night." ;;
             reuse)
               if [ "$EVENT" != "pull_request" ] || [ "$MUTATION_PLAN" != "skipped" ] || [ "$MUTATION_SHARDS" != "skipped" ] || [ "$MUTATION" != "skipped" ]; then
                 echo "::error::A mutation result is taken over only in a pull request whose mutation jobs are skipped."
@@ -951,13 +1017,13 @@ jobs:
           esac
 
           case "$IMAGE" in
-            true) require_success "Docker image and Compose stack" "$COMPOSE" ;;
-            false) echo "No Docker, dependency or start-up file changed: the image is built on main and in the release pull request." ;;
+            true) require_success_or_proof "Docker image and Compose stack" "$COMPOSE" "$PROOF_COMPOSE" ;;
+            false) echo "No Docker, dependency or start-up file changed: the image is built on main (unless proven on the identical tree) and in the release pull request." ;;
             *) echo "::error::Missing or invalid image detection output: $IMAGE"; exit 1 ;;
           esac
 
           case "$SITE_SOURCES" in
-            true) require_success "Documentation website" "$SITE" ;;
+            true) require_success_or_proof "Documentation website" "$SITE" "$PROOF_SITE" ;;
             false) echo "Nothing the documentation website is built from changed." ;;
             *) echo "::error::Missing or invalid website detection output: $SITE_SOURCES"; exit 1 ;;
           esac
