@@ -175,11 +175,15 @@ are [Activity indicators](/features/activity-indicators.md).
   error, and `src/core/action-kind.test.ts` checks it against the declared
   actions. The classes: **change** (counted): every action not named below;
   **click** (counted, a deliberate read): `roundReport`, `roundRewind`,
-  `roundParticipant`, `scan`; **view** (not counted, a read a view makes by
+  `roundParticipant`, `scan`, and the three loads of the private messages
+  `openPrivateConversation`, `olderPrivateMessages`, `sentPrivateMessages`
+  (#226, Q32 to Q35 [V]); **view** (not counted, a read a view makes by
   itself): `roundArchive`, `roundHistory`. The page also sends two writes by
   itself, which the owner does not count either: `read` (the reports are
   marked read after „Nachrichten“ is drawn) and `seeGuildChat` (the mark of the
-  guild chat is cleared). **[V]** They have their own class `auto`, not `view`,
+  guild chat is cleared). **[V]** The same holds for `readPrivateMessages`
+  (#226): an opened conversation marks its new messages read after a moment,
+  as „Nachrichten“ marks the reports. **[V]** They have their own class `auto`, not `view`,
   because they write and are no reads. `countsAsPlayAction(name)` says whether
   a name counts; an unknown name never does. The account is found by its seat
   in the rounds (`round_participants`), the day by the time of recording, in

@@ -21,10 +21,20 @@ describe('ACTION_KIND (#335)', () => {
         .map(([n]) => n)
         .sort();
     expect(of('click')).toEqual(
-      ['roundParticipant', 'roundReport', 'roundRewind', 'scan'].sort(),
+      [
+        'olderPrivateMessages',
+        'openPrivateConversation',
+        'roundParticipant',
+        'roundReport',
+        'roundRewind',
+        'scan',
+        'sentPrivateMessages',
+      ].sort(),
     );
     expect(of('view')).toEqual(['roundArchive', 'roundHistory']);
-    expect(of('auto')).toEqual(['read', 'seeGuildChat']);
+    expect(of('auto')).toEqual(
+      ['read', 'readPrivateMessages', 'seeGuildChat'].sort(),
+    );
   });
 });
 

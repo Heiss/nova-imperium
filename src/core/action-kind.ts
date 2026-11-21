@@ -67,17 +67,29 @@ export const ACTION_KIND = {
   inviteUnion: 'change',
   startVacation: 'change',
   endVacation: 'change',
+  sendPrivateMessage: 'change',
+  deletePrivateMessage: 'change',
+  deletePrivateConversation: 'change',
+  reportPrivateMessage: 'change',
+  blockPlayer: 'change',
+  unblockPlayer: 'change',
+  privateMessageOptions: 'change',
   // Deliberate reads: opened by a click.
   roundReport: 'click',
   roundRewind: 'click',
   roundParticipant: 'click',
   scan: 'click',
+  openPrivateConversation: 'click',
+  olderPrivateMessages: 'click',
+  sentPrivateMessages: 'click',
   // Reads a view makes by itself.
   roundArchive: 'view',
   roundHistory: 'view',
   // Writes the page sends by itself: the reports are marked read after
-  // „Nachrichten“ is drawn, the mark of the guild chat is cleared on its own.
+  // „Nachrichten“ is drawn, the mark of the guild chat is cleared on its own,
+  // an opened private conversation marks its messages read after a moment.
   read: 'auto',
+  readPrivateMessages: 'auto',
   seeGuildChat: 'auto',
 } as const satisfies Record<ActionName, ActionKind>;
 
