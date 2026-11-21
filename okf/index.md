@@ -51,6 +51,7 @@ okf_version: "0.2"
 * [Own activity and play time](/features/own-activity.md) - private statistics per account and round in UTC days, sessions after 30 minutes (#231, #232)
 * [Holding, alliance depot and attack unions](/features/holding-acs.md) - holding at other players, the depot later, attack unions with classic limits, who may join per round (#55, #225, #227)
 * [Buddy list](/features/buddy-list.md) - mutual friendships, name and contact only, kept across rounds (#227)
+* [Private messages](/features/private-messages.md) - conversations between two players in „Nachrichten“, a block list, „only friends“, a push without the text, „Melden“ to the admin, kept until the round ends, 500 per conversation (#226)
 * [Espionage defense and fleet recognition](/features/espionage-defense.md) - detection chance of probes, activity in the Auspex-Bericht, thresholds 2/4/8 for incoming fleets (#175, #228)
 * [Activity indicators](/features/activity-indicators.md) - activity per planet and inactivity per account in the Sternenkarte, set by a login and manual actions (v0.77b), classic thresholds per round (#229)
 * [Missiles](/features/missiles.md) - silo, anti-ballistic and interplanetary missiles with classic values (#54)

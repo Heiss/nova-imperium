@@ -59,9 +59,10 @@ the muffelblog bundle whose rules this project follows:
 * Extensions of the classic game (alliances, messages between players)
   are possible later steps, not decided. „Messages between
   players“ is lifted for the guild chat only (owner, 2026-11-14, #169 D1,
-  [Guild chat](/features/guild-chat.md)); private messages and chats
-  between guilds stay non-goals, and private messages stay one after the
-  Classic features too (owner, 2026-11-16, #226 stays an idea). Missiles
+  [Guild chat](/features/guild-chat.md)); chats between guilds stay a
+  non-goal. Private messages between players are no longer a non-goal
+  (owner, 2026-11-21, #226, replacing the decision of 2026-11-16,
+  [Private messages](/features/private-messages.md)). Missiles
   are no longer a non-goal (owner, 2026-11-16, #54,
   [Missiles](/features/missiles.md)). „More ships“ is no
   longer a non-goal (owner, 2026-11-12); recyclers and debris fields are

@@ -28,7 +28,7 @@ words are quoted) and the D-numbers of the issue they belong to:
 
 | Owner (2026-11-14) | Issue | Decision |
 | --- | --- | --- |
-| only a guild chat | D1 | The non-goal „messages between players“ is lifted for the guild chat only; private messages and chats between guilds stay non-goals. Private messages stay a non-goal after the Classic features too (owner, 2026-11-16, #226 stays an idea). |
+| only a guild chat | D1 | The non-goal „messages between players“ is lifted for the guild chat only; chats between guilds stay a non-goal. Private messages stay a non-goal here: they were lifted later (owner, 2026-11-21, #226, [Private messages](/features/private-messages.md)). |
 | „Lesen, Schreiben, Löschen“ | D2 | Three new rights in the list of #163: „Chat lesen“, „Chat schreiben“, „Chatnachrichten löschen“. The Leitung has all of them; the default rank gets read and write. |
 | „Nur beim Start“ | D3 | An attack shows an event message only when the hostile fleet is launched, with the arrival time; no message about the outcome. |
 | the events: joining and leaving, rank changes | D4 | Event messages when a member joined or left the guild or was removed, and for rank changes; no espionage events. |
