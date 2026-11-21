@@ -15,6 +15,7 @@ import {
 import { clampInt } from './format.ts';
 import { shown } from './galaxy-position.svelte.ts';
 import { moonAt } from './moon.ts';
+import { joinChoices } from './union.ts';
 
 /** What the choices read of the view: the state of the game, the shown planet and the memory of the page. */
 export type FleetSeen = Pick<V, 's' | 'P' | 'ui'>;
@@ -26,7 +27,7 @@ export const fleetTarget = ({
 }: Pick<V, 'P' | 'ui'>): NonNullable<V['ui']['ft']> =>
   ui.ft ?? { g: P.g, s: P.s, p: P.p };
 
-/** The target, the kind of it and the mission, as the fields show them. */
+/** The target, its kind, the mission and the union, as the fields show them. */
 export interface FleetChoice {
   /** The position, kept to the universe. */
   to: { g: number; s: number; p: number };
@@ -40,6 +41,8 @@ export interface FleetChoice {
   mission: string;
   /** The planets against the limit for a Landnahme (#237). */
   limit: string;
+  /** The attack union the fleet joins (#225), or empty for „Kein Verband“. */
+  union: string;
 }
 
 /**
@@ -47,7 +50,8 @@ export interface FleetChoice {
  * chosen, else the one the page remembers (`ui.fk`) or aims at (`ui.ft`); a
  * moon only where one is (#53). The mission is the one chosen, else the one
  * the page remembers (`ui.fm`), while it fits the target, else the first that
- * does. The list of missions follows the kind as asked: `fleetCalc` settles a
+ * does. The union is the one chosen, else the one of the page (`ui.union`),
+ * while it is among those the player can join. The list of missions follows the kind as asked: `fleetCalc` settles a
  * moon that is not there (the state goes back to the planet) before it reads
  * the mission, so the two never differ for long.
  */
@@ -70,6 +74,8 @@ export function fleetChoice(
     offeredMissions(v.s, v.P.id, { ...to, kind: wanted }, now),
     draft.mission || v.ui.fm,
   );
+  // The union chosen, else the one of the page, while the player can join it.
+  const chosen = draft.union ?? v.ui.union ?? '';
   return {
     to,
     moon,
@@ -77,5 +83,6 @@ export function fleetChoice(
     missions: options,
     mission: selected,
     limit: colonyNote(v.s, selected),
+    union: joinChoices(v).some((c) => c.id === chosen) ? chosen : '',
   };
 }

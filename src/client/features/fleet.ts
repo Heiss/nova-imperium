@@ -47,14 +47,14 @@ function readFleetForm(): FleetForm {
     const n = clampInt(typed, 0, P.ships[k] ?? 0);
     if (n > 0) ships[k] = n;
   }
-  const { to, kind, mission } = choiceOf();
+  const { to, kind, mission, union } = choiceOf();
   return {
     ships,
     // The planet or its moon (#53).
     to: { ...to, kind },
     mission,
     // The attack union the fleet joins (#225); the row is there only while one concerns the player.
-    ...(val('#t_u') && { union: val('#t_u') }),
+    ...(union && { union }),
     hold: Number(val('#t_h')),
     stay: clampInt(val('#t_stay'), 1, 1e6),
     pct: clampInt(fleetForm.speed ?? SPEEDS[0]!.value, 1, 10),

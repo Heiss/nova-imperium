@@ -203,7 +203,18 @@ describe('sending, recalling and jumping', () => {
   });
 
   it('adds the attack union chosen in the form to the order, and forgets the choice once sent (#225)', async () => {
-    fields['#t_u'] = { value: 'f9' };
+    client.game!.unions = [
+      {
+        id: 'f9',
+        leader: 'u2',
+        to: 'p1_2_6',
+        toC: { g: 1, s: 2, p: 6 },
+        arr: 5000,
+        fleets: [{ id: 'f9', owner: 'u2' }],
+        invited: ['u1'],
+      },
+    ];
+    fleetForm.union = 'f9';
     client.ui.union = 'f9';
     const ctx = fakeCtx();
     await acts(ctx).send!({});
@@ -212,6 +223,17 @@ describe('sending, recalling and jumping', () => {
       expect.objectContaining({ union: 'f9', mission: 'attack' }),
     );
     expect(client.ui.union).toBeNull();
+  });
+
+  it('sends no union that is not among those the player can join, or none chosen', async () => {
+    const ctx = fakeCtx();
+    for (const union of ['gone', '']) {
+      fleetForm.union = union;
+      await acts(ctx).send!({});
+    }
+    for (const call of vi.mocked(ctx.actHere).mock.calls)
+      expect(call[1]).not.toHaveProperty('union');
+    expect(ctx.actHere).toHaveBeenCalledTimes(2);
   });
 
   it('forgets the target and renders anew once the fleet is on its way', async () => {

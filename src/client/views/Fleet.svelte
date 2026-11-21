@@ -214,11 +214,14 @@
             <tr id="t_union_row">
               <td><label for="t_u">Verband</label></td>
               <td
-                ><select id="t_u"
+                ><select
+                  id="t_u"
+                  onchange={(e) => (fleetForm.union = e.currentTarget.value)}
                   ><option value="">Kein Verband</option
                   >{#each form.unions as union (union.value)}<option
                       value={union.value}
-                      selected={union.selected}>{union.label}</option
+                      selected={union.value === choice.union}
+                      >{union.label}</option
                     >{/each}</select
                 ></td
               >

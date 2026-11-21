@@ -119,7 +119,7 @@ interface FleetFormPage {
   target: FleetTarget;
   /** What the fields of the form show for the state of the form (logic/fleet-choice.ts); the component asks it, so a change of the state shows. */
   choose: (draft: FleetDraft) => FleetChoice;
-  /** The unions the fleet can join (#225), the chosen one selected; empty when none. */
+  /** The unions the fleet can join (#225); empty when none. The one chosen is `choose(draft).union`. */
   unions: FleetOption[];
   /** The row of the time at the target as HTML, which the form writes again when the mission changes (features/fleet.ts). */
   time: string;
@@ -190,7 +190,7 @@ function jumpBox(v: V): JumpBox | null {
 }
 
 function formPage(v: V, full: boolean): FleetFormPage {
-  const { P, s, ui } = v;
+  const { P, s } = v;
   const t = fleetTarget(v);
   return {
     quick: quickTargets(s, P.id),
@@ -201,11 +201,7 @@ function formPage(v: V, full: boolean): FleetFormPage {
       positions: maxPosition(s),
     },
     choose: (draft) => fleetChoice(v, draft, v.now),
-    unions: joinChoices(v).map((c) => ({
-      value: c.id,
-      label: c.label,
-      selected: ui.union === c.id,
-    })),
+    unions: joinChoices(v).map((c) => ({ value: c.id, label: c.label })),
     time: timeRowHtml(fleetChoice(v, fleetForm, v.now).mission, v),
     full,
   };

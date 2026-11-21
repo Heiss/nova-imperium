@@ -190,9 +190,14 @@ describe('the ships and the form', () => {
     const page = fleetPage(
       view({ ships: { lc: 1 }, state: { unions }, union: 'f9' }),
     );
-    expect(page.form.unions.map((u) => [u.value, u.selected])).toEqual([
-      ['f9', true],
-    ]);
+    expect(page.form.unions.map((u) => u.value)).toEqual(['f9']);
+    // The one of the page, else the one chosen; none that is gone.
+    expect(page.form.choose(fleetForm).union).toBe('f9');
+    fleetForm.union = '';
+    expect(page.form.choose(fleetForm).union).toBe('');
+    fleetForm.union = 'zz';
+    expect(page.form.choose(fleetForm).union).toBe('');
+    fleetForm.union = null;
     expect(page.unions?.unions.map((u) => u.id)).toEqual(['f9']);
   });
 });

@@ -23,6 +23,8 @@ export interface FleetDraft {
   kind: 'planet' | 'moon' | null;
   /** The mission chosen, or null while the page says it (logic/fleet-choice.ts). */
   mission: string | null;
+  /** The union chosen (empty for „Kein Verband“), or null while the page says it. */
+  union: string | null;
 }
 
 export const fleetForm = formState((): FleetDraft => ({
@@ -33,4 +35,5 @@ export const fleetForm = formState((): FleetDraft => ({
   invite: {},
   kind: null,
   mission: null,
+  union: null,
 }));
