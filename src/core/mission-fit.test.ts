@@ -237,13 +237,13 @@ describe('a button for a mission at a target (#95)', () => {
   const moon = (over: Partial<FitTarget> = {}): FitTarget =>
     target({ planet: planetOf('bert', 'm1_2_6'), moon: true, ...over });
 
-  it('offers the Mondbruch at a foreign moon with a Weltenbrecher', () => {
+  it('offers the Mondbruch at a foreign moon', () => {
     expect(canOffer('moonbreak', ships(1), moon())).toBe(true);
   });
 
-  it('offers it not without a Weltenbrecher: the check of the mission itself', () => {
-    expect(canOffer('moonbreak', ships(0), moon())).toBe(false);
-    expect(canOffer('moonbreak', { ...FROM, ships: {} }, moon())).toBe(false);
+  it('offers it without a Weltenbrecher too: the ships are not asked (owner, 2026-11-21)', () => {
+    expect(canOffer('moonbreak', ships(0), moon())).toBe(true);
+    expect(canOffer('moonbreak', FROM, moon())).toBe(true);
   });
 
   it('offers it not at a planet, an own moon, the start place, or nothing', () => {

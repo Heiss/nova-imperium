@@ -182,10 +182,9 @@ function foreignActions(v: V, pl: GalaxyPlanet): GalaxyAction[] {
 }
 
 /**
- * The Mondbruch at a foreign moon (#95; owner, 2026-11-21): offered when the
- * rules allow it for this target, a moon of another player, and the shown
- * planet has a Weltenbrecher, as „Landnahme“ asks for a colony ship; it
- * opens the fleet form with the Mondbruch.
+ * The Mondbruch at a foreign moon (#95; owner, 2026-11-21): offered at every
+ * moon of another player, whatever ships the shown planet has; it opens the
+ * fleet form with the Mondbruch, which refuses a send without a Weltenbrecher.
  */
 const moonbreakLink = (
   v: V,
@@ -194,7 +193,7 @@ const moonbreakLink = (
 ): GalaxyAction[] =>
   canOffer(
     'moonbreak',
-    { owner: v.s.me.id, from: v.P.id, ships: v.P.ships },
+    { owner: v.s.me.id, from: v.P.id },
     fitTarget(v.s, pl, v.now),
   )
     ? [fleetTo('link', 'moonbreak', MISSION.moonbreak, where)]

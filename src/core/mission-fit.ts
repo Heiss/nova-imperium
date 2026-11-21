@@ -10,7 +10,6 @@ import {
   FLEET_MISSIONS,
   fitError,
   missionRules,
-  type SendFleet,
   type SendTarget,
 } from './missions.ts';
 import type { Mission } from './types.ts';
@@ -44,14 +43,13 @@ const knownTarget = (target: FitTarget): SendTarget => ({
 
 /**
  * Whether a button for the mission at the target is offered (#95, the
- * Sternenkarte): the target fits (`missionsFor`) and the ships of the fleet
- * pass the check of the mission itself (`canSend`, e.g. a Weltenbrecher for
- * the Mondbruch).
+ * Sternenkarte): the target fits (`missionsFor`), as in the list of the fleet
+ * form. The ships are not asked (owner, 2026-11-21): the Mondbruch shows at
+ * every foreign moon, and the fleet form refuses a send without a
+ * Weltenbrecher.
  */
 export const canOffer = (
   mission: Mission,
-  fleet: SendFleet,
+  fleet: FitFleet,
   target: FitTarget,
-): boolean =>
-  missionsFor(fleet, target).includes(mission) &&
-  missionRules(mission)!.canSend(fleet, knownTarget(target)) === undefined;
+): boolean => missionsFor(fleet, target).includes(mission);

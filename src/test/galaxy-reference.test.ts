@@ -55,9 +55,15 @@ function planetActions(
   at: string,
 ): string {
   const id = pl.id;
+  // One change on purpose (#95; owner, 2026-11-21): the Mondbruch at every
+  // foreign moon, after the supply.
+  const moonbreak =
+    pl.kind === 'moon'
+      ? ` · <span class="lnk" data-act="gfleet" data-m="moonbreak" ${at}>${MISSION.moonbreak}</span>`
+      : '';
   if (!mine)
     return join(
-      `<span class="lnk" data-act="gspy" ${at}>Auspex-Erkundung</span> · <span class="lnk" data-act="gfleet" data-m="attack" ${at}>Sturmangriff</span> · <span class="lnk" data-act="gfleet" data-m="transport" ${at}>Versorgungsflug</span>`,
+      `<span class="lnk" data-act="gspy" ${at}>Auspex-Erkundung</span> · <span class="lnk" data-act="gfleet" data-m="attack" ${at}>Sturmangriff</span> · <span class="lnk" data-act="gfleet" data-m="transport" ${at}>Versorgungsflug</span>${moonbreak}`,
       scanButton(v, pl),
     );
   return id === v.P.id
@@ -324,6 +330,7 @@ const MARKS = [
   'data-m="harvest"',
   'data-m="colonize"',
   'data-m="attack"',
+  'data-m="moonbreak"',
   'data-m="deploy"',
   'data-act="gspy"',
   'data-k="moon"',

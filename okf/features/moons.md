@@ -596,10 +596,10 @@ owiki.de „Mond“ (section Zerstörung, formula images). Built after the moons
   data-k="moon"); it opens the fleet form with the moon as the target and
   the Mondbruch chosen. It shows exactly when `canOffer('moonbreak', …)`
   of `src/core/mission-fit.ts` holds: the moon is a foreign moon that fits
-  the rules of the mission (`missionsFor`, as the fleet form) and the shown
-  planet has a Weltenbrecher (`canSend` of the mission). [V] The Weltenbrecher
-  is required like „Landnahme“ asks for a colony ship and „Vermessen“ for
-  Spähschädel; the issues do not decide it. [V] No own title or aria-label,
+  the rules of the mission (`missionsFor`, as the fleet form). [E] It shows
+  at every foreign moon, with or without a Weltenbrecher on the shown planet
+  (owner, 2026-11-21; the first build asked for one, as „Landnahme“ asks for
+  a colony ship); the fleet form refuses a send without one. [V] No own title or aria-label,
   like the neighbouring links; the label is the game term „Mondbruch“.
   Code: `moonbreakLink` in `src/client/logic/galaxy.ts`.
 * Tests: `src/core/moonbreak.test.ts` (the example of the owner, the

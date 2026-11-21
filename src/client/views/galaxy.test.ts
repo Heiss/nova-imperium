@@ -513,7 +513,7 @@ describe('the Mondbruch on the Sternenkarte (#95)', () => {
     return v;
   }
 
-  it('offers it at a foreign moon, beside the Sturmangriff, with a Weltenbrecher', () => {
+  it('offers it at a foreign moon, beside the Sturmangriff', () => {
     const html = galaxy(withMoons({ dstar: 1 }));
     expect(html).toContain(LINK);
     expect(html.match(/data-m="moonbreak"/g)).toHaveLength(1);
@@ -525,8 +525,8 @@ describe('the Mondbruch on the Sternenkarte (#95)', () => {
     expect(html).toContain('class="sheet gal-sheet"');
   });
 
-  it('offers it neither without a Weltenbrecher nor at an own moon nor at a planet', () => {
-    expect(galaxy(withMoons({ sc: 2 }))).not.toContain('moonbreak');
+  it('offers it without a Weltenbrecher too, but neither at an own moon nor at a planet', () => {
+    expect(galaxy(withMoons({ sc: 2 }))).toContain(LINK);
     const v = withMoons({ dstar: 1 });
     v.ui.gmoon = 'm1_2_5';
     expect(galaxy(v)).not.toContain('moonbreak');
