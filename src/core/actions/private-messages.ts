@@ -12,4 +12,8 @@ export const actionInputs = {
   privateMessageOptions: input<{ friendsOnly: boolean }>(),
   /** The page of messages before the message `before` of the same conversation (Q27). */
   olderPrivateMessages: input<{ before: number }>(),
+  /** The newest page of the conversation with the player `name`, when the player opens it (Q32). */
+  openPrivateConversation: input<{ name: Attr }>(),
+  /** The newest page of the sent messages, or the page before the sent message `before` (Q33). */
+  sentPrivateMessages: input<{ before?: number }>(),
 };

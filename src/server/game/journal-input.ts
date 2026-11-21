@@ -99,6 +99,8 @@ export const INPUT: Readonly<Record<string, Spec>> = {
   unblockPlayer: { name: 'seatByName' },
   privateMessageOptions: { friendsOnly: 'keep' },
   olderPrivateMessages: { before: 'keep' },
+  openPrivateConversation: { name: 'seatByName' },
+  sentPrivateMessages: { before: 'keep' },
   // The round archive.
   roundArchive: {},
   roundHistory: {},

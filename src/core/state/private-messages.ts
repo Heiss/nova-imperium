@@ -7,9 +7,9 @@ interface PmConversation {
   with: string | null;
   /** Received messages not read yet. */
   unread: number;
-  /** The newest PM_PAGE messages the player did not delete from its own view, oldest first. */
-  messages: PmLine[];
-  /** Whether older messages exist than the ones sent; they load through `olderPrivateMessages`. */
+  /** The newest message the player did not delete from its own view: the preview of the inbox (Q32). */
+  last: PmLine;
+  /** Whether older messages exist than `last`; the conversation loads them when it is opened. */
   more: boolean;
 }
 
@@ -22,5 +22,11 @@ export type StateShape = {
     blocked: string[];
     /** Newest conversation first. */
     conversations: PmConversation[];
+    /**
+     * The messages of the conversation the browser has open that are newer
+     * than the newest it holds (Q32); only while it sends the conversation and
+     * the id with the poll (`pm`, `pmAfter`).
+     */
+    open?: { with: string | null; messages: PmLine[] };
   };
 };

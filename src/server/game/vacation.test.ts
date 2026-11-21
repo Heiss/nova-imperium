@@ -873,6 +873,8 @@ describe('the Warp-Tor, giving up a colony and the Auspex-Phalanx (#230, #224, #
       'unblockPlayer',
       'privateMessageOptions',
       'olderPrivateMessages',
+      'openPrivateConversation',
+      'sentPrivateMessages',
     ]);
     const refused = Object.keys(ACTIONS).filter((type) => !allowed.has(type));
     expect(refused).toEqual(
@@ -1140,7 +1142,7 @@ describe('the state', () => {
     say('Bert', 'Anna', 'Hallo im Urlaub');
     const shown = stateFor(ctx, anna(ctx)) as {
       privateMessages: {
-        conversations: { with: string; unread: number; messages: unknown[] }[];
+        conversations: { with: string; unread: number; last: { id: number } }[];
       };
       reports: unknown[];
     };
@@ -1150,14 +1152,29 @@ describe('the state', () => {
     expect(JSON.stringify(shown)).not.toContain('GEHEIM');
     expect(shown.reports).toEqual([]);
     // The player replies, reads and pages in the vacation; the reports stay locked.
-    const id = shown.privateMessages.conversations[0]!.messages[0] as {
-      id: number;
-    };
+    const id = shown.privateMessages.conversations[0]!.last;
     act(ctx, 'readPrivateMessages', { name: 'Bert' });
     expect(act(ctx, 'olderPrivateMessages', { before: id.id })).toMatchObject({
       data: { older: [], more: false },
     });
+    // Both loads work on the lock screen (Q34): a conversation, and „Gesendet“.
+    expect(act(ctx, 'openPrivateConversation', { name: 'Bert' })).toMatchObject(
+      { data: { messages: [{ text: 'Hallo im Urlaub' }], more: false } },
+    );
+    expect(act(ctx, 'sentPrivateMessages', {})).toMatchObject({
+      data: { sent: [], more: false },
+    });
     say('Anna', 'Bert', 'Antwort aus dem Urlaub');
+    expect(act(ctx, 'sentPrivateMessages', {})).toMatchObject({
+      data: { sent: [{ to: 'Bert', text: 'Antwort aus dem Urlaub' }] },
+    });
+    // The lock state delivers the newer messages of the open conversation too.
+    const open = (
+      stateFor(ctx, anna(ctx), undefined, { name: 'Bert', after: id.id }) as {
+        privateMessages: { open?: { with: string; messages: unknown[] } };
+      }
+    ).privateMessages.open;
+    expect(open).toMatchObject({ with: 'Bert', messages: [{ mine: true }] });
     expect(() => act(ctx, 'read')).toThrow(VACATION_REFUSED);
     expect(anna(ctx).vacation).not.toBeNull();
   });

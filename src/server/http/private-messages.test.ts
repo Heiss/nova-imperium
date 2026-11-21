@@ -113,6 +113,63 @@ describe('POST /api/admin/message-reports (#226)', () => {
   });
 });
 
+describe('the open conversation over HTTP (#226, Q32)', () => {
+  type Polled = {
+    privateMessages: {
+      conversations: { with: string; last: { text: string } }[];
+      open?: { with: string; messages: { text: string; id: number }[] };
+    };
+  };
+
+  it('answers a poll with the messages newer than the browser holds, and an action with them too, only for the own conversation', async () => {
+    const { ctx, call } = await asAdmin();
+    conversation(ctx);
+    await call('POST', '/api/logout', {});
+    await call('POST', '/api/login', { name: 'Bo', password: 'secret1' });
+    const plain = (await call('GET', '/api/state')).json as Polled;
+    expect(plain.privateMessages.open).toBeUndefined();
+    expect(plain.privateMessages.conversations.map((c) => c.last.text)).toEqual(
+      ['ANTWORT-TEXT'],
+    );
+    const polled = (await call('GET', '/api/state?pm=Lea&pmAfter=1'))
+      .json as Polled;
+    expect(polled.privateMessages.open).toMatchObject({ with: 'Lea' });
+    expect(polled.privateMessages.open!.messages.map((m) => m.text)).toEqual([
+      'ANDERER-TEXT',
+      'ANTWORT-TEXT',
+    ]);
+    // An action answers with the same state, from the body.
+    const acted = await call('POST', '/api/action', {
+      type: 'readPrivateMessages',
+      name: 'Lea',
+      pm: 'Lea',
+      pmAfter: 2,
+    });
+    expect(
+      (
+        acted.json as { state: Polled }
+      ).state.privateMessages.open!.messages.map((m) => m.text),
+    ).toEqual(['ANTWORT-TEXT']);
+    // Another pair of players is not reachable: Cy has no conversation with Bo.
+    const foreign = (await call('GET', '/api/state?pm=Cy&pmAfter=0'))
+      .json as Polled;
+    expect(foreign.privateMessages.open!.messages).toEqual([]);
+    expect(JSON.stringify(foreign)).not.toContain('GEHEIM-ZWEI');
+    // An odd request is a plain poll.
+    for (const query of [
+      'pm=Lea',
+      'pmAfter=1',
+      'pm=Lea&pmAfter=x',
+      'pm=Lea&pmAfter=-1',
+    ])
+      expect(
+        ((await call('GET', `/api/state?${query}`)).json as Polled)
+          .privateMessages.open,
+        query,
+      ).toBeUndefined();
+  });
+});
+
 describe('where the text of a message goes (#226, Q24)', () => {
   const MARKER = 'GEHEIMER-MARKER-4711';
 
@@ -145,6 +202,11 @@ describe('where the text of a message goes (#226, Q24)', () => {
       expect(tooLong.text).not.toContain(MARKER);
       const broken = await call('POST', '/api/action', `{"text": "${MARKER}`);
       expect(broken.status).toBe(400);
+      // The sender loads „Gesendet“ (Q33) and polls with the open conversation (Q32).
+      const gesendet = await action({ type: 'sentPrivateMessages' });
+      expect(gesendet.status).toBe(200);
+      const polled = await call('GET', '/api/state?pm=Bo&pmAfter=0');
+      expect(polled.status).toBe(200);
       await call('POST', '/api/logout', {});
       // The recipient reads, reports and pages.
       expect((await login('bo')).status).toBe(200);
@@ -152,6 +214,8 @@ describe('where the text of a message goes (#226, Q24)', () => {
         { type: 'readPrivateMessages', name: 'Lea' },
         { type: 'reportPrivateMessage', id: 1 },
         { type: 'olderPrivateMessages', before: 1 },
+        { type: 'openPrivateConversation', name: 'Lea' },
+        { type: 'sentPrivateMessages' },
       ])
         expect((await action(body)).status, body.type).toBe(200);
       // Meant to be there: the messages and the reports hold the text.

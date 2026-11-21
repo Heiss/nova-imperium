@@ -1,6 +1,11 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
-import { PM_HISTORY, PM_PAGE } from '../../core/private-messages.ts';
+import {
+  PM_HISTORY,
+  PM_PAGE,
+  type PmLine,
+  type PmOpen,
+} from '../../core/private-messages.ts';
 import { deleteAccount } from '../delete-account.ts';
 import {
   addUser,
@@ -12,6 +17,7 @@ import {
 import { runAction } from './dispatch.ts';
 import {
   adminMessageReports,
+  pmOpenOf,
   privateMessageState,
 } from './private-messages.ts';
 import { stateFor } from './state.ts';
@@ -40,11 +46,19 @@ function setup() {
     return run(who, { type: 'sendPrivateMessage', name: to, text });
   };
   const view = (who: string) => privateMessageState(ctx, `u_${who}`);
+  /** The newest page of the conversation with `other`, as the action loads it when the player opens it (Q32). */
+  const thread = (who: string, other: string) =>
+    (
+      run(who, { type: 'openPrivateConversation', name: other }) as unknown as {
+        data: { messages: PmLine[]; more: boolean };
+      }
+    ).data;
+  /** The page of the newest conversation of `who` (the `n`-th, newest first). */
+  const lines = (who: string, n = 0): PmLine[] =>
+    thread(who, view(who).conversations[n]!.with ?? '').messages;
   const texts = (who: string, other: string) =>
-    view(who)
-      .conversations.find((c) => c.with === other)
-      ?.messages.map((m) => m.text);
-  return { ctx, run, say, view, texts };
+    thread(who, other).messages.map((m) => m.text);
+  return { ctx, run, say, view, texts, thread, lines };
 }
 
 describe('sending', () => {
@@ -55,7 +69,16 @@ describe('sending', () => {
     expect(s.texts('Anna', 'Bert')).toEqual(['Hallo Bert', 'Hallo Anna']);
     expect(s.texts('Bert', 'Anna')).toEqual(['Hallo Bert', 'Hallo Anna']);
     const anna = s.view('Anna').conversations[0]!;
-    expect(anna.messages.map((m) => m.mine)).toEqual([true, false]);
+    expect(s.thread('Anna', 'Bert').messages.map((m) => m.mine)).toEqual([
+      true,
+      false,
+    ]);
+    // The state carries the newest message only, as the preview.
+    expect(anna).toMatchObject({
+      with: 'Bert',
+      last: { text: 'Hallo Anna', mine: false },
+      more: true,
+    });
     expect(anna.unread).toBe(1);
     expect(s.view('Bert').conversations[0]!.unread).toBe(1);
   });
@@ -86,7 +109,7 @@ describe('sending', () => {
     expect(() => s.say('Anna', 'Bert', 'a'.repeat(10_000))).toThrow(LONG);
     s.say('Anna', 'Bert', 'a'.repeat(1000));
     s.say('Anna', 'Bert', '😀'.repeat(1000));
-    expect(s.view('Bert').conversations[0]!.messages).toHaveLength(2);
+    expect(s.lines('Bert')).toHaveLength(2);
   });
 
   it('stores plain text as written, without control characters', () => {
@@ -196,38 +219,97 @@ describe('paging (Q27, coordinator, 2026-11-21)', () => {
       data: { older: { id: number; text: string }[]; more: boolean };
     };
 
-  it('holds at most 50 messages per conversation in the state, the newest, with the unread count of all', () => {
+  it('carries only the newest message per conversation in the state (Q32), with the unread count of all', () => {
     const s = setup();
     fill(s, 130);
     s.say('Anna', 'Cora', 'andere Unterhaltung');
     const bert = s.view('Bert').conversations[0]!;
-    expect(PM_PAGE).toBe(50);
-    expect(bert.messages).toHaveLength(50);
-    expect(bert.messages.map((m) => m.text)).toEqual(
-      Array.from({ length: 50 }, (_, i) => `m${80 + i}`),
-    );
+    expect(bert.last.text).toBe('m129');
     expect(bert.more).toBe(true);
-    // Unread is counted over all 130 messages, not over the page.
+    expect(Object.keys(bert).sort()).toEqual([
+      'last',
+      'more',
+      'unread',
+      'with',
+    ]);
+    // Unread is counted over all 130 messages, not over the preview.
     const received = Array.from({ length: 130 }, (_, i) => i).filter(
       (i) => i % 3 === 0,
     ).length;
     expect(
       s.view('Anna').conversations.find((c) => c.with === 'Bert')!.unread,
     ).toBe(received);
-    expect(s.view('Anna').conversations.map((c) => c.messages.length)).toEqual([
-      1, 50,
+    expect(s.view('Anna').conversations.map((c) => c.last.text)).toEqual([
+      'andere Unterhaltung',
+      'm129',
     ]);
-    // Whatever the number, no conversation carries more than a page.
+    expect(s.view('Anna').conversations.map((c) => c.more)).toEqual([
+      false,
+      true,
+    ]);
+    // Whatever the number, the state carries one message and says whether more exist.
     fc.assert(
       fc.property(fc.integer({ min: 0, max: 120 }), (n) => {
         const t = setup();
         fill(t, n);
         const c = t.view('Anna').conversations[0];
-        expect(c?.messages.length ?? 0).toBe(Math.min(n, PM_PAGE));
-        expect(c?.more ?? false).toBe(n > PM_PAGE);
+        expect(c?.last.text).toBe(n ? `m${n - 1}` : undefined);
+        expect(c?.more ?? false).toBe(n > 1);
       }),
       { numRuns: 15 },
     );
+  });
+
+  it('loads the newest 50 of a conversation when it is opened, and says whether more exist', () => {
+    const s = setup();
+    fill(s, 130);
+    s.say('Anna', 'Cora', 'andere Unterhaltung');
+    const page = s.thread('Bert', 'Anna');
+    expect(PM_PAGE).toBe(50);
+    expect(page.messages.map((m) => m.text)).toEqual(
+      Array.from({ length: 50 }, (_, i) => `m${80 + i}`),
+    );
+    expect(page.more).toBe(true);
+    expect(s.thread('Anna', 'Cora')).toMatchObject({ more: false });
+    expect(s.thread('Anna', 'Cora').messages.map((m) => m.text)).toEqual([
+      'andere Unterhaltung',
+    ]);
+    // A player without a conversation gets an empty page; a deleted message is no part of it.
+    expect(s.thread('Dirk', 'Anna')).toEqual({ messages: [], more: false });
+    const hidden = s.thread('Anna', 'Bert').messages.at(-1)!;
+    s.run('Anna', { type: 'deletePrivateMessage', id: hidden.id });
+    expect(s.thread('Anna', 'Bert').messages.at(-1)!.text).toBe('m128');
+  });
+
+  it('refuses an unknown player when a conversation is opened, odd names answer like an unknown one, and stores nothing', () => {
+    const s = setup();
+    fill(s, 5);
+    const before = JSON.stringify(rows(s.ctx, 'private_messages'));
+    for (const name of ['Nobody', 'u_Bert', 'x'.repeat(300)])
+      expect(() => s.thread('Anna', name), name).toThrow(UNKNOWN);
+    for (const name of [42, {}, true])
+      expect(() => s.thread('Anna', name as string)).toThrow(UNKNOWN);
+    // No name at all is the empty name: the deleted accounts, none here.
+    for (const name of [null, [], undefined])
+      expect(s.thread('Anna', name as string)).toEqual({
+        messages: [],
+        more: false,
+      });
+    expect(JSON.stringify(rows(s.ctx, 'private_messages'))).toBe(before);
+  });
+
+  it('shows a player only its own side: another pair of players is not reachable by any name', () => {
+    const s = setup();
+    s.say('Cora', 'Dirk', 'GEHEIM-CORA-DIRK');
+    for (const who of ['Anna', 'Bert', 'Admin'])
+      for (const name of ['Cora', 'Dirk', '']) {
+        expect(JSON.stringify(s.thread(who, name))).not.toContain('GEHEIM');
+      }
+    // Dirk sees it; hiding it from Dirk's view removes it from his page but not Cora's.
+    expect(s.thread('Dirk', 'Cora').messages).toHaveLength(1);
+    s.run('Dirk', { type: 'deletePrivateConversation', name: 'Cora' });
+    expect(s.thread('Dirk', 'Cora').messages).toEqual([]);
+    expect(s.thread('Cora', 'Dirk').messages).toHaveLength(1);
   });
 
   it('loads the older pages in order, with no gap and no duplicate, down to the first message', () => {
@@ -238,7 +320,7 @@ describe('paging (Q27, coordinator, 2026-11-21)', () => {
       .visibleTo('u_Anna')
       .find((m) => m.text === 'm60')!;
     s.run('Anna', { type: 'deletePrivateMessage', id: hidden.id });
-    const shown = s.view('Anna').conversations[0]!;
+    const shown = s.thread('Anna', 'Bert');
     let all = shown.messages.map((m) => ({ id: m.id, text: m.text }));
     let more = shown.more;
     let pages = 0;
@@ -265,12 +347,12 @@ describe('paging (Q27, coordinator, 2026-11-21)', () => {
   it('says whether more exist exactly at the page borders', () => {
     const s = setup();
     fill(s, PM_PAGE * 2);
-    const first = s.view('Anna').conversations[0]!.messages[0]!.id;
+    const first = s.lines('Anna')[0]!.id;
     expect(older(s, 'Anna', first).data.older).toHaveLength(PM_PAGE);
     expect(older(s, 'Anna', first).data.more).toBe(false);
     // One message more than two pages: the first page is full and one is left.
     s.ctx.privateMessages.add('u_Anna', 'u_Bert', 999, 'neu');
-    const next = s.view('Anna').conversations[0]!.messages[0]!.id;
+    const next = s.lines('Anna')[0]!.id;
     expect(older(s, 'Anna', next).data.older).toHaveLength(PM_PAGE);
     expect(older(s, 'Anna', next).data.more).toBe(true);
   });
@@ -280,8 +362,7 @@ describe('paging (Q27, coordinator, 2026-11-21)', () => {
     fill(s, 80);
     for (let i = 0; i < 70; i++)
       s.ctx.privateMessages.add('u_Anna', 'u_Cora', 1000 + i, `c${i}`);
-    const first = s.view('Anna').conversations.find((c) => c.with === 'Bert')!
-      .messages[0]!.id;
+    const first = s.thread('Anna', 'Bert').messages[0]!.id;
     const page = older(s, 'Anna', first).data.older;
     expect(page.length).toBeGreaterThan(0);
     expect(page.every((m) => m.text.startsWith('m'))).toBe(true);
@@ -291,17 +372,21 @@ describe('paging (Q27, coordinator, 2026-11-21)', () => {
     const s = setup();
     fill(s, 70);
     deleteAccount(s.ctx, s.ctx.players.get('u_Anna')!, 'secret1');
-    const c = s.view('Bert').conversations[0]!;
-    expect(c).toMatchObject({ with: null, more: true });
-    expect(older(s, 'Bert', c.messages[0]!.id).data.older).toHaveLength(20);
+    expect(s.view('Bert').conversations[0]).toMatchObject({
+      with: null,
+      more: true,
+    });
+    const page = s.thread('Bert', '');
+    expect(page.messages).toHaveLength(PM_PAGE);
+    expect(older(s, 'Bert', page.messages[0]!.id).data.older).toHaveLength(20);
   });
 
   it('refuses a message of a foreign conversation exactly like an unknown one, and leaks nothing', () => {
     const s = setup();
     fill(s, 80);
     s.say('Cora', 'Dirk', 'GEHEIM-CORA-DIRK');
-    const bertId = s.view('Anna').conversations[0]!.messages[10]!.id;
-    const own = s.view('Cora').conversations[0]!.messages[0]!.id;
+    const bertId = s.lines('Anna')[10]!.id;
+    const own = s.lines('Cora')[0]!.id;
     const answers = new Set<string>();
     // Cora and Dirk have conversations of their own, but not the one asked for.
     for (const who of ['Cora', 'Dirk', 'Admin'])
@@ -327,8 +412,262 @@ describe('paging (Q27, coordinator, 2026-11-21)', () => {
     const s = setup();
     fill(s, 90);
     const before = JSON.stringify(rows(s.ctx, 'private_messages'));
-    const first = s.view('Anna').conversations[0]!.messages[0]!.id;
+    const first = s.lines('Anna')[0]!.id;
     older(s, 'Anna', first);
+    expect(JSON.stringify(rows(s.ctx, 'private_messages'))).toBe(before);
+  });
+});
+
+describe('the open conversation (Q32, coordinator, 2026-11-21)', () => {
+  const open = (s: ReturnType<typeof setup>, who: string, o?: PmOpen) =>
+    privateMessageState(s.ctx, `u_${who}`, o).open;
+
+  it('carries nothing of a conversation while the browser names none', () => {
+    const s = setup();
+    s.say('Anna', 'Bert', 'eins');
+    expect(s.view('Bert')).not.toHaveProperty('open');
+    expect(open(s, 'Bert')).toBeUndefined();
+  });
+
+  it('carries the messages newer than the newest the browser holds, in order, with no gap and no duplicate', () => {
+    const s = setup();
+    s.say('Anna', 'Bert', 'eins');
+    const held = s.thread('Bert', 'Anna').messages.at(-1)!.id;
+    s.say('Anna', 'Bert', 'zwei');
+    s.say('Bert', 'Anna', 'drei');
+    s.say('Anna', 'Cora', 'andere Unterhaltung');
+    s.say('Anna', 'Bert', 'vier');
+    const o = open(s, 'Bert', { name: 'Anna', after: held })!;
+    expect(o.with).toBe('Anna');
+    expect(o.messages.map((m) => m.text)).toEqual(['zwei', 'drei', 'vier']);
+    expect(o.messages.map((m) => m.mine)).toEqual([false, true, false]);
+    // What the browser held plus these is exactly the page.
+    const page = s.thread('Bert', 'Anna').messages;
+    expect([page[0]!.id, ...o.messages.map((m) => m.id)]).toEqual(
+      page.map((m) => m.id),
+    );
+    // Nothing newer than the newest: an empty list.
+    expect(
+      open(s, 'Bert', { name: 'Anna', after: o.messages.at(-1)!.id })!.messages,
+    ).toEqual([]);
+  });
+
+  it('holds back what the player deleted from its own view, and what belongs to another conversation', () => {
+    const s = setup();
+    s.say('Anna', 'Bert', 'eins');
+    s.say('Anna', 'Bert', 'zwei');
+    s.say('Cora', 'Bert', 'GEHEIM-CORA');
+    const two = s.thread('Bert', 'Anna').messages[1]!;
+    s.run('Bert', { type: 'deletePrivateMessage', id: two.id });
+    const o = open(s, 'Bert', { name: 'Anna', after: 0 })!;
+    expect(o.messages.map((m) => m.text)).toEqual(['eins']);
+    expect(JSON.stringify(o)).not.toContain('GEHEIM');
+    // The other side keeps it.
+    expect(
+      open(s, 'Anna', { name: 'Bert', after: 0 })!.messages.map((m) => m.text),
+    ).toEqual(['eins', 'zwei']);
+  });
+
+  it('shows a player only its own conversations: another pair of players is never reached by a name', () => {
+    const s = setup();
+    s.say('Cora', 'Dirk', 'GEHEIM-CORA-DIRK');
+    for (const who of ['Anna', 'Bert', 'Admin'])
+      for (const name of ['Cora', 'Dirk', '', 'Nobody']) {
+        const state = privateMessageState(s.ctx, `u_${who}`, {
+          name,
+          after: 0,
+        });
+        expect(JSON.stringify(state)).not.toContain('GEHEIM');
+      }
+  });
+
+  it('leaves the open conversation out for an unknown name, and says nothing about it', () => {
+    const s = setup();
+    s.say('Anna', 'Bert', 'eins');
+    expect(open(s, 'Bert', { name: 'Nobody', after: 0 })).toBeUndefined();
+    expect(open(s, 'Bert', { name: 'u_Anna', after: 0 })).toBeUndefined();
+  });
+
+  it('names the deleted accounts by the empty name', () => {
+    const s = setup();
+    s.say('Anna', 'Bert', 'Hallo');
+    deleteAccount(s.ctx, s.ctx.players.get('u_Anna')!, 'secret1');
+    const o = open(s, 'Bert', { name: '', after: 0 })!;
+    expect(o.with).toBeNull();
+    expect(o.messages.map((m) => m.text)).toEqual(['Hallo']);
+  });
+
+  it('is part of the state of a request, read from the query or the body', () => {
+    const s = setup();
+    s.say('Anna', 'Bert', 'eins');
+    const state = stateFor(s.ctx, s.ctx.players.get('u_Bert')!, undefined, {
+      name: 'Anna',
+      after: 0,
+    }) as { privateMessages: { open?: { messages: { text: string }[] } } };
+    expect(state.privateMessages.open!.messages.map((m) => m.text)).toEqual([
+      'eins',
+    ]);
+    expect(pmOpenOf({ pm: 'Anna', pmAfter: '12' })).toEqual({
+      name: 'Anna',
+      after: 12,
+    });
+    expect(pmOpenOf({ pm: '', pmAfter: 0 })).toEqual({ name: '', after: 0 });
+    expect(pmOpenOf({ pm: 'x'.repeat(300), pmAfter: 1 })!.name).toHaveLength(
+      20,
+    );
+  });
+
+  it('reads no open conversation from an odd request', () => {
+    for (const source of [
+      {},
+      { pm: 'Anna' },
+      { pmAfter: 3 },
+      { pm: 5, pmAfter: 3 },
+      { pm: 'Anna', pmAfter: -1 },
+      { pm: 'Anna', pmAfter: 1.5 },
+      { pm: 'Anna', pmAfter: 'x' },
+      { pm: 'Anna', pmAfter: NaN },
+      { pm: 'Anna', pmAfter: 1e300 },
+      { pm: 'Anna', pmAfter: null },
+      { pm: 'Anna', pmAfter: [1] },
+      { pm: ['Anna'], pmAfter: 1 },
+    ])
+      expect(pmOpenOf(source), JSON.stringify(source)).toBeUndefined();
+  });
+
+  it('never carries more than the 500 kept, and stores nothing', () => {
+    const s = setup();
+    for (let i = 0; i < PM_HISTORY + 20; i++)
+      s.ctx.privateMessages.add('u_Anna', 'u_Bert', i, `m${i}`);
+    const before = JSON.stringify(rows(s.ctx, 'private_messages'));
+    expect(open(s, 'Bert', { name: 'Anna', after: 0 })!.messages).toHaveLength(
+      PM_HISTORY,
+    );
+    expect(JSON.stringify(rows(s.ctx, 'private_messages'))).toBe(before);
+  });
+});
+
+describe('„Gesendet“ (Q33, coordinator, 2026-11-21)', () => {
+  const sent = (s: ReturnType<typeof setup>, who: string, before?: unknown) =>
+    s.run(who, {
+      type: 'sentPrivateMessages',
+      ...(before === undefined ? {} : { before }),
+    }) as unknown as {
+      data: {
+        sent: { id: number; to: string | null; text: string; time: number }[];
+        more: boolean;
+      };
+    };
+  /** Anna writes `n` messages `m0` to `m<n-1>` to Bert and Cora alternately; each answers. */
+  const fill = (s: ReturnType<typeof setup>, n: number) => {
+    for (let i = 0; i < n; i++) {
+      const to = i % 2 ? 'u_Cora' : 'u_Bert';
+      s.ctx.privateMessages.add('u_Anna', to, i, `m${i}`);
+      s.ctx.privateMessages.add(to, 'u_Anna', i, `antwort${i}`);
+    }
+  };
+
+  it('loads the newest 50 sent messages, newest first, only the ones the player wrote, with the name of each recipient', () => {
+    const s = setup();
+    fill(s, 120);
+    const page = sent(s, 'Anna').data;
+    expect(page.sent).toHaveLength(PM_PAGE);
+    expect(page.sent.map((m) => m.text)).toEqual(
+      Array.from({ length: 50 }, (_, i) => `m${119 - i}`),
+    );
+    expect(page.sent[0]).toMatchObject({ to: 'Cora' });
+    expect(page.sent[1]).toMatchObject({ to: 'Bert' });
+    expect(page.more).toBe(true);
+    expect(sent(s, 'Bert').data.sent.map((m) => m.text)).toEqual(
+      Array.from({ length: 60 }, (_, i) => `antwort${118 - 2 * i}`).slice(
+        0,
+        50,
+      ),
+    );
+  });
+
+  it('loads the older pages in order, with no gap and no duplicate, down to the first, and says exactly when none is left', () => {
+    const s = setup();
+    fill(s, 130);
+    // One message Anna deleted from her own view is no part of any page.
+    const hidden = s.ctx.privateMessages
+      .visibleTo('u_Anna')
+      .find((m) => m.text === 'm60')!;
+    s.run('Anna', { type: 'deletePrivateMessage', id: hidden.id });
+    let page = sent(s, 'Anna').data;
+    let all = page.sent;
+    let pages = 1;
+    while (page.more) {
+      page = sent(s, 'Anna', all.at(-1)!.id).data;
+      expect(page.sent.length).toBeGreaterThan(0);
+      expect(page.sent.length).toBeLessThanOrEqual(PM_PAGE);
+      all = [...all, ...page.sent];
+      pages++;
+    }
+    expect(pages).toBe(3);
+    expect(all).toHaveLength(129);
+    expect(all.map((m) => m.text)).not.toContain('m60');
+    const ids = all.map((m) => m.id);
+    expect(ids).toEqual([...ids].sort((a, b) => b - a));
+    expect(new Set(ids).size).toBe(ids.length);
+    // Exactly one page: nothing more; one message more: more.
+    const t = setup();
+    fill(t, PM_PAGE);
+    expect(sent(t, 'Anna').data.more).toBe(false);
+    t.ctx.privateMessages.add('u_Anna', 'u_Bert', 999, 'noch eine');
+    expect(sent(t, 'Anna').data.more).toBe(true);
+  });
+
+  it('shows a deleted recipient as no name, and a conversation deleted from the own view not at all', () => {
+    const s = setup();
+    s.say('Anna', 'Bert', 'an Bert');
+    s.say('Anna', 'Cora', 'an Cora');
+    deleteAccount(s.ctx, s.ctx.players.get('u_Bert')!, 'secret1');
+    expect(sent(s, 'Anna').data.sent.map((m) => m.to)).toEqual(['Cora', null]);
+    s.run('Anna', { type: 'deletePrivateConversation', name: 'Cora' });
+    expect(sent(s, 'Anna').data.sent.map((m) => m.text)).toEqual(['an Bert']);
+  });
+
+  it('refuses a foreign, odd or unknown id exactly like an unknown message, and stores nothing', () => {
+    const s = setup();
+    fill(s, 5);
+    s.say('Cora', 'Dirk', 'GEHEIM-CORA-DIRK');
+    const before = JSON.stringify(rows(s.ctx, 'private_messages'));
+    const foreign = s.ctx.privateMessages
+      .visibleTo('u_Cora')
+      .find((m) => m.text === 'GEHEIM-CORA-DIRK')!.id;
+    // A message Anna received is no cursor of her sent list.
+    const received = s.ctx.privateMessages
+      .visibleTo('u_Anna')
+      .find((m) => m.text === 'antwort1')!.id;
+    const odd = [9999, -1, 0, 1.5, '1', null, {}, [], NaN, '1 OR 1=1'];
+    const answers = new Set<string>();
+    const ask = (who: string, id: unknown) => {
+      try {
+        sent(s, who, id);
+        expect.unreachable(`${who} ${JSON.stringify(id)}`);
+      } catch (error) {
+        answers.add((error as Error).message);
+      }
+    };
+    for (const who of ['Anna', 'Bert', 'Admin'])
+      for (const id of [foreign, received, ...odd]) ask(who, id);
+    expect([...answers]).toEqual([GONE]);
+    expect(JSON.stringify(rows(s.ctx, 'private_messages'))).toBe(before);
+    // A message the player deleted is no cursor any more.
+    const own = sent(s, 'Anna').data.sent[0]!.id;
+    s.run('Anna', { type: 'deletePrivateMessage', id: own });
+    expect(() => sent(s, 'Anna', own)).toThrow(GONE);
+  });
+
+  it('writes nothing: loading a page changes no message and no mark', () => {
+    const s = setup();
+    fill(s, 60);
+    const before = JSON.stringify(rows(s.ctx, 'private_messages'));
+    const first = sent(s, 'Anna').data.sent[0]!.id;
+    sent(s, 'Anna', first);
+    sent(s, 'Anna');
+    s.thread('Anna', 'Bert');
     expect(JSON.stringify(rows(s.ctx, 'private_messages'))).toBe(before);
   });
 });
@@ -360,7 +699,7 @@ describe('the block list and „only friends“', () => {
     expect(s.texts('Anna', 'Bert')).toEqual(both);
     expect(s.texts('Bert', 'Anna')).toEqual(both);
     // The blocker can still report an earlier message of the blocked player.
-    const first = s.view('Bert').conversations[0]!.messages[0]!.id;
+    const first = s.lines('Bert')[0]!.id;
     expect(s.run('Bert', { type: 'reportPrivateMessage', id: first })).toBe(
       'Nachricht gemeldet.',
     );
@@ -475,7 +814,7 @@ describe('reading, deleting and the unread mark', () => {
     const s = setup();
     s.say('Anna', 'Bert', 'eins');
     s.say('Bert', 'Anna', 'zwei');
-    const id = s.view('Anna').conversations[0]!.messages[0]!.id;
+    const id = s.lines('Anna')[0]!.id;
     s.run('Anna', { type: 'deletePrivateMessage', id });
     expect(s.texts('Anna', 'Bert')).toEqual(['zwei']);
     expect(s.texts('Bert', 'Anna')).toEqual(['eins', 'zwei']);
@@ -491,7 +830,7 @@ describe('reading, deleting and the unread mark', () => {
   it('refuses to delete a message of a conversation one is not part of, and says nothing about it', () => {
     const s = setup();
     s.say('Anna', 'Bert', 'geheim');
-    const id = s.view('Anna').conversations[0]!.messages[0]!.id;
+    const id = s.lines('Anna')[0]!.id;
     expect(() => s.run('Cora', { type: 'deletePrivateMessage', id })).toThrow(
       GONE,
     );
@@ -602,7 +941,7 @@ describe('reporting (Q24)', () => {
     s.say('Anna', 'Bert', 'GEMELDET');
     s.say('Anna', 'Bert', 'NICHT-GEMELDET');
     s.say('Bert', 'Anna', 'ANTWORT');
-    const [first] = s.view('Bert').conversations[0]!.messages;
+    const [first] = s.lines('Bert');
     expect(adminMessageReports(s.ctx)).toEqual([]);
     expect(s.run('Bert', { type: 'reportPrivateMessage', id: first!.id })).toBe(
       'Nachricht gemeldet.',
@@ -625,7 +964,7 @@ describe('reporting (Q24)', () => {
   it('refuses the sender, a third player and an unknown id, with the same answer, and reads nothing', () => {
     const s = setup();
     s.say('Anna', 'Bert', 'GEHEIM');
-    const id = s.view('Anna').conversations[0]!.messages[0]!.id;
+    const id = s.lines('Anna')[0]!.id;
     for (const who of ['Anna', 'Cora', 'Dirk', 'Admin'])
       expect(() => s.run(who, { type: 'reportPrivateMessage', id })).toThrow(
         GONE,
@@ -677,14 +1016,14 @@ describe('reporting (Q24)', () => {
   it('refuses the sender even when the recipient has deleted its own view of it, and a second report', () => {
     const s = setup();
     s.say('Anna', 'Bert', 'x');
-    const id = s.view('Bert').conversations[0]!.messages[0]!.id;
+    const id = s.lines('Bert')[0]!.id;
     s.run('Bert', { type: 'reportPrivateMessage', id });
     expect(() => s.run('Bert', { type: 'reportPrivateMessage', id })).toThrow(
       'Diese Nachricht hast du bereits gemeldet.',
     );
     expect(adminMessageReports(s.ctx)).toHaveLength(1);
     s.say('Anna', 'Bert', 'y');
-    const second = s.view('Bert').conversations[0]!.messages[1]!.id;
+    const second = s.lines('Bert')[1]!.id;
     s.run('Bert', { type: 'deletePrivateMessage', id: second });
     expect(() =>
       s.run('Bert', { type: 'reportPrivateMessage', id: second }),
@@ -694,7 +1033,7 @@ describe('reporting (Q24)', () => {
   it('keeps the report when both sides deleted the message', () => {
     const s = setup();
     s.say('Anna', 'Bert', 'BELEG');
-    const id = s.view('Bert').conversations[0]!.messages[0]!.id;
+    const id = s.lines('Bert')[0]!.id;
     s.run('Bert', { type: 'reportPrivateMessage', id });
     s.run('Bert', { type: 'deletePrivateMessage', id });
     s.run('Anna', { type: 'deletePrivateMessage', id });
@@ -712,10 +1051,7 @@ describe('a deleted account (Q22)', () => {
     const conversation = s.view('Bert').conversations;
     expect(conversation).toHaveLength(1);
     expect(conversation[0]).toMatchObject({ with: null, unread: 1 });
-    expect(conversation[0]!.messages.map((m) => m.text)).toEqual([
-      'Hallo',
-      'Hi',
-    ]);
+    expect(s.texts('Bert', '')).toEqual(['Hallo', 'Hi']);
     // The messages can still be read and deleted from the own view.
     s.run('Bert', { type: 'readPrivateMessages', name: '' });
     expect(s.view('Bert').conversations[0]!.unread).toBe(0);
@@ -727,7 +1063,7 @@ describe('a deleted account (Q22)', () => {
   it('keeps a report with the pseudonym, and one cannot write to the deleted account', () => {
     const s = setup();
     s.say('Anna', 'Bert', 'Beleidigung');
-    const id = s.view('Bert').conversations[0]!.messages[0]!.id;
+    const id = s.lines('Bert')[0]!.id;
     s.run('Bert', { type: 'reportPrivateMessage', id });
     deleteAccount(s.ctx, s.ctx.players.get('u_Anna')!, 'secret1');
     expect(adminMessageReports(s.ctx)).toMatchObject([
@@ -745,7 +1081,7 @@ describe('a deleted account (Q22)', () => {
     (_who, gone) => {
       const s = setup();
       s.say('Anna', 'Bert', 'ALT-NAME-TEST');
-      const id = s.view('Bert').conversations[0]!.messages[0]!.id;
+      const id = s.lines('Bert')[0]!.id;
       s.run('Bert', { type: 'reportPrivateMessage', id });
       for (const name of gone)
         deleteAccount(s.ctx, s.ctx.players.get(`u_${name}`)!, 'secret1');
@@ -773,7 +1109,7 @@ describe('a deleted account (Q22)', () => {
     s.say('Bert', 'Anna', 'b');
     s.run('Anna', {
       type: 'reportPrivateMessage',
-      id: s.view('Anna').conversations[0]!.messages[1]!.id,
+      id: s.lines('Anna')[1]!.id,
     });
     s.run('Anna', { type: 'blockPlayer', name: 'Cora' });
     s.run('Cora', { type: 'blockPlayer', name: 'Anna' });
@@ -794,7 +1130,7 @@ describe('a new round', () => {
     s.say('Anna', 'Bert', 'weg');
     s.run('Bert', {
       type: 'reportPrivateMessage',
-      id: s.view('Bert').conversations[0]!.messages[0]!.id,
+      id: s.lines('Bert')[0]!.id,
     });
     s.run('Bert', { type: 'blockPlayer', name: 'Cora' });
     s.run('Bert', { type: 'privateMessageOptions', friendsOnly: true });

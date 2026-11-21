@@ -15,6 +15,8 @@ import {
   sendError,
   type PmError,
   type PmLine,
+  type PmOpen,
+  type SentLine,
 } from '../../core/private-messages.ts';
 import { DELETED_PLAYER } from '../../core/round-report.ts';
 import type { StateShape } from '../../core/state/private-messages.ts';
@@ -170,6 +172,56 @@ const olderPrivateMessages: Handler<'olderPrivateMessages'> = (
   };
 };
 
+/**
+ * The newest page of the conversation with the player `d.name` (Q32), asked
+ * when the player opens it: at most PM_PAGE messages, oldest first, and
+ * whether older ones exist. Only the player's own messages of that
+ * conversation, none it deleted from its own view; nothing is stored.
+ */
+const openPrivateConversation: Handler<'openPrivateConversation'> = (
+  ctx,
+  u,
+  d,
+): Answer => {
+  const page = ctx.privateMessages.newest(u.id, partner(ctx, d.name));
+  return {
+    msg: null,
+    data: {
+      messages: page.messages.map((x) => lineOf(x, u.id)),
+      more: page.more,
+    },
+  };
+};
+
+/**
+ * The newest page of the messages the player sent (Q33), newest first, or the
+ * page before its sent message `d.before`. The cursor is checked like every
+ * message id: it must be a message the player sent and did not delete, else
+ * the words of an unknown one; no other player's message, odd or unknown id
+ * answers differently, and nothing is stored.
+ */
+const sentPrivateMessages: Handler<'sentPrivateMessages'> = (
+  ctx,
+  u,
+  d,
+): Answer => {
+  let before = Number.MAX_SAFE_INTEGER;
+  if (d.before !== undefined) {
+    const m = ownMessage(ctx, u.id, d.before);
+    if (m.sender !== u.id) fail(PM_TEXT.gone);
+    before = m.id;
+  }
+  const names = new Map(ctx.players.all().map((p) => [p.id, p.name]));
+  const page = ctx.privateMessages.sent(u.id, before);
+  const sent: SentLine[] = page.messages.map((m) => ({
+    id: m.id,
+    to: (m.recipient && names.get(m.recipient)) || null,
+    time: m.time,
+    text: m.text,
+  }));
+  return { msg: null, data: { sent, more: page.more } };
+};
+
 /** Blocks a player: it can no longer send to the blocker (the refusal does not say why). */
 const blockPlayer: Handler<'blockPlayer'> = (ctx, u, d) => {
   const other = ctx.players.byName(str(d.name, 20)) ?? refuse('unknown');
@@ -191,25 +243,47 @@ const privateMessageOptions: Handler<'privateMessageOptions'> = (ctx, u, d) => {
 };
 
 /**
- * The private messages of `uid`: its conversations, newest first, each with
- * the newest PM_PAGE messages it did not delete (Q27) and the number it did
- * not read over all of them. A message of a deleted account shows under the
- * pseudonym of the round archive.
+ * The open conversation of a request (Q32): the browser names it by `pm` (the
+ * other player's name, empty for the deleted accounts) and `pmAfter` (the id of
+ * the newest message it holds), in the query of the poll or the body of an
+ * action. Anything else is no open conversation. Only a number and a name are
+ * read; nothing is stored.
+ */
+export function pmOpenOf(source: {
+  pm?: unknown;
+  pmAfter?: unknown;
+}): PmOpen | undefined {
+  const { pm, pmAfter } = source;
+  const after = typeof pmAfter === 'string' ? Number(pmAfter) : pmAfter;
+  if (typeof pm !== 'string') return undefined;
+  if (typeof after !== 'number' || !Number.isSafeInteger(after) || after < 0)
+    return undefined;
+  return { name: str(pm, 20), after };
+}
+
+/**
+ * The private messages of `uid`: its conversations, newest first, each with its
+ * newest message as the preview and the number it did not read over all of them
+ * (Q32), and, when the browser names its open conversation, the messages of it
+ * that are newer than the browser holds. A message of a deleted account shows
+ * under the pseudonym of the round archive.
  */
 export function privateMessageState(
   ctx: Ctx,
   uid: string,
+  open?: PmOpen,
 ): StateShape['privateMessages'] {
   const names = new Map(ctx.players.all().map((p) => [p.id, p.name]));
-  const conversations = ctx.privateMessages
-    .windows(uid)
-    .map((w) => ({
-      with: w.other === null ? null : (names.get(w.other) ?? null),
-      unread: w.unread,
-      more: w.more,
-      messages: w.messages.map((m) => lineOf(m, uid)),
-    }))
-    .sort((a, b) => b.messages.at(-1)!.id - a.messages.at(-1)!.id);
+  const conversations = ctx.privateMessages.previews(uid).map((w) => ({
+    with: w.other === null ? null : (names.get(w.other) ?? null),
+    unread: w.unread,
+    more: w.more,
+    last: lineOf(w.last, uid),
+  }));
+  // The other side of the open conversation: a name no player has is no
+  // conversation, and nothing says so.
+  const other =
+    open && (open.name === '' ? null : ctx.players.byName(open.name)?.id);
   return {
     friendsOnly: ctx.privateMessages.friendsOnly(uid),
     blocked: ctx.privateMessages
@@ -217,6 +291,16 @@ export function privateMessageState(
       .map((id) => names.get(id) ?? DELETED_PLAYER)
       .sort((a, b) => a.localeCompare(b, 'de')),
     conversations,
+    ...(open && other !== undefined
+      ? {
+          open: {
+            with: open.name === '' ? null : open.name,
+            messages: ctx.privateMessages
+              .newer(uid, other, open.after)
+              .map((m) => lineOf(m, uid)),
+          },
+        }
+      : {}),
   };
 }
 
@@ -259,10 +343,14 @@ export const serverFeature = {
     unblockPlayer,
     privateMessageOptions,
     olderPrivateMessages,
+    openPrivateConversation,
+    sentPrivateMessages,
   },
   state: {
     order: 230,
     keys: ['privateMessages'],
-    build: (ctx, u) => ({ privateMessages: privateMessageState(ctx, u.id) }),
+    build: (ctx, u, view) => ({
+      privateMessages: privateMessageState(ctx, u.id, view.pmOpen),
+    }),
   } satisfies StatePart<StateShape>,
 } satisfies ServerFeature;
