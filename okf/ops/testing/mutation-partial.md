@@ -17,8 +17,8 @@ description: 'A pull request mutates only what it changes: when the jobs start, 
   build, E2E, the image, Trivy, the Compose stack and the upgrade test
   secure such a change. Pushes to `main` and `hotfix/**` keep the full
   suite with the mutation run on every push (since #342 a push skips it
-  only with the proof of a complete green mutation run on the identical
-  tree, never after a partial one; O23); a push that runs it also keeps
+  when the pull request it merged passed its own mutation jobs, complete or
+  partial, on the identical tree; owner, 2026-11-21, O23); a push that runs it also keeps
   the shard caches and the weights current, after a proven one the nightly
   run does. The release pull request of a hotfix
   branch changes only `CHANGELOG.md`, `VERSION` and `changes/`, so it

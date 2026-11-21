@@ -27,8 +27,11 @@ description: 'When a push to main or a hotfix branch skips a job that succeeded 
     /repos/{repo}/actions/runs/{id}/jobs?filter=latest`); the newest such run
     gives the proof.
   The jobs and their names: „Lint, types, unit tests with coverage, build“,
-  „E2E tests (browser)“, „Mutation tests“ (the gate of the complete run: it
-  is skipped in a partial or taken-over run, so those prove nothing, O23),
+  „E2E tests (browser)“, the mutation jobs („Mutation tests“, the gate of the
+  complete run, or „Mutation tests (changed files)“, the partial run of
+  #309: either proves the plan, the shards and „Mutation tests“ of the push;
+  owner, 2026-11-21, O23; a run without a mutation job or one that took over
+  the result of its head before, #167, proves none),
   „Docker image and Compose stack“, „Documentation website“. The cheap jobs
   (secrets and dependencies, migrations, workflow lint, CodeQL, the change
   detection) run on every push.

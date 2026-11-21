@@ -5,7 +5,9 @@ name: CI
 # one pull request whose tested head has the same Git tree, each of the checks,
 # the E2E tests, the complete mutation run, the image with the Compose stack
 # and the website is skipped when the same job succeeded in a green CI run of
-# that head (scripts/already-tested.ts, owner, 2026-11-21, #342); every other
+# that head, the mutation run when its own mutation jobs, complete or for the
+# changed files, succeeded there (scripts/already-tested.ts, owner,
+# 2026-11-21, #342); every other
 # case and every error of the lookup runs everything, and the CI Gate names
 # the run and the job of each proof. Pull requests run what their changes
 # need: documentation only skips the code checks; the Docker

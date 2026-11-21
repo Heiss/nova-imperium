@@ -133,13 +133,46 @@ describe('a push that merged one pull request (#342)', () => {
     expect(reasons).toEqual([]);
   });
 
-  it('still runs the mutation shards after a run that mutated the changed files only', () => {
+  it('takes the run of the changed files as the proof of the mutation jobs (owner, 2026-11-21)', () => {
+    const { proofs } = decide(
+      PUSHED,
+      'main',
+      REPO,
+      api({ jobs: { 100: { jobs: PARTIAL } } }),
+    );
+    expect(proofs.mutation).toBe(
+      `CI run 100, job "Mutation tests (changed files)" (https://github.com/${REPO}/actions/runs/100/job/30), head ${HEAD}, tree ${TREE}`,
+    );
     expect(proven({ jobs: { 100: { jobs: PARTIAL } } })).toEqual([
+      'check',
+      'e2e',
+      'mutation',
+      'compose',
+      'site',
+    ]);
+  });
+
+  it('runs the mutation shards after a run with no mutation job, or one that took over the result of the head before', () => {
+    // Nothing to mutate, or the result of the head before taken over
+    // (#167): every mutation job of the run is skipped.
+    const none = FULL.map((j) =>
+      j.name.startsWith('Mutation') ? { ...j, conclusion: 'skipped' } : j,
+    );
+    expect(proven({ jobs: { 100: { jobs: none } } })).toEqual([
       'check',
       'e2e',
       'compose',
       'site',
     ]);
+    // A failed run of the changed files is no proof either.
+    const failed = PARTIAL.map((j) =>
+      j.name === 'Mutation tests (changed files)'
+        ? { ...j, conclusion: 'failure' }
+        : j,
+    );
+    expect(proven({ jobs: { 100: { jobs: failed } } })).not.toContain(
+      'mutation',
+    );
   });
 
   it('runs a job that did not run in the pull request, or failed there in its latest attempt', () => {
@@ -350,7 +383,13 @@ describe('the command', () => {
   it('prints the output lines and says on stderr what is proven and what runs', () => {
     const out = vi.spyOn(console, 'log').mockImplementation(() => undefined);
     const err = vi.spyOn(console, 'error').mockImplementation(() => undefined);
-    const jobs = { 100: { jobs: PARTIAL } };
+    const jobs = {
+      100: {
+        jobs: FULL.map((j) =>
+          j.name.startsWith('Mutation') ? { ...j, conclusion: 'skipped' } : j,
+        ),
+      },
+    };
     expect(main(['decide', PUSHED, 'main'], REPO, api({ jobs }))).toBe(0);
     const lines = out.mock.calls.map((c) => String(c[0]));
     expect(lines.map((l) => l.split('=')[0])).toEqual([
@@ -364,7 +403,7 @@ describe('the command', () => {
     expect(lines[0]).toMatch(/^proof-check=CI run 100, job "Lint/);
     const said = err.mock.calls.map((c) => String(c[0]));
     expect(said).toContain(
-      'Runs on this push: "Mutation tests" succeeded in no green run of the identical tree',
+      'Runs on this push: "Mutation tests" or "Mutation tests (changed files)" succeeded in no green run of the identical tree',
     );
     expect(said.filter((s) => s.startsWith('Proven, skipped: '))).toHaveLength(
       4,

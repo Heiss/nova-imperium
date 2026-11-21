@@ -9,9 +9,13 @@
 //   - the head commit that run names (its head_sha) has the Git tree of the
 //     pushed commit: trees are compared, never commit ids;
 //   - the job of that run (its latest attempt) succeeded.
-// Each job is proven on its own: a job that did not run there, or ran only
-// in part (the mutation run of the changed files, #309, leaves "Mutation
-// tests" skipped), runs on the push as before. Any other case, an error of
+// Each job is proven on its own: a job that did not run there runs on the
+// push as before. The mutation jobs of the push are proven by the complete
+// run or by the run of the changed files (#309) of the pull request (owner,
+// 2026-11-21): the complete shards run in the release pull request, the
+// nightly run and a push whose tree is not proven; a pull request that ran no
+// mutation job, or took over the result of its head before (#167), proves
+// none. Any other case, an error of
 // the API included, proves nothing, and the push runs everything: the rule
 // fails closed. The draft release pull request of main runs the cheap checks
 // and its gate fails on purpose (#147), so its run proves nothing either.
@@ -39,6 +43,21 @@ export const JOBS = {
 } as const;
 
 export type JobKey = keyof typeof JOBS;
+
+/**
+ * The jobs of the pull request's run that prove each job of the push. The
+ * mutation jobs of the push are proven by the complete run of the pull
+ * request or by its run of the changed files (#309): the release pull
+ * request and the nightly run run the complete shards (owner, 2026-11-21,
+ * #342).
+ */
+export const PROVEN_BY: Readonly<Record<JobKey, readonly string[]>> = {
+  check: [JOBS.check],
+  e2e: [JOBS.e2e],
+  mutation: [JOBS.mutation, 'Mutation tests (changed files)'],
+  compose: [JOBS.compose],
+  site: [JOBS.site],
+};
 
 /** The fields of a pull request of `GET /commits/{sha}/pulls` the decision reads. */
 export interface Pull {
@@ -130,11 +149,16 @@ export function greenRuns(
     .sort((a, b) => b.id - a.id);
 }
 
-/** The job named <name> of <jobs> when it completed with success. */
-const succeeded = (jobs: readonly Job[], name: string): Job | undefined =>
+/** The first job of <jobs> named in <names> that completed with success. */
+const succeeded = (
+  jobs: readonly Job[],
+  names: readonly string[],
+): Job | undefined =>
   jobs.find(
     (j) =>
-      j.name === name && j.status === 'completed' && j.conclusion === 'success',
+      names.includes(j.name) &&
+      j.status === 'completed' &&
+      j.conclusion === 'success',
   );
 
 /**
@@ -159,7 +183,7 @@ export function proofsOf(
   });
   for (const key of KEYS) {
     for (const r of same) {
-      const job = succeeded(jobsOf(r.id), JOBS[key]);
+      const job = succeeded(jobsOf(r.id), PROVEN_BY[key]);
       if (!job) continue;
       proofs[key] =
         `CI run ${r.id}, job "${job.name}" (${job.html_url}), head ${r.head_sha}, tree ${tree}`;
@@ -167,7 +191,7 @@ export function proofsOf(
     }
     if (!proofs[key])
       reasons.push(
-        `"${JOBS[key]}" succeeded in no green run of the identical tree`,
+        `${PROVEN_BY[key].map((n) => `"${n}"`).join(' or ')} succeeded in no green run of the identical tree`,
       );
   }
   return { proofs, reasons };

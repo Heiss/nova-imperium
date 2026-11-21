@@ -333,9 +333,12 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   of a push requires for every job its own success or the named proof and
   prints it. `tag.yml` is unchanged: it still needs a green CI push run of
   the tagged commit, which after a release merge now takes minutes. The
-  build: [Proofs of a push run](/ops/testing/push-proofs.md). Whether a push
-  after a partial mutation run still runs the complete shards is open (O23;
-  built: it does).
+  build: [Proofs of a push run](/ops/testing/push-proofs.md). A push after a
+  pull request with a partial mutation run does not run the complete shards:
+  the pull request's own mutation jobs, complete or partial, prove them; the
+  release pull request and the nightly run are enough for the complete run,
+  and the shards run on a push only when its tree is not proven (owner,
+  2026-11-21, O23).
 * **[E]** The release pull request and the nightly run in
   `.github/workflows/mutation.yml` test every mutant. All of them run in 4
   parallel shards with a gate job on the merged report (owner, 2026-11-12,
