@@ -168,6 +168,7 @@ describe('a round with complete events of version 2', () => {
       points: Math.floor((worth * 6) / 1000),
       role: 'defender',
       opponent: 'Lea',
+      recordedOnly: false,
     });
     expect(cards[4]).toEqual({ kind: 'return', slot: 5, days: 5, lossDay: 17 });
     expect(cards[6]).toEqual({
@@ -233,6 +234,19 @@ describe('a round that lacks version 2 events', () => {
       e.kind === 'admin.endzeit' ? e : { ...e, version: 1 },
     );
     expect(slots(old)).toEqual([1, 4, 6, 8]);
+  });
+
+  it('marks the card 4 of such a round as the recorded part (Q19), and no card of a complete round', () => {
+    const old = story().map((e) =>
+      e.kind === 'admin.endzeit' ? e : { ...e, version: 1 },
+    );
+    const loss = (events: RewindEvent[]) =>
+      rewindOf(report(), 2, events).cards.find((c) => c.kind === 'loss');
+    expect(loss(old)).toMatchObject({ recordedOnly: true });
+    // One event of version 1 is enough: the round began before the history.
+    const mixed = story().map((e, i) => (i === 3 ? { ...e, version: 1 } : e));
+    expect(loss(mixed)).toMatchObject({ recordedOnly: true });
+    expect(loss(story())).toMatchObject({ recordedOnly: false });
   });
 
   it('is the same for a round that mixes both versions', () => {

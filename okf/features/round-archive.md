@@ -476,12 +476,12 @@ Rewind below, the full one comes with these events.
   battle, not only the largest). Card 7 the event `admin.endzeit` (written only
   by a ring-in that went through; its time gives the day) and the arrival of the
   seat with `gift` (ships and cargo that landed).
-* **[V]** What the fleet value of card 5 does not know: ships consumed outside a
-  battle (colonisation, an expedition that is lost), the fleets that joined or
-  held in the battle (only the leading fleet and the planet are in the numbers
-  of the journal), and ships that finished earlier than the save that noticed
-  them (the time of a finished unit is the logical time of the event that
-  noticed it: „first observed“, as the issue says; the closing settlement
+* **[V]** What the fleet value of card 5 does not know, and what the card does
+  about it (Q26, below): ships consumed outside a battle, the fleets that
+  joined or held in a battle (only the leading fleet and the planet are in the
+  numbers of the journal), and ships that finished earlier than the save that
+  noticed them (the time of a finished unit is the logical time of the event
+  that noticed it: „first observed“, as the issue says; the closing settlement
   notices everything at the latest at the cutoff).
 * **[V]** Rules where nothing was decided, taken from the conditional rule of
   the issue („no fact, no card“): card 3 has no card when nothing was paid or
@@ -493,6 +493,68 @@ Rewind below, the full one comes with these events.
   counts as own ships); the days of card 5 are whole days, rounded up, at least
   1, as the length of a round; card 7 has no card without a ring-in event and
   tells nothing about a gift that did not arrive for the seat.
+* **[V]** Decisions the coordinator took under `AGENTS.md` (2026-11-21; the
+  owner can overturn each of them):
+  * **Q17:** card 5 has no card when the gift of the Endzeit arrives between
+    the loss and the recovery (as built).
+  * **Q18:** card 3 has no card when two categories tie (as built).
+  * **Q19:** card 4 in a round that holds events of version 1 stays, with one
+    more line, only for such a round: „Aus dem aufgezeichneten Teil der
+    Runde.“ (a draft [V]; `LossCard.recordedOnly`, `hasOldVersion`). A round of
+    version 2 has no such line. The loss is then the largest of the recorded
+    part; a round that began before the history may hold a larger one.
+  * **Q20:** card 2 is the unweighted sum m + c + d (as built).
+  * **Q21:** card 7 shows the day of the ring-in (as built).
+  * **Q26, card 5 and what the ledger does not subtract.** The fleet value is a
+    ledger: plus the finished ships and the baseline, minus the ships lost in the
+    recorded battles. Let C(t) be the construction value of the ships that were
+    consumed up to time t without a number in the journal. The ledger equals the
+    real value plus C(t), because the real value lost them and the ledger did
+    not; C only grows. The level before the loss, ledger(t0), holds C(t0). If
+    nothing unrecorded was consumed in the window from the loss to the
+    recovery, C(t) = C(t0), so ledger(t) >= ledger(t0) means real(t) >=
+    real(t0): the real value is back. Consumption before the loss cancels out,
+    since it is in C(t0) as well. Ships found or landed that the ledger does not
+    count (an expedition's find) only make the real value larger, so they do not
+    break the argument. The card can therefore only miss a recovery, never claim
+    a false one. So `recoveryOf` returns no card when the window, from the event
+    of the loss (included) to the event of the recovery (included), holds an
+    event of the seat that consumed ships without a number. Each is recognised
+    from the version 2 journal alone (`consumes` in `round-rewind-facts.ts`,
+    tested on hand-made payloads and on the events of real arrivals in
+    `src/server/game/round-rewind-consumption.test.ts`):
+    * **Colonisation:** a `journal.arrival` of the seat with `mission`
+      `colonize` and a `place.created` of the seat with `kind` `planet` and
+      `cause` `arrival` at the same logical time. (The `send` action only
+      launches the ark; the ship is consumed at the arrival, so the window is
+      read at the arrival. An arrival that founded nothing, because the limit of
+      planets was reached, has no such `place.created`, and the fleet flies
+      home whole.)
+    * **Expedition:** a `journal.arrival` of the seat with `mission`
+      `expedition`, `fate` `gone` and no `battle`: the event „lost“ of the
+      expedition. An expedition that lost ships in a battle with pirates or
+      aliens has the `battle` numbers, with the raiders as `attBefore` and the
+      fleet of the owner as `defBefore`; the reader now takes the own side of
+      that battle from `defBefore` and `defAfter` (before, the raiders' losses
+      were read as the seat's own loss, a fault of cards 4 and 5).
+    * **Joined or held fleet:** a battle event (arrival with `battle`) whose
+      `reports` list holds a `battle` report `to` the seat while the seat is
+      neither the owner of the leading fleet (`seat` of the event) nor the owner
+      of the target (`target`): the seat joined the union or held at the planet.
+      A fleet of the seat that joined a union led by the seat's own fleet (or
+      by another) is also recognised by the `send` action of the seat with
+      `ok` true and `input.union` set: the arrival event of the fleet with that
+      id is a battle with a fleet of the seat whose ships the numbers do not
+      hold. A seat cannot hold at its own planet (only an ally of the owner may).
+    * Three more consumptions are found the same way and treated the same
+      (the argument above needs no other): a `place.removed` of the seat (an
+      abandoned planet or a moon destroyed, with the ships on it), a lost survey
+      (`mission` `survey`, `fate` `gone`), and a Mondbruch arrival of the seat
+      with Weltenbrecher among its ships (they may tear themselves apart, which
+      the battle numbers do not hold). The last one suppresses also when none
+      was torn; it can only miss a recovery.
+    * The same events before the loss do not suppress the card, and neither do
+      the events of another seat.
 * **[V]** The cards in the issue's order of slots: 1, 2, 3, 4, 5, 6, 7, 8 in
   `CARDS`; the cards have the kinds `economy`, `focus`, `loss`, `return` and
   `endzeit`.

@@ -10,6 +10,7 @@ import {
   constructionValue,
   endzeitOf,
   focusOf,
+  hasOldVersion,
   INVESTMENT,
   investmentOf,
   largestLoss,
@@ -126,6 +127,23 @@ describe('completeFor', () => {
     expect(completeFor([joined(ME, 'present')], ME)).toBe(false);
     expect(completeFor([joined(FOE)], ME)).toBe(false);
     expect(completeFor([action(1, [])], ME)).toBe(false);
+  });
+});
+
+describe('hasOldVersion', () => {
+  it('is true for a journal event of version 1 only, not for the facts of the close or an annotation', () => {
+    expect(hasOldVersion([])).toBe(false);
+    expect(hasOldVersion([joined()])).toBe(false);
+    expect(hasOldVersion([joined(), built(DAY, 'lf', 1)])).toBe(false);
+    expect(
+      hasOldVersion([joined(), ev(DAY, EVENT_KIND.action, ME, {}, 1)]),
+    ).toBe(true);
+    expect(hasOldVersion([joined(), ev(DAY, 'player.final', ME, {}, 1)])).toBe(
+      false,
+    );
+    expect(hasOldVersion([joined(), ev(DAY, ENDZEIT_EVENT, null, {}, 1)])).toBe(
+      false,
+    );
   });
 });
 
@@ -595,6 +613,177 @@ describe('card 5: recoveryOf', () => {
     expect(recoveryOf(before, ME, lossOf(before))).toEqual({
       days: 1,
       at: 3 * DAY,
+    });
+  });
+
+  describe('ships consumed in the window that the ledger does not subtract', () => {
+    const loss = [
+      built(DAY, 'lf', 10),
+      fight(2 * DAY, ME, FOE, [{ lf: 10 }, { lf: 4 }]),
+    ];
+    const recover = built(5 * DAY, 'lf', 6);
+    const days = { days: 3, at: 5 * DAY };
+    /** The events of a colonisation by an arrival at `at`: the arrival and the colony it founded. */
+    const colonize = (at: number) => [
+      ev(at, EVENT_KIND.arrival, ME, {
+        cause: 'arrival',
+        mission: 'colonize',
+        target: null,
+        ships: { colony: 1 },
+        fate: 'gone',
+      }),
+      ev(at, EVENT_KIND.created, ME, {
+        cause: 'arrival',
+        place: 'p1_1_2',
+        kind: 'planet',
+      }),
+    ];
+    /** An expedition whose fleet was lost without a battle. */
+    const expeditionLost = (at: number) =>
+      ev(at, EVENT_KIND.arrival, ME, {
+        cause: 'arrival',
+        mission: 'expedition',
+        target: null,
+        ships: { lf: 2 },
+        fate: 'gone',
+      });
+    /** A battle of another seat in which the fleet of ME joined (the report went to ME). */
+    const joinedBattle = (at: number) =>
+      fight(at, FOE, 9, [{ lf: 5 }, { lf: 5 }], [{}, {}], {
+        reports: [
+          { id: 'a', type: 'battle', to: FOE },
+          { id: 'b', type: 'battle', to: ME },
+        ],
+      });
+    /** The same battle as the leading fleet of a union that a fleet of ME joined by `send`. */
+    const unionSend = (at: number) =>
+      ev(at, EVENT_KIND.action, ME, {
+        cause: 'send',
+        input: { mission: 'attack', union: 'f-lead' },
+        ok: true,
+      });
+
+    it('a recovery with a clean window shows the card', () => {
+      const events = base([...loss, recover]);
+      expect(recoveryOf(events, ME, lossOf(events))).toEqual(days);
+    });
+
+    it('shows none when a colony was founded in the window', () => {
+      const events = base([...loss, ...colonize(3 * DAY), recover]);
+      expect(recoveryOf(events, ME, lossOf(events))).toBeNull();
+    });
+
+    it('a colony ship that was only sent, or an arrival that founded nothing, does not count', () => {
+      const refused = ev(3 * DAY, EVENT_KIND.arrival, ME, {
+        cause: 'arrival',
+        mission: 'colonize',
+        target: null,
+        ships: { colony: 1 },
+        fate: 'back',
+      });
+      const moon = ev(3 * DAY, EVENT_KIND.created, ME, {
+        cause: 'arrival',
+        kind: 'moon',
+      });
+      const events = base([...loss, refused, moon, recover]);
+      expect(recoveryOf(events, ME, lossOf(events))).toEqual(days);
+    });
+
+    it('shows none when an expedition lost its fleet in the window', () => {
+      const events = base([...loss, expeditionLost(3 * DAY), recover]);
+      expect(recoveryOf(events, ME, lossOf(events))).toBeNull();
+    });
+
+    it('an expedition that lost ships in a battle is counted by the ledger, from the side of its owner', () => {
+      // Pirates attack (att), the fleet of ME defends: 4 of its 6 ships fall.
+      const raid = fight(
+        3 * DAY,
+        ME,
+        null,
+        [{ lf: 3 }, { lf: 0 }],
+        [{ lf: 6 }, { lf: 2 }],
+        {
+          mission: 'expedition',
+        },
+      );
+      const events = base([...loss, raid, built(6 * DAY, 'lf', 10)]);
+      // The loss of the pirates is no loss of ME; the 4 lost ships make the level 6 + 4 short.
+      expect(largestLoss(events, ME)!.value).toBe(constructionValue({ lf: 6 }));
+      expect(recoveryOf(events, ME, lossOf(events))).toEqual({
+        days: 4,
+        at: 6 * DAY,
+      });
+    });
+
+    it('shows none when a fleet of the seat joined or held in a battle of another seat in the window', () => {
+      const events = base([...loss, joinedBattle(3 * DAY), recover]);
+      expect(recoveryOf(events, ME, lossOf(events))).toBeNull();
+    });
+
+    it('shows none when the seat joined a union of its own, the numbers hold only the leading fleet', () => {
+      const lead = fight(3 * DAY, ME, FOE, [{ lf: 5 }, { lf: 5 }], [{}, {}], {
+        fleet: 'f-lead',
+      });
+      const events = base([...loss, unionSend(DAY + 1), lead, recover]);
+      expect(recoveryOf(events, ME, lossOf(events))).toBeNull();
+      // A union of another fleet does not suppress.
+      const other = { ...lead, payload: { ...lead.payload, fleet: 'f-other' } };
+      expect(
+        recoveryOf(
+          base([...loss, unionSend(DAY + 1), other, recover]),
+          ME,
+          lossOf(events),
+        ),
+      ).toEqual(days);
+    });
+
+    it('shows none when a place of the seat was removed in the window', () => {
+      const gone = ev(3 * DAY, EVENT_KIND.removed, ME, { place: 'p1_1_2' });
+      const events = base([...loss, gone, recover]);
+      expect(recoveryOf(events, ME, lossOf(events))).toBeNull();
+    });
+
+    it('shows none for a lost survey, and for a Mondbruch that carried Weltenbrecher', () => {
+      for (const arrival of [
+        { mission: 'survey', ships: { probe: 1 }, fate: 'gone' },
+        { mission: 'moonbreak', ships: { dstar: 1 }, fate: 'back' },
+      ]) {
+        const odd = ev(3 * DAY, EVENT_KIND.arrival, ME, {
+          target: null,
+          ...arrival,
+        });
+        const events = base([...loss, odd, recover]);
+        expect(recoveryOf(events, ME, lossOf(events))).toBeNull();
+      }
+      const fine = ev(3 * DAY, EVENT_KIND.arrival, ME, {
+        mission: 'moonbreak',
+        ships: { lf: 1 },
+        target: null,
+        fate: 'back',
+      });
+      const events = base([...loss, fine, recover]);
+      expect(recoveryOf(events, ME, lossOf(events))).toEqual(days);
+    });
+
+    it('the same events before the loss do not suppress the card', () => {
+      const early = [
+        ...colonize(DAY / 4),
+        expeditionLost(DAY / 3),
+        joinedBattle(DAY / 2),
+        ev(DAY / 2, EVENT_KIND.removed, ME, { place: 'p1_1_3' }),
+      ];
+      const events = base([...early, ...loss, recover]);
+      expect(recoveryOf(events, ME, lossOf(events))).toEqual(days);
+    });
+
+    it('the same events of another seat do not suppress the card', () => {
+      const foe = [
+        { ...colonize(3 * DAY)[0]!, seat: FOE },
+        { ...colonize(3 * DAY)[1]!, seat: FOE },
+        { ...expeditionLost(3 * DAY), seat: FOE },
+      ];
+      const events = base([...loss, ...foe, recover]);
+      expect(recoveryOf(events, ME, lossOf(events))).toEqual(days);
     });
   });
 

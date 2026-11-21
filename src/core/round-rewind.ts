@@ -26,6 +26,7 @@ import {
   endzeitOf,
   focusOf,
   type Focus,
+  hasOldVersion,
   investmentOf,
   largestLoss,
   type Loss,
@@ -98,6 +99,12 @@ export interface LossCard {
   role: 'attacker' | 'defender';
   /** The other side; the pseudonym of a deleted account (D4); null when the events name none. */
   opponent: string | null;
+  /**
+   * The round holds events of version 1: the loss is the largest of the
+   * recorded part of the round, a round that began before the history may
+   * hold a larger one (owner, 2026-11-21, Q19 [V]).
+   */
+  recordedOnly: boolean;
 }
 
 /** Card 5: the days until the fleet value was back at its level before the card-4 loss. */
@@ -226,6 +233,7 @@ const loss: Builder = (f) => {
     points: l.points,
     role: l.role,
     opponent: other?.name ?? null,
+    recordedOnly: hasOldVersion(f.events),
   };
 };
 

@@ -42,6 +42,7 @@ const FULL: Rewind = {
       points: 420,
       role: 'defender',
       opponent: 'Karthax',
+      recordedOnly: false,
     },
     { kind: 'return', slot: 5, days: 5, lossDay: 17 },
     { kind: 'playtime', slot: 6, ms: 760 * 60_000, partial: false },

@@ -66,6 +66,7 @@ describe('card 4, the loss', () => {
       points: 420,
       role: 'defender',
       opponent: 'Karthax',
+      recordedOnly: false,
       ...over,
     } as RewindCard);
 
@@ -77,6 +78,14 @@ describe('card 4, the loss', () => {
     ]);
     expect(c.lines[0]).toContain('Tag 17');
     expect(c.lines[1]).toContain('Verteidigungsanlagen zählen nicht');
+  });
+
+  it('says honestly that the loss comes from the recorded part, only for a round that began before the history (Q19)', () => {
+    expect(loss({}).lines).toHaveLength(2);
+    expect(loss({ recordedOnly: true }).lines).toEqual([
+      ...loss({}).lines,
+      'Aus dem aufgezeichneten Teil der Runde.',
+    ]);
   });
 
   it('has its own words for an attacker and for an unnamed opponent', () => {

@@ -159,16 +159,21 @@ function lossHeadline(c: LossCard): string {
     : 'Dann traf deine Flotte auf einen Gegner.';
 }
 
+/** The line of a loss found in a round that began before the history (Q19, a draft of Claude [V]). */
+const RECORDED_PART = 'Aus dem aufgezeichneten Teil der Runde.';
+
 function loss(c: LossCard): RewindCardPage {
+  const lines = [
+    `Dein größter Verlust an Schiffen in einem einzelnen Kampf, an Tag ${c.day}.`,
+    'Gezählt wird der Baupreis der verlorenen Schiffe geteilt durch 1.000; Verteidigungsanlagen zählen nicht.',
+  ];
+  if (c.recordedOnly) lines.push(RECORDED_PART);
   return {
     key: c.kind,
     kicker: 'Verlust',
     headline: lossHeadline(c),
     figure: `\u2212${fmt(c.points)} Flottenpunkte`,
-    lines: [
-      `Dein größter Verlust an Schiffen in einem einzelnen Kampf, an Tag ${c.day}.`,
-      'Gezählt wird der Baupreis der verlorenen Schiffe geteilt durch 1.000; Verteidigungsanlagen zählen nicht.',
-    ],
+    lines,
     report: null,
   };
 }

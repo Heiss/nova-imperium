@@ -49,6 +49,14 @@ const inOrder = (events: readonly RewindEvent[]): RewindEvent[] =>
   [...events].sort((a, b) => a.at - b.at);
 
 /**
+ * Whether the round holds a journal event of version 1: it began before the
+ * events of version 2, so the cards that need them are left out and the
+ * cards that tell only what was recorded (card 4) say so.
+ */
+export const hasOldVersion = (events: readonly RewindEvent[]): boolean =>
+  events.some((e) => JOURNAL.has(e.kind) && e.version < FIRST_COMPLETE_VERSION);
+
+/**
  * Whether the cards that sum up the whole round may be built for `seat`: the
  * round holds events and none of version 1, and the seat joined with a new
  * home planet (`participant.joined`, `entry` `home`), so nothing of its way
@@ -61,11 +69,7 @@ export function completeFor(
 ): boolean {
   // The facts of the close and the annotations of the admin have their own version.
   const journal = events.filter((e) => JOURNAL.has(e.kind));
-  if (
-    !journal.length ||
-    journal.some((e) => e.version < FIRST_COMPLETE_VERSION)
-  )
-    return false;
+  if (!journal.length || hasOldVersion(events)) return false;
   return journal.some(
     (e) =>
       e.kind === EVENT_KIND.joined &&
@@ -219,6 +223,9 @@ const isFleetEvent = (e: RewindEvent): boolean =>
 function shipsLost(e: RewindEvent, seat: number): Levels | null {
   const b = isFleetEvent(e) ? battleOf(e) : null;
   if (!b) return null;
+  // An expedition is attacked by pirates or aliens: the fleet of its owner is the defending side.
+  if (e.seat === seat && e.payload.mission === 'expedition')
+    return b.defBefore ? lost(shipsOf(b.defBefore), b.defAfter) : null;
   if (e.seat === seat && b.attBefore)
     return lost(shipsOf(b.attBefore), b.attAfter);
   if (e.payload.target === seat && b.defBefore)
@@ -299,6 +306,102 @@ function gained(e: RewindEvent, seat: number): number {
   return sum;
 }
 
+/** What the events say about where ships of the seat went without a battle number. */
+interface Unrecorded {
+  /** The logical times at which a colony of the seat was founded by an arrival. */
+  colonies: ReadonlySet<number>;
+  /** The unions (the id of the leading fleet) the seat sent a fleet into. */
+  unions: ReadonlySet<string>;
+}
+
+/** The union a successful `send` action of the seat joined or opened, or null. */
+function unionSent(e: RewindEvent): string | null {
+  const input = e.payload.input as { union?: unknown } | undefined;
+  const sent = e.kind === EVENT_KIND.action && e.payload.cause === 'send';
+  const union = input?.union;
+  return sent && e.payload.ok === true && typeof union === 'string' && union
+    ? union
+    : null;
+}
+
+/** A colony of a planet that an arrival founded. */
+const foundedByArrival = (e: RewindEvent): boolean =>
+  e.kind === EVENT_KIND.created &&
+  e.payload.kind === 'planet' &&
+  e.payload.cause === 'arrival';
+
+function unrecordedFacts(
+  events: readonly RewindEvent[],
+  seat: number,
+): Unrecorded {
+  const colonies = new Set<number>();
+  const unions = new Set<string>();
+  for (const e of events.filter((x) => x.seat === seat)) {
+    if (foundedByArrival(e)) colonies.add(e.at);
+    const union = unionSent(e);
+    if (union) unions.add(union);
+  }
+  return { colonies, unions };
+}
+
+/** Whether the seat took part in the battle of `e` with a fleet whose ships the battle numbers do not hold. */
+function unseenInBattle(
+  e: RewindEvent,
+  seat: number,
+  known: Unrecorded,
+): boolean {
+  if (!battleOf(e) || !isFleetEvent(e)) return false;
+  // A fleet of the seat joined the union of this battle (the numbers hold only the leading fleet).
+  if (known.unions.has(String(e.payload.fleet))) return true;
+  // The seat got the battle report but is neither the leading fleet nor the owner of the target: it joined or held.
+  const reports = Array.isArray(e.payload.reports)
+    ? (e.payload.reports as { type?: string; to?: number | null }[])
+    : [];
+  return (
+    e.seat !== seat &&
+    e.payload.target !== seat &&
+    reports.some((r) => r.type === 'battle' && r.to === seat)
+  );
+}
+
+/** Whether an arrival of the seat's own fleet consumed ships without a battle number. */
+function arrivalConsumes(e: RewindEvent, known: Unrecorded): boolean {
+  const { mission, fate, ships } = e.payload as {
+    mission?: string;
+    fate?: string;
+    ships?: Levels;
+  };
+  switch (mission) {
+    case 'colonize':
+      return known.colonies.has(e.at);
+    case 'expedition':
+      return fate === 'gone' && !battleOf(e);
+    case 'survey':
+      return fate === 'gone';
+    case 'moonbreak':
+      return (ships?.dstar ?? 0) > 0;
+    default:
+      return false;
+  }
+}
+
+/**
+ * Whether the event consumed ships of the seat that the fleet-value ledger
+ * does not subtract: a colonisation (the colony ship), an expedition whose
+ * fleet was lost without a battle, a lost survey, the Weltenbrecher of a
+ * Mondbruch (it may tear itself apart), a place removed with its ships, and
+ * a fleet that joined or held in a battle.
+ */
+function consumes(e: RewindEvent, seat: number, known: Unrecorded): boolean {
+  if (e.kind === EVENT_KIND.removed) return e.seat === seat;
+  if (unseenInBattle(e, seat, known)) return true;
+  return (
+    e.kind === EVENT_KIND.arrival &&
+    e.seat === seat &&
+    arrivalConsumes(e, known)
+  );
+}
+
 /** What one event does to the fleet value of the seat. */
 interface Step {
   at: number;
@@ -306,18 +409,23 @@ interface Step {
   lost: number;
   /** The event is the arrival of the gift of the Endzeit. */
   gift: boolean;
+  /** The event consumed ships that the ledger does not subtract. */
+  unrecorded: boolean;
 }
 
-const steps = (events: readonly RewindEvent[], seat: number): Step[] =>
-  inOrder(events).map((e) => {
+const steps = (events: readonly RewindEvent[], seat: number): Step[] => {
+  const known = unrecordedFacts(events, seat);
+  return inOrder(events).map((e) => {
     const gone = shipsLost(e, seat);
     return {
       at: e.at,
       gained: gained(e, seat),
       lost: gone ? constructionValue(gone) : 0,
       gift: isGift(e, seat),
+      unrecorded: consumes(e, seat, known),
     };
   });
+};
 
 /**
  * When the fleet value of the seat was back at its level before `loss`, or
@@ -330,7 +438,11 @@ const steps = (events: readonly RewindEvent[], seat: number): Step[] =>
  *    ships, so the level is not known),
  *  - the value never came back, or
  *  - the gift of the Endzeit arrived between the loss and the recovery: a
- *    recovery that the admin's gift could have caused is not told as one.
+ *    recovery that the admin's gift could have caused is not told as one, or
+ *  - ships were consumed in the window (from the loss to the recovery) that
+ *    the ledger does not subtract (`consumes`): the ledger equals the real
+ *    value plus the consumption it never subtracted, which only grows, so a
+ *    window with such an event could show a recovery that did not happen.
  * The events before and at the same time as the loss count in the order they
  * were written; the production of the event of the loss counts before the loss.
  */
@@ -352,11 +464,14 @@ export function recoveryOf(
   if (level < loss.value) return null;
   let value = level - loss.value;
   let gift = false;
+  // The window runs from the loss (its own event included) to the recovery.
+  let unrecorded = list[index]!.unrecorded;
   for (const s of list.slice(index + 1)) {
     value += s.gained - s.lost;
     gift ||= s.gift;
+    unrecorded ||= s.unrecorded;
     if (value >= level)
-      return gift
+      return gift || unrecorded
         ? null
         : { days: Math.max(1, Math.ceil((s.at - loss.at) / DAY)), at: s.at };
   }
