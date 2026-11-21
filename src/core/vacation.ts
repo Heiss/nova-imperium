@@ -9,6 +9,7 @@
 // rules (patterns, section 7). `vacationProtects` is the one protection
 // check of a target: holding, the attack union, missiles and the moon
 // destruction (#55, #225, #54, #95) ask it too once they are built.
+import { PM_ACTIONS } from './private-messages.ts';
 import type { RoundSetting } from './round.ts';
 import type { Planet } from './types.ts';
 
@@ -96,14 +97,20 @@ export const vacationProtects = (
 
 /**
  * The actions a player in vacation mode may still take (owner, 2026-11-18):
- * the end of the vacation and the push settings of the account. Every
+ * the end of the vacation, the push settings of the account and the private
+ * messages (owner, 2026-11-21). Every
  * other action is refused, the guild actions, renaming a planet, the main
  * planet, the reading of messages and the admin's actions too, and one
  * added later as well, so a new action is locked without a change here. The
  * other account options (password, passkeys, deleting the account) and the
  * sign-out are routes of their own, not actions.
  */
-const ALLOWED: ReadonlySet<string> = new Set(['endVacation', 'pushOptions']);
+const ALLOWED: ReadonlySet<string> = new Set([
+  'endVacation',
+  'pushOptions',
+  // Private messages go on as normal (owner, 2026-11-21, Q25).
+  ...PM_ACTIONS,
+]);
 
 /**
  * Whether `action` is refused for a player whose vacation started at

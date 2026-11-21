@@ -10,7 +10,8 @@
 // text is 1 to 1,000 characters (the guild chat's limit). A deleted account
 // cuts its side (`sender` or `recipient` becomes NULL, shown as „Gelöschter
 // Spieler“, like the round archive, owner, 2026-11-21 Q22): the conversation
-// stays for the other player until the round ends. `message_reports` holds the
+// stays for the other player until the round ends; a message whose both
+// sides are deleted goes (the trigger). `message_reports` holds the
 // messages a recipient reported (Q24): a copy of the text at the time of the
 // report, one report per message, so the admin sees only what was reported
 // and the report outlives the message. `message_blocks` is the block list
@@ -39,6 +40,10 @@ const migrations: Migration[] = [
       ON private_messages (min(sender, recipient), max(sender, recipient), id);
     CREATE INDEX private_messages_sender ON private_messages (sender, time);
     CREATE INDEX private_messages_recipient ON private_messages (recipient);
+    CREATE TRIGGER private_messages_orphans AFTER DELETE ON users
+    BEGIN
+      DELETE FROM private_messages WHERE sender IS NULL AND recipient IS NULL;
+    END;
     CREATE TABLE message_reports (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       message INTEGER NOT NULL UNIQUE,

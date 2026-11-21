@@ -540,6 +540,11 @@ CREATE TABLE users (
     CHECK (explain_mode IN ('always', 'icon', 'hidden')), rq_planet TEXT, main_planet TEXT, main_switched INTEGER, active_at INTEGER, vacation INTEGER, level_table TEXT NOT NULL DEFAULT 'icon'
       CHECK (level_table IN ('always', 'icon', 'hidden'))) STRICT;
 
+CREATE TRIGGER private_messages_orphans AFTER DELETE ON users
+    BEGIN
+      DELETE FROM private_messages WHERE sender IS NULL AND recipient IS NULL;
+    END;
+
 CREATE TRIGGER round_participants_deleted_account BEFORE DELETE ON users
     BEGIN
       UPDATE round_participants SET player = NULL, name = 'Gelöschter Spieler'

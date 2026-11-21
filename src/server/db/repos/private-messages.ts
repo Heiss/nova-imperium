@@ -47,12 +47,12 @@ export interface PrivateMessages {
   /** Every message `uid` has not hidden from its own view, oldest first. */
   visibleTo(uid: string): PrivateMessage[];
   get(id: number): PrivateMessage | undefined;
-  /** Marks the messages `from` sent to `uid` as read; true when one changed. */
-  markRead(uid: string, from: string): boolean;
+  /** Marks the messages `from` sent to `uid` as read (`from` null: those of deleted accounts); true when one changed. */
+  markRead(uid: string, from: string | null): boolean;
   /** Hides one message from the own view of `uid`; the other side keeps it. */
   hide(uid: string, id: number): void;
-  /** Hides every message of the conversation of `uid` with `other` from the own view of `uid`. */
-  hideConversation(uid: string, other: string): void;
+  /** Hides every message of the conversation of `uid` with `other` (null: deleted accounts) from the own view of `uid`. */
+  hideConversation(uid: string, other: string | null): void;
   /**
    * Stores the report of the received message `m` (a copy of its text);
    * false when it was reported before.
@@ -132,12 +132,12 @@ class SqlitePrivateMessages implements PrivateMessages {
     return row && messageOf(row);
   }
 
-  markRead(uid: string, from: string): boolean {
+  markRead(uid: string, from: string | null): boolean {
     return (
       this.db
         .prepare(
           `UPDATE private_messages SET read = 1
-           WHERE recipient = ? AND sender = ? AND read = 0`,
+           WHERE recipient = ? AND sender IS ? AND read = 0`,
         )
         .run(uid, from).changes > 0
     );
@@ -147,22 +147,22 @@ class SqlitePrivateMessages implements PrivateMessages {
     this.db
       .prepare(
         `UPDATE private_messages SET
-           hidden_sender = hidden_sender OR sender = @uid,
-           hidden_recipient = hidden_recipient OR recipient = @uid
+           hidden_sender = IIF(sender = @uid, 1, hidden_sender),
+           hidden_recipient = IIF(recipient = @uid, 1, hidden_recipient)
          WHERE id = @id`,
       )
       .run({ uid, id });
     this.sweep();
   }
 
-  hideConversation(uid: string, other: string): void {
+  hideConversation(uid: string, other: string | null): void {
     this.db
       .prepare(
         `UPDATE private_messages SET
-           hidden_sender = hidden_sender OR sender = @uid,
-           hidden_recipient = hidden_recipient OR recipient = @uid
-         WHERE (sender = @uid AND recipient = @other)
-            OR (sender = @other AND recipient = @uid)`,
+           hidden_sender = IIF(sender = @uid, 1, hidden_sender),
+           hidden_recipient = IIF(recipient = @uid, 1, hidden_recipient)
+         WHERE (sender = @uid AND recipient IS @other)
+            OR (sender IS @other AND recipient = @uid)`,
       )
       .run({ uid, other });
     this.sweep();

@@ -859,8 +859,20 @@ describe('the Warp-Tor, giving up a colony and the Auspex-Phalanx (#230, #224, #
     const ctx = world();
     start(ctx);
     // The allow list of the decision (owner, 2026-11-18): the end of the
-    // vacation and the push settings. The guild actions are refused too.
-    const allowed = new Set(['endVacation', 'pushOptions']);
+    // vacation and the push settings, and the private messages go on as
+    // normal (owner, 2026-11-21, Q25). The guild actions are refused too.
+    const allowed = new Set([
+      'endVacation',
+      'pushOptions',
+      'sendPrivateMessage',
+      'readPrivateMessages',
+      'deletePrivateMessage',
+      'deletePrivateConversation',
+      'reportPrivateMessage',
+      'blockPlayer',
+      'unblockPlayer',
+      'privateMessageOptions',
+    ]);
     const refused = Object.keys(ACTIONS).filter((type) => !allowed.has(type));
     expect(refused).toEqual(
       expect.arrayContaining(['jump', 'abandon', 'sendGuildChat', 'options']),

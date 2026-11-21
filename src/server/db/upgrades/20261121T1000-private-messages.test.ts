@@ -87,6 +87,9 @@ describe(`upgrade to migration ${ID}`, () => {
       { sender: null, recipient: 'u_Bert', text: 'Hallo' },
       { sender: 'u_Bert', recipient: null, text: 'Hi' },
     ]);
+    // With the other account gone too, nobody can see them: they go.
+    db.prepare("DELETE FROM users WHERE id = 'u_Bert'").run();
+    expect(all(db, 'private_messages')).toEqual([]);
     db.close();
   });
 

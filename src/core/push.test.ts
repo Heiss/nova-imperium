@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { GUILD_PUSH_TOPICS, isPushTopic, PUSH_TOPICS } from './push.ts';
 
 describe('push kinds (#192)', () => {
-  it('lists every kind that sends a push today and the two of the guild chat', () => {
+  it('lists every kind that sends a push today the two of the guild chat and the private messages', () => {
     expect(PUSH_TOPICS).toEqual([
       'buildings',
       'research',
@@ -15,6 +15,7 @@ describe('push kinds (#192)', () => {
       'news',
       'guild-events',
       'guild-chat',
+      'private-messages',
     ]);
   });
 

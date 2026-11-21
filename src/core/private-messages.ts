@@ -96,3 +96,19 @@ export interface PmLine {
 /** How many received messages of `lines` are unread. */
 export const pmUnread = (lines: readonly PmLine[]): number =>
   lines.filter((l) => !l.mine && !l.read).length;
+
+/**
+ * The actions of the private messages. A player in vacation mode sends and
+ * receives messages as normal (owner, 2026-11-21, Q25), so `vacationRefuses`
+ * (core/vacation.ts) lets all of them through.
+ */
+export const PM_ACTIONS = [
+  'sendPrivateMessage',
+  'readPrivateMessages',
+  'deletePrivateMessage',
+  'deletePrivateConversation',
+  'reportPrivateMessage',
+  'blockPlayer',
+  'unblockPlayer',
+  'privateMessageOptions',
+] as const;

@@ -6,7 +6,8 @@
 /**
  * The kinds, in the order of the options, taken from every place that sends
  * a push ([E], owner, 2026-11-14, #192). `guild-events` and `guild-chat` belong to
- * the guild chat (#169).
+ * the guild chat (#169), `private-messages` to the private messages (#226,
+ * owner, 2026-11-21).
  */
 export const PUSH_TOPICS = [
   'buildings',
@@ -20,6 +21,7 @@ export const PUSH_TOPICS = [
   'news',
   'guild-events',
   'guild-chat',
+  'private-messages',
 ] as const;
 export type PushTopic = (typeof PUSH_TOPICS)[number];
 

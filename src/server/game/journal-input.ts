@@ -89,6 +89,15 @@ export const INPUT: Readonly<Record<string, Spec>> = {
   sendGuildChat: { text: 'length' },
   deleteGuildChat: { id: 'keep' },
   seeGuildChat: { id: 'keep' },
+  // Private messages (#226): the text only as length, the other player by seat or as the name's seat.
+  sendPrivateMessage: { name: 'seatByName', text: 'length' },
+  readPrivateMessages: { name: 'seatByName' },
+  deletePrivateMessage: { id: 'keep' },
+  deletePrivateConversation: { name: 'seatByName' },
+  reportPrivateMessage: { id: 'keep' },
+  blockPlayer: { name: 'seatByName' },
+  unblockPlayer: { name: 'seatByName' },
+  privateMessageOptions: { friendsOnly: 'keep' },
   // The round archive.
   roundArchive: {},
   roundHistory: {},

@@ -20,6 +20,8 @@ const LABELS: Record<PushTopic, string> = {
   news: 'Neue Version',
   'guild-events': 'Gildenereignisse',
   'guild-chat': 'Nachrichten im Gilden-Chat',
+  // [V] the label of the kind (#226).
+  'private-messages': 'Persönliche Nachrichten',
 };
 
 /** One checkbox of the box: a kind, with the id of its input. */
