@@ -13,7 +13,7 @@ import type {
   SurveyFindings,
 } from '../../core/survey.ts';
 import type { Coords, Levels } from '../../core/types.ts';
-import { coords, esc, fmt } from './format.ts';
+import { coords, fmt } from './format.ts';
 import type { Report } from './types.ts';
 
 /** The keywords of benefits and drawbacks (D6); [V] except the owner's examples. */
@@ -68,41 +68,61 @@ const positionRange = (f: SurveyFindings, p: number): string =>
 const list = (words: Keyword[]): string =>
   words.length ? words.map((k) => KEYWORDS[k]).join(', ') : 'keine';
 
+/** What a survey report shows: a line, and a table of rows unless the report is rough. */
+export interface SurveyBody {
+  kind: 'survey';
+  head: string;
+  rows: [string, string][] | null;
+}
+
 /** The rough report: what the position lets one guess (D5). */
-function rough(f: SurveyFindings, c: Coords): string {
-  return `<div>Vermessung ${coords(c)} – Messung ungenau. ${guess(f)} ${positionRange(f, c.p)}, Temperatur um ${f.around} °C. Planetentyp: ${PLANET_TYPE_NAMES[f.planetType]}.</div>`;
+function rough(f: SurveyFindings, c: Coords): SurveyBody {
+  return {
+    kind: 'survey',
+    head: `Vermessung ${coords(c)} – Messung ungenau. ${guess(f)} ${positionRange(f, c.p)}, Temperatur um ${f.around} °C. Planetentyp: ${PLANET_TYPE_NAMES[f.planetType]}.`,
+    rows: null,
+  };
 }
 
 /** The narrowed or exact fields and temperature (D2, from score 4 and 7). */
-function closer(f: SurveyFindings, c: Coords): string {
+function closer(f: SurveyFindings, c: Coords): SurveyBody {
   const fields = fieldSpan(f.fields!);
   const temp = f.tier === 'near' ? `ca. ${temps(f.temp!)}` : temps(f.temp!);
-  return `<div>Vermessung ${coords(c)}. ${positionRange(f, c.p)}.</div>
-   <table class="mini"><tr><td>Felder</td><td>${fields}</td></tr><tr><td>Temperatur</td><td>${temp}</td></tr><tr><td>Planetentyp</td><td>${PLANET_TYPE_NAMES[f.planetType]}</td></tr></table>`;
+  return {
+    kind: 'survey',
+    head: `Vermessung ${coords(c)}. ${positionRange(f, c.p)}.`,
+    rows: [
+      ['Felder', fields],
+      ['Temperatur', temp],
+      ['Planetentyp', PLANET_TYPE_NAMES[f.planetType]],
+    ],
+  };
 }
 
 /** The full report: everything known about the planet (D6). */
-function full(f: SurveyFindings, c: Coords): string {
+function full(f: SurveyFindings, c: Coords): SurveyBody {
   const x = f.full!;
-  const rows: [string, string][] = [
-    ['Temperatur', `${x.temp - 40} °C bis ${x.temp} °C`],
-    ['Durchmesser', `${fmt(x.diameter)} km`],
-    [
-      'Felder',
-      `${fmt(x.fields)} (Position ${c.p}: ${fmt(f.range.min)}–${fmt(f.range.max)}, Durchschnitt ${num(f.average)}) – ${COMPARE[x.compare]}`,
+  return {
+    kind: 'survey',
+    head: `Vermessung ${coords(c)}.`,
+    rows: [
+      ['Temperatur', `${x.temp - 40} °C bis ${x.temp} °C`],
+      ['Durchmesser', `${fmt(x.diameter)} km`],
+      [
+        'Felder',
+        `${fmt(x.fields)} (Position ${c.p}: ${fmt(f.range.min)}–${fmt(f.range.max)}, Durchschnitt ${num(f.average)}) – ${COMPARE[x.compare]}`,
+      ],
+      ['Planetentyp', PLANET_TYPE_NAMES[f.planetType]],
+      ['Promethium-Faktor', `×${num(x.factor)}`],
+      ['Energie je Sonnenreliquiar', fmt(x.energy)],
+      ['Vorteile', list(x.pros)],
+      ['Nachteile', list(x.cons)],
     ],
-    ['Planetentyp', PLANET_TYPE_NAMES[f.planetType]],
-    ['Promethium-Faktor', `×${num(x.factor)}`],
-    ['Energie je Sonnenreliquiar', fmt(x.energy)],
-    ['Vorteile', list(x.pros)],
-    ['Nachteile', list(x.cons)],
-  ];
-  return `<div>Vermessung ${coords(c)}.</div>
-   <table class="mini">${rows.map(([k, v]) => `<tr><td>${k}</td><td>${esc(v)}</td></tr>`).join('')}</table>`;
+  };
 }
 
-/** The body of a survey report in the messages. */
-export function surveyBody(r: Report): string {
+/** The lines and rows of a survey report in the messages. */
+export function surveyReport(r: Report): SurveyBody {
   const f = r as unknown as SurveyFindings & { coords: Coords };
   if (f.tier === 'full' && f.full) return full(f, f.coords);
   if (f.fields && f.temp) return closer(f, f.coords);

@@ -2,8 +2,9 @@
   // „Nachrichten“ (#118, bundle 4; okf/architecture/patterns.md, section 9),
   // from messagesPage() of logic/messages.ts: the reports, newest first. The
   // buttons carry data-act (features/reports.ts). The bodies of battle,
-  // espionage and survey reports are HTML (`{@html}`, logic/report-body.ts).
+  // espionage and survey reports are components (#330, ReportBody.svelte).
   import type { MessagesPage } from '../logic/messages.ts';
+  import ReportBody from './ReportBody.svelte';
 
   let { page }: { page: MessagesPage } = $props();
 </script>
@@ -29,8 +30,8 @@
         >
       </div>
       <div class="b">
-        {#if report.body.kind === 'html'}
-          {@html report.body.html}
+        {#if report.body.kind === 'report'}
+          <ReportBody body={report.body.body} />
         {:else if report.body.kind === 'update'}
           <div>
             {#each report.body.lines as line, i (i)}{#if i}<br

@@ -6,15 +6,15 @@
 import { dt } from './format.ts';
 import { newestFirst } from './game.ts';
 import { UPDATE_LINK } from './news.ts';
-import { reportBodyHTML } from './report-body.ts';
+import { reportBody, type ReportBody } from './report-body.ts';
 import type { Report } from './types.ts';
 import type { V } from '../views/common.ts';
 
-/** The body of a report: a text, an update message with its link, or HTML (battle, espionage, survey). */
-type ReportBody =
+/** The body of a report: a text, an update message with its link, or the values of a battle, espionage or survey report. */
+type MessageBody =
   | { kind: 'text'; text: string }
   | { kind: 'update'; lines: string[]; link: string }
-  | { kind: 'html'; html: string };
+  | { kind: 'report'; body: ReportBody };
 
 /** One report of the list. */
 interface ReportRow {
@@ -24,7 +24,7 @@ interface ReportRow {
   /** It came after the player last read the reports. */
   fresh: boolean;
   open: boolean;
-  body: ReportBody;
+  body: MessageBody;
 }
 
 export interface MessagesPage {
@@ -35,9 +35,9 @@ export interface MessagesPage {
 /** The lines of a text, split at its line breaks. */
 const linesOf = (text: unknown): string[] => String(text ?? '').split('\n');
 
-function bodyOf(r: Report): ReportBody {
-  const html = reportBodyHTML(r);
-  if (html !== null) return { kind: 'html', html };
+function bodyOf(r: Report): MessageBody {
+  const body = reportBody(r);
+  if (body !== null) return { kind: 'report', body };
   if (typeof r.news === 'string')
     return { kind: 'update', lines: linesOf(r.text), link: UPDATE_LINK };
   return { kind: 'text', text: String(r.text ?? '') };

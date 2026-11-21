@@ -2,8 +2,8 @@
 // issue; each migration step changes no behaviour, owner, 2026-11-13). The
 // old view is frozen here: messages(), reportHTML(), the body of a plain
 // report and updateMessageHTML() of the views and logic before this step.
-// The bodies of battle, espionage and survey reports are the functions of
-// logic/report-body.ts, which both sides call. On generated states (fixed
+// The bodies of battle, espionage and survey reports are the components of
+// #330 on both sides (their own reference is report-body-reference.test.ts). On generated states (fixed
 // fast-check seed 118) both render the same markup, up to what a browser
 // does not show (normalize() of markup.ts); hand-built cases reach the rare
 // branches.
@@ -11,11 +11,11 @@ import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { dt, esc } from '../client/logic/format.ts';
 import { newestFirst } from '../client/logic/game.ts';
-import { reportBodyHTML } from '../client/logic/report-body.ts';
 import type { Report } from '../client/logic/types.ts';
 import type { Ui, V } from '../client/views/common.ts';
 import { messagesView } from './messages-view.ts';
 import { normalize } from './markup.ts';
+import { reportView } from './report-view.ts';
 
 // ----- frozen: src/client/views/messages.ts before #118, bundle 4 -----
 
@@ -28,7 +28,7 @@ function updateMessageHTML(text: string, link: string): string {
 }
 
 function reportBody(r: Report): string {
-  const html = reportBodyHTML(r);
+  const html = reportView(r);
   if (html !== null) return html;
   if (typeof r.news === 'string')
     return updateMessageHTML(String(r.text ?? ''), '?view=news');

@@ -1,6 +1,5 @@
 // The Vermessung in the interface (#190): the words of the report per tier
 // and when the Sternenkarte offers it.
-import { parse } from 'svelte/compiler';
 import { describe, expect, it } from 'vitest';
 import { CENTRED, type SurveyTier, surveyFindings } from '../../core/survey.ts';
 import type { Coords } from '../../core/types.ts';
@@ -10,7 +9,7 @@ import {
   ORBIT,
   SIZE,
   canSurvey,
-  surveyBody,
+  surveyReport,
 } from './survey.ts';
 import type { Report } from './types.ts';
 
@@ -36,50 +35,24 @@ const report = (
   ),
 });
 
-/** The nodes of the Svelte syntax tree the report needs: text and elements. */
-interface Tree {
-  type: string;
-  data?: string;
-  name?: string;
-  fragment?: { nodes: Tree[] };
-}
-
-/**
- * The text of a node, read by the Svelte parser (as the naming test reads
- * markup, no regular expression takes tags out): the cells of a row apart by
- * „: “, each row closed by „ | “.
- */
-function textOf(node: Tree): string {
-  if (node.type === 'Text') return node.data!;
-  const children = node.fragment?.nodes ?? [];
-  if (node.name === 'tr')
-    return (
-      children
-        .filter((n) => n.name === 'td')
-        .map(textOf)
-        .join(': ') + ' | '
-    );
-  return children.map(textOf).join('');
-}
-
-/** The text of the HTML, with its cells apart and its white space collapsed. */
-const plain = (html: string): string =>
-  parse(html, { modern: true })
-    .fragment.nodes.map((n) => textOf(n as Tree))
-    .join('')
-    .replace(/\s+/g, ' ')
-    .trim();
+/** The line of the report, then each row as „label: value |“. */
+const plain = (r: Report): string => {
+  const body = surveyReport(r);
+  return [body.head, ...(body.rows ?? []).map(([k, v]) => `${k}: ${v} |`)].join(
+    ' ',
+  );
+};
 
 describe('the survey report', () => {
   it('words the rough report like an espionage report with one probe (D5)', () => {
-    expect(plain(surveyBody(report('rough')))).toBe(
+    expect(plain(report('rough'))).toBe(
       'Vermessung [1:42:9] – Messung ungenau. Gemäßigter Planet in der mittleren Bahn, vermutlich mittelgroß. Position 9: 150–246 Felder, Temperatur um 50 °C. Planetentyp: Dschungelplanet.',
     );
   });
 
   it('names the orbit, its temperature and the size of every band (owner, 2026-11-17)', () => {
     const at = (p: number) =>
-      plain(surveyBody(report('rough', 72, 14600, { g: 1, s: 42, p })));
+      plain(report('rough', 72, 14600, { g: 1, s: 42, p }));
     expect(at(2)).toContain(
       'Messung ungenau. Heißer Planet in der inneren Bahn, vermutlich klein. Position 2',
     );
@@ -100,23 +73,23 @@ describe('the survey report', () => {
       large: 'groß',
     });
     // Only the rough report names them.
-    expect(plain(surveyBody(report('near')))).not.toContain('Bahn');
+    expect(plain(report('near'))).not.toContain('Bahn');
   });
 
   it('narrows the fields and the temperature from score 4', () => {
-    expect(plain(surveyBody(report('near')))).toBe(
+    expect(plain(report('near'))).toBe(
       'Vermessung [1:42:9]. Position 9: 150–246 Felder. Felder: ca. 170–256 | Temperatur: ca. 22 °C bis 82 °C | Planetentyp: Dschungelplanet |',
     );
   });
 
   it('shows the exact fields and temperature from score 7', () => {
-    expect(plain(surveyBody(report('exact')))).toBe(
+    expect(plain(report('exact'))).toBe(
       'Vermessung [1:42:9]. Position 9: 150–246 Felder. Felder: 213 | Temperatur: 32 °C bis 72 °C | Planetentyp: Dschungelplanet |',
     );
   });
 
   it('shows the full table from score 10 (D6)', () => {
-    expect(plain(surveyBody(report('full')))).toBe(
+    expect(plain(report('full'))).toBe(
       [
         'Vermessung [1:42:9].',
         'Temperatur: 32 °C bis 72 °C |',
@@ -129,7 +102,7 @@ describe('the survey report', () => {
         'Nachteile: schwacher Promethium-Faktor |',
       ].join(' '),
     );
-    const cool = plain(surveyBody(report('full', 50, 14072)));
+    const cool = plain(report('full', 50, 14072));
     expect(cool).toContain('Durchschnitt 198) – durchschnittlich |');
     expect(cool).toContain('Vorteile: keine | Nachteile: keine |');
   });
@@ -150,7 +123,7 @@ describe('the survey report', () => {
       average: 'durchschnittlich',
       below: 'unterdurchschnittlich',
     });
-    const cold = plain(surveyBody(report('full', 30, 12000)));
+    const cold = plain(report('full', 30, 12000));
     expect(cold).toContain('– unterdurchschnittlich');
     expect(cold).toContain('Vorteile: guter Promethium-Faktor |');
     expect(cold).toContain(

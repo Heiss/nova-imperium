@@ -128,11 +128,23 @@ description: 'The property and reference tests of the views converted in #118, l
   (fast-check seed 118: reports of four types with texts that hold markup
   and line breaks, read and new, opened or not; news of up to three
   versions with entries of the three kinds), with hand-built cases for the
-  empty states; the bodies of battle and espionage reports are the same
-  functions on both sides (`logic/report-body.ts`), so only their wrapper is
-  compared. The tests of the reports of holding (`holding.test.ts`) run on
-  the component through `src/test/messages-view.ts`; the allow list of
-  `catalog-keys.test.ts` names the new file of the report type „spy“.
+  empty states; the bodies of battle, espionage and survey reports are the
+  same on both sides (first the functions of `logic/report-body.ts`, since
+  #330 the components through `src/test/report-view.ts`), so only their
+  wrapper is compared. The tests of the reports of holding
+  (`holding.test.ts`) run on the component through
+  `src/test/messages-view.ts`; the allow list of `catalog-keys.test.ts`
+  names the new file of the report type „spy“.
+
+* **[V]** The bodies of the reports as components (#330): the property test
+  `src/test/report-body-reference.test.ts` keeps `ReportBody.svelte` (through
+  `src/test/report-view.ts`) equal to the HTML before (frozen there:
+  `reportBodyHTML()` with its helpers and `surveyBody()`) on 100 generated
+  reports of each kind (fast-check seed 330, sampled once), with hand-built
+  cases for names that hold markup and the shapes older versions stored, and
+  a check that the cases reach every branch (`MARKS`). The unit tests of
+  `report-body.ts`, `report-body-union.test.ts` and `survey.test.ts` assert
+  on the values, no longer on markup.
 
 * **[V]** „Highscore“ and „Achievements“ of #118, bundle 5: the property
   tests `src/test/highscore-reference.test.ts` and

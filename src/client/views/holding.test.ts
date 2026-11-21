@@ -205,7 +205,8 @@ describe('a spy report of a planet where fleets hold (#55)', () => {
       { name: 'Anna', ships: { lf: 3, bs: 1 } },
       { name: 'Emil', ships: {} },
     ]);
-    expect(html).toContain(
+    // The component writes `<br/>`; normalize() gives the markup a browser shows.
+    expect(normalize(html)).toContain(
       `<div class="mt"><b>Gehaltene Flotten</b><br>Anna: ${text('lf')!.n}: 3 · ${text('bs')!.n}: 1<br>Emil: <span class="dim">keine</span></div>`,
     );
     expect(html.indexOf('<b>Flotte</b>')).toBeLessThan(
