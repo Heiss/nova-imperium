@@ -42,6 +42,7 @@ const ciRun = (fields: Partial<WorkflowRun> = {}): WorkflowRun => ({
 });
 
 const job = (name: string, conclusion: string | null = 'success'): Job => ({
+  id: name.length,
   name,
   status: 'completed',
   conclusion,
@@ -75,7 +76,12 @@ interface World {
   runs?: unknown;
   jobs?: Record<number, unknown>;
   trees?: Record<string, string>;
+  /** The annotations of a job by its id; a job without an entry has none. */
+  notes?: Record<number, unknown>;
 }
+
+/** The id of „Detect changes“ in the recorded jobs. */
+const DETECT_ID = 'Detect changes'.length;
 
 /** The recorded answers of the API; a path it does not know fails. */
 const api =
@@ -84,6 +90,7 @@ const api =
     runs = { workflow_runs: [ciRun()] },
     jobs = { 100: { jobs: FULL } },
     trees = { [PUSHED]: TREE, [HEAD]: TREE },
+    notes = {},
   }: World = {}): Api =>
   (path) => {
     if (path === `repos/${REPO}/commits/${PUSHED}/pulls?per_page=100`)
@@ -101,6 +108,11 @@ const api =
       const answer = jobs[Number(run[1])];
       if (answer) return answer;
     }
+    const note =
+      /^repos\/owner\/game\/check-runs\/(\d+)\/annotations\?per_page=100$/.exec(
+        path,
+      );
+    if (note) return notes[Number(note[1])] ?? [];
     const commit = /^repos\/owner\/game\/git\/commits\/(\w+)$/.exec(path);
     if (commit && trees[commit[1]!])
       return { tree: { sha: trees[commit[1]!] } };
@@ -152,18 +164,44 @@ describe('a push that merged one pull request (#342)', () => {
     ]);
   });
 
-  it('runs the mutation shards after a run with no mutation job, or one that took over the result of the head before', () => {
-    // Nothing to mutate, or the result of the head before taken over
-    // (#167): every mutation job of the run is skipped.
+  it('takes a run that found nothing to mutate as the proof of the mutation jobs (coordinator, 2026-11-21)', () => {
     const none = FULL.map((j) =>
       j.name.startsWith('Mutation') ? { ...j, conclusion: 'skipped' } : j,
     );
-    expect(proven({ jobs: { 100: { jobs: none } } })).toEqual([
-      'check',
-      'e2e',
-      'compose',
-      'site',
-    ]);
+    const note = (message: string) => ({
+      [DETECT_ID]: [
+        { title: 'Something else', message: 'false' },
+        { title: 'Mutation jobs', message },
+      ],
+    });
+    const { proofs } = decide(
+      PUSHED,
+      'main',
+      REPO,
+      api({ jobs: { 100: { jobs: none } }, notes: note('false') }),
+    );
+    expect(proofs.mutation).toBe(
+      `CI run 100, job "Detect changes" (https://github.com/${REPO}/actions/runs/100/job/14) found nothing to mutate, head ${HEAD}, tree ${TREE}`,
+    );
+    // A result taken over from the head before (#167) was tested on another
+    // tree, and a run without the note says nothing: the shards run.
+    for (const notes of [note('reuse'), note('true'), {}])
+      expect(proven({ jobs: { 100: { jobs: none } }, notes })).toEqual([
+        'check',
+        'e2e',
+        'compose',
+        'site',
+      ]);
+    // The note of a failed „Detect changes“ counts for nothing.
+    const failedDetect = none.map((j) =>
+      j.name === 'Detect changes' ? { ...j, conclusion: 'failure' } : j,
+    );
+    expect(
+      proven({ jobs: { 100: { jobs: failedDetect } }, notes: note('false') }),
+    ).not.toContain('mutation');
+  });
+
+  it('runs the mutation shards after a failed run of the changed files', () => {
     // A failed run of the changed files is no proof either.
     const failed = PARTIAL.map((j) =>
       j.name === 'Mutation tests (changed files)'

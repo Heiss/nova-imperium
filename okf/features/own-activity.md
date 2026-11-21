@@ -99,6 +99,10 @@ are [Activity indicators](/features/activity-indicators.md).
   since the player's last interval, or when the round changed.
 * **[V]** An account in vacation mode (#223) records no play time; the page
   also sends nothing while signed out or in vacation mode.
+* **[V]** A known consequence (coordinator, 2026-11-21): the private messages
+  stay usable in vacation mode (#226, Q25), and sending, deleting, reporting
+  or blocking is of the class `change`, so a day of the vacation can show
+  „Spielaktionen“ with no play time. Not changed.
 * **[V]** A report is no manual action of #229: it sets no public activity and
   writes no audit entry. The click samples of `POST /api/activity` stay as
   they were for the public markers; they no longer feed the admin estimate.
@@ -208,4 +212,7 @@ are [Activity indicators](/features/activity-indicators.md).
   last 7 days (`recentActions`, `actions`) still read the audit log.
   **[V]** (coordinator, 2026-11-21, #335 Q14) These two counters stay raw
   counts of the audit log: they include every read and measure load, so they
-  are not the same number as the „Spielaktionen“ of the box.
+  are not the same number as the „Spielaktionen“ of the box. **[V]**
+  (coordinator, 2026-11-21) So the admin's hint no longer shares the word:
+  „<n> Aktionen in 1 Min.“ (was „<n> Spielaktionen in 1 Min.“; the column of
+  the table „Spielaktivität“ already reads „Aktionen“).

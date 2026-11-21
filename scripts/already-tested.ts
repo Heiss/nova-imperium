@@ -12,10 +12,11 @@
 // Each job is proven on its own: a job that did not run there runs on the
 // push as before. The mutation jobs of the push are proven by the complete
 // run or by the run of the changed files (#309) of the pull request (owner,
-// 2026-11-21): the complete shards run in the release pull request, the
-// nightly run and a push whose tree is not proven; a pull request that ran no
-// mutation job, or took over the result of its head before (#167), proves
-// none. Any other case, an error of
+// 2026-11-21), and by a run whose „Detect changes“ found nothing to mutate
+// (its note „Mutation jobs“ says false; coordinator, 2026-11-21): the
+// complete shards run in the release pull request, the nightly run and a
+// push whose tree is not proven. A pull request that took over the result of
+// its head before (#167, note „reuse“) proves none: that was another tree. Any other case, an error of
 // the API included, proves nothing, and the push runs everything: the rule
 // fails closed. The draft release pull request of main runs the cheap checks
 // and its gate fails on purpose (#147), so its run proves nothing either.
@@ -82,11 +83,22 @@ export interface WorkflowRun {
 
 /** The fields of a job of a workflow run the decision reads. */
 export interface Job {
+  id: number;
   name: string;
   status: string;
   conclusion: string | null;
   html_url: string;
 }
+
+/** The fields of an annotation of a check run (a job) the decision reads. */
+export interface Annotation {
+  title: string | null;
+  message: string;
+}
+
+/** The job that decides which checks a run needs, and its note of the mutation jobs. */
+export const DETECT = 'Detect changes';
+export const MUTATION_NOTE = 'Mutation jobs';
 
 /** Answers a GET of the REST API (a path below https://api.github.com/). */
 export type Api = (path: string) => unknown;
@@ -162,6 +174,43 @@ const succeeded = (
   );
 
 /**
+ * The job „Detect changes“ of a run that found nothing to mutate: its note
+ * „Mutation jobs“ says false (no mutated file, test, mutation configuration
+ * or test tool chain changed). A taken-over result (#167) says reuse and
+ * proves nothing: it was tested on another tree.
+ */
+function nothingToMutate(
+  jobs: readonly Job[],
+  notesOf: (job: number) => readonly Annotation[],
+): Job | undefined {
+  const detect = succeeded(jobs, [DETECT]);
+  if (!detect) return undefined;
+  return notesOf(detect.id).some(
+    (a) => a.title === MUTATION_NOTE && a.message === 'false',
+  )
+    ? detect
+    : undefined;
+}
+
+/** The proof of one job in one run of the identical tree, or undefined. */
+function proofIn(
+  key: JobKey,
+  r: WorkflowRun,
+  tree: string,
+  jobs: readonly Job[],
+  notesOf: (job: number) => readonly Annotation[],
+): string | undefined {
+  const at = `head ${r.head_sha}, tree ${tree}`;
+  const job = succeeded(jobs, PROVEN_BY[key]);
+  if (job) return `CI run ${r.id}, job "${job.name}" (${job.html_url}), ${at}`;
+  if (key !== 'mutation') return undefined;
+  const detect = nothingToMutate(jobs, notesOf);
+  return detect
+    ? `CI run ${r.id}, job "${detect.name}" (${detect.html_url}) found nothing to mutate, ${at}`
+    : undefined;
+}
+
+/**
  * The proof of each job from the green runs: the newest run whose job
  * succeeded, on a head with the tree <tree> of the pushed commit.
  */
@@ -170,6 +219,7 @@ export function proofsOf(
   runs: readonly WorkflowRun[],
   treeOf: (sha: string) => string,
   jobsOf: (run: number) => readonly Job[],
+  notesOf: (job: number) => readonly Annotation[],
 ): Decision {
   const proofs = none();
   const reasons: string[] = [];
@@ -183,10 +233,9 @@ export function proofsOf(
   });
   for (const key of KEYS) {
     for (const r of same) {
-      const job = succeeded(jobsOf(r.id), PROVEN_BY[key]);
-      if (!job) continue;
-      proofs[key] =
-        `CI run ${r.id}, job "${job.name}" (${job.html_url}), head ${r.head_sha}, tree ${tree}`;
+      const proof = proofIn(key, r, tree, jobsOf(r.id), notesOf);
+      if (!proof) continue;
+      proofs[key] = proof;
       break;
     }
     if (!proofs[key])
@@ -269,7 +318,13 @@ function lookUp(sha: string, branch: string, repo: string, api: Api): Decision {
       ],
     };
   const treeOf = treeThrough(api, repo);
-  return proofsOf(treeOf(sha), runs, treeOf, jobsThrough(api, repo));
+  return proofsOf(treeOf(sha), runs, treeOf, jobsThrough(api, repo), (id) =>
+    listOf<Annotation>(
+      api(`repos/${repo}/check-runs/${id}/annotations?per_page=100`),
+      null,
+      'annotations',
+    ),
+  );
 }
 
 /**

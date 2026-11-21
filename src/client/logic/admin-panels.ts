@@ -294,9 +294,7 @@ const hints = (p: PlayerStats): string =>
     p.failedLogins >= 5
       ? `${fmt(p.failedLogins)} abgelehnte Logins in 1 Std.`
       : '',
-    p.recentActions >= 30
-      ? `${fmt(p.recentActions)} Spielaktionen in 1 Min.`
-      : '',
+    p.recentActions >= 30 ? `${fmt(p.recentActions)} Aktionen in 1 Min.` : '',
   ]
     .filter(Boolean)
     .join(' · ') || '—';

@@ -335,7 +335,9 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   the tagged commit, which after a release merge now takes minutes. The
   build: [Proofs of a push run](/ops/testing/push-proofs.md). A push after a
   pull request with a partial mutation run does not run the complete shards:
-  the pull request's own mutation jobs, complete or partial, prove them; the
+  the pull request's own mutation jobs, complete or partial, prove them, and
+  so does a run that found nothing to mutate ([V], coordinator, 2026-11-21;
+  not a result taken over from another tree, #167); the
   release pull request and the nightly run are enough for the complete run,
   and the shards run on a push only when its tree is not proven (owner,
   2026-11-21, O23).

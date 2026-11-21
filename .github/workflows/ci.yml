@@ -234,6 +234,10 @@ jobs:
             echo "mutation-files=$mutation_files"
             echo "site=$site"
           } >> "$GITHUB_OUTPUT"
+          # The push after the merge reads this note: "false" (nothing to
+          # mutate) proves its mutation jobs, any other value does not
+          # (scripts/already-tested.ts, #342).
+          echo "::notice title=Mutation jobs::$mutation"
 
   # Every pull request that changes the game brings a German changelog
   # fragment in changes/, or carries the label "kein-changelog"; all

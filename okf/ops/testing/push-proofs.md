@@ -30,8 +30,12 @@ description: 'When a push to main or a hotfix branch skips a job that succeeded 
   „E2E tests (browser)“, the mutation jobs („Mutation tests“, the gate of the
   complete run, or „Mutation tests (changed files)“, the partial run of
   #309: either proves the plan, the shards and „Mutation tests“ of the push;
-  owner, 2026-11-21, O23; a run without a mutation job or one that took over
-  the result of its head before, #167, proves none),
+  owner, 2026-11-21, O23; **[V]** a run whose „Detect changes“ found nothing
+  to mutate proves them too, coordinator, 2026-11-21: that job notes its
+  result as the annotation „Mutation jobs“, and the note `false` is read
+  through `GET /repos/{repo}/check-runs/{job}/annotations`; a run that took
+  over the result of its head before, #167, note `reuse`, was tested on
+  another tree and proves none, nor does a run without the note),
   „Docker image and Compose stack“, „Documentation website“. The cheap jobs
   (secrets and dependencies, migrations, workflow lint, CodeQL, the change
   detection) run on every push.
