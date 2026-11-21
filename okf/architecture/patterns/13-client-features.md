@@ -159,7 +159,13 @@ description: 'A client feature exports its handlers as clientFeature from its ow
   page (`isChosen`). The handlers still read the fields by id (the login
   shares `pw_next` and `pw_confirm`), which show the state; „Passkey
   hinzufügen“ and a sent report empty the state, so a redraw no longer puts
-  the sent text back after `form.reset()`.
+  the sent text back after `form.reset()`. „Gilden“
+  (`logic/guild-form.svelte.ts`): the profile, the names of the ranks, the
+  name of a new rank, the rank chosen for a member and the ticks of the
+  rights; a disabled box shows the server (`ticked`, #163), and „Rang
+  anlegen“ empties the name. `isChosen` (`form-state.svelte.ts`) is the
+  option a select shows. With the rank boxes gone from the drafts, the drafts
+  keep values only (no ticks).
 * **[V]** A number field whose state is a string takes `value={…}` with
   `oninput`, not `bind:value`. Checked against `bind_value` of Svelte 5.57
   (2026-11-21, with a fake input): `bind:value` stores the field as a number
@@ -206,14 +212,10 @@ the conversion.
   `passkey-password` and `reportform-text`. `o_anim` and the push boxes are
   checkboxes (see above) and depend on nothing; `o_anim` is applied at once
   by `features/options.ts`.
-* **Gilden** (`Guilds.svelte` and its parts, mounted anew; read by id in
-  `features/guilds.ts`): `guild_tag`, `guild_name`, `guild_description`
-  (`GuildProfileForm.svelte`, `value={form.*}`), `rank_name_<rank>`
-  (`GuildRanks.svelte`, `value={editor.name}`), `rank_<rank>_<right>` (rank
-  boxes, the tick is the draft, not onto a disabled box), `rank_new` (no
-  value; emptied by `setById` in `features/guilds.ts`), `rank_of_<member>`
-  (`GuildMembers.svelte`, `selected` of the page). `chat_text` has its own
-  draft (`logic/drafts.svelte.ts`).
+* **Gilden**: converted (2026-11-21), `guild_tag`, `guild_name`,
+  `guild_description`, `rank_name_<rank>`, `rank_<rank>_<right>`,
+  `rank_new` and `rank_of_<member>`. `chat_text` has its own draft
+  (`logic/drafts.svelte.ts`).
 * **Admin** (`Admin.svelte`, mounted anew): `inv_email` (no value),
   `announce-text` (no value; emptied through `setInput` by
   `features/admin.ts`). `audit-player` and `audit-outcome` of

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { forgetForms, formState } from './form-state.svelte.ts';
+import { forgetForms, formState, isChosen } from './form-state.svelte.ts';
 
 const form = formState(() => ({ name: '', n: 1 }));
 const rows = formState((): Record<string, string> => ({}));
@@ -29,5 +29,18 @@ describe('the state of a form', () => {
     forgetForms();
     expect(other.on).toBe(true);
     expect(form.name).toBe('');
+  });
+});
+
+describe('the option a select shows', () => {
+  it('is the one of the page until one is chosen, then only that one', () => {
+    const on = { value: 'a', selected: true };
+    const off = { value: 'b', selected: false };
+    expect([isChosen(undefined, on), isChosen(undefined, off)]).toEqual([
+      true,
+      false,
+    ]);
+    expect([isChosen('b', on), isChosen('b', off)]).toEqual([false, true]);
+    expect([isChosen('', on), isChosen('', off)]).toEqual([false, false]);
   });
 });

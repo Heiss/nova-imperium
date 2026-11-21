@@ -11,10 +11,14 @@ import { keeps } from './jump-gate.ts';
  * The fields that show what the server says and have no draft: the settings
  * of the universe (their own draft is logic/settings-draft.ts), the link of
  * the invitation, the confirmation of a dissolving (a modal outside the
- * view), and the two fields with a draft of their own (logic/drafts.svelte.ts).
+ * view), the two fields with a draft of their own (logic/drafts.svelte.ts),
+ * and the fields of the forms that keep their own state (#332,
+ * logic/form-state.svelte.ts): the filter of the achievements, the position
+ * of the Sternenkarte, the marketplace, the fleet form but its target kind,
+ * mission, union, holding time and Warp-Tor, „Optionen“ and „Gilden“.
  */
 const UNTRACKED =
-  /^(set_.+|inv_link|dissolve_tag|chat_text|friend_name|achievement_(search|category|status)|g_[gs]|market-(give|get|amount)|f_.+|t_[gspv]|c_[mcd]|un_name_.+|o_(probes|explain|levels|main)|pw_(current|next|confirm)|passkey-password|reportform-text)$/;
+  /^(set_.+|inv_link|dissolve_tag|chat_text|friend_name|achievement_(search|category|status)|g_[gs]|market-(give|get|amount)|f_.+|t_[gspv]|c_[mcd]|un_name_.+|o_(probes|explain|levels|main)|pw_(current|next|confirm)|passkey-password|reportform-text|guild_(tag|name|description)|rank_.+)$/;
 
 /** Whether the field with this id has a draft. */
 export const isTracked = (id: string): boolean => !UNTRACKED.test(id);
@@ -23,31 +27,23 @@ export const isTracked = (id: string): boolean => !UNTRACKED.test(id);
 export interface Field {
   id: string;
   value: string;
-  checked?: boolean;
-  disabled?: boolean;
-  /** A guild rank box: its draft is the tick, not the value. */
-  rankRight?: boolean;
   options?: ArrayLike<{ value: string; disabled: boolean }> | null;
 }
 
 export class FieldDrafts {
   readonly #values = new Map<string, string>();
-  readonly #ticks = new Map<string, boolean>();
 
   /** The player changed the field; a field without a draft is ignored. */
   record(field: Field): void {
-    if (!isTracked(field.id)) return;
-    if (field.rankRight) this.#ticks.set(field.id, field.checked === true);
-    else this.#values.set(field.id, field.value);
+    if (isTracked(field.id)) this.#values.set(field.id, field.value);
   }
 
-  /** What to put back into the field after a redraw: nothing, a value or a tick. */
-  restore(field: Field): { value?: string; checked?: boolean } {
-    if (field.rankRight) {
-      const on = this.#ticks.get(field.id);
-      // A disabled box shows the state of the server, it is no draft (#163).
-      return on === undefined || field.disabled ? {} : { checked: on };
-    }
+  /**
+   * What to put back into the field after a redraw: nothing or a value. The
+   * ticks of the rank boxes of a guild are the state of its form now
+   * (logic/guild-form.svelte.ts, #332).
+   */
+  restore(field: Field): { value?: string } {
     const value = this.#values.get(field.id);
     return value !== undefined && keeps(field, value) ? { value } : {};
   }
@@ -55,7 +51,6 @@ export class FieldDrafts {
   /** Drops every draft. */
   reset(): void {
     this.#values.clear();
-    this.#ticks.clear();
   }
 }
 

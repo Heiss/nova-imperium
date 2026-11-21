@@ -41,6 +41,13 @@ describe('the fields that have a draft', () => {
       'pw_confirm',
       'passkey-password',
       'reportform-text',
+      'guild_tag',
+      'guild_name',
+      'guild_description',
+      'rank_name_r1',
+      'rank_new',
+      'rank_of_u1',
+      'rank_r1_chat',
     ])
       expect(isTracked(id), id).toBe(false);
     for (const id of [
@@ -50,7 +57,8 @@ describe('the fields that have a draft', () => {
       't_h',
       'jg_to',
       'o_anim',
-      'guild_tag',
+      'announce-text',
+      'q_lc',
     ])
       expect(isTracked(id), id).toBe(true);
   });
@@ -59,16 +67,16 @@ describe('the fields that have a draft', () => {
 describe('the drafts of the fields', () => {
   it('gives back what was typed after a redraw put the value of the state', () => {
     const drafts = new FieldDrafts();
-    drafts.record(f('guild_tag', '7'));
-    expect(drafts.restore(f('guild_tag', '1'))).toEqual({ value: '7' });
+    drafts.record(f('announce-text', '7'));
+    expect(drafts.restore(f('announce-text', '1'))).toEqual({ value: '7' });
   });
 
   it('takes the newest value and gives nothing for a field never changed', () => {
     const drafts = new FieldDrafts();
-    drafts.record(f('guild_tag', '7'));
-    drafts.record(f('guild_tag', '8'));
-    expect(drafts.restore(f('guild_tag'))).toEqual({ value: '8' });
-    expect(drafts.restore(f('guild_name'))).toEqual({});
+    drafts.record(f('announce-text', '7'));
+    drafts.record(f('announce-text', '8'));
+    expect(drafts.restore(f('announce-text'))).toEqual({ value: '8' });
+    expect(drafts.restore(f('q_lc'))).toEqual({});
   });
 
   it('keeps an emptied field empty', () => {
@@ -99,39 +107,20 @@ describe('the drafts of the fields', () => {
     });
   });
 
-  it('keeps a ticked or cleared rank box, but not onto a disabled one (#163)', () => {
+  it('records no rank box: the form of the guild keeps its ticks (#332, the disabled box in views/guild-form.test.ts)', () => {
     const drafts = new FieldDrafts();
-    drafts.record(
-      f('rank_r1_chat', 'chat', { rankRight: true, checked: true }),
-    );
-    drafts.record(f('rank_r1_war', 'war', { rankRight: true, checked: false }));
-    expect(
-      drafts.restore(
-        f('rank_r1_chat', 'chat', { rankRight: true, checked: false }),
-      ),
-    ).toEqual({ checked: true });
-    expect(
-      drafts.restore(
-        f('rank_r1_war', 'war', { rankRight: true, checked: true }),
-      ),
-    ).toEqual({ checked: false });
-    expect(
-      drafts.restore(
-        f('rank_r1_chat', 'chat', { rankRight: true, disabled: true }),
-      ),
-    ).toEqual({});
+    drafts.record(f('rank_r1_chat', 'chat'));
+    drafts.record(f('rank_r1_war', 'war'));
+    expect(drafts.restore(f('rank_r1_chat', 'chat'))).toEqual({});
+    expect(drafts.restore(f('rank_r1_war', 'war'))).toEqual({});
   });
 
   it('drops every draft on reset (a fresh render, a logout)', () => {
     const drafts = new FieldDrafts();
-    drafts.record(f('guild_tag', '7'));
-    drafts.record(
-      f('rank_r1_chat', 'chat', { rankRight: true, checked: true }),
-    );
+    drafts.record(f('announce-text', '7'));
+    drafts.record(f('inv_email', 'a@b.de'));
     drafts.reset();
-    expect(drafts.restore(f('guild_tag', '1'))).toEqual({});
-    expect(drafts.restore(f('rank_r1_chat', '', { rankRight: true }))).toEqual(
-      {},
-    );
+    expect(drafts.restore(f('announce-text', '1'))).toEqual({});
+    expect(drafts.restore(f('inv_email', ''))).toEqual({});
   });
 });

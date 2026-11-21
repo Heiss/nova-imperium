@@ -9,7 +9,8 @@
   // shows them all as before. The fields keep what the player typed or chose
   // in logic/options-form.svelte.ts (#332): `value` or `selected` with
   // `oninput` or `onchange`, so a field nobody touched shows the page.
-  import { isChosen, optionsForm } from '../logic/options-form.svelte.ts';
+  import { isChosen } from '../logic/form-state.svelte.ts';
+  import { optionsForm } from '../logic/options-form.svelte.ts';
   import { PUSH_KINDS_LEGEND, PUSH_KINDS_NOTE } from '../logic/push-options.ts';
   import { OWN_ACTIVITY_LOADING } from '../logic/own-activity.ts';
   import type { OptionsPage } from '../logic/options.ts';

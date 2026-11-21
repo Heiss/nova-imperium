@@ -19,10 +19,3 @@ export interface OptionsDraft {
 }
 
 export const optionsForm = formState((): OptionsDraft => ({}));
-
-/** Whether an option is selected: the one chosen, else the one of the page. */
-export const isChosen = (
-  chosen: string | undefined,
-  option: { value: string; selected: boolean },
-): boolean =>
-  chosen === undefined ? option.selected : chosen === option.value;

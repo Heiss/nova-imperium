@@ -25,3 +25,10 @@ export function formState<T extends object>(start: () => T): T {
 export function forgetForms(): void {
   for (const reset of resets) reset();
 }
+
+/** Whether an option is selected: the one chosen, else the one of the page. */
+export const isChosen = (
+  chosen: string | undefined,
+  option: { value: string; selected: boolean },
+): boolean =>
+  chosen === undefined ? option.selected : chosen === option.value;
