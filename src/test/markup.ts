@@ -215,3 +215,21 @@ export function normalize(html: string): string {
   // Only entities that cannot start a tag or another entity are decoded.
   return decodeText(tags).trim();
 }
+
+/**
+ * The opening tag of the fieldset of the dialog „Neue Runde“ called `name`:
+ * by its legend, or, where the legend would repeat the heading of its group
+ * (owner, 2026-11-22, #357), by that heading (`aria-labelledby`).
+ */
+export function fieldsetOpen(html: string, name: string): string {
+  const legend = `<fieldset><legend>${name}</legend>`;
+  if (html.includes(legend)) return legend;
+  const id = new RegExp(`<h4 id="(round-heading-\\d+)">${name}</h4>`).exec(
+    html,
+  )?.[1];
+  return id ? `<fieldset aria-labelledby="${id}">` : legend;
+}
+
+/** The markup without its fieldsets, whatever their attributes. */
+export const outsideFieldsets = (html: string): string =>
+  html.replace(/<fieldset[^>]*>[\s\S]*?<\/fieldset>/g, '');

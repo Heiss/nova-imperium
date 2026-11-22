@@ -135,6 +135,20 @@ describe('the action trade', () => {
     expect(currentPrices(ctx).mc).toBe(BASE);
   });
 
+  it('keeps a lowered price in a round with 0 hours, and recovers once hours are set again (#346)', () => {
+    const ctx = world();
+    ctx.admin.putSettings([['roundMarketDrift', 0]]);
+    trade(ctx);
+    const lowered = currentPrices(ctx).mc;
+    expect(lowered).toBeLessThan(BASE);
+    ctx.clock.t += 1000 * HOUR_MS;
+    expect(currentPrices(ctx).mc).toBe(lowered);
+    // The reverse pair keeps its own price.
+    expect(currentPrices(ctx).cm).toBe(BASE);
+    ctx.admin.putSettings([['roundMarketDrift', 24]]);
+    expect(currentPrices(ctx).mc).toBe(BASE);
+  });
+
   it('shifts the price by the step of the round', () => {
     const ctx = world();
     ctx.admin.putSettings([['roundMarketStep', 100]]);

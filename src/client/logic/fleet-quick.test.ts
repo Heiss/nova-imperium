@@ -47,7 +47,20 @@ describe('the list „Schnellwahl“ of friends, guild and last targets', () => 
       { id: 'p1_2_6', label: 'Freund: Bert <b> [1:2:6]' },
       { id: 'p1_3_7', label: 'Gilde: Cora [1:3:7]' },
       { id: 'm1_2_6', label: 'Ziel: Bert <b> – Luna (Mond) [1:2:6]' },
-      { id: 'p1_3_7', label: 'Ziel: Cora – Gamma [1:3:7]' },
+    ]);
+  });
+
+  it('lists a place once, under the first group that has it, whatever the server sends (#362)', () => {
+    const s = state({
+      friends: ['p1_2_6'],
+      guild: ['p1_2_6', 'p1_3_7'],
+      last: ['p1_2_6', 'p1_3_7', 'p1_1_9', 'm1_2_6', 'm1_2_6'],
+    });
+    expect(quickTargets(s, 'p1_1_5')).toEqual([
+      { id: 'p1_1_9', label: 'Kolonie [1:1:9]' },
+      { id: 'p1_2_6', label: 'Freund: Bert <b> [1:2:6]' },
+      { id: 'p1_3_7', label: 'Gilde: Cora [1:3:7]' },
+      { id: 'm1_2_6', label: 'Ziel: Bert <b> – Luna (Mond) [1:2:6]' },
     ]);
   });
 

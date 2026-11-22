@@ -16,7 +16,7 @@ import {
   adminMarkup as admin,
   roundDialogMarkup as roundDialog,
 } from '../../test/admin-view.ts';
-import { normalize } from '../../test/markup.ts';
+import { normalize, outsideFieldsets } from '../../test/markup.ts';
 
 /** The values of a round at their defaults, the settings of holding on top. */
 const rules = (over: Record<string, number | boolean>): RoundRules =>
@@ -91,9 +91,7 @@ describe('held fleets in the spy report in the dialog „Neue Runde“ and the u
       expect(html.indexOf(field)).toBeLessThan(
         html.indexOf('data-act="doReset"'),
       );
-      expect(html.replace(/<fieldset>[\s\S]*?<\/fieldset>/g, '')).toContain(
-        field,
-      );
+      expect(outsideFieldsets(html)).toContain(field);
     }
   });
 

@@ -7,7 +7,16 @@
 // cover the draft with a fake page; here the answer of the archive is held
 // back with `page.route`, so the order is the same on every machine.
 import { expect, test, type Page } from '@playwright/test';
-import { cli, nav, register, uniqueName, watch } from './helpers.ts';
+import {
+  cli,
+  lastToast,
+  login,
+  nav,
+  register,
+  seed,
+  uniqueName,
+  watch,
+} from './helpers.ts';
 
 /**
  * Holds back the two actions that read the archive (`roundArchive` and
@@ -99,6 +108,48 @@ test.describe('the draft of the settings of the universe', () => {
         `Classic Universum · Speed x${before}`,
       );
     }
+    expect(w.problems).toEqual([]);
+  });
+
+  test('a value typed in another round is not kept: a new round, drawn by the poll, shows the saved value (#361, review of #347)', async ({
+    page,
+    browser,
+  }) => {
+    const w = watch(page);
+    const name = uniqueName('EntwurfRunde');
+    await register(page, name);
+    expect(cli('admin', name)).toContain(`${name} is now admin.`);
+    // A colony, so the new round shows by the list of planets: it has one.
+    seed({ name, colony: { name: uniqueName('Altkolonie') } });
+    await page.reload();
+    const planets = page.locator('#planet_select option');
+    await expect(planets).toHaveCount(2);
+    await nav(page, 'admin');
+    await page.getByRole('tab', { name: 'Universum' }).click();
+    const speed = page.locator('#set_speed');
+    const before = await speed.inputValue();
+    await speed.fill(String(Number(before) + 2));
+
+    // The same admin starts a new round in another tab.
+    const other = await (
+      await browser.newContext({ viewport: page.viewportSize() })
+    ).newPage();
+    try {
+      await login(other, name);
+      await nav(other, 'admin');
+      await other.getByRole('tab', { name: 'Universum' }).click();
+      await other.getByRole('button', { name: 'Neue Runde starten' }).click();
+      await other.getByRole('button', { name: 'Ja, neue Runde' }).click();
+      await expect(lastToast(other)).toContainText('Neue Runde gestartet');
+    } finally {
+      await other.context().close();
+    }
+
+    // The poll draws the new round (one planet, no choice); the draft of the old round
+    // is gone, so the field shows the server's value and a save sends it.
+    await expect(planets).toHaveCount(0, { timeout: 15000 });
+    await expect(speed).toHaveValue(before);
+    cli('unadmin', name);
     expect(w.problems).toEqual([]);
   });
 });

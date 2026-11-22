@@ -50,6 +50,13 @@ const threshold = {
 } as const;
 
 /**
+ * The heading of these settings in the admin panel (#357), the name the game
+ * uses for the feature: the legend of its group in „Neue Runde“ („Fremde
+ * Flotten erkennen“, owner, 2026-11-18) [V].
+ */
+export const roundHeading = 'Fremde Flotten erkennen';
+
+/**
  * The three thresholds as settings of the round (#283): number fields of the
  * dialog „Neue Runde“ and, `live` by X1, rows of the universe settings. The
  * export under this name registers them (#310, src/core/round.ts).

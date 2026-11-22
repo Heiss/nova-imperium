@@ -17,7 +17,8 @@
   } from '../logic/phone-build.ts';
   import { chooseFilter, phoneBuild } from '../logic/phone-build.svelte.ts';
   import { client } from '../logic/state.svelte.ts';
-  import { costHTML, requirementsHTML } from './common.ts';
+  import Cost from './Cost.svelte';
+  import Requirements from './Requirements.svelte';
 
   let { kind }: { kind: CatalogKind } = $props();
 
@@ -159,11 +160,11 @@
             {#if row.ds}
               <div class="ds">{row.ds}</div>
             {/if}
-            {@html costHTML(row.cost, v.P, 1, row.energy)}
+            <Cost cost={row.cost} P={v.P} energy={row.energy} />
             {#each row.lines as line, i (i)}
               <div class="dim" class:tl={isTimeLine(line)}>{line}</div>
             {/each}
-            {@html requirementsHTML(v, row.req)}
+            <Requirements {v} req={row.req} />
             {#if lv?.show}
               <div class="lvt" id={lv.panel}>
                 {#await import('./LevelOverview.svelte') then m}

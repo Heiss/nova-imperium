@@ -20,6 +20,12 @@ export const HOUR_MS = 3_600_000;
 export const VACATION_HOURS = { min: 1, max: 720, default: 48 } as const;
 
 /**
+ * The heading of these settings in the admin panel (#357), the name the game
+ * uses for the feature: the Lexicanum page and the changelog entry „Urlaubsmodus“ [V].
+ */
+export const roundHeading = 'Urlaubsmodus';
+
+/**
  * The minimum duration as a setting of the round (#283): a number field of
  * the dialog „Neue Runde“ and, `live`, a row of the universe settings,
  * changed during the round (X1, owner, 2026-11-17); existing universes keep

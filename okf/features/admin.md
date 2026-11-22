@@ -102,7 +102,7 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 | Thresholds of foreign fleets, levels of the Auspex-Lehre („Fremde Flotten: Schiffe insgesamt ab Auspex-Lehre“, „… Schiffstypen …“, „… Anzahl je Schiffstyp …“, #228) | 2 / 4 / 8 (not in version 1), [E] owner 2026-11-16 | 0 to 100, [E] owner 2026-11-18; also in the dialog „Neue Runde“ in a framed group „Fremde Flotten erkennen“, [E] owner 2026-11-17 (X1) and 2026-11-18 |
 | Who may hold („Verbündete für Halten und Verband“, #55) | „Gilde und Freunde“ (3; not in version 1) [V] | a selection: „Gilde“ (1), „Freunde“ (2), „Gilde und Freunde“ (3) [V]; also in the dialog „Neue Runde“, [E] owner 2026-11-17 (X1) |
 | Held fleets apart in the spy report from the spy's Auspex-Lehre („Gehaltene Flotten im Auspex-Bericht ab Auspex-Lehre“, #55) | 2 (not in version 1), [E] owner 2026-11-17 | 0 to 30 [V]; also in the dialog „Neue Runde“, [E] owner 2026-11-17 (X1) |
-| Marketplace („Marktplatz“, #171): twelve live settings in one fieldset „Marktplatz“, orders 320 to 430: on (1/0), six ratios per pair, price step, drift hours, limit per day (0 = none), fee at level 1 in percent, points the fee falls per level | 1 / 500, 250, 2000, 500, 4000, 2000 [E] owner 2026-11-19 / 5 / 24 / 100,000 [V] / 10 / 1 [E] | 0 to 1, 1 to 100,000, 1 to 1,000, 1 to 720, 0 to 10,000,000, 0 to 100, 0 to 100 [V]; also in „Neue Runde“ (X1); see [Marketplace](/features/marketplace.md) |
+| Marketplace („Marktplatz“, #171): twelve live settings in one fieldset „Marktplatz“, orders 320 to 430: on (1/0), six ratios per pair, price step, drift hours, limit per day (0 = none), fee at level 1 in percent, points the fee falls per level | 1 / 500, 250, 2000, 500, 4000, 2000 [E] owner 2026-11-19 / 5 / 24 / 100,000 [V] / 10 / 1 [E] | 0 to 1, 1 to 100,000, 1 to 1,000, 0 to 720 (0: no recovery, [E] owner 2026-11-21, #346), 0 to 10,000,000, 0 to 100, 0 to 100 [V]; also in „Neue Runde“ (X1); see [Marketplace](/features/marketplace.md) |
 | Refund factor of a demolition („Rückbau-Erstattung (%)“, #202) | +50 (not in version 1) | −100 to +100, [E] owner 2026-11-16; also in the dialog „Neue Runde“, [E] owner 2026-11-17 (X1) |
 | Time of a demolition („Rückbau-Dauer (% der Bauzeit)“, #202) | 50 (not in version 1) | 1 to 200, [E] owner 2026-11-17; also in the dialog „Neue Runde“, [E] owner 2026-11-17 (X1) |
 
@@ -146,6 +146,61 @@ universe settings) and their ranges are not decided yet.
   under the key the round stores it, and the tab „Universum“ changes it
   live; a setting with named choices (`choices`) shows a selection there
   instead of a number.
+
+## The settings under headings, in groups that fold (#357)
+
+* **[E]** Owner, 2026-11-22: the settings stand under headings by feature,
+  as the code groups them, plus one group for the base values; the groups
+  fold and unfold and are open at the start; release 26.11.25.
+* **[V]** The same structure in „Neue Runde“ and in the tab „Universum“ (told
+  to the owner, no objection): the same headings in the same order. „Neue
+  Runde“ shows every feature; „Universum“ shows the base values first and
+  then each feature with a live setting.
+* **[V]** The heading comes from the registry: each file with `roundSettings`
+  exports `roundHeading`, and `scripts/gen-features.ts` lists them as
+  `ROUND_SECTIONS` in `round-settings.gen.ts`, so a new feature gets its group
+  without a change of the views (`ROUND_SECTIONS` of `src/core/round.ts`,
+  `universeSections` of `src/core/universe.ts`). The headings are the names
+  the game already uses (the menu, the Lexicanum, the changelog, a legend of
+  „Neue Runde“); **[E]** the owner approved all fourteen (2026-11-22):
+
+  | Feature file | Heading | Source |
+  | --- | --- | --- |
+  | (base values) | Universum | the name of the tab |
+  | achievements | Tagesbelohnung und Erfolge | the Lexicanum page |
+  | guild-chat | Gilden | the menu, the Lexicanum, the changelog |
+  | main-planet | Hauptplanet | the changelog, the box of „Optionen“ |
+  | abandon | Kolonie aufgeben | the changelog |
+  | activity | Aktivität | the labels of its settings; the Lexicanum page „Sichtbarkeit und Aktivität“ |
+  | holding | Wache stellen | the changelog |
+  | fleet-recognition | Fremde Flotten erkennen | the legend of its group in „Neue Runde“ (owner, 2026-11-18) |
+  | vacation | Urlaubsmodus | the Lexicanum, the changelog |
+  | demolition | Zurückbauen | the changelog |
+  | union | Verbandsangriff | the changelog |
+  | expedition | Expeditionen | the Lexicanum, the changelog |
+  | market | Marktplatz | the menu, the Lexicanum, the changelog |
+  | colony-limit | Planetengrenze | the changelog |
+
+* **[V]** A group is a `<details class="settings-group">` with the heading
+  in its `<summary>` (keyboard and screen reader by the browser); the admin's
+  choice of folded groups lives in `logic/admin-groups.svelte.ts`, as a
+  fresh render mounts the page „Admin“ anew (#361). A folded group keeps its
+  fields in the page, so saving sends every value as before. A value that
+  the server will refuse (the same checks, `roundRefused` and
+  `universeErrors`) unfolds its group, is marked `aria-invalid` and takes the
+  focus; the server still words the refusal. In „Neue Runde“ the dialog then
+  stays open. That a size of the universe lies below a planet only the server
+  can tell; that refusal unfolds nothing.
+* **[E]** Owner, 2026-11-22: a legend of „Neue Runde“ that repeats the
+  heading of its group is not shown. **[V]** The fieldset stays (it frames
+  the members and their preview) and is named by the heading
+  (`aria-labelledby` on the `<h4>` of its group, `rowSections` of
+  `client/logic/admin.ts`); the registry keeps the legend, which groups the
+  fields. That are the legends „Aktivität“, „Fremde Flotten erkennen“,
+  „Expeditionen“, „Marktplatz“ and „Planetengrenze“ („Aktivität“ was not in
+  the owner's list of four but repeats its heading, so the rule covers it
+  [V]); „Belohnungen für die neue Runde“ (heading „Tagesbelohnung und
+  Erfolge“) and „Rückbau“ (heading „Zurückbauen“) stay.
 
 ## The registry of the round settings (#283)
 

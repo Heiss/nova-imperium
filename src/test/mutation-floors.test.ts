@@ -17,6 +17,9 @@ const m = (...statuses: string[]) => statuses.map((status) => ({ status }));
 const standard: Standard = {
   securityTarget: 90,
   newFile: 80,
+  // No cap and no list: the rules before #338.
+  cap: 100,
+  exact: [],
   security: ['src/server/auth.ts', 'src/server/new-secret.ts'],
   floors: {
     'src/core/a.ts': 70,
@@ -111,6 +114,55 @@ describe('raising the floors to a report', () => {
     expect(found.added).toEqual([{ file: 'src/core/new.ts', to: 85.71 }]);
     expect(found.floors['src/core/new.ts']).toBe(85.71);
     expect(found.below).toEqual([]);
+  });
+
+  it('writes no floor above the cap and lowers one above it, except of a sensitive file (#338)', () => {
+    const capped: Standard = {
+      ...standard,
+      cap: 95,
+      exact: ['src/server/auth.ts'],
+      floors: {
+        'src/core/a.ts': 100,
+        'src/core/b.ts': 90,
+        'src/core/c.ts': 95,
+        'src/server/auth.ts': 99,
+      },
+    };
+    const found = raise(
+      {
+        'src/core/a.ts': 99.5,
+        'src/core/b.ts': 98,
+        'src/core/c.ts': 100,
+        'src/core/new.ts': 100,
+        'src/server/auth.ts': 100,
+      },
+      capped,
+      everything,
+    );
+    expect(found.below).toEqual([]);
+    expect(found.floors).toEqual({
+      'src/core/a.ts': 95,
+      'src/core/b.ts': 95,
+      'src/core/c.ts': 95,
+      'src/core/new.ts': 95,
+      'src/server/auth.ts': 100,
+    });
+    expect(found.capped).toEqual([
+      { file: 'src/core/a.ts', from: 100, to: 95 },
+    ]);
+    expect(found.raised).toEqual([
+      { file: 'src/core/b.ts', from: 90, to: 95 },
+      { file: 'src/server/auth.ts', from: 99, to: 100 },
+    ]);
+    expect(found.added).toEqual([{ file: 'src/core/new.ts', to: 95 }]);
+    // A floor above the cap is lowered also when the report leaves the file
+    // out (no mutants), and the summary names it.
+    const quiet = raise({}, capped, everything);
+    expect(quiet.floors['src/core/a.ts']).toBe(95);
+    expect(summary(quiet, false)).toEqual([
+      'capped  src/core/a.ts: 100 % -> 95 %',
+      'Floors: 0 added, 0 raised, 1 capped, 0 removed.',
+    ]);
   });
 
   it('raises the floor of a file that scores higher, and keeps an equal one', () => {

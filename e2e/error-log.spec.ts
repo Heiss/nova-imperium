@@ -113,15 +113,13 @@ test.describe('error log and problem reports (#126)', () => {
     await expect(form.getByLabel('Was ist passiert?')).toHaveValue('');
     // The sent text does not come back with the next redraw by the poll (in
     // 26.11.23 the field drafts put it back after about 4 s): change the state,
-    // wait until the poll drew the field anew, and it is still empty.
-    await page.evaluate(() => {
-      document.querySelector<HTMLElement>('#reportform-text')!.dataset.mark =
-        'old';
-    });
-    seed({ name, res: { m: 0, c: 0, d: 10001 } });
-    await expect(page.locator('#reportform-text[data-mark]')).toHaveCount(0, {
-      timeout: 15000,
-    });
+    // wait until the poll drew it into „Optionen“, and the field is still
+    // empty. „Optionen“ keeps its elements over such a render (#355), so the
+    // render is told by the new colony in the list of „Hauptplanet“.
+    const mains = page.locator('#o_main option');
+    const planets = await mains.count();
+    seed({ name, colony: { name: uniqueName('Meldeposten') } });
+    await expect(mains).toHaveCount(planets + 1, { timeout: 15000 });
     await expect(form.getByLabel('Was ist passiert?')).toHaveValue('');
     expect(w.problems).toEqual([]);
   });

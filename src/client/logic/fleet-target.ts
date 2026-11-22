@@ -190,7 +190,8 @@ export const ownQuickTargets = (s: GameState, from: string): QuickTarget[] =>
  * The entries of friends, guild members and last targets (#292), each from
  * the id of a place the server names: „Freund: Spieler [g:s:p]“, „Gilde:
  * Spieler [g:s:p]“ (the main planet of the player) and „Ziel: Spieler –
- * Planet [g:s:p]“. A place the galaxy does not list is left out.
+ * Planet [g:s:p]“. A place the galaxy does not list is left out; a place
+ * already listed is left out too (`quickTargets`, #362).
  */
 function placesOf(
   s: GameState,
@@ -210,7 +211,7 @@ function placesOf(
  */
 export function quickTargets(s: GameState, from: string): QuickTarget[] {
   const { friends, guild, last } = s.quick ?? {};
-  return [
+  const all = [
     ...ownQuickTargets(s, from),
     ...placesOf(s, friends, (name, p) => `Freund: ${name} ${coords(p)}`),
     ...placesOf(s, guild, (name, p) => `Gilde: ${name} ${coords(p)}`),
@@ -220,4 +221,8 @@ export function quickTargets(s: GameState, from: string): QuickTarget[] {
       (name, p) => `Ziel: ${name} – ${placeName(p)} ${coords(p)}`,
     ),
   ];
+  // A place stands once, under the first group that has it (#362): the list
+  // is keyed by the id of the place, whatever the server sends.
+  const seen = new Set<string>();
+  return all.filter((q) => !seen.has(q.id) && !!seen.add(q.id));
 }

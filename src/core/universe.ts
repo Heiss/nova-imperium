@@ -5,8 +5,10 @@
 // `ROUND_SETTINGS`, under the key the round stores it.
 import { GIFT_DEFAULT_MINUTES, GIFT_MINUTES } from './endzeit.ts';
 import {
+  ROUND_SECTIONS,
   ROUND_SETTINGS,
   type RoundNumber,
+  type RoundSection,
   type RoundSetting,
 } from './round.ts';
 import type { Coords, Universe } from './types.ts';
@@ -121,6 +123,34 @@ const SPECS: readonly UniverseSpec[] = [
     def: GIFT_DEFAULT_MINUTES,
   },
 ];
+
+/** The heading of the base values of the universe in the admin panel (#357): the tab „Universum“ [V]. */
+export const UNIVERSE_HEADING = 'Universum';
+
+/**
+ * The settings of the tab „Universum“ under headings (#357): the base values
+ * of the universe first, then each live setting of the round under the
+ * heading of its feature, in the order of „Neue Runde“. A key the registry
+ * of the round does not know is a base value.
+ */
+export function universeSections(
+  keys: readonly string[],
+  sections: readonly RoundSection[] = ROUND_SECTIONS,
+): { heading: string; keys: string[] }[] {
+  const owner = new Map(
+    sections.flatMap((x) =>
+      x.settings.map((s) => [s.key as string, x.heading]),
+    ),
+  );
+  const base = keys.filter((k) => !owner.has(k));
+  return [
+    ...(base.length ? [{ heading: UNIVERSE_HEADING, keys: base }] : []),
+    ...sections.flatMap((x) => {
+      const mine = keys.filter((k) => owner.get(k) === x.heading);
+      return mine.length ? [{ heading: x.heading, keys: mine }] : [];
+    }),
+  ];
+}
 
 export const UNIVERSE_SPECS: readonly UniverseSpec[] = [
   ...SPECS,

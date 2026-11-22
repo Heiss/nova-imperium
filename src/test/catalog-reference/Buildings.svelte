@@ -38,11 +38,8 @@
   import { levelsRow } from '../../client/logic/level-mode.ts';
   import { dur, fmt } from '../../client/logic/format.ts';
   import { buildState } from './states.ts';
-  import {
-    costHTML,
-    requirementsHTML,
-    type V,
-  } from '../../client/views/common.ts';
+  import type { V } from '../../client/views/common.ts';
+  import { costHTML, requirementsHTML } from '../html-pieces-frozen.ts';
 
   let { viewState }: { viewState: Readable<V> } = $props();
   const resourceName = (r: string): string =>

@@ -60,16 +60,23 @@ function guildIds(ctx: Ctx, uid: string, guildsOn: boolean): string[] {
 /**
  * The last hostile targets, newest first: only a place that still exists
  * with the owner it had when it was aimed at, never an own planet and never
- * a place of a player in vacation mode (owner, 2026-11-17). A target that
- * drops out is replaced by the next older one until there are five.
+ * a place of a player in vacation mode (owner, 2026-11-17), and never a place
+ * the list already has as the main planet of a friend or a guild member
+ * (#362 [V]). A target that drops out is replaced by the next older one until
+ * there are five.
  */
-function lastIds(ctx: Ctx, uid: string): string[] {
+function lastIds(ctx: Ctx, uid: string, listed: ReadonlySet<string>): string[] {
   const found: string[] = [];
   for (const t of ctx.targets.of(uid)) {
     if (found.length === LAST_SHOWN) break;
     const place = ctx.planets.get(t.place);
     const owner = ctx.players.get(t.owner);
-    if (place?.owner === t.owner && t.owner !== uid && owner?.vacation === null)
+    if (
+      place?.owner === t.owner &&
+      t.owner !== uid &&
+      owner?.vacation === null &&
+      !listed.has(place.id)
+    )
       found.push(place.id);
   }
   return found;
@@ -86,10 +93,15 @@ export function quickState(
   const guild = guildIds(ctx, u.id, round.guilds).filter(
     (id) => !friends.includes(id),
   );
+  const friendPlaces = mains(ctx, friends, round);
+  const guildPlaces = mains(ctx, guild, round);
+  // A place is listed once, under the first group that has it: friend, then
+  // guild, then last target (#362; the owner's rule of 2026-11-17 for a friend
+  // who is a guild member, extended to the last targets [V]).
   return {
-    friends: mains(ctx, friends, round),
-    guild: mains(ctx, guild, round),
-    last: lastIds(ctx, u.id),
+    friends: friendPlaces,
+    guild: guildPlaces,
+    last: lastIds(ctx, u.id, new Set([...friendPlaces, ...guildPlaces])),
   };
 }
 

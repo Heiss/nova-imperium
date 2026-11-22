@@ -14,10 +14,14 @@
   // players); a sent invitation clears it by the fresh render. The
   // settings fields show the server and keep no state of this form, because
   // a kept value could not tell a draft from a value the server changed
-  // (logic/settings-draft.ts).
+  // (logic/settings-draft.ts). The page is kept over a render that is not
+  // fresh (#361), so the rows are keyed by the account and round of the
+  // drafts: a new round draws them anew with the server's values.
   import { diagnosticTab, type AdminPage } from '../logic/admin.ts';
   import { adminForm } from '../logic/admin-form.svelte.ts';
+  import { isInvalid, isOpen, setOpen } from '../logic/admin-groups.svelte.ts';
   import { panels } from '../logic/admin-panels.svelte.ts';
+  import AdminBotCheck from './AdminBotCheck.svelte';
   import AdminDiagnostics from './AdminDiagnostics.svelte';
   import AdminErrors from './AdminErrors.svelte';
   import AdminInvitations from './AdminInvitations.svelte';
@@ -31,6 +35,44 @@
     diagnosticTab(panels.tab) ? 'diagnostics' : panels.tab,
   );
 </script>
+
+{#snippet settingRows(rows: AdminPage['settings']['rows'])}
+  <table class="kv">
+    <tbody>
+      {#each rows as row (`${page?.settings.owner}/${row.key}`)}
+        <tr>
+          <td><label for="set_{row.key}">{row.label}</label></td>
+          <td>
+            {#if row.choices}
+              <select
+                id="set_{row.key}"
+                data-setting={row.key}
+                aria-invalid={isInvalid(`set_${row.key}`) || undefined}
+              >
+                {#each row.choices as choice (choice.value)}
+                  <option value={choice.value} selected={choice.selected}
+                    >{choice.label}</option
+                  >
+                {/each}
+              </select>
+            {:else}
+              <input
+                type="number"
+                id="set_{row.key}"
+                data-setting={row.key}
+                aria-invalid={isInvalid(`set_${row.key}`) || undefined}
+                min={row.min}
+                max={row.max}
+                value={row.value}
+              />
+              <span class="dim">{row.range}</span>
+            {/if}
+          </td>
+        </tr>
+      {/each}
+    </tbody>
+  </table>
+{/snippet}
 
 <h2>Admin</h2>
 {#if !page}
@@ -62,7 +104,8 @@
     <Box title="Diagnose und Protokoll"
       ><div id="admin-diagnostics">
         <AdminDiagnostics players={page.players} />
-      </div></Box
+      </div>
+      <AdminBotCheck /></Box
     >
   </section>
   <!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
@@ -126,36 +169,23 @@
     hidden={shown !== 'universe'}
   >
     <Box title="Universum">
-      <table class="kv">
-        <tbody>
-          {#each page.settings.rows as row (row.key)}
-            <tr>
-              <td><label for="set_{row.key}">{row.label}</label></td>
-              <td>
-                {#if row.choices}
-                  <select id="set_{row.key}" data-setting={row.key}>
-                    {#each row.choices as choice (choice.value)}
-                      <option value={choice.value} selected={choice.selected}
-                        >{choice.label}</option
-                      >
-                    {/each}
-                  </select>
-                {:else}
-                  <input
-                    type="number"
-                    id="set_{row.key}"
-                    data-setting={row.key}
-                    min={row.min}
-                    max={row.max}
-                    value={row.value}
-                  />
-                  <span class="dim">{row.range}</span>
-                {/if}
-              </td>
-            </tr>
-          {/each}
-        </tbody>
-      </table>
+      {#each page.settings.sections as section, i (section.heading ?? i)}
+        {#if section.heading}
+          <details
+            class="settings-group"
+            open={isOpen('universe', section.heading)}
+            ontoggle={(e) =>
+              setOpen('universe', section.heading!, e.currentTarget.open)}
+          >
+            <summary><h4>{section.heading}</h4></summary>
+            {@render settingRows(section.rows)}
+          </details>
+        {:else}
+          {@render settingRows(section.rows)}
+        {/if}
+      {:else}
+        {@render settingRows([])}
+      {/each}
       {#if page.settings.warning}
         <p class="notice" role="alert">{page.settings.warning}</p>
       {/if}

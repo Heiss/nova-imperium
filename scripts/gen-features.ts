@@ -297,20 +297,35 @@ function scanExporting(dir: string, pattern: RegExp): string[] {
     .sort();
 }
 
-/** The source of the list of the settings: one import and one spread per file. */
+/**
+ * The source of the list of the settings: one import of the settings and of
+ * their heading per file (#357), one spread per file, and one section per file
+ * with its heading, which the admin panel shows the settings under.
+ */
 export function renderRoundSettings(files: string[]): string {
-  const name = (file: string) =>
-    `settings_${file.replace(/\.ts$/, '').replace(/[^a-zA-Z0-9]/g, '_')}`;
+  const id = (file: string) =>
+    file.replace(/\.ts$/, '').replace(/[^a-zA-Z0-9]/g, '_');
   const imports = files
-    .map((f) => `import { roundSettings as ${name(f)} } from './${f}';\n`)
+    .map(
+      (f) =>
+        `import { roundHeading as heading_${id(f)}, roundSettings as settings_${id(f)} } from './${f}';\n`,
+    )
     .join('');
-  const rows = files.map((f) => `  ...${name(f)},\n`).join('');
+  const rows = files.map((f) => `  ...settings_${id(f)},\n`).join('');
+  const sections = files
+    .map(
+      (f) => `  { heading: heading_${id(f)}, settings: settings_${id(f)} },\n`,
+    )
+    .join('');
   return [
     HEADER,
     ...(imports ? [imports] : []),
     files.length === 0
       ? 'export const ROUND_ENTRIES = [] as const;\n'
       : `export const ROUND_ENTRIES = [\n${rows}] as const;\n`,
+    files.length === 0
+      ? 'export const ROUND_SECTIONS = [] as const;\n'
+      : `export const ROUND_SECTIONS = [\n${sections}] as const;\n`,
   ].join('\n');
 }
 

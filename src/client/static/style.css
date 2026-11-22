@@ -1403,6 +1403,20 @@ dialog.sheet::backdrop {
   width: 100%;
   max-width: 520px;
 }
+/* The settings of the admin panel under the heading of their feature, in
+   groups that fold (#357); the heading is the label of its <summary>. */
+.settings-group {
+  margin: 4px 0 8px;
+  border-top: 1px solid var(--line);
+}
+.settings-group > summary {
+  padding: 6px 0;
+  cursor: pointer;
+}
+.settings-group > summary h4 {
+  display: inline;
+  margin: 0;
+}
 .admin-table {
   overflow-x: auto;
 }

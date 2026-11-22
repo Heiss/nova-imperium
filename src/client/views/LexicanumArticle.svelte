@@ -7,7 +7,7 @@
   import type { Planet } from '../../core/types.ts';
   import { articleHref } from '../logic/address.ts';
   import type { ArticleView } from '../logic/lexicanum.ts';
-  import { costHTML } from './common.ts';
+  import Cost from './Cost.svelte';
   import LevelTable from './LevelTable.svelte';
   import LexicanumText from './LexicanumText.svelte';
 
@@ -50,7 +50,7 @@
       {#each article.intro as text, i (i)}<p>{text}</p>{/each}
     </div>
   {/if}
-  {#if article.cost}{@html costHTML(article.cost, P)}{/if}
+  {#if article.cost}<Cost cost={article.cost} {P} />{/if}
   {#each article.lines as line, i (i)}<div class="dim">{line}</div>{/each}
   {#each article.sections as section (section.id)}
     <section

@@ -75,3 +75,23 @@ export const record = (entry: Entry): void =>
 /** The next free area number. */
 export const nextArea = (): number =>
   readLedger().filter((e) => e.kind === 'area').length;
+
+/**
+ * The first area from number `n` on with no planet in it (`planetsIn` reads
+ * them), and the areas passed over with their planets. A new round puts the
+ * home planet of every player on a random position of any galaxy, also into
+ * an area no test has been handed yet (review of #347): such an area is
+ * passed over, never cleared, so the game keeps its rule.
+ */
+export function firstEmptyArea(
+  n: number,
+  planetsIn: (area: Area) => string[],
+): { area: Area; passed: { area: Area; planets: string[] }[] } {
+  const passed: { area: Area; planets: string[] }[] = [];
+  for (let i = n; ; i++) {
+    const area = areaAt(i);
+    const planets = planetsIn(area);
+    if (!planets.length) return { area, passed };
+    passed.push({ area, planets });
+  }
+}

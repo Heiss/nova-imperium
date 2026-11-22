@@ -174,6 +174,19 @@ describe('the rule pages say the values of the rules', () => {
     ]);
   });
 
+  it('Marktplatz: no recovery in a round with 0 hours, the sentence of the drift time otherwise (#346)', () => {
+    const none = words('rule-market', withRound({ marketDrift: 0 }));
+    expect(none).toContain(
+      'damit sich eine Folge von Tauschen nicht lohnt. In dieser Runde erholt sich der Preis nicht. Der Anteil beträgt',
+    );
+    expect(none).not.toContain('Danach erholt sich der Preis');
+    const some = words('rule-market', withRound({ marketDrift: 1 }));
+    expect(some).toContain(
+      'Danach erholt sich der Preis gleichmäßig bis zum Basispreis, in dieser Runde in',
+    );
+    expect(some).not.toContain('In dieser Runde erholt sich der Preis nicht.');
+  });
+
   it('Kolonien: the limit by research only where the round has both', () => {
     const none = words('rule-colonies');
     expect(none).toContain('Grundgrenze in dieser Runde: keine Grenze');

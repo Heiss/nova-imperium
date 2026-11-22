@@ -8,7 +8,12 @@ import type { DebrisField } from '../../core/debris.ts';
 import type { Planet } from '../../core/types.ts';
 import { galaxyPage } from '../logic/galaxy.ts';
 import type { GameState } from '../logic/types.ts';
-import { stripComments } from '../../test/markup.ts';
+import {
+  debrisMark,
+  harvestButton,
+  moonMark,
+} from '../../test/html-pieces-frozen.ts';
+import { normalize, stripComments } from '../../test/markup.ts';
 import type { V } from './common.ts';
 import Galaxy from './Galaxy.svelte';
 import { ANEW, FRESH, MOUNTED, mountsAnew } from './mount.ts';
@@ -533,6 +538,72 @@ describe('the Mondbruch on the Sternenkarte (#95)', () => {
     expect(galaxy(v)).not.toContain('moonbreak');
     v.s.galaxy = v.s.galaxy.filter((p) => p.kind === 'planet');
     expect(galaxy(v)).not.toContain('moonbreak');
+  });
+});
+
+describe('the symbols and the button „Bergung“ as markup (#337, ported from logic/moon.test.ts and logic/debris.test.ts)', () => {
+  const MOON = {
+    id: 'm1_2_6',
+    kind: 'moon',
+    name: 'Luna <b>&"',
+    g: 1,
+    s: 2,
+    p: 6,
+    temp: 20,
+    owner: 'u_Bert',
+  } as const;
+
+  /** The markup of a view without Svelte's comments, as a browser reads it. */
+  const shown = (v: V): string => normalize(galaxy(v));
+
+  it('makes the symbol of a moon a button that opens and closes the moon row, as moonMark() did', () => {
+    for (const open of [false, true]) {
+      const v = view([]);
+      v.s.galaxy.push({ ...MOON } as never);
+      v.ui.gmoon = open ? MOON.id : null;
+      expect(shown(v)).toContain(normalize(moonMark(MOON as never, open)));
+    }
+    expect(moonMark(MOON as never, true)).toContain('aria-expanded="true"');
+  });
+
+  it('keeps the name of the moon text, never markup', () => {
+    const v = view([]);
+    v.s.galaxy.push({ ...MOON } as never);
+    const html = galaxy(v);
+    expect(html).not.toContain('<b>');
+    expect(html).toContain('title="Luna &lt;b>&amp;&quot; (Mond)"');
+  });
+
+  it('escapes the id of the symbol of a moon', () => {
+    const page = galaxyPage(view([]));
+    page.rows[5]!.marks.push({
+      kind: 'moon',
+      id: 'moon-m<1>',
+      moonId: 'm<1>',
+      name: 'Luna (Mond)',
+      open: false,
+    });
+    const html = stripComments(render(Galaxy, { props: { page } }).body);
+    expect(html).toContain('id="moon-m&lt;1>"');
+    expect(html).toContain('data-id="m&lt;1>"');
+  });
+
+  it('shows the symbol of a Trümmerfeld with its tooltip as its title and text, as debrisMark() did', () => {
+    const f = field(6, 1800, 600.5);
+    expect(shown(view([f]))).toContain(normalize(debrisMark(f)));
+    expect(debrisMark(f)).toContain(
+      'alt="Trümmerfeld: 1.800 Adamant, 600 Psikristall"',
+    );
+  });
+
+  it('offers the button „Bergung“ in the row and in the sheet as harvestButton() did', () => {
+    const v = view([field(6, 1800, 600)], { lc: 2 });
+    expect(shown(v)).toContain(normalize(harvestButton({ g: 1, s: 2, p: 6 })));
+    v.ui.gsheet = 'p1_2_6';
+    const html = galaxy(v);
+    expect(normalize(html.slice(html.indexOf('<dialog')))).toContain(
+      normalize(harvestButton({ g: 1, s: 2, p: 6 })),
+    );
   });
 });
 

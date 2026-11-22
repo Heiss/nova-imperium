@@ -8,6 +8,9 @@
 // stryker.config.json: the shards of the CI run Stryker without it and
 // check the merged report here (#131).
 // Security files aim for "securityTarget"; their floor rises with each test.
+// The cap (owner, 2026-11-21, #338): a recorded floor demands at most "cap"
+// (95 %), except for the sensitive files of "exact", which keep their exact
+// floor; above the cap nothing is demanded.
 // The floors are in mutation-floors.txt (one line per file), the rest of the
 // standard in mutation-standard.json (#317 part 4). The floors are written
 // from the merged report of a complete CI run only (#304, owner, 2026-11-19):
@@ -37,9 +40,17 @@ import { filesOf } from './mutation-partial.ts';
 export interface Standard {
   securityTarget: number;
   newFile: number;
+  /** The most a recorded floor demands of a file not in `exact` (#338). */
+  cap: number;
   security: string[];
+  /** The sensitive files that keep their exact floor, above the cap (#338). */
+  exact: string[];
   floors: Record<string, number>;
 }
+
+/** The most the floor of <file> may be: the cap, or none for a file of `exact`. */
+export const limitOf = (file: string, standard: Standard): number =>
+  standard.exact.includes(file) ? 100 : standard.cap;
 
 interface Mutant {
   status: string;
@@ -73,7 +84,12 @@ export function floorOf(
   standard: Standard,
 ): { min: number; why: string } {
   const recorded = standard.floors[file];
-  if (recorded !== undefined) return { min: recorded, why: 'recorded floor' };
+  if (recorded !== undefined) {
+    const limit = limitOf(file, standard);
+    return recorded > limit
+      ? { min: limit, why: `recorded floor ${recorded} %, capped (#338)` }
+      : { min: recorded, why: 'recorded floor' };
+  }
   return standard.security.includes(file)
     ? { min: standard.securityTarget, why: 'new security file' }
     : { min: standard.newFile, why: 'new file' };
@@ -99,14 +115,25 @@ export function check(
  * back is not read as the floors.
  */
 export function parseStandard(config: string, floors: string): Standard {
-  const rest = JSON.parse(config) as Omit<Standard, 'floors'> & {
+  const rest = JSON.parse(config) as Omit<
+    Standard,
+    'floors' | 'cap' | 'exact'
+  > & {
+    cap?: number;
+    exact?: string[];
     floors?: unknown;
   };
   if (rest.floors !== undefined)
     throw new Error(
       `${STANDARD}: the floors are in ${FLOORS_FILE}, one line per file; remove "floors" here.`,
     );
-  return { ...rest, floors: parseFloors(floors) };
+  // Without a cap every floor is exact, the stricter reading (#338).
+  return {
+    ...rest,
+    cap: rest.cap ?? 100,
+    exact: rest.exact ?? [],
+    floors: parseFloors(floors),
+  };
 }
 
 /** What --update says: floors come from the merged report of the CI only. */
@@ -223,7 +250,31 @@ export function table(report: Report): string[] {
     });
 }
 
+/**
+ * A notice per file that fell below its recorded floor but stays at or above
+ * the cap (#338, owner, 2026-11-21): no failure, but the drop stays visible.
+ * A sensitive file of `exact` has no cap, so its drop fails instead.
+ */
+export function dropsAboveCap(
+  scores: Readonly<Record<string, number>>,
+  standard: Standard,
+): string[] {
+  return Object.keys(scores)
+    .sort()
+    .flatMap((file) => {
+      const s = scores[file]!;
+      const recorded = standard.floors[file];
+      const limit = limitOf(file, standard);
+      return recorded !== undefined && s < recorded && s >= limit
+        ? [
+            `::notice file=${file}::${file}: ${s} % is below its recorded floor of ${recorded} %, above the cap of ${limit} %: no failure (#338)`,
+          ]
+        : [];
+    });
+}
+
 function notices(scores: Record<string, number>, standard: Standard): void {
+  for (const line of dropsAboveCap(scores, standard)) console.log(line);
   for (const f of standard.security) {
     const s = scores[f];
     if (s !== undefined && s < standard.securityTarget)

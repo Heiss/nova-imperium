@@ -6,7 +6,7 @@ import { friendsView } from '../../test/friends-view.ts';
 import { normalize } from '../../test/markup.ts';
 import type { GameState } from '../logic/types.ts';
 import type { V } from './common.ts';
-import { ANEW, MOUNTED } from './mount.ts';
+import { ANEW, FRESH, MOUNTED } from './mount.ts';
 
 const at = { g: 1, s: 2, p: 4, temp: 20, kind: 'planet' };
 
@@ -29,9 +29,10 @@ function view(friendState: GameState['friends']): string {
 }
 
 describe('the view „Freunde“', () => {
-  it('is a mounted view, mounted anew on every render', () => {
+  it('is a mounted view, kept over a render that is not fresh and mounted anew by a fresh one (#361)', () => {
     expect(MOUNTED.has('friends')).toBe(true);
-    expect(ANEW.has('friends')).toBe(true);
+    expect(ANEW.has('friends')).toBe(false);
+    expect(FRESH.has('friends')).toBe(true);
   });
 
   it('lists each friend with name, guild tag, planet link, status and „Freundschaft beenden“', () => {

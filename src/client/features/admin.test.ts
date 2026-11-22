@@ -182,6 +182,17 @@ describe('the draft of the settings over a redraw', () => {
     expect(fields['#set_speed']!.value).toBe('5');
   });
 
+  it('keeps a field typed in the old round out of the new one: the browser reports the change of the removed field after the state moved on (review of #347)', () => {
+    acts();
+    redraw();
+    type('speed', '9');
+    client.game!.round.number = 2;
+    // The new round draws the rows anew; the removed field reports its change.
+    type('speed', '7', 'change');
+    redraw();
+    expect(fields['#set_speed']!.value).toBe('5');
+  });
+
   it('does nothing outside the admin page', () => {
     acts();
     type('speed', '7');

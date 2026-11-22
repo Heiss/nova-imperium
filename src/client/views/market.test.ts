@@ -2,24 +2,29 @@
 // bundle 7): the closed notice, the missing Handelsposten, the form with its
 // preview, the menu entry, and the places of the settings in the dialog
 // „Neue Runde“ and the admin panel.
+import { render } from 'svelte/server';
 import { afterEach, describe, expect, it } from 'vitest';
 import { DEFAULT_UNIVERSE } from '../../core/universe.ts';
 import { planet, roundDefaults } from '../../test/fixtures.ts';
 import { marketView } from '../../test/market-view.ts';
-import { normalize } from '../../test/markup.ts';
-import { newDraft, preview } from '../logic/market.ts';
+import { fieldsetOpen, normalize } from '../../test/markup.ts';
+import { newDraft, preview, type Preview } from '../logic/market.ts';
 import { draft } from '../logic/market-form.svelte.ts';
-import { previewHTML } from '../logic/market-page.ts';
 import type { GameState } from '../logic/types.ts';
 import type { V } from './common.ts';
 import { menu } from './index.ts';
+import MarketPreview from './MarketPreview.svelte';
 import {
   adminMarkup as admin,
   roundDialogMarkup as roundDialog,
 } from '../../test/admin-view.ts';
-import { ANEW, MOUNTED } from './mount.ts';
+import { ANEW, FRESH, MOUNTED } from './mount.ts';
 
 const market = (v: V): string => normalize(marketView(v));
+
+/** The preview below the fields (MarketPreview, #337, in place of previewHTML()), as a browser reads it. */
+const previewHTML = (p: Preview): string =>
+  normalize(render(MarketPreview, { props: { p } }).body);
 
 const BASE = 1_000_000;
 const PRICES = { mc: BASE, md: BASE, cm: BASE, cd: BASE, dm: BASE, dc: BASE };
@@ -42,9 +47,10 @@ function view(
 afterEach(() => Object.assign(draft, newDraft()));
 
 describe('the view „Marktplatz“', () => {
-  it('is a mounted view, mounted anew on every render, and in the menu after „Rohstoffe“', () => {
+  it('is a mounted view, kept over a render that is not fresh and mounted anew by a fresh one (#361), and in the menu after „Rohstoffe“', () => {
     expect(MOUNTED.has('market')).toBe(true);
-    expect(ANEW.has('market')).toBe(true);
+    expect(ANEW.has('market')).toBe(false);
+    expect(FRESH.has('market')).toBe(true);
     const items = menu(false, view().s.round);
     const labels = items.flatMap((i) => (i === '-' ? [] : [i.label]));
     expect(labels[labels.indexOf('Rohstoffe') + 1]).toBe('Marktplatz');
@@ -161,6 +167,31 @@ describe('the preview of the view', () => {
     );
   });
 
+  it('keeps a line and a note as text, as the escaped HTML did (#337)', () => {
+    const p = {
+      lines: [{ label: 'a<b>', value: '&"x"' }],
+      note: '<i>x</i>',
+      ok: false,
+    } as Preview;
+    const html = render(MarketPreview, { props: { p } }).body;
+    expect(html).not.toContain('<b>');
+    expect(html).not.toContain('<i>');
+    expect(html).toContain('<td>a&lt;b></td><td>&amp;"x"</td>');
+    expect(previewHTML(p)).toContain('<p class="bad">&lt;i>x&lt;/i></p>');
+  });
+
+  it('writes the preview that the form is painted with (ported from logic/market-page.test.ts)', () => {
+    expect(
+      previewHTML({
+        lines: [{ label: '<Kurs>', value: 'a & b' }],
+        note: 'Note "x"',
+        ok: false,
+      }),
+    ).toBe(
+      '<table class="kv"><tr><td>&lt;Kurs></td><td>a &amp; b</td></tr></table><p class="bad">Note "x"</p>',
+    );
+  });
+
   it('shows no note while there is nothing to say', () => {
     expect(
       previewHTML(preview(market1, { give: 'm', get: 'c', amount: '1000' })),
@@ -176,7 +207,11 @@ describe('the settings of the marketplace in the dialog and the admin panel', ()
       marketMc: 700,
       marketOn: 0,
     } as never);
-    expect(html).toContain(normalize('<fieldset><legend>Marktplatz</legend>'));
+    // Named by the heading of its group since #357 (owner, 2026-11-22).
+    const open = fieldsetOpen(html, 'Marktplatz');
+    expect(open).toMatch(/aria-labelledby/);
+    expect(html).toContain(open);
+    expect(html).not.toContain('<legend>Marktplatz</legend>');
     expect(html).toContain(
       normalize(
         '<label for="round-market-on">Marktplatz aktiv</label> <select id="round-market-on"><option value="1">Ja</option><option value="0" selected>Nein</option></select>',
@@ -219,9 +254,11 @@ describe('the settings of the marketplace in the dialog and the admin panel', ()
     expect(html).toContain(
       '<p class="notice" role="alert">Achtung: Ein Tausch im Kreis bringt selbst ohne Gebühr Gewinn: Adamant → Psikristall → Adamant; Adamant → Psikristall → Promethium → Adamant. Bitte die Kurse anpassen.</p>',
     );
-    expect(
-      html.indexOf('</table><p class="notice" role="alert">'),
-    ).toBeGreaterThan(0);
+    // Below the settings (in their groups since #357; this state has no
+    // rows), right above the note of the box.
+    expect(html).toMatch(
+      /<p class="notice" role="alert">Achtung:[^<]*<\/p><p class="dim">Änderungen wirken sofort/,
+    );
   });
 });
 

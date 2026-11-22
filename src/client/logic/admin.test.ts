@@ -3,8 +3,19 @@
 // The settings are built by hand, so no feature is named. The markup is
 // compared with the view before in src/test/admin-reference.test.ts.
 import { describe, expect, it } from 'vitest';
-import type { RoundGroup, RoundRules, RoundSetting } from '../../core/round.ts';
-import { roundDialogPage } from './admin.ts';
+import {
+  ROUND_SECTIONS,
+  type RoundGroup,
+  type RoundRules,
+  type RoundSetting,
+} from '../../core/round.ts';
+import {
+  UNIVERSE_HEADING,
+  universeSections,
+  UNIVERSE_SPECS,
+} from '../../core/universe.ts';
+import { roundDefaults } from '../../test/fixtures.ts';
+import { roundDialogPage, type RoundRow, settingSections } from './admin.ts';
 
 const make = (over: object): RoundSetting =>
   ({ key: 'roundX', label: 'X', order: 1, ...over }) as unknown as RoundSetting;
@@ -212,5 +223,85 @@ describe('the dialog „Neue Runde“', () => {
     const { rows } = roundDialogPage(values, list);
     expect(rows.map((r) => r.kind)).toEqual(['group', 'field', 'field']);
     expect(rows[0]).toMatchObject({ preview: null, confirm: null });
+  });
+});
+
+describe('the settings under headings (#357)', () => {
+  const real = (): RoundRules =>
+    ({ number: 1, ...roundDefaults() }) as unknown as RoundRules;
+
+  it('puts the rows of „Neue Runde“ under the heading of their feature, every row once and in the same order', () => {
+    const page = roundDialogPage(real());
+    expect(page.sections.map((x) => x.heading)).toEqual(
+      ROUND_SECTIONS.map((x) => x.heading),
+    );
+    // Folded or not, the fields are the same as without the headings.
+    const ids = (rows: readonly RoundRow[]) =>
+      rows.flatMap((r) =>
+        r.kind === 'field' ? [r.field.id] : r.members.map((m) => m.field.id),
+      );
+    expect(ids(page.sections.flatMap((x) => x.rows))).toEqual(ids(page.rows));
+  });
+
+  it('shows no legend that repeats the heading of its group; the fieldset is named by the heading (owner, 2026-11-22)', () => {
+    const page = roundDialogPage(real());
+    const groups = page.sections.flatMap((x) =>
+      x.rows.flatMap((r) =>
+        r.kind === 'group' ? [{ heading: x.heading, id: x.id, row: r }] : [],
+      ),
+    );
+    for (const { heading, id, row } of groups) {
+      expect(row.legend, heading ?? '').not.toBe(heading);
+      if (row.legend === null) {
+        expect(id).toMatch(/^round-heading-\d+$/);
+        expect(row.labelledBy).toBe(id);
+      } else expect(row.labelledBy).toBeUndefined();
+    }
+    const repeated = groups
+      .filter((g) => g.row.legend === null)
+      .map((g) => g.heading);
+    expect(repeated).toEqual([
+      'Aktivität',
+      'Fremde Flotten erkennen',
+      'Expeditionen',
+      'Marktplatz',
+      'Planetengrenze',
+    ]);
+    // A legend that says something else stays.
+    expect(groups.map((g) => g.row.legend)).toContain(
+      'Belohnungen für die neue Runde',
+    );
+    expect(groups.map((g) => g.row.legend)).toContain('Rückbau');
+  });
+
+  it('shows a setting the registry has no heading for without one', () => {
+    const page = roundDialogPage(
+      {
+        number: 1,
+        one: true,
+        base: 3,
+        cap: 2,
+        days: 7,
+      } as unknown as RoundRules,
+      settings,
+    );
+    expect(page.sections).toEqual([
+      { heading: null, id: 'round-heading-0', rows: page.rows },
+    ]);
+  });
+
+  it('puts the rows of the tab „Universum“ under headings, the base values first, every row once', () => {
+    const rows = UNIVERSE_SPECS.map((x) => ({ key: x.key as string }));
+    const sections = settingSections(rows);
+    expect(sections[0]!.heading).toBe(UNIVERSE_HEADING);
+    expect(
+      sections
+        .flatMap((x) => x.rows)
+        .map((r) => r.key)
+        .sort(),
+    ).toEqual(rows.map((r) => r.key).sort());
+    expect(sections.map((x) => x.heading)).toEqual(
+      universeSections(rows.map((r) => r.key)).map((x) => x.heading),
+    );
   });
 });

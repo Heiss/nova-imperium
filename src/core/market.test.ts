@@ -78,7 +78,7 @@ describe('the numbers of the marketplace [V]', () => {
     expect([RATIO_UNIT, PRICE_UNIT, FEE_UNIT]).toEqual([1000, 1_000_000, 1000]);
     expect(RATIO_RANGE).toEqual({ min: 1, max: 100_000 });
     expect(STEP).toEqual({ min: 1, max: 1000, def: 5 });
-    expect(DRIFT_HOURS).toEqual({ min: 1, max: 720, def: 24 });
+    expect(DRIFT_HOURS).toEqual({ min: 0, max: 720, def: 24 });
     expect(DAILY_LIMIT).toEqual({ min: 0, max: 10_000_000, def: 100_000 });
     expect(FEE).toEqual({ min: 0, max: 100, def: 10 });
     expect(FEE_STEP).toEqual({ min: 0, max: 100, def: 1 });
@@ -259,9 +259,9 @@ describe('the settings of the round (#283, #310, X1)', () => {
         ...common,
         key: 'roundMarketDrift',
         name: 'marketDrift',
-        label: 'Marktplatz Preiserholung (Stunden)',
+        label: 'Marktplatz Preiserholung (Stunden, 0 = keine Erholung)',
         order: 400,
-        min: 1,
+        min: 0,
         max: 720,
         def: 24,
       },
@@ -401,7 +401,7 @@ describe('the settings of the round (#283, #310, X1)', () => {
       ['roundMarketMc', 1, 100000],
       ['roundMarketDc', 1, 100000],
       ['roundMarketStep', 1, 1000],
-      ['roundMarketDrift', 1, 720],
+      ['roundMarketDrift', 0, 720],
       ['roundMarketLimit', 0, 10000000],
       ['roundMarketFee', 0, 100],
       ['roundMarketFeeStep', 0, 100],
@@ -508,6 +508,17 @@ describe('the price of a pair', () => {
     expect(priceNow(state(600000), 24 * HOUR_MS, 24)).toBe(1_000_000);
     expect(priceNow(state(600000), 100 * HOUR_MS, 24)).toBe(1_000_000);
     expect(priceNow(state(0), 24 * HOUR_MS, 24)).toBe(1_000_000);
+  });
+
+  it('stays where the last exchange left it with 0 hours, for any later time (#346)', () => {
+    for (const now of [0, 1, HOUR_MS, 720 * HOUR_MS, 10 ** 13, -5])
+      expect(priceNow(state(600000), now, 0), String(now)).toBe(600000);
+    expect(priceNow(state(0), 10 ** 13, 0)).toBe(0);
+    // A pair without a state is at the base, with 0 hours too.
+    expect(priceNow(undefined, 10 ** 13, 0)).toBe(1_000_000);
+    // A change from 0 to some hours applies to the stored price at once.
+    expect(priceNow(state(600000), 100 * HOUR_MS, 24)).toBe(1_000_000);
+    expect(priceNow(state(600000), 6 * HOUR_MS, 24)).toBe(700000);
   });
 
   it('rounds the part that is back down, one millisecond before the end it is below the base', () => {

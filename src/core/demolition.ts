@@ -38,6 +38,12 @@ const percent = {
 } as const;
 
 /**
+ * The heading of these settings in the admin panel (#357), the name the game
+ * uses for the feature: the changelog entry „Zurückbauen“ [V].
+ */
+export const roundHeading = 'Zurückbauen';
+
+/**
  * The two settings as entries of the registry (#283, #310): the refund
  * factor (D4, D7) and the duration of a demolition (D3) are number fields of
  * the dialog „Neue Runde“ and, `live`, rows of the universe settings,

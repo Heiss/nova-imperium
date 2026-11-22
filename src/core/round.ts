@@ -11,7 +11,10 @@
 // not send keeps the one of the current round. The server words a refusal
 // with the entry's `refusal`, else with the shared range wording of the
 // universe settings (`rangeError`).
-import { ROUND_ENTRIES } from './round-settings.gen.ts';
+import {
+  ROUND_ENTRIES,
+  ROUND_SECTIONS as SECTIONS,
+} from './round-settings.gen.ts';
 
 /**
  * Entries sent as one object and refused together (#214): the reward
@@ -113,6 +116,28 @@ const byOrder = <S extends RoundSetting>(settings: readonly S[]): S[] =>
  * group stand together.
  */
 export const ROUND_SETTINGS: readonly RoundSetting[] = byOrder(ROUND_ENTRIES);
+
+/**
+ * The settings of one feature under its heading in the admin panel (#357):
+ * the heading comes from the feature's file (`roundHeading`), so a new
+ * feature gets its section without a change of the views.
+ */
+export interface RoundSection {
+  heading: string;
+  /** Its settings in the order of their numbers. */
+  settings: readonly RoundSetting[];
+}
+
+/**
+ * The sections in the fixed order: by the first order number of each. Every
+ * file that exports `roundSettings` has at least one (a test checks it).
+ */
+export const ROUND_SECTIONS: readonly RoundSection[] = SECTIONS.map(
+  (x): RoundSection => ({
+    heading: x.heading,
+    settings: byOrder<RoundSetting>(x.settings),
+  }),
+).sort((a, b) => a.settings[0]!.order - b.settings[0]!.order);
 
 type ValueOf<S> = S extends { kind: 'switch' } ? boolean : number;
 

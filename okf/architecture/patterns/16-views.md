@@ -37,5 +37,19 @@ description: 'A view exports clientViews (key, mount or html, anew or fresh, men
   any other render (the poll, the clock, the news) keeps it and hands its
   `update` the view state. `mountsAnew()` of `mount.ts` is the rule;
   `registry.test.ts` checks it for every view. Built for the Sternenkarte
-  (`views/galaxy.ts`, `GalaxyView.svelte`); the other views mounted anew with
-  typed fields are listed in #352.
+  (`views/galaxy.ts`, `GalaxyView.svelte`), for „Optionen“ (`views/options.ts`,
+  `OptionsView.svelte`, #355: the page jumped on a phone and a tap hit the
+  wrong switch) and, with the shared mount
+  `keptMount()` of `views/kept.ts` (`KeptView.svelte`), for the fleet, the
+  marketplace, „Freunde“, „Achievements“, „Gilden“ and „Admin“ (#361; owner,
+  2026-11-22: all of them for 26.11.25).
+* **[V]** The rule as a guard (#361): no view with a field a player types
+  into is `anew`. `registry.test.ts` reads it from the sources: the Svelte
+  components a view module imports, with every component they import, and a
+  text area or an input that is not a box, a button or hidden is a typed
+  field. A view still `anew` with such a field stands in its list
+  `ANEW_WITH_FIELDS` with the reason, and the list holds only views that are
+  still `anew`. The dialogs of the admin and the guilds stand in the modal,
+  which a render does not touch. A countdown (`Due.svelte`) gets a new
+  element for a new end, so a kept view never carries the clock's mark of a
+  fired countdown (`data-fired`) into the next one.

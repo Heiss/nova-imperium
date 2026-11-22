@@ -255,9 +255,44 @@ export const diagnosticTab = (
 ): tab is 'events' | 'players' | 'orders' =>
   tab === 'events' || tab === 'players' || tab === 'orders';
 
+/**
+ * The markup without the groups of #357, which put the settings under the
+ * heading of their feature in a `<details class="settings-group">` each: the
+ * heading (`<summary>`) and the wrapper go, and the tables of the tab
+ * „Universum“ that the groups split are one table again. A fieldset of the
+ * dialog that the heading names (`aria-labelledby`, as its legend repeated
+ * the heading: owner, 2026-11-22) gets that heading back as its legend, so it
+ * is compared with the legend it had before. Everything inside the groups is
+ * compared with the view before, field by field; the groups themselves are
+ * tested in src/client/logic/admin.test.ts and the E2E specs.
+ */
+export const ungrouped = (html: string): string =>
+  html
+    .replace(
+      /<details class="settings-group"[^>]*>(?:<!--[^>]*>|\s)*<summary><h4(?: id="([^"]*)")?>([^<]*)<\/h4><\/summary>([^]*?)<\/details>/g,
+      (_, id: string | undefined, heading: string, inner: string) =>
+        id
+          ? inner.replaceAll(
+              `<fieldset aria-labelledby="${id}">`,
+              `<fieldset><legend>${heading}</legend>`,
+            )
+          : inner,
+    )
+    .replace(
+      /<\/tbody><\/table>((?:<!--[^>]*>|\s)*)<table class="kv"><tbody>/g,
+      '$1',
+    );
+
 /** The page as a browser reads it: Svelte writes a valueless attribute as an empty one. */
 const pageView = (v: V): string =>
-  adminView(v).replaceAll(' data-errors-list=""', ' data-errors-list');
+  ungrouped(adminView(v)).replaceAll(
+    ' data-errors-list=""',
+    ' data-errors-list',
+  );
+
+/** The dialog „Neue Runde“ without its groups (#357). */
+const dialogView = (...args: Parameters<typeof roundDialogView>): string =>
+  ungrouped(roundDialogView(...args));
 
 /** The tab the browser showed: the old panel painted it after the mount. */
 let painted: AdminTab = 'events';
@@ -574,7 +609,7 @@ describe('the dialog „Neue Runde“ against the HTML before #118, bundle 7', (
   it('renders the dialog as before', () => {
     fc.assert(
       fc.property(rounds, fresh, (round, news) => {
-        expect(normalize(roundDialogView(round, ROUND_SETTINGS, news))).toBe(
+        expect(normalize(dialogView(round, ROUND_SETTINGS, news))).toBe(
           normalize(roundDialog(round, ROUND_SETTINGS, news)),
         );
       }),
@@ -585,9 +620,9 @@ describe('the dialog „Neue Runde“ against the HTML before #118, bundle 7', (
   it('keeps the text of every line, cell and button as before', () => {
     fc.assert(
       fc.property(rounds, fresh, (round, news) => {
-        expect(
-          dialogTexts(roundDialogView(round, ROUND_SETTINGS, news)),
-        ).toEqual(dialogTexts(roundDialog(round, ROUND_SETTINGS, news)));
+        expect(dialogTexts(dialogView(round, ROUND_SETTINGS, news))).toEqual(
+          dialogTexts(roundDialog(round, ROUND_SETTINGS, news)),
+        );
       }),
       { seed: 118, numRuns: 300 },
     );
@@ -693,10 +728,10 @@ describe('the dialog „Neue Runde“ against the HTML before #118, bundle 7', (
   it('renders the hand-built cases as before', () => {
     for (const [name, make] of CASES) {
       const [round, settings] = make();
-      expect(normalize(roundDialogView(round, settings)), name).toBe(
+      expect(normalize(dialogView(round, settings)), name).toBe(
         normalize(roundDialog(round, settings)),
       );
-      expect(dialogTexts(roundDialogView(round, settings)), name).toEqual(
+      expect(dialogTexts(dialogView(round, settings)), name).toEqual(
         dialogTexts(roundDialog(round, settings)),
       );
     }
