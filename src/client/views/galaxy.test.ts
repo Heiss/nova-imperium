@@ -16,6 +16,7 @@ import {
 import { normalize, stripComments } from '../../test/markup.ts';
 import type { V } from './common.ts';
 import Galaxy from './Galaxy.svelte';
+import { ANEW, FRESH, MOUNTED, mountsAnew } from './mount.ts';
 
 /** The Sternenkarte of the view state, without Svelte's comments. */
 const galaxy = (v: V): string =>
@@ -603,5 +604,18 @@ describe('the symbols and the button „Bergung“ as markup (#337, ported from 
     expect(normalize(html.slice(html.indexOf('<dialog')))).toContain(
       normalize(harvestButton({ g: 1, s: 2, p: 6 })),
     );
+  });
+});
+
+describe('the mounting of the Sternenkarte (#352)', () => {
+  it('is mounted once and kept by a render that is not fresh, so its fields stay the same elements', () => {
+    expect(MOUNTED.has('galaxy')).toBe(true);
+    expect(ANEW.has('galaxy')).toBe(false);
+    expect(mountsAnew('galaxy', false, false)).toBe(false);
+  });
+
+  it('is mounted anew by a fresh render, which drops the typed position', () => {
+    expect(FRESH.has('galaxy')).toBe(true);
+    expect(mountsAnew('galaxy', true, false)).toBe(true);
   });
 });

@@ -184,6 +184,14 @@ test.describe('the Auspex-Phalanx (#53)', () => {
     await expect(flight.nth(1)).toHaveText(/^\[\d+:\d+:\d+\] \(Mond\)$/);
     await expect(flight.nth(2)).toHaveText(/^\[\d+:\d+:3\]$/);
     await expect(flight.nth(3).locator('.cd')).toBeVisible();
+    // A render that is not fresh (the poll after a change of the state) keeps
+    // the panel, and the clock still counts its countdown down (#352).
+    seed({ name: scanner, moon: { res: { m: 0, c: 0, d: 12345 } } });
+    await expect(stock(page, 'Promethium')).toHaveText('12.345');
+    await expect(panel(page)).toBeVisible();
+    const left = await flight.nth(3).locator('.cd').textContent();
+    await expect(flight.nth(3).locator('.cd')).not.toHaveText(left!);
+    await expect(flight.nth(3).locator('.cd')).toHaveText(/^(\d+m )?\d{2}s$/);
     // Nothing else of the flight: no owner, no mission, no cargo.
     await expect(panel(page)).not.toContainText('Versorgungsflug');
     await expect(panel(page)).not.toContainText('Adamant');

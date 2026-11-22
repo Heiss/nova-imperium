@@ -53,6 +53,13 @@ export interface ClientView {
   html?: (v: V) => string;
   /** Mounted anew on every render, as its HTML was rendered anew (#118). Only with `mount`. */
   anew?: boolean;
+  /**
+   * Mounted anew by a fresh render only (another view, a step of the page);
+   * any other render keeps it and hands it the view state (`update`), so its
+   * fields stay the same elements with their selection and caret (#352).
+   * Only with `mount`, never with `anew`.
+   */
+  fresh?: boolean;
   /** The entry in the menu; a view without one is reached by a link only. */
   menu?: MenuItem;
   /** The line icon (an `<svg>` string) of the menu entry and the tab. */
