@@ -53,19 +53,29 @@ function declared<K extends keyof ClientView>(
   );
 }
 
-/** The Svelte views of all modules by key, and the keys that mount anew. */
+/** The keys of the views that set `member` to true. */
+const flagged = (listed: Listed, member: 'anew' | 'fresh'): Set<string> =>
+  new Set(
+    declared(listed, member)
+      .filter((d) => d.value)
+      .map((d) => d.view.key),
+  );
+
+/** The Svelte views of all modules by key, the keys that mount anew and those that mount anew by a fresh render only. */
 export function assembleMounts(listed: Listed): {
   mount: Record<string, Mount>;
   anew: ReadonlySet<string>;
+  fresh: ReadonlySet<string>;
 } {
   const table = collect(
     'view',
     declared(listed, 'mount').map((d) => [d.view.key, d.file, d.value]),
   );
-  const anew = declared(listed, 'anew')
-    .filter((d) => d.value)
-    .map((d) => d.view.key);
-  return { mount: record(table), anew: new Set(anew) };
+  return {
+    mount: record(table),
+    anew: flagged(listed, 'anew'),
+    fresh: flagged(listed, 'fresh'),
+  };
 }
 
 /** The HTML views of all modules by key. */

@@ -129,9 +129,14 @@ test.describe('a redraw by the poll keeps the draft of a form', () => {
     await gal.fill('1');
     await sys.fill('1');
 
-    await waitForRedraw(page, 'g_g', () =>
-      seed({ name, res: { m: 0, c: 0, d: 10003 } }),
-    );
+    // The Sternenkarte is kept by a render that is not fresh (#352), so its
+    // fields are not replaced: the poll render is told by what the new state
+    // brings into the map itself, a colony on slot 15 of the shown system.
+    const colony = uniqueName('Entwurfskolonie');
+    seed({ name, colony: { name: colony } });
+    await expect(page.locator('table.gal')).toContainText(colony, {
+      timeout: 15000,
+    });
     await expect(gal).toHaveValue('1');
     await expect(sys).toHaveValue('1');
     await sys.press('Enter');

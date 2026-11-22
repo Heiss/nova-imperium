@@ -24,7 +24,7 @@ import {
 import { forgetAdminPanel } from './logic/admin-panels.svelte.ts';
 import { mountAuth } from './views/auth.ts';
 import { forgetLock, renderGate } from './views/vacation-lock.ts';
-import { ANEW, type Mounted, MOUNTED, mountView } from './views/mount.ts';
+import { type Mounted, MOUNTED, mountsAnew, mountView } from './views/mount.ts';
 import { $, keepChatScroll } from './dom.ts';
 import { rememberCompletions, renderCompletions } from './completions.ts';
 import { forgetForms } from './logic/form-state.svelte.ts';
@@ -73,15 +73,16 @@ export const listMounted = (): boolean =>
 /**
  * Mounts the view of a Svelte component, or updates the mounted one. A
  * fresh render mounts a list again, as the HTML views render anew: no
- * number typed into the shipyard stays on another planet. The overview, the
- * Sternenkarte and the fleet view are mounted anew on every render, as their
- * HTML views were rendered (#118): the clock counts their countdowns down
- * and marks the ones that fired.
+ * number typed into the shipyard stays on another planet. The overview and
+ * the fleet view are mounted anew on every render, as their HTML views were
+ * rendered (#118): the clock counts their countdowns down and marks the ones
+ * that fired. The Sternenkarte is mounted anew by a fresh render only and
+ * kept by any other, so its fields keep selection and caret (#352).
  */
 function renderMounted(target: HTMLElement, view: V, fresh: boolean): void {
   const kind = catalogKind(ui.view);
   client.shown = view;
-  if (mounted?.view === ui.view && !ANEW.has(ui.view) && !(fresh && kind)) {
+  if (mounted?.view === ui.view && !mountsAnew(ui.view, fresh, !!kind)) {
     mounted.update?.(view);
     return flushSync();
   }

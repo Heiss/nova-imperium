@@ -14,7 +14,7 @@ import {
 } from './assemble.ts';
 import type { ClientView, Mount } from './contract.ts';
 import { menu, TAB_GLYPHS, TAB_VIEWS, VIEWS } from './index.ts';
-import { ANEW, MOUNTED } from './mount.ts';
+import { ANEW, FRESH, MOUNTED, mountsAnew } from './mount.ts';
 import { CLIENT_VIEWS } from './views.gen.ts';
 
 const listed: Listed = CLIENT_VIEWS;
@@ -22,7 +22,16 @@ const views = listed.flatMap(([name, list]) =>
   list.map((view) => [name, view] as const),
 );
 const KEY = /^[a-z][a-zA-Z0-9]*$/;
-const MEMBERS = ['key', 'mount', 'html', 'anew', 'menu', 'glyph', 'tab'];
+const MEMBERS = [
+  'key',
+  'mount',
+  'html',
+  'anew',
+  'fresh',
+  'menu',
+  'glyph',
+  'tab',
+];
 const round = { guilds: true, achievements: true, daily: false } as RoundRules;
 
 describe('the list of the client views', () => {
@@ -85,6 +94,25 @@ describe('the list of the client views', () => {
     for (const [, view] of views)
       expect(ANEW.has(view.key), view.key).toBe(view.anew === true);
   });
+
+  it('mounts a view that says fresh anew by a fresh render only, and never says both (#352)', () => {
+    for (const [name, view] of views) {
+      const where = `${name}: ${view.key}`;
+      expect(FRESH.has(view.key), where).toBe(view.fresh === true);
+      if (view.fresh) {
+        expect(view.mount, where).toBeDefined();
+        expect(view.anew, where).toBeUndefined();
+      }
+      expect(mountsAnew(view.key, false, false), where).toBe(
+        view.anew === true,
+      );
+      expect(mountsAnew(view.key, true, false), where).toBe(
+        view.anew === true || view.fresh === true,
+      );
+      // A list is mounted anew by a fresh render, as before.
+      expect(mountsAnew(view.key, true, true), where).toBe(true);
+    }
+  });
 });
 
 describe('the tables of the views', () => {
@@ -98,11 +126,12 @@ describe('the tables of the views', () => {
   it('holds the views of every module, each in its table', () => {
     const modules = [
       one('a', { key: 'fresh', mount, anew: true }, { key: 'plain', mount }),
-      one('b', { key: 'page', html }),
+      one('b', { key: 'page', html }, { key: 'kept', mount, fresh: true }),
     ];
-    const { mount: table, anew } = assembleMounts(modules);
-    expect(Object.keys(table)).toEqual(['fresh', 'plain']);
+    const { mount: table, anew, fresh } = assembleMounts(modules);
+    expect(Object.keys(table)).toEqual(['fresh', 'plain', 'kept']);
     expect([...anew]).toEqual(['fresh']);
+    expect([...fresh]).toEqual(['kept']);
     expect(Object.keys(assembleHtml(modules))).toEqual(['page']);
   });
 
