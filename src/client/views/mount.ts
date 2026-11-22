@@ -18,6 +18,20 @@ export const MOUNTED: ReadonlySet<string> = new Set(Object.keys(MOUNT));
 /** The Svelte views mounted anew on every render, as their HTML was rendered anew (#118). */
 export const ANEW: ReadonlySet<string> = VIEWS.anew;
 
+/** The Svelte views mounted anew by a fresh render only, kept by any other (#352). */
+export const FRESH: ReadonlySet<string> = VIEWS.fresh;
+
+/**
+ * Whether a render mounts `view` anew instead of updating it: a view that
+ * says `anew` always; on a fresh render a list of a catalog kind (`list`) and
+ * a view that says `fresh` too.
+ */
+export const mountsAnew = (
+  view: string,
+  fresh: boolean,
+  list: boolean,
+): boolean => ANEW.has(view) || (fresh && (list || FRESH.has(view)));
+
 /** Mounts the component of the view; any other view gets the overview. */
 export function mountView(view: string, target: HTMLElement, v: V): Mounted {
   const name = Object.hasOwn(MOUNT, view) ? view : 'overview';
