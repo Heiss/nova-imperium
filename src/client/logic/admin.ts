@@ -12,8 +12,10 @@ import {
   GIFT_SHIPS_EACH,
 } from '../../core/endzeit.ts';
 import {
+  ROUND_SECTIONS,
   ROUND_SETTINGS,
   type RoundGroup,
+  type RoundSection,
   type RoundRules,
   type RoundSetting,
   roundFieldId,
@@ -21,6 +23,7 @@ import {
   roundPreview,
   roundShown,
 } from '../../core/round.ts';
+import { universeSections } from '../../core/universe.ts';
 import type { V } from '../views/common.ts';
 import { ENDZEIT_NOTE } from './endzeit.ts';
 import { fmt } from './format.ts';
@@ -89,10 +92,39 @@ function settingRow(s: GameState, x: AdminState['specs'][number]): SettingRow {
   };
 }
 
+/**
+ * Rows under the heading of their feature (#357); a null heading is a part
+ * of the page without one (a setting the registry has no heading for).
+ */
+export interface Section<R> {
+  heading: string | null;
+  rows: R[];
+}
+
+/**
+ * The rows of the tab „Universum“ under headings (#357): the base values of
+ * the universe first, then each live setting of the round under the heading
+ * of its feature, in the order of „Neue Runde“.
+ */
+export function settingSections<R extends { key: string }>(
+  rows: readonly R[],
+): Section<R>[] {
+  const byKey = new Map(rows.map((r) => [r.key, r]));
+  return universeSections(rows.map((r) => r.key)).map((x) => ({
+    heading: x.heading,
+    rows: x.keys.map((k) => byKey.get(k)!),
+  }));
+}
+
 /** What the page „Admin“ shows to an admin. */
 export interface AdminPage {
   tabs: { key: AdminTab; label: string; panel: string }[];
-  settings: { rows: SettingRow[]; warning: string | null };
+  settings: {
+    rows: SettingRow[];
+    /** The same rows under headings (#357). */
+    sections: Section<SettingRow>[];
+    warning: string | null;
+  };
   /** The link of the last invitation, shown once. */
   link: string | null;
   /** The note of a used-up Endzeit; null while the button is there. */
@@ -101,6 +133,12 @@ export interface AdminPage {
   /** The players, by id, for the names in the diagnostics. */
   players: Players;
 }
+
+const settingsOf = (rows: SettingRow[], warning: string | null) => ({
+  rows,
+  sections: settingSections(rows),
+  warning,
+});
 
 /** The page at the view state `v`; null for a state without the admin's data. */
 export function adminPage(v: V): AdminPage | null {
@@ -114,10 +152,10 @@ export function adminPage(v: V): AdminPage | null {
         panel: diagnosticTab(key) ? 'diagnostics' : key,
       }),
     ),
-    settings: {
-      rows: a.specs.map((x) => settingRow(v.s, x)),
-      warning: gainWarning(v.s.cfg),
-    },
+    settings: settingsOf(
+      a.specs.map((x) => settingRow(v.s, x)),
+      gainWarning(v.s.cfg),
+    ),
     link: v.ui.lastLink || null,
     endzeitDone: a.endzeit.done ? ENDZEIT_NOTE.done : null,
     archive: archivePage(shownArchive(v.s), true),
@@ -247,11 +285,44 @@ function roundRows(
  * where it has none of its own, with what a new round starts with (`fresh`,
  * #237).
  */
-export const roundDialogPage = (
+export function roundDialogPage(
   round: RoundRules,
   settings: readonly RoundSetting[] = ROUND_SETTINGS,
   fresh: Readonly<Record<string, number>> = {},
-): { rows: RoundRow[] } => ({ rows: roundRows(round, settings, fresh) });
+  sections: readonly RoundSection[] = ROUND_SECTIONS,
+): { rows: RoundRow[]; sections: Section<RoundRow>[] } {
+  const rows = roundRows(round, settings, fresh);
+  return { rows, sections: rowSections(rows, settings, sections) };
+}
+
+/** The ids of the fields of a row of the dialog. */
+const idsOf = (row: RoundRow): string[] =>
+  row.kind === 'field' ? [row.field.id] : row.members.map((m) => m.field.id);
+
+/**
+ * The rows of the dialog under the heading of their feature (#357): the rows
+ * in their order, a run of rows of one feature under its heading.
+ */
+function rowSections(
+  rows: readonly RoundRow[],
+  settings: readonly RoundSetting[],
+  sections: readonly RoundSection[],
+): Section<RoundRow>[] {
+  const heading = new Map(
+    sections.flatMap((x) => x.settings.map((s) => [s.name, x.heading])),
+  );
+  const byId = new Map(
+    settings.map((s) => [roundFieldId(s), heading.get(s.name) ?? null]),
+  );
+  const out: Section<RoundRow>[] = [];
+  for (const row of rows) {
+    const h = byId.get(idsOf(row)[0]!) ?? null;
+    const last = out.at(-1);
+    if (last && last.heading === h) last.rows.push(row);
+    else out.push({ heading: h, rows: [row] });
+  }
+  return out;
+}
 
 /** What the dialog „Endzeit einläuten“ shows (#161): the numbers of the gift and the flight time. */
 export const endzeitDialogPage = (minutes: number) => ({

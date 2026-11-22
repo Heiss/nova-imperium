@@ -17,6 +17,7 @@
   // (logic/settings-draft.ts).
   import { diagnosticTab, type AdminPage } from '../logic/admin.ts';
   import { adminForm } from '../logic/admin-form.svelte.ts';
+  import { isInvalid, isOpen, setOpen } from '../logic/admin-groups.svelte.ts';
   import { panels } from '../logic/admin-panels.svelte.ts';
   import AdminBotCheck from './AdminBotCheck.svelte';
   import AdminDiagnostics from './AdminDiagnostics.svelte';
@@ -32,6 +33,44 @@
     diagnosticTab(panels.tab) ? 'diagnostics' : panels.tab,
   );
 </script>
+
+{#snippet settingRows(rows: AdminPage['settings']['rows'])}
+  <table class="kv">
+    <tbody>
+      {#each rows as row (row.key)}
+        <tr>
+          <td><label for="set_{row.key}">{row.label}</label></td>
+          <td>
+            {#if row.choices}
+              <select
+                id="set_{row.key}"
+                data-setting={row.key}
+                aria-invalid={isInvalid(`set_${row.key}`) || undefined}
+              >
+                {#each row.choices as choice (choice.value)}
+                  <option value={choice.value} selected={choice.selected}
+                    >{choice.label}</option
+                  >
+                {/each}
+              </select>
+            {:else}
+              <input
+                type="number"
+                id="set_{row.key}"
+                data-setting={row.key}
+                aria-invalid={isInvalid(`set_${row.key}`) || undefined}
+                min={row.min}
+                max={row.max}
+                value={row.value}
+              />
+              <span class="dim">{row.range}</span>
+            {/if}
+          </td>
+        </tr>
+      {/each}
+    </tbody>
+  </table>
+{/snippet}
 
 <h2>Admin</h2>
 {#if !page}
@@ -128,36 +167,23 @@
     hidden={shown !== 'universe'}
   >
     <Box title="Universum">
-      <table class="kv">
-        <tbody>
-          {#each page.settings.rows as row (row.key)}
-            <tr>
-              <td><label for="set_{row.key}">{row.label}</label></td>
-              <td>
-                {#if row.choices}
-                  <select id="set_{row.key}" data-setting={row.key}>
-                    {#each row.choices as choice (choice.value)}
-                      <option value={choice.value} selected={choice.selected}
-                        >{choice.label}</option
-                      >
-                    {/each}
-                  </select>
-                {:else}
-                  <input
-                    type="number"
-                    id="set_{row.key}"
-                    data-setting={row.key}
-                    min={row.min}
-                    max={row.max}
-                    value={row.value}
-                  />
-                  <span class="dim">{row.range}</span>
-                {/if}
-              </td>
-            </tr>
-          {/each}
-        </tbody>
-      </table>
+      {#each page.settings.sections as section, i (section.heading ?? i)}
+        {#if section.heading}
+          <details
+            class="settings-group"
+            open={isOpen('universe', section.heading)}
+            ontoggle={(e) =>
+              setOpen('universe', section.heading!, e.currentTarget.open)}
+          >
+            <summary><h4>{section.heading}</h4></summary>
+            {@render settingRows(section.rows)}
+          </details>
+        {:else}
+          {@render settingRows(section.rows)}
+        {/if}
+      {:else}
+        {@render settingRows([])}
+      {/each}
       {#if page.settings.warning}
         <p class="notice" role="alert">{page.settings.warning}</p>
       {/if}

@@ -3,12 +3,19 @@
 // (`roundSettings`), and each feature tests its own entries there.
 import { describe, expect, it } from 'vitest';
 import {
+  ROUND_SECTIONS,
   ROUND_SETTINGS,
   type RoundNumber,
   type RoundSetting,
   roundFieldId,
 } from './round.ts';
-import { DEFAULT_UNIVERSE, liveSpecs, UNIVERSE_SPECS } from './universe.ts';
+import {
+  DEFAULT_UNIVERSE,
+  liveSpecs,
+  UNIVERSE_HEADING,
+  universeSections,
+  UNIVERSE_SPECS,
+} from './universe.ts';
 
 const settings: readonly RoundSetting[] = ROUND_SETTINGS;
 const unique = (values: readonly unknown[]): boolean =>
@@ -113,5 +120,66 @@ describe('the registry of the round settings', () => {
     const keys = UNIVERSE_SPECS.map((u) => u.key);
     for (const s of settings.filter((x) => !isLive(x)))
       expect(keys, s.key).not.toContain(s.key);
+  });
+});
+
+describe('the headings of the settings in the admin panel (#357)', () => {
+  const headings = ROUND_SECTIONS.map((x) => x.heading);
+
+  it('put every setting of the registry in exactly one section, none lost', () => {
+    const placed = ROUND_SECTIONS.flatMap((x) => x.settings.map((s) => s.name));
+    expect([...placed].sort()).toEqual(settings.map((s) => s.name).sort());
+    expect(unique(placed)).toBe(true);
+    for (const section of ROUND_SECTIONS)
+      expect(section.settings.length, section.heading).toBeGreaterThan(0);
+  });
+
+  it('name every section once, by a heading of its own, never the one of the universe', () => {
+    expect(unique(headings)).toBe(true);
+    for (const heading of headings) {
+      expect(heading.trim()).toBe(heading);
+      expect(heading.length).toBeGreaterThan(0);
+      expect(heading).not.toBe(UNIVERSE_HEADING);
+    }
+  });
+
+  it('keep the fixed order: the sections and their settings by the order numbers', () => {
+    const flat = ROUND_SECTIONS.flatMap((x) => x.settings);
+    expect(flat.map((s) => s.name)).toEqual(settings.map((s) => s.name));
+  });
+
+  it('keep the members of a group (sent as one object) in one section', () => {
+    for (const s of settings) {
+      if (!s.group) continue;
+      const holding = ROUND_SECTIONS.filter((x) =>
+        x.settings.some((m) => m.group === s.group),
+      );
+      expect(holding, s.group.name).toHaveLength(1);
+    }
+  });
+
+  it('give the tab „Universum“ the base values first, then the live settings under the heading of their feature', () => {
+    const sections = universeSections(UNIVERSE_SPECS.map((x) => x.key));
+    const placed = sections.flatMap((x) => x.keys);
+    expect([...placed].sort()).toEqual(UNIVERSE_SPECS.map((x) => x.key).sort());
+    expect(unique(placed)).toBe(true);
+    expect(sections[0]!.heading).toBe(UNIVERSE_HEADING);
+    const live = new Set(liveSpecs().map((x) => x.key as string));
+    expect(sections[0]!.keys.some((k) => live.has(k))).toBe(false);
+    // The same headings in the same order as in „Neue Runde“.
+    const rest = sections.slice(1).map((x) => x.heading);
+    expect(rest).toEqual(headings.filter((h) => rest.includes(h)));
+    for (const section of sections.slice(1)) {
+      const of = ROUND_SECTIONS.find((x) => x.heading === section.heading)!;
+      for (const key of section.keys)
+        expect(of.settings.map((s) => s.key as string)).toContain(key);
+    }
+  });
+
+  it('put a key the registry does not know with the base values of the universe', () => {
+    expect(universeSections(['speed', 'galaxies'])).toEqual([
+      { heading: UNIVERSE_HEADING, keys: ['speed', 'galaxies'] },
+    ]);
+    expect(universeSections([])).toEqual([]);
   });
 });

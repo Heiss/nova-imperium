@@ -31,6 +31,12 @@ export const UNION_RANGES = {
 } as const;
 
 /**
+ * The heading of these settings in the admin panel (#357), the name the game
+ * uses for the feature: the changelog entry „Verbandsangriff“ [V].
+ */
+export const roundHeading = 'Verbandsangriff';
+
+/**
  * The four settings of the attack union as entries of the registry of the
  * round settings (#283, #310): number fields of the dialog „Neue Runde“
  * and, `live`, rows of the universe settings (owner, 2026-11-17, X1). The

@@ -249,9 +249,11 @@ describe('the settings of the marketplace in the dialog and the admin panel', ()
     expect(html).toContain(
       '<p class="notice" role="alert">Achtung: Ein Tausch im Kreis bringt selbst ohne Gebühr Gewinn: Adamant → Psikristall → Adamant; Adamant → Psikristall → Promethium → Adamant. Bitte die Kurse anpassen.</p>',
     );
-    expect(
-      html.indexOf('</table><p class="notice" role="alert">'),
-    ).toBeGreaterThan(0);
+    // Below the settings (in their groups since #357; this state has no
+    // rows), right above the note of the box.
+    expect(html).toMatch(
+      /<p class="notice" role="alert">Achtung:[^<]*<\/p><p class="dim">Änderungen wirken sofort/,
+    );
   });
 });
 

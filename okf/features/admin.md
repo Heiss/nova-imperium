@@ -147,6 +147,51 @@ universe settings) and their ranges are not decided yet.
   live; a setting with named choices (`choices`) shows a selection there
   instead of a number.
 
+## The settings under headings, in groups that fold (#357)
+
+* **[E]** Owner, 2026-11-22: the settings stand under headings by feature,
+  as the code groups them, plus one group for the base values; the groups
+  fold and unfold and are open at the start; release 26.11.25.
+* **[V]** The same structure in „Neue Runde“ and in the tab „Universum“ (told
+  to the owner, no objection): the same headings in the same order. „Neue
+  Runde“ shows every feature; „Universum“ shows the base values first and
+  then each feature with a live setting.
+* **[V]** The heading comes from the registry: each file with `roundSettings`
+  exports `roundHeading`, and `scripts/gen-features.ts` lists them as
+  `ROUND_SECTIONS` in `round-settings.gen.ts`, so a new feature gets its group
+  without a change of the views (`ROUND_SECTIONS` of `src/core/round.ts`,
+  `universeSections` of `src/core/universe.ts`). The headings are the names
+  the game already uses (the menu, the Lexicanum, the changelog, a legend of
+  „Neue Runde“), each a proposal until the owner approves it:
+
+  | Feature file | Heading | Source |
+  | --- | --- | --- |
+  | (base values) | Universum | the name of the tab |
+  | achievements | Tagesbelohnung und Erfolge | the Lexicanum page |
+  | guild-chat | Gilden | the menu, the Lexicanum, the changelog |
+  | main-planet | Hauptplanet | the changelog, the box of „Optionen“ |
+  | abandon | Kolonie aufgeben | the changelog |
+  | activity | Aktivität | the labels of its settings; the Lexicanum page „Sichtbarkeit und Aktivität“ |
+  | holding | Wache stellen | the changelog |
+  | fleet-recognition | Fremde Flotten erkennen | the legend of its group in „Neue Runde“ (owner, 2026-11-18) |
+  | vacation | Urlaubsmodus | the Lexicanum, the changelog |
+  | demolition | Zurückbauen | the changelog |
+  | union | Verbandsangriff | the changelog |
+  | expedition | Expeditionen | the Lexicanum, the changelog |
+  | market | Marktplatz | the menu, the Lexicanum, the changelog |
+  | colony-limit | Planetengrenze | the changelog |
+
+* **[V]** A group is a `<details class="settings-group">` with the heading
+  in its `<summary>` (keyboard and screen reader by the browser); the admin's
+  choice of folded groups lives in `logic/admin-groups.svelte.ts`, as the
+  page „Admin“ is mounted anew on every render. A folded group keeps its
+  fields in the page, so saving sends every value as before. A value that
+  the server will refuse (the same checks, `roundRefused` and
+  `universeErrors`) unfolds its group, is marked `aria-invalid` and takes the
+  focus; the server still words the refusal. In „Neue Runde“ the dialog then
+  stays open. That a size of the universe lies below a planet only the server
+  can tell; that refusal unfolds nothing.
+
 ## The registry of the round settings (#283)
 
 * **[V]** Built with #283, a refactor without a visible change: every

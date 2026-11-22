@@ -148,6 +148,12 @@ const ratio = (pair: Pair) =>
   }) as const;
 
 /**
+ * The heading of these settings in the admin panel (#357), the name the game
+ * uses for the feature: the menu, the Lexicanum page and the changelog entry „Marktplatz“ [V].
+ */
+export const roundHeading = 'Marktplatz';
+
+/**
  * The marketplace as settings of the round (#171, #283, #310): number
  * fields of the dialog „Neue Runde“ in one fieldset and, `live`, rows of the
  * universe settings, changed during the round (X1). The switch is a number

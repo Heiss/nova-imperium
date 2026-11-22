@@ -16,6 +16,12 @@ export const HOUR_MS = 3_600_000;
 export const ABANDON_LOCK_HOURS = { min: 1, max: 720, default: 24 } as const;
 
 /**
+ * The heading of these settings in the admin panel (#357), the name the game
+ * uses for the feature: the changelog entry „Kolonie aufgeben“ [V].
+ */
+export const roundHeading = 'Kolonie aufgeben';
+
+/**
  * The lock as a setting of the round (#283): a number field of the dialog
  * „Neue Runde“ and, `live`, a row of the universe settings, changed during
  * the round (X1); existing universes lock for the default 24 hours. The

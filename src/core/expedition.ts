@@ -66,6 +66,12 @@ export const HOURS_PER_LEVEL = { min: 1, max: 24, def: 1 } as const;
 const EXPEDITIONS: RoundGroup = { name: 'expedition', legend: 'Expeditionen' };
 
 /**
+ * The heading of these settings in the admin panel (#357), the name the game
+ * uses for the feature: the page of the Lexicanum and the changelog entry „Expeditionen“ [V].
+ */
+export const roundHeading = 'Expeditionen';
+
+/**
  * The three settings of expeditions as entries of the registry (#283, #310):
  * number fields of the dialog „Neue Runde“ in one fieldset and, `live`, rows
  * of the universe settings, changed during the round (X1). The switch is a

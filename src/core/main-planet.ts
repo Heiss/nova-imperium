@@ -16,6 +16,12 @@ export const DAY_MS = 86_400_000;
 export const MAIN_LOCK_DAYS = { min: 1, max: 30, default: 7 } as const;
 
 /**
+ * The heading of these settings in the admin panel (#357), the name the game
+ * uses for the feature: the changelog entry and the box of „Optionen“ „Hauptplanet“ [V].
+ */
+export const roundHeading = 'Hauptplanet';
+
+/**
  * The lock as a setting of the round (#283): a number field of the dialog
  * „Neue Runde“ only; existing universes lock for the default 7 days. The
  * export under this name registers it (#310, src/core/round.ts).

@@ -57,6 +57,12 @@ export const HELD_SPY = { min: 0, max: 30, default: 2 } as const;
 const HELD_SPY_LABEL = 'Gehaltene Flotten im Auspex-Bericht ab Auspex-Lehre';
 
 /**
+ * The heading of these settings in the admin panel (#357), the name the game
+ * uses for the feature: the changelog entry „Wache stellen“ [V].
+ */
+export const roundHeading = 'Wache stellen';
+
+/**
  * The two settings of holding as entries of the registry of the round
  * settings (#283, #310): selections and number fields of the dialog „Neue
  * Runde“ and, `live`, rows of the universe settings, changed during the

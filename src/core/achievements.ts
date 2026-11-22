@@ -126,6 +126,12 @@ const REWARDS_REFUSAL =
   'Bitte beide Belohnungseinstellungen für die neue Runde auswählen.';
 
 /**
+ * The heading of these settings in the admin panel (#357), the name the game
+ * uses for the feature: the page of the Lexicanum „Tagesbelohnung und Erfolge“ [V].
+ */
+export const roundHeading = 'Tagesbelohnung und Erfolge';
+
+/**
  * Achievements and daily rewards (#220) in this round, settings of the round
  * (#283). The export under this name registers them (#310, src/core/round.ts).
  */
