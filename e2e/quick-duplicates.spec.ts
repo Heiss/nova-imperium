@@ -4,8 +4,21 @@
 // „Ziel“), and the keyed list of the fleet page threw `each_key_duplicate`
 // (live on 26.11.24): the view did not finish drawing. The place stands
 // under the first group that has it: friend, then guild, then last target.
-import { expect, test, type Browser, type Page } from '@playwright/test';
+import {
+  expect,
+  test,
+  type Browser,
+  type BrowserContext,
+  type Page,
+} from '@playwright/test';
 import { guildTag, nav, register, seed, uniqueName, watch } from './helpers.ts';
+
+/** The contexts of the second players, closed after each test, a failed one too. */
+const contexts: BrowserContext[] = [];
+
+test.afterEach(async () => {
+  for (const context of contexts.splice(0)) await context.close();
+});
 
 /** A second player in a page of its own context, and the coordinates of its home planet. */
 async function other(
@@ -13,9 +26,9 @@ async function other(
   like: Page,
   name: string,
 ): Promise<{ page: Page; at: string[] }> {
-  const page = await (
-    await browser.newContext({ viewport: like.viewportSize() })
-  ).newPage();
+  const context = await browser.newContext({ viewport: like.viewportSize() });
+  contexts.push(context);
+  const page = await context.newPage();
   await register(page, name);
   const header = (await page.locator('#pinfo').textContent())!;
   return { page, at: /\[(\d+):(\d+):(\d+)\]/.exec(header)!.slice(1) };

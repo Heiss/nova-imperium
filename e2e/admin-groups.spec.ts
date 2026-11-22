@@ -113,11 +113,23 @@ for (const tag of ['', ' @phone']) {
       await nav(page, 'admin');
       await page.getByRole('tab', { name: 'Universum' }).click();
       await expect(lock).toHaveValue(next);
-      // Back to the value of the universe the other tests share.
+      // Back to the value of the universe the other tests share: the answer
+      // of the save, then the server's value after a reload (review of #347).
       await lock.fill(before);
+      const restored = page.waitForResponse(
+        (r) =>
+          r.url().endsWith('/api/action') &&
+          (r.request().postDataJSON() as { type?: string } | null)?.type ===
+            'settings',
+      );
       await panel
         .getByRole('button', { name: 'Einstellungen speichern' })
         .click();
+      expect((await restored).ok()).toBe(true);
+      await expect(lastToast(page)).toContainText('gespeichert');
+      await page.reload();
+      await nav(page, 'admin');
+      await page.getByRole('tab', { name: 'Universum' }).click();
       await expect(lock).toHaveValue(before);
       expect(w.problems).toEqual([]);
     });

@@ -28,6 +28,7 @@ import type { V } from '../views/common.ts';
 import { ENDZEIT_NOTE } from './endzeit.ts';
 import { fmt } from './format.ts';
 import { gainWarning } from './market.ts';
+import { draftOwner } from './settings-draft.ts';
 import {
   type ArchivePage,
   archivePage,
@@ -122,6 +123,8 @@ export function settingSections<R extends { key: string }>(
 export interface AdminPage {
   tabs: { key: AdminTab; label: string; panel: string }[];
   settings: {
+    /** The account and round of the drafts: the rows are drawn anew for another (review of #347). */
+    owner: string;
     rows: SettingRow[];
     /** The same rows under headings (#357). */
     sections: Section<SettingRow>[];
@@ -136,7 +139,12 @@ export interface AdminPage {
   players: Players;
 }
 
-const settingsOf = (rows: SettingRow[], warning: string | null) => ({
+const settingsOf = (
+  rows: SettingRow[],
+  warning: string | null,
+  owner: string,
+) => ({
+  owner,
   rows,
   sections: settingSections(rows),
   warning,
@@ -157,6 +165,7 @@ export function adminPage(v: V): AdminPage | null {
     settings: settingsOf(
       a.specs.map((x) => settingRow(v.s, x)),
       gainWarning(v.s.cfg),
+      draftOwner(v.s),
     ),
     link: v.ui.lastLink || null,
     endzeitDone: a.endzeit.done ? ENDZEIT_NOTE.done : null,

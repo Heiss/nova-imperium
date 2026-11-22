@@ -24,8 +24,8 @@ const NEWS_MARK = '#menu [data-v=news] .badge';
 /**
  * Starts a watch of the scroll position: from now on, the page itself scrolls
  * by 2 px a frame (back at the ends), and every frame in which `scrollY` is
- * not where that scroll left it is noted. `stop()` ends the watch and gives
- * the moves the scroll did not cause.
+ * not where that scroll left it is noted. `stop()` ends the watch after three
+ * more frames and gives the moves the scroll did not cause.
  */
 async function watchScroll(page: Page): Promise<() => Promise<string[]>> {
   await page.evaluate(() => {
@@ -49,14 +49,25 @@ async function watchScroll(page: Page): Promise<() => Promise<string[]>> {
     };
     requestAnimationFrame(frame);
   });
+  // Three more frames before the end, so a move by the last render is seen by
+  // a frame of the watch (review of #347).
   return () =>
-    page.evaluate(() => {
-      const w = window as unknown as {
-        steady: { moves: string[]; running: boolean };
-      };
-      w.steady.running = false;
-      return w.steady.moves;
-    });
+    page.evaluate(
+      () =>
+        new Promise<string[]>((resolve) => {
+          const w = window as unknown as {
+            steady: { moves: string[]; running: boolean };
+          };
+          requestAnimationFrame(() =>
+            requestAnimationFrame(() =>
+              requestAnimationFrame(() => {
+                w.steady.running = false;
+                resolve(w.steady.moves);
+              }),
+            ),
+          );
+        }),
+    );
 }
 
 /** „Optionen“ at one section, scrolled to the middle of what it can scroll. */

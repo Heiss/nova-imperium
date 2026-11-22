@@ -18,6 +18,7 @@ import {
 import { endzeitNote } from '../logic/endzeit.ts';
 import { settingsFrom } from '../logic/game.ts';
 import {
+  draftOwner,
   draftsOf,
   forgetDrafts,
   newDraft,
@@ -32,8 +33,16 @@ import type { ClientCtx, ClientFeature } from './contract.ts';
 const draft = newDraft();
 
 /** The account and round of the shown state: a draft belongs to both. */
-const ownerOf = (): string =>
-  `${client.game!.me.id}/${client.game!.round.number}`;
+const ownerOf = (): string => draftOwner(client.game!);
+
+/**
+ * The account and round whose settings the page shows, as of the last
+ * render. A field typed into belongs to them: a new round draws the rows
+ * anew, and the browser reports the change of the removed field while the
+ * state is already the new round's (review of #347). Empty before the first
+ * render of the page: then the field belongs to the state.
+ */
+let shownOwner = '';
 
 /** The setting a field of the form is for, and the value the server has. */
 function settingOf(
@@ -109,7 +118,7 @@ function watchDrafts(): void {
     if (field)
       typed(
         draft,
-        ownerOf(),
+        shownOwner || ownerOf(),
         field.key,
         (e.target as HTMLInputElement).value,
         field.saved,
@@ -180,7 +189,8 @@ export const clientFeature = {
     if (client.ui.view !== 'admin' || !client.game?.me.admin)
       forgetAdminPanel();
     if (!client.game?.admin) return;
-    for (const [key, value] of draftsOf(draft, ownerOf())) {
+    shownOwner = ownerOf();
+    for (const [key, value] of draftsOf(draft, shownOwner)) {
       setById(`set_${key}`, value);
     }
   },

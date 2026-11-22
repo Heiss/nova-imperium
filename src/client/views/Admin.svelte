@@ -14,7 +14,9 @@
   // players); a sent invitation clears it by the fresh render. The
   // settings fields show the server and keep no state of this form, because
   // a kept value could not tell a draft from a value the server changed
-  // (logic/settings-draft.ts).
+  // (logic/settings-draft.ts). The page is kept over a render that is not
+  // fresh (#361), so the rows are keyed by the account and round of the
+  // drafts: a new round draws them anew with the server's values.
   import { diagnosticTab, type AdminPage } from '../logic/admin.ts';
   import { adminForm } from '../logic/admin-form.svelte.ts';
   import { isInvalid, isOpen, setOpen } from '../logic/admin-groups.svelte.ts';
@@ -37,7 +39,7 @@
 {#snippet settingRows(rows: AdminPage['settings']['rows'])}
   <table class="kv">
     <tbody>
-      {#each rows as row (row.key)}
+      {#each rows as row (`${page?.settings.owner}/${row.key}`)}
         <tr>
           <td><label for="set_{row.key}">{row.label}</label></td>
           <td>

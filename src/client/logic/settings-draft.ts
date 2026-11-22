@@ -16,6 +16,17 @@ export interface SettingsDraft {
 
 export const newDraft = (): SettingsDraft => ({ owner: '', values: new Map() });
 
+/**
+ * The account and round a draft belongs to. The page „Admin“ is kept over a
+ * render that is not fresh (#361), so its settings rows are keyed by it too:
+ * a new round draws them anew with the server's values, as the draft of the
+ * old round is dropped (review of #347).
+ */
+export const draftOwner = (s: {
+  me?: { id: string };
+  round?: { number: number };
+}): string => `${s.me?.id ?? ''}/${s.round?.number ?? ''}`;
+
 /** The drafts of `owner`; those of another account or round are dropped first. */
 export function draftsOf(
   draft: SettingsDraft,

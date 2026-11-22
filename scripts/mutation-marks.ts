@@ -99,6 +99,11 @@ export function markProblems(
       return [
         `${at}: "Stryker ${m.text}" is not "Stryker disable next-line <Mutator>: <reason>"`,
       ];
+    // Stryker lowercases the names and reads "all" as every mutator.
+    if (allowed[1]!.split(',').some((n) => n.trim().toLowerCase() === 'all'))
+      return [
+        `${at}: "Stryker ${m.text}" disables every mutator ("all" is Stryker's wildcard in any case)`,
+      ];
     return allowed[2]!.trim().length < 10
       ? [`${at}: the reason "${allowed[2]}" says nothing`]
       : [];

@@ -208,7 +208,9 @@ describe('the settings of the marketplace in the dialog and the admin panel', ()
       marketOn: 0,
     } as never);
     // Named by the heading of its group since #357 (owner, 2026-11-22).
-    expect(fieldsetOpen(html, 'Marktplatz')).toMatch(/aria-labelledby/);
+    const open = fieldsetOpen(html, 'Marktplatz');
+    expect(open).toMatch(/aria-labelledby/);
+    expect(html).toContain(open);
     expect(html).not.toContain('<legend>Marktplatz</legend>');
     expect(html).toContain(
       normalize(

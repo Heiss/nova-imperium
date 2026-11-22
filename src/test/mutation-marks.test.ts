@@ -133,6 +133,45 @@ describe('a mark of a mutant that cannot be killed', () => {
   });
 });
 
+describe('the wildcard of Stryker in any case (#347, review)', () => {
+  // Stryker lowercases the names of a mark and reads "all" as every mutator
+  // (directive-bookkeeper.js of @stryker-mutator/instrumenter): "All" and
+  // "ALL" are the wildcard, also in a list of names.
+  it('is refused as "All", "ALL" and inside a list', () => {
+    const texts = [
+      'disable next-line All: everything here is equivalent',
+      'disable next-line ALL: everything here is equivalent',
+      'disable next-line ConditionalExpression, All: everything here is equivalent',
+      'disable next-line AlL,StringLiteral: everything here is equivalent',
+    ];
+    expect(
+      markProblems(
+        texts.map((t) => mark(t)),
+        [SENSITIVE],
+      ),
+    ).toEqual(
+      texts.map(
+        (t) =>
+          `src/server/auth.ts:3: "Stryker ${t}" disables every mutator ("all" is Stryker's wildcard in any case)`,
+      ),
+    );
+  });
+
+  it('leaves named mutators allowed, also a name that starts with "All"', () => {
+    expect(
+      markProblems(
+        [
+          mark(
+            'disable next-line ConditionalExpression, StringLiteral: the caller checks it',
+          ),
+          mark('disable next-line Allx: a name that only starts with the word'),
+        ],
+        [SENSITIVE],
+      ),
+    ).toEqual([]);
+  });
+});
+
 describe('the command', () => {
   const standard =
     '{"securityTarget":90,"newFile":80,"cap":95,"security":[],"exact":["src/server/auth.ts"]}';
