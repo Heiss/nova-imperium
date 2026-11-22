@@ -153,7 +153,8 @@ interface is German.
    loop is about to end (seven days, or the session) before the release is
    merged, tell the owner to start `/loop` again. Once the release pull
    request from `release/main` is merged, write the retrospective
-   `okf/log/<date>-retro-<version>.md` (what cost time, at most five
+   `okf/log/<date>-retro-<version>.md`, the version with dashes
+   (`2026-11-22-retro-26-11-25.md`; what cost time, at most five
    consequences, each a rule, a guard or an issue; owner, 2026-11-22) in a
    pull request, then **stop the loop**.
 3. **Plan the release** when no open issue has the label `ready`,
