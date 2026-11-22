@@ -54,4 +54,10 @@ describe('the owner of a draft (review of #347)', () => {
       draftOwner({ me: { id: 'u_a' }, round: { number: 3 } }),
     );
   });
+
+  it('names a state without the account or without the round by an empty part', () => {
+    expect(draftOwner({})).toBe('/');
+    expect(draftOwner({ me: { id: 'u_a' } })).toBe('u_a/');
+    expect(draftOwner({ round: { number: 3 } })).toBe('/3');
+  });
 });
