@@ -269,7 +269,7 @@ export const diagnosticTab = (
 export const ungrouped = (html: string): string =>
   html
     .replace(
-      /<details class="settings-group"[^>]*>(?:<!--[^]*?-->|\s)*<summary><h4(?: id="([^"]*)")?>([^<]*)<\/h4><\/summary>([^]*?)<\/details>/g,
+      /<details class="settings-group"[^>]*>(?:<!--[^>]*>|\s)*<summary><h4(?: id="([^"]*)")?>([^<]*)<\/h4><\/summary>([^]*?)<\/details>/g,
       (_, id: string | undefined, heading: string, inner: string) =>
         id
           ? inner.replaceAll(
@@ -279,7 +279,7 @@ export const ungrouped = (html: string): string =>
           : inner,
     )
     .replace(
-      /<\/tbody><\/table>((?:<!--[^]*?-->|\s)*)<table class="kv"><tbody>/g,
+      /<\/tbody><\/table>((?:<!--[^>]*>|\s)*)<table class="kv"><tbody>/g,
       '$1',
     );
 
