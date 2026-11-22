@@ -78,14 +78,20 @@ tasks).
   request is made ready (owner, 2026-11-22). No player name or id goes to
   GitHub. Reason: on 2026-11-22 the export showed #362 (`each_key_duplicate`
   on „Flotte“), which no test had found.
-* **[E]** After every release a short retrospective as a log entry
-  `okf/log/<date>-retro-<version>.md`, the full version written with
-  dashes (`2026-11-22-retro-26-11-25.md`): what cost time, and at most five
-  consequences, each a rule, a guard or an issue (owner, 2026-11-22). Every
-  lesson gets one consequence: a rule in the OKF where it is about
-  behaviour, an issue where something has to be built, a machine check
-  before a written rule (owner, 2026-11-22, #351). The first one is
-  [the retrospective of 26.11.25](/log/2026-11-22-retro-26-11-25.md).
+* **[E]** After every release, whichever pull request released it (the
+  release pull request of `release/main`, a hotfix release pull request,
+  or a collecting pull request by the owner's exception), a short
+  retrospective as a log entry `okf/log/<date>-retro-<version>.md`, the
+  full version written with dashes (`2026-11-22-retro-26-11-25.md`): what
+  cost time, and at most five consequences, each an issue, a guard or a
+  rule; a machine check comes before a written rule (owner, 2026-11-22).
+  Every lesson gets one consequence: a rule in the OKF where it is about
+  behaviour, an issue where something has to be built (owner, 2026-11-22,
+  #351). The loop writes it after the merge of the release pull request
+  of `release/main`, before it stops. The first one is
+  [the retrospective of 26.11.25](/log/2026-11-22-retro-26-11-25.md);
+  **[V]** it exceeds the limit of five, as its consequences were decided
+  by the owner one by one before the limit was written.
 * **[E]** The release pull request of `main` is a draft with the cheap run
   after every rebuild; its CI Gate is red on purpose (owner, 2026-11-13 and
   2026-11-14, #147, [Branching and release](/ops/branching-release.md)).

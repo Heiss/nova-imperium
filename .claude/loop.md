@@ -152,11 +152,15 @@ interface is German.
    you told the owner already: tell them once more, then wait. When the
    loop is about to end (seven days, or the session) before the release is
    merged, tell the owner to start `/loop` again. Once the release pull
-   request from `release/main` is merged, write the retrospective
-   `okf/log/<date>-retro-<version>.md`, the version with dashes
-   (`2026-11-22-retro-26-11-25.md`; what cost time, at most five
-   consequences, each a rule, a guard or an issue; owner, 2026-11-22) in a
-   pull request, then **stop the loop**.
+   request from `release/main` is merged, write the retrospective, then
+   **stop the loop**. After every release, whichever pull request released
+   it (the release pull request of `release/main`, a hotfix release pull
+   request, or a collecting pull request by the owner's exception), a short
+   retrospective as a log entry `okf/log/<date>-retro-<version>.md`, the
+   full version written with dashes (`2026-11-22-retro-26-11-25.md`), in a
+   pull request: what cost time, and at most five consequences, each an
+   issue, a guard or a rule; a machine check comes before a written rule
+   (owner, 2026-11-22).
 3. **Plan the release** when no open issue has the label `ready`,
    `in progress` or `in review` and no release pull request is open. Ask
    the owner what the release should bring:
@@ -167,10 +171,10 @@ interface is German.
    - offer 3 to 5 bundles with a recommendation and the reason;
    - give the chosen issues the label `ready` (and remove
      `in discussion`). Wait for the answer; never pick on your own.
-   - The scope closes when the collecting pull request is opened: what
-     comes later goes to the next release unless the owner says
-     „Ausnahme“ for it; name the consequence for the date each time
-     (owner, 2026-11-22).
+   - The scope of a release closes: what comes later goes to the next
+     release unless the owner says „Ausnahme“ for it; name the consequence
+     for the date each time (owner, 2026-11-22). It closes when the
+     collecting pull request is opened [V].
 4. **Clarify the next open issue** with the label `ready` (infrastructure first,
    then the lowest number) while it has no comment that starts with
    `Geklärt`. Do not start while anything is unclear. Red-team your
