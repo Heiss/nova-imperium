@@ -189,14 +189,15 @@ async function adminFlow(page: Page): Promise<void> {
   await expect(lastToast(page)).toContainText(
     `${LABEL.counts}: ganze Zahl von 0 bis 100.`,
   );
+  // A refused value keeps the dialog open, its group unfolded (#357).
+  await expect(dialog(page)).toBeVisible();
   // An emptied field is no level, not 0: refused as well.
-  await openRoundDialog(page);
   await dialog(page).getByLabel(LABEL.total, { exact: true }).fill('');
   await page.getByRole('button', { name: 'Ja, neue Runde' }).click();
   await expect(lastToast(page)).toContainText(
     `${LABEL.total}: ganze Zahl von 0 bis 100.`,
   );
-  await openRoundDialog(page);
+  await expect(dialog(page)).toBeVisible();
   await fillLevels(dialog(page), [0, 1, 5]);
   await page.getByRole('button', { name: 'Ja, neue Runde' }).click();
   await expect(lastToast(page)).toContainText(

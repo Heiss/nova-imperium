@@ -5,6 +5,12 @@ import { isBelow, type RankRule } from './guild-ranks.ts';
 import type { RoundSetting } from './round.ts';
 
 /**
+ * The heading of these settings in the admin panel (#357), the name the game
+ * uses for the feature: the menu, the Lexicanum page and the changelog entry „Gilden“ [V].
+ */
+export const roundHeading = 'Gilden';
+
+/**
  * Guilds with their chat in this round (#191), a setting of the round
  * (#283): the one switch, set only when the admin starts a new round;
  * existing universes start with guilds on. The export under this name

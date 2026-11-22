@@ -6,6 +6,8 @@
 import { $, setById, val } from '../dom.ts';
 import { ADMIN_TABS, type AdminTab } from '../logic/admin.ts';
 import { adminForm } from '../logic/admin-form.svelte.ts';
+import { universeWrong } from '../logic/admin-groups.svelte.ts';
+import { showWrong } from './admin-groups.ts';
 import {
   adminTabKey,
   bindAdminPanel,
@@ -150,9 +152,11 @@ export const clientFeature = {
       // A refusal keeps what was typed; a saved form shows the server again.
       saveSettings: async () => {
         const keys = client.game!.admin!.specs.map((x) => x.key);
-        const saved = await act('settings', {
-          settings: settingsFrom(keys, (k) => val(`#set_${k}`)),
-        });
+        const settings = settingsFrom(keys, (k) => val(`#set_${k}`));
+        // A value the server will refuse: its group unfolds and its field
+        // takes the focus (#357); the server still words the refusal.
+        showWrong('universe', universeWrong(settings));
+        const saved = await act('settings', { settings });
         if (saved) forgetDrafts(draft);
         return saved;
       },

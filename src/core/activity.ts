@@ -71,6 +71,12 @@ const limit = <P extends LimitPart>(part: P) =>
   }) as const;
 
 /**
+ * The heading of these settings in the admin panel (#357), the name the game
+ * uses for the feature: the labels of its settings; the Lexicanum page „Sichtbarkeit und Aktivität“ [V].
+ */
+export const roundHeading = 'Aktivität';
+
+/**
  * The thresholds as settings of the round (#283): number fields of the
  * dialog „Neue Runde“ and, `live`, rows of the universe settings, changed
  * during the round (X1); existing universes start with the classic values.

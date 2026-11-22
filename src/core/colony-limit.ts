@@ -55,6 +55,12 @@ const NEEDS_BASE =
   'Mit Kolonieforschung muss die Grundgrenze größer als 0 sein.';
 
 /**
+ * The heading of these settings in the admin panel (#357), the name the game
+ * uses for the feature: the changelog entry „Planetengrenze“ [V].
+ */
+export const roundHeading = 'Planetengrenze';
+
+/**
  * The four settings of the limit as entries of the registry (#283, #310): one
  * fieldset, `live` (owner, 2026-11-17, D1: set in „Neue Runde“ and editable
  * during the round, X1). A round without them has no limit and no research,

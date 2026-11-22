@@ -9,10 +9,13 @@ import {
   roundConfirm,
   roundPreview,
   roundRequest,
+  type RoundRules,
   roundShown,
 } from '../../core/round.ts';
+import { roundWrong } from '../logic/admin-groups.svelte.ts';
 import { client } from '../logic/state.svelte.ts';
 import { roundDialog } from '../views/admin.ts';
+import { showWrong } from './admin-groups.ts';
 import type { ClientFeature } from './contract.ts';
 
 const field = (s: RoundSetting): HTMLInputElement | null =>
@@ -92,7 +95,15 @@ export const clientFeature = {
     doReset: () => {
       // Read before the dialog closes with its fields.
       const data = roundRequest(dialogValues());
-      modal('');
+      const wrong = roundWrong(
+        { ...client.game!.round, ...client.game!.admin?.fresh } as RoundRules,
+        data,
+      );
+      // A value the server will refuse (#357): the dialog stays open, its
+      // group unfolds and its field takes the focus; the server still words
+      // the refusal. Else the dialog closes as before.
+      showWrong('round', wrong);
+      if (!wrong.length) modal('');
       return act('reset', data);
     },
   }),

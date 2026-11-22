@@ -6,7 +6,15 @@
   // shows the wrapper `[data-round-field]` of a conditional field and writes
   // the preview line `#round-preview-…` again whenever a field changes; the
   // buttons are `doReset` and `closeModal`.
-  import type { RoundDialogPage, RoundField } from '../logic/admin.ts';
+  // The rows stand under the heading of their feature in groups that fold
+  // (#357, logic/admin-groups.svelte.ts); a folded group keeps its fields, so
+  // features/round.ts reads and sends every value as before.
+  import type {
+    RoundDialogPage,
+    RoundField,
+    RoundRow,
+  } from '../logic/admin.ts';
+  import { isInvalid, isOpen, setOpen } from '../logic/admin-groups.svelte.ts';
 
   let { page }: { page: RoundDialogPage } = $props();
 </script>
@@ -18,13 +26,14 @@
         type="checkbox"
         id={f.id}
         aria-describedby={f.note ? `${f.id}-note` : undefined}
+        aria-invalid={isInvalid(f.id) || undefined}
         checked={f.checked}
       />
       {f.label}</label
     >
   {:else if f.kind === 'choice'}
     <label for={f.id}>{f.label}</label>
-    <select id={f.id}>
+    <select id={f.id} aria-invalid={isInvalid(f.id) || undefined}>
       {#each f.choices as choice (choice.value)}
         <option value={choice.value} selected={choice.selected}
           >{choice.label}</option
@@ -36,6 +45,7 @@
     <input
       type="number"
       id={f.id}
+      aria-invalid={isInvalid(f.id) || undefined}
       min={f.min}
       max={f.max}
       step="1"
@@ -46,39 +56,60 @@
   {/if}
 {/snippet}
 
+{#snippet roundRows(rows: RoundRow[])}
+  {#each rows as row, i (i)}
+    {#if row.kind === 'field'}
+      <p>
+        {@render field(
+          row.field,
+        )}{#if row.field.kind === 'switch' && row.field.note}<br /><span
+            id="{row.field.id}-note">{row.field.note}</span
+          >{/if}
+      </p>
+    {:else}
+      <fieldset>
+        <legend>{row.legend}</legend>
+        {#each row.members as member (member.field.id)}
+          {#if member.wrap}
+            <span data-round-field={member.wrap.id} hidden={member.wrap.hidden}
+              >{#if member.lead}<br />{/if}{@render field(member.field)}</span
+            >
+          {:else}
+            {#if member.lead}<br />{/if}{@render field(member.field)}
+          {/if}
+        {/each}
+        {#if row.preview}
+          <p
+            class="dim"
+            id="round-preview-{row.preview.name}"
+            aria-live="polite"
+          >
+            {row.preview.text}
+          </p>
+        {/if}
+      </fieldset>
+    {/if}
+  {/each}
+{/snippet}
+
 <p>
   <b>Wirklich eine neue Runde starten?</b><br />
   Die laufende Runde wird vorher im Rundenarchiv gespeichert. Planeten, Flotten, Forschung,
   Nachrichten und Belohnungsfortschritt werden zurückgesetzt. Das kann nicht rückgängig
   gemacht werden.
 </p>
-{#each page.rows as row, i (i)}
-  {#if row.kind === 'field'}
-    <p>
-      {@render field(
-        row.field,
-      )}{#if row.field.kind === 'switch' && row.field.note}<br /><span
-          id="{row.field.id}-note">{row.field.note}</span
-        >{/if}
-    </p>
+{#each page.sections as section, i (section.heading ?? i)}
+  {#if section.heading}
+    <details
+      class="settings-group"
+      open={isOpen('round', section.heading)}
+      ontoggle={(e) => setOpen('round', section.heading!, e.currentTarget.open)}
+    >
+      <summary><h4>{section.heading}</h4></summary>
+      {@render roundRows(section.rows)}
+    </details>
   {:else}
-    <fieldset>
-      <legend>{row.legend}</legend>
-      {#each row.members as member (member.field.id)}
-        {#if member.wrap}
-          <span data-round-field={member.wrap.id} hidden={member.wrap.hidden}
-            >{#if member.lead}<br />{/if}{@render field(member.field)}</span
-          >
-        {:else}
-          {#if member.lead}<br />{/if}{@render field(member.field)}
-        {/if}
-      {/each}
-      {#if row.preview}
-        <p class="dim" id="round-preview-{row.preview.name}" aria-live="polite">
-          {row.preview.text}
-        </p>
-      {/if}
-    </fieldset>
+    {@render roundRows(section.rows)}
   {/if}
 {/each}
 {#each page.rows as row, i (i)}
