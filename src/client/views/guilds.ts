@@ -6,22 +6,19 @@ import {
   transferPage,
 } from '../logic/guilds.ts';
 import type { Dialog } from '../modal.ts';
-import type { V } from './common.ts';
 import GuildDialogs from './GuildDialogs.svelte';
 import Guilds from './Guilds.svelte';
 import type { ClientView } from './contract.ts';
+import { keptMount } from './kept.ts';
 
 /**
- * „Gilden“ (#118, bundle 6), its data as a property. It is mounted anew on
- * every render, as the HTML view was rendered anew: the fields of its forms
- * and the ticked rights of a rank keep their state in
- * `logic/guild-form.svelte.ts` (#332), and the chat's place is kept by
- * `keepChatScroll` (`features/guilds.ts`).
+ * „Gilden“ (#118, bundle 6), its data as a property. A fresh render mounts it
+ * anew; any other render hands it the new page, so the fields of its forms
+ * and the chat stay the same elements while the player types (#361). The
+ * fields keep their state in `logic/guild-form.svelte.ts` (#332), and the
+ * chat's place is kept by `keepChatScroll` (`features/guilds.ts`).
  */
-function mountGuilds(target: HTMLElement, v: V) {
-  const component = mount(Guilds, { target, props: { page: guildsPage(v) } });
-  return { destroy: () => void unmount(component) };
-}
+const mountGuilds = keptMount(Guilds, guildsPage);
 
 /** A dialog of the guilds as a component of the modal. */
 const dialog =
@@ -50,7 +47,7 @@ export const clientViews = [
   {
     key: 'guilds',
     mount: mountGuilds,
-    anew: true,
+    fresh: true,
     menu: { order: 120, label: 'Gilden', show: (round) => round.guilds },
   },
 ] satisfies readonly ClientView[];

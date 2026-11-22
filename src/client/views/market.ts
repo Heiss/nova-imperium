@@ -1,29 +1,21 @@
-import { mount, unmount } from 'svelte';
 import { marketPage } from '../logic/market-page.ts';
-import type { V } from './common.ts';
 import Market from './Market.svelte';
 import type { ClientView } from './contract.ts';
+import { keptMount } from './kept.ts';
 
 /**
- * „Marktplatz“ (#118, bundle 7), its data as a property. It is mounted anew
- * on every render, as the HTML view was rendered anew: the draft of the form
- * (`draft` of logic/market.ts) and main.ts, which keeps the typed values and
- * the focus by id, fill the fields, and features/market.ts repaints the
- * preview while the player types.
+ * „Marktplatz“ (#118, bundle 7), its data as a property. A fresh render
+ * mounts it anew; any other render hands it the new page, so the amount the
+ * player types stays the same field (#361). The draft of the form lives in
+ * logic/market-form.svelte.ts.
  */
-function mountMarket(target: HTMLElement, v: V) {
-  const component = mount(Market, {
-    target,
-    props: { page: marketPage(v) },
-  });
-  return { destroy: () => void unmount(component) };
-}
+const mountMarket = keptMount(Market, marketPage);
 
 export const clientViews = [
   {
     key: 'market',
     mount: mountMarket,
-    anew: true,
+    fresh: true,
     menu: { order: 40, label: 'Marktplatz' },
   },
 ] satisfies readonly ClientView[];

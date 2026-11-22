@@ -7,6 +7,8 @@
   let { due }: { due: Countdown } = $props();
 </script>
 
-{#if due.left}<span class="cd" data-end={due.end}>{due.left}</span>{:else}<span
-    class="dim">gleich …</span
-  >{/if}
+<!-- A new countdown gets a new element (#361): the clock marks one that
+  fired (`data-fired`), and a view kept over a render must not carry that mark
+  into the next countdown. -->
+{#key due.end}{#if due.left}<span class="cd" data-end={due.end}>{due.left}</span
+    >{:else}<span class="dim">gleich …</span>{/if}{/key}

@@ -18,7 +18,7 @@ import {
   adminMarkup as admin,
   roundDialogMarkup as roundDialog,
 } from '../../test/admin-view.ts';
-import { ANEW, MOUNTED } from './mount.ts';
+import { ANEW, FRESH, MOUNTED } from './mount.ts';
 
 const market = (v: V): string => normalize(marketView(v));
 
@@ -47,9 +47,10 @@ function view(
 afterEach(() => Object.assign(draft, newDraft()));
 
 describe('the view „Marktplatz“', () => {
-  it('is a mounted view, mounted anew on every render, and in the menu after „Rohstoffe“', () => {
+  it('is a mounted view, kept over a render that is not fresh and mounted anew by a fresh one (#361), and in the menu after „Rohstoffe“', () => {
     expect(MOUNTED.has('market')).toBe(true);
-    expect(ANEW.has('market')).toBe(true);
+    expect(ANEW.has('market')).toBe(false);
+    expect(FRESH.has('market')).toBe(true);
     const items = menu(false, view().s.round);
     const labels = items.flatMap((i) => (i === '-' ? [] : [i.label]));
     expect(labels[labels.indexOf('Rohstoffe') + 1]).toBe('Marktplatz');

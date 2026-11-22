@@ -3,43 +3,22 @@
 // fields as the state of its component, src/client/logic/form-state.svelte.ts,
 // and nothing restores them). The client draws the view anew only when the
 // state it polls (every 4 s) differs from the last one, so each test changes
-// the state of its own player and waits until the node of a field it marked
-// is replaced (the lists are redrawn in place: they wait for the answers of
-// the poll).
-import { expect, test, type Page } from '@playwright/test';
+// the state of its own player and waits until the poll drew it: a new colony
+// in the header's choice of the planet (`pollRender` of helpers.ts, #361; the
+// views with fields keep their nodes over such a render, so a replaced node
+// tells nothing any more; the lists wait for the answers of the poll).
+import { expect, test } from '@playwright/test';
 import {
   cli,
   guildTag,
   nav,
   openAllRows,
+  pollRender,
   register,
   seed,
   uniqueName,
   watch,
 } from './helpers.ts';
-
-async function waitForRedraw(
-  page: Page,
-  id: string,
-  change: () => void,
-): Promise<void> {
-  await waitForReplaced(page, `#${id}`, change);
-}
-
-/** Marks the node of `selector`, runs `change` and waits until the poll drew it anew. */
-async function waitForReplaced(
-  page: Page,
-  selector: string,
-  change: () => void,
-): Promise<void> {
-  await page.evaluate((sel) => {
-    document.querySelector<HTMLElement>(sel)!.dataset.mark = 'old';
-  }, selector);
-  change();
-  await expect(page.locator(`${selector}[data-mark]`)).toHaveCount(0, {
-    timeout: 15000,
-  });
-}
 
 test.describe('a redraw by the poll keeps the draft of a form', () => {
   test('the fleet form keeps the position, the count and the chosen mission', async ({
@@ -60,9 +39,7 @@ test.describe('a redraw by the poll keeps the draft of a form', () => {
     const mission = page.getByLabel('Auftrag');
     await mission.selectOption('survey');
 
-    await waitForRedraw(page, 't_m', () =>
-      seed({ name, res: { m: 0, c: 0, d: 10001 } }),
-    );
+    await pollRender(page, name);
     await expect(page.getByLabel('Position', { exact: true })).toHaveValue('2');
     await expect(page.getByLabel('Anzahl Spähschädel')).toHaveValue('2');
     await expect(mission).toHaveValue('survey');
@@ -88,9 +65,7 @@ test.describe('a redraw by the poll keeps the draft of a form', () => {
     const chosen = await give.inputValue();
     await page.locator('#market-amount').fill('123');
 
-    await waitForRedraw(page, 'market-amount', () =>
-      seed({ name: player, res: { m: 5001, c: 100, d: 0 } }),
-    );
+    await pollRender(page, player);
     await expect(page.locator('#market-amount')).toHaveValue('123');
     await expect(page.locator('#market-give')).toHaveValue(chosen);
     expect(w.problems).toEqual([]);
@@ -106,9 +81,7 @@ test.describe('a redraw by the poll keeps the draft of a form', () => {
     await page.locator('#guild_name').fill('Halbfertige Gilde');
     await page.locator('#guild_description').fill('Noch nicht fertig');
 
-    await waitForRedraw(page, 'guild_tag', () =>
-      seed({ name, res: { m: 0, c: 0, d: 10002 } }),
-    );
+    await pollRender(page, name);
     await expect(page.locator('#guild_tag')).toHaveValue(tag);
     await expect(page.locator('#guild_name')).toHaveValue('Halbfertige Gilde');
     await expect(page.locator('#guild_description')).toHaveValue(
@@ -154,9 +127,7 @@ test.describe('a redraw by the poll keeps the draft of a form', () => {
     await page.locator('#achievement_category').selectOption('fleet');
     await page.locator('#achievement_status').selectOption('open');
 
-    await waitForRedraw(page, 'achievement_search', () =>
-      seed({ name, res: { m: 0, c: 0, d: 10008 } }),
-    );
+    await pollRender(page, name);
     await expect(page.locator('#achievement_search')).toHaveValue('flotte');
     await expect(page.locator('#achievement_category')).toHaveValue('fleet');
     await expect(page.locator('#achievement_status')).toHaveValue('open');
@@ -182,9 +153,7 @@ test.describe('a redraw by the poll keeps the draft of a form', () => {
     const code = row.locator('details > code');
     await expect(code).toContainText('{');
 
-    await waitForRedraw(page, 'admin-tab-events', () =>
-      seed({ name, res: { m: 0, c: 0, d: 10004 } }),
-    );
+    await pollRender(page, name);
     await expect(row.locator('details')).toHaveAttribute('open', '');
     JSON.parse(await code.innerText());
     cli('unadmin', name);
@@ -225,9 +194,7 @@ test.describe('a redraw by the poll keeps the draft of a form', () => {
     await expect(row.first().locator('details')).toHaveAttribute('open', '');
     await expect(row.first()).toContainText(`Vorgang ${request}`);
 
-    await waitForRedraw(page, 'admin-tab-errors', () =>
-      seed({ name, res: { m: 0, c: 0, d: 10005 } }),
-    );
+    await pollRender(page, name);
     await expect(row.first().locator('details')).toHaveAttribute('open', '');
     await expect(row.first()).toContainText(`Vorgang ${request}`);
     cli('unadmin', name);
@@ -254,9 +221,7 @@ test.describe('a redraw by the poll keeps the draft of a form', () => {
     await action.fill('build');
     await since.fill('2026-11-01');
 
-    await waitForRedraw(page, 'audit-outcome', () =>
-      seed({ name, res: { m: 0, c: 0, d: 10006 } }),
-    );
+    await pollRender(page, name);
     await expect(player.locator('option:checked')).toHaveText(name);
     await expect(outcome.locator('option:checked')).toHaveText('Abgelehnt');
     await expect(action).toHaveValue('build');
@@ -289,9 +254,7 @@ test.describe('a redraw by the poll keeps the draft of a form', () => {
     await resized;
     await since.fill('2026-11-01');
 
-    await waitForReplaced(page, '#errors-filter select[name=kind]', () =>
-      seed({ name, res: { m: 0, c: 0, d: 10007 } }),
-    );
+    await pollRender(page, name);
     await expect(kind.locator('option:checked')).toHaveText('Problemmeldungen');
     await expect(size).toHaveValue('50');
     await expect(since).toHaveValue('2026-11-01');

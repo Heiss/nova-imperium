@@ -183,8 +183,8 @@ universe settings) and their ranges are not decided yet.
 
 * **[V]** A group is a `<details class="settings-group">` with the heading
   in its `<summary>` (keyboard and screen reader by the browser); the admin's
-  choice of folded groups lives in `logic/admin-groups.svelte.ts`, as the
-  page „Admin“ is mounted anew on every render. A folded group keeps its
+  choice of folded groups lives in `logic/admin-groups.svelte.ts`, as a
+  fresh render mounts the page „Admin“ anew (#361). A folded group keeps its
   fields in the page, so saving sends every value as before. A value that
   the server will refuse (the same checks, `roundRefused` and
   `universeErrors`) unfolds its group, is marked `aria-invalid` and takes the

@@ -2,7 +2,7 @@
 // Runde“ and in the tab „Universum“: which groups the admin folded (every
 // group is open at the start) and which fields hold a value that failed its
 // check, so their group unfolds and shows it. The state lives in this module,
-// as the page „Admin“ is mounted anew on every render; a folded group keeps
+// as a fresh render mounts the page „Admin“ anew (#361); a folded group keeps
 // its fields in the page, so saving sends every value as before.
 
 import {

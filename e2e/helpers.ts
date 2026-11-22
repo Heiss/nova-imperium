@@ -2,7 +2,13 @@ import { execFileSync } from 'node:child_process';
 import { expect, type Locator, type Page } from '@playwright/test';
 import { E2E_ENV, E2E_MAILBOX, E2E_MAIL_ENV, E2E_MAIL_URL } from './env.ts';
 import { mailsTo } from './mail.ts';
-import { isOwnName, nextHome, ownArea, ownNames } from './own-data.ts';
+import {
+  isOwnName,
+  nextHome,
+  ownArea,
+  ownNames,
+  uniqueName,
+} from './own-data.ts';
 
 // What the specs get from one place (#302): their own players, area and guild
 // tags. A spec asks for nothing of this by a fixed value.
@@ -352,5 +358,34 @@ export async function onlyOwnPlayers(page: Page): Promise<void> {
       Object.entries(state.players ?? {}).filter(([, p]) => mine.has(p.name)),
     );
     await route.fulfill({ response, json: { ...state, players } });
+  });
+}
+
+/** The planet slots each player's poll renders took, so the next one takes a free slot. */
+const pollSlots = new Map<string, Set<number>>();
+
+/**
+ * A render by the poll that is not fresh (#361): a new colony of `name` on a
+ * free slot of its home system, which the header then offers in the choice of
+ * the planet. The header and the view are drawn by the same `render()` pass,
+ * so when the header shows the colony, the view has the new state too. A view
+ * kept over such a render keeps its nodes, so a test cannot learn of it from
+ * a replaced node.
+ */
+export async function pollRender(page: Page, name: string): Promise<void> {
+  let used = pollSlots.get(name);
+  if (!used) {
+    const text = (await page.locator('#pinfo').textContent()) ?? '';
+    used = new Set([Number(/\[\d+:\d+:(\d+)\]/.exec(text)![1])]);
+    pollSlots.set(name, used);
+  }
+  let slot = 9;
+  while (used.has(slot)) slot++;
+  used.add(slot);
+  const options = page.locator('#planet_select option');
+  const before = await options.count();
+  seed({ name, colony: { p: slot, name: uniqueName('Zwischen') } });
+  await expect(options).toHaveCount(Math.max(before, 1) + 1, {
+    timeout: 15000,
   });
 }

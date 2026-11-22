@@ -206,16 +206,13 @@ test.describe('the provisional report of the admin, view H (#235)', () => {
     await registerByMail(other, late);
     const refresh = box.getByRole('button', { name: 'Vorschau aktualisieren' });
     await expect(refresh).toHaveCount(1);
-    // The new player changes the state of the admin, and the poll draws the
-    // page anew; a click that lands while the button is replaced is lost. Wait
-    // for that redraw (the marked button is gone), then click.
-    await refresh.evaluate((b) => {
-      b.dataset.mark = 'old';
-    });
-    await expect(box.locator('[data-act=roundRefresh][data-mark]')).toHaveCount(
-      0,
-      { timeout: 15000 },
-    );
+    // The new player changes the state of the admin, and the poll draws it:
+    // the player choice of the event log names the new player (#361; the page
+    // keeps its nodes over that render). The preview still does not show the
+    // player until the admin asks.
+    await expect(
+      page.locator('#audit-player option', { hasText: late }),
+    ).toHaveCount(1, { timeout: 15000 });
     await refresh.click();
     await expect(ranking.locator('tr', { hasText: late })).toHaveCount(1);
     await expect(lastToast(page)).toContainText('Vorschau aktualisiert.');

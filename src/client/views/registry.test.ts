@@ -2,6 +2,7 @@
 // no count: a view registers itself in its own module (`clientViews`), and each
 // view tests its own behaviour in its own test. The functions that put the
 // tables together are tested here too.
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import type { RoundRules } from '../../core/round.ts';
 import {
@@ -206,5 +207,63 @@ describe('the tables of the views', () => {
     ).toThrow(
       'glyph "a" is defined in src/client/views/a.ts and in src/client/views/b.ts.',
     );
+  });
+});
+
+/**
+ * The Svelte files a view module mounts, with every component they import,
+ * read from the sources (#361): a component imported as `./X.svelte`.
+ */
+function componentsOf(module: string): string[] {
+  const dir = 'src/client/views';
+  const imports = (source: string): string[] =>
+    [...source.matchAll(/from '\.\/([A-Za-z]+\.svelte)'/g)].map((m) => m[1]!);
+  const seen = new Set<string>();
+  const todo = imports(readFileSync(`${dir}/${module}.ts`, 'utf8'));
+  while (todo.length) {
+    const file = todo.pop()!;
+    if (seen.has(file)) continue;
+    seen.add(file);
+    todo.push(...imports(readFileSync(`${dir}/${file}`, 'utf8')));
+  }
+  return [...seen].sort();
+}
+
+/** A field a player types into: a text area, or an input that is not a box, a button or hidden. */
+const TYPED =
+  /<textarea\b|<input\b(?![^>]*\btype="(?:checkbox|radio|hidden|submit|button)")/;
+
+/**
+ * The views still mounted anew that have a typed field, each with the reason
+ * (#361). None is left: „Optionen“ was converted by #359.
+ */
+const ANEW_WITH_FIELDS: Readonly<Record<string, string>> = {};
+
+describe('the views with fields a player types into (#361)', () => {
+  it('are not mounted anew on every render: a render would replace a field while the player types', () => {
+    const exposed = views
+      .filter(([, view]) => view.anew === true)
+      .filter(([name]) =>
+        componentsOf(name).some((file) =>
+          TYPED.test(readFileSync(`src/client/views/${file}`, 'utf8')),
+        ),
+      )
+      .map(([, view]) => view.key)
+      .filter((key) => !Object.hasOwn(ANEW_WITH_FIELDS, key));
+    expect(exposed).toEqual([]);
+  });
+
+  it('list only views that are still mounted anew', () => {
+    for (const key of Object.keys(ANEW_WITH_FIELDS))
+      expect(ANEW.has(key), key).toBe(true);
+  });
+
+  it('read the components of a view from its module and their imports', () => {
+    expect(componentsOf('galaxy')).toContain('Galaxy.svelte');
+    expect(componentsOf('guilds')).toContain('GuildChat.svelte');
+    expect(TYPED.test('<input type="number" id="x">')).toBe(true);
+    expect(TYPED.test('<textarea id="y">')).toBe(true);
+    expect(TYPED.test('<input type="checkbox" id="z">')).toBe(false);
+    expect(TYPED.test('<input\n  type="hidden" name="a" />')).toBe(false);
   });
 });
