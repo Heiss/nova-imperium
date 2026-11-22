@@ -1,5 +1,11 @@
 # Neuigkeiten
 
+## Version 26.11.25 – 22.11.2026
+
+### Behoben
+
+- Sternenkarte: Wer Galaxie oder System markiert und überschreibt, bekommt genau die getippte Zahl, auch wenn sich die Seite gerade aktualisiert.
+
 ## Version 26.11.24 – 21.11.2026
 
 ### Neu
