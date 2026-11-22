@@ -17,7 +17,11 @@ import {
 } from '../../test/admin-view.ts';
 import { highscoreView } from '../../test/highscore-view.ts';
 import { levelView } from '../../test/level-view.ts';
-import { normalize } from '../../test/markup.ts';
+import {
+  fieldsetOpen,
+  normalize,
+  outsideFieldsets,
+} from '../../test/markup.ts';
 import { optionsView } from '../../test/options-view.ts';
 import type { GameState } from '../logic/types.ts';
 import type { V } from './common.ts';
@@ -140,8 +144,11 @@ describe('the dialog „Neue Runde“', () => {
     const html = roundDialog(defaults());
     const legends = ROUND_SETTINGS.flatMap((s) => s.group?.legend ?? []);
     for (const legend of new Set(legends)) {
-      const open = `<fieldset><legend>${legend}</legend>`;
+      const open = fieldsetOpen(html, legend);
       expect(html.split(open), legend).toHaveLength(2);
+      // A legend that repeats the heading of its group is not shown (#357).
+      if (open.includes('aria-labelledby'))
+        expect(html, legend).not.toContain(`<legend>${legend}</legend>`);
       const fieldset = html.slice(html.indexOf(open)).split('</fieldset>')[0]!;
       const members = ROUND_SETTINGS.filter((s) => s.group?.legend === legend);
       expect(
@@ -150,7 +157,7 @@ describe('the dialog „Neue Runde“', () => {
           .filter((id) => !id!.startsWith('round-preview-')),
       ).toEqual(members.map(roundFieldId));
     }
-    const outside = html.replace(/<fieldset>[\s\S]*?<\/fieldset>/g, '');
+    const outside = outsideFieldsets(html);
     for (const s of ROUND_SETTINGS.filter((x) => !x.group?.legend))
       expect(outside, s.key).toContain(normalize(` id="${roundFieldId(s)}"`));
   });
@@ -182,7 +189,7 @@ describe('the dialog „Neue Runde“', () => {
       colonyMaxLevel: 4,
     });
     const fieldset = html
-      .slice(html.indexOf('<legend>Planetengrenze</legend>'))
+      .slice(html.indexOf(fieldsetOpen(html, 'Planetengrenze')))
       .split('</fieldset>')[0]!;
     expect(fieldset).toContain(
       normalize(
@@ -285,7 +292,7 @@ describe('the minimum duration of the vacation mode in the dialog „Neue Runde�
       expect(html.indexOf('id="round-vacation-hours"')).toBeLessThan(
         html.indexOf('data-act="doReset"'),
       );
-      const outside = html.replace(/<fieldset>[\s\S]*?<\/fieldset>/g, '');
+      const outside = outsideFieldsets(html);
       expect(outside).toContain('id="round-vacation-hours"');
     }
   });
@@ -312,16 +319,21 @@ describe('the activity thresholds in the dialog „Neue Runde“ (#229, X1)', ()
       ['inactive-days', 'Inaktiv ab (Tage)', 1, 365, 3],
       ['long-inactive-days', 'Lange inaktiv ab (Tage)', 1, 365, 21],
     ] as const;
-    // Owner, 2026-11-18: a framed group with the heading „Aktivität“.
+    // Owner, 2026-11-18: a framed group with the heading „Aktivität“; the
+    // group's heading names it since #357 (owner, 2026-11-22: no legend that
+    // repeats it).
     const rows = fields.map(
       ([id, label, min, max, value]) =>
         `<label for="round-${id}">${label}</label> <input type="number" id="round-${id}" min="${min}" max="${max}" step="1" value="${value}" required> <span class="dim">${min} bis ${max}</span>`,
     );
+    const open = fieldsetOpen(html, 'Aktivität');
+    expect(open).toMatch(/aria-labelledby/);
     const group = normalize(
-      `<fieldset><legend>Aktivität</legend>\n    ${rows.join('<br>\n    ')}\n  </fieldset>`,
+      `${open}\n    ${rows.join('<br>\n    ')}\n  </fieldset>`,
     );
     expect(html).toContain(group);
-    expect(html.split('<legend>Aktivität</legend>')).toHaveLength(2);
+    expect(html.split(open)).toHaveLength(2);
+    expect(html).not.toContain('<legend>Aktivität</legend>');
     expect(html.indexOf(group)).toBeLessThan(
       html.indexOf('data-act="doReset"'),
     );
@@ -350,8 +362,10 @@ describe('the thresholds of foreign fleets in the dialog „Neue Runde“ (#228,
         html.indexOf('data-act="doReset"'),
       );
     }
-    const open = '<fieldset><legend>Fremde Flotten erkennen</legend>';
+    const open = fieldsetOpen(html, 'Fremde Flotten erkennen');
+    expect(open).toMatch(/aria-labelledby/);
     expect(html.split(open)).toHaveLength(2);
+    expect(html).not.toContain('<legend>Fremde Flotten erkennen</legend>');
     const group = html.slice(html.indexOf(open)).split('</fieldset>')[0]!;
     expect(group.match(/<input /g)).toHaveLength(3);
     for (const part of ['total', 'types', 'counts'])

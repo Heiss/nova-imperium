@@ -259,15 +259,24 @@ export const diagnosticTab = (
  * The markup without the groups of #357, which put the settings under the
  * heading of their feature in a `<details class="settings-group">` each: the
  * heading (`<summary>`) and the wrapper go, and the tables of the tab
- * „Universum“ that the groups split are one table again. Everything inside
- * the groups is compared with the view before, field by field; the groups
- * themselves are tested in src/client/logic/admin.test.ts and the E2E specs.
+ * „Universum“ that the groups split are one table again. A fieldset of the
+ * dialog that the heading names (`aria-labelledby`, as its legend repeated
+ * the heading: owner, 2026-11-22) gets that heading back as its legend, so it
+ * is compared with the legend it had before. Everything inside the groups is
+ * compared with the view before, field by field; the groups themselves are
+ * tested in src/client/logic/admin.test.ts and the E2E specs.
  */
 export const ungrouped = (html: string): string =>
   html
     .replace(
-      /<details class="settings-group"[^>]*>(?:<!--[^]*?-->|\s)*<summary><h4>[^<]*<\/h4><\/summary>([^]*?)<\/details>/g,
-      '$1',
+      /<details class="settings-group"[^>]*>(?:<!--[^]*?-->|\s)*<summary><h4(?: id="([^"]*)")?>([^<]*)<\/h4><\/summary>([^]*?)<\/details>/g,
+      (_, id: string | undefined, heading: string, inner: string) =>
+        id
+          ? inner.replaceAll(
+              `<fieldset aria-labelledby="${id}">`,
+              `<fieldset><legend>${heading}</legend>`,
+            )
+          : inner,
     )
     .replace(
       /<\/tbody><\/table>((?:<!--[^]*?-->|\s)*)<table class="kv"><tbody>/g,

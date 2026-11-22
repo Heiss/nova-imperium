@@ -15,7 +15,7 @@ import {
   UNIVERSE_SPECS,
 } from '../../core/universe.ts';
 import { roundDefaults } from '../../test/fixtures.ts';
-import { roundDialogPage, settingSections } from './admin.ts';
+import { roundDialogPage, type RoundRow, settingSections } from './admin.ts';
 
 const make = (over: object): RoundSetting =>
   ({ key: 'roundX', label: 'X', order: 1, ...over }) as unknown as RoundSetting;
@@ -236,7 +236,42 @@ describe('the settings under headings (#357)', () => {
       ROUND_SECTIONS.map((x) => x.heading),
     );
     // Folded or not, the fields are the same as without the headings.
-    expect(page.sections.flatMap((x) => x.rows)).toEqual(page.rows);
+    const ids = (rows: readonly RoundRow[]) =>
+      rows.flatMap((r) =>
+        r.kind === 'field' ? [r.field.id] : r.members.map((m) => m.field.id),
+      );
+    expect(ids(page.sections.flatMap((x) => x.rows))).toEqual(ids(page.rows));
+  });
+
+  it('shows no legend that repeats the heading of its group; the fieldset is named by the heading (owner, 2026-11-22)', () => {
+    const page = roundDialogPage(real());
+    const groups = page.sections.flatMap((x) =>
+      x.rows.flatMap((r) =>
+        r.kind === 'group' ? [{ heading: x.heading, id: x.id, row: r }] : [],
+      ),
+    );
+    for (const { heading, id, row } of groups) {
+      expect(row.legend, heading ?? '').not.toBe(heading);
+      if (row.legend === null) {
+        expect(id).toMatch(/^round-heading-\d+$/);
+        expect(row.labelledBy).toBe(id);
+      } else expect(row.labelledBy).toBeUndefined();
+    }
+    const repeated = groups
+      .filter((g) => g.row.legend === null)
+      .map((g) => g.heading);
+    expect(repeated).toEqual([
+      'Aktivität',
+      'Fremde Flotten erkennen',
+      'Expeditionen',
+      'Marktplatz',
+      'Planetengrenze',
+    ]);
+    // A legend that says something else stays.
+    expect(groups.map((g) => g.row.legend)).toContain(
+      'Belohnungen für die neue Runde',
+    );
+    expect(groups.map((g) => g.row.legend)).toContain('Rückbau');
   });
 
   it('shows a setting the registry has no heading for without one', () => {
@@ -250,7 +285,9 @@ describe('the settings under headings (#357)', () => {
       } as unknown as RoundRules,
       settings,
     );
-    expect(page.sections).toEqual([{ heading: null, rows: page.rows }]);
+    expect(page.sections).toEqual([
+      { heading: null, id: 'round-heading-0', rows: page.rows },
+    ]);
   });
 
   it('puts the rows of the tab „Universum“ under headings, the base values first, every row once', () => {

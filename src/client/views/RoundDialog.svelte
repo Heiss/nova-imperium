@@ -67,8 +67,8 @@
           >{/if}
       </p>
     {:else}
-      <fieldset>
-        <legend>{row.legend}</legend>
+      <fieldset aria-labelledby={row.labelledBy}>
+        {#if row.legend}<legend>{row.legend}</legend>{/if}
         {#each row.members as member (member.field.id)}
           {#if member.wrap}
             <span data-round-field={member.wrap.id} hidden={member.wrap.hidden}
@@ -105,7 +105,7 @@
       open={isOpen('round', section.heading)}
       ontoggle={(e) => setOpen('round', section.heading!, e.currentTarget.open)}
     >
-      <summary><h4>{section.heading}</h4></summary>
+      <summary><h4 id={section.id}>{section.heading}</h4></summary>
       {@render roundRows(section.rows)}
     </details>
   {:else}

@@ -7,7 +7,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { DEFAULT_UNIVERSE } from '../../core/universe.ts';
 import { planet, roundDefaults } from '../../test/fixtures.ts';
 import { marketView } from '../../test/market-view.ts';
-import { normalize } from '../../test/markup.ts';
+import { fieldsetOpen, normalize } from '../../test/markup.ts';
 import { newDraft, preview, type Preview } from '../logic/market.ts';
 import { draft } from '../logic/market-form.svelte.ts';
 import type { GameState } from '../logic/types.ts';
@@ -207,7 +207,9 @@ describe('the settings of the marketplace in the dialog and the admin panel', ()
       marketMc: 700,
       marketOn: 0,
     } as never);
-    expect(html).toContain(normalize('<fieldset><legend>Marktplatz</legend>'));
+    // Named by the heading of its group since #357 (owner, 2026-11-22).
+    expect(fieldsetOpen(html, 'Marktplatz')).toMatch(/aria-labelledby/);
+    expect(html).not.toContain('<legend>Marktplatz</legend>');
     expect(html).toContain(
       normalize(
         '<label for="round-market-on">Marktplatz aktiv</label> <select id="round-market-on"><option value="1">Ja</option><option value="0" selected>Nein</option></select>',

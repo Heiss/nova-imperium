@@ -162,7 +162,7 @@ universe settings) and their ranges are not decided yet.
   without a change of the views (`ROUND_SECTIONS` of `src/core/round.ts`,
   `universeSections` of `src/core/universe.ts`). The headings are the names
   the game already uses (the menu, the Lexicanum, the changelog, a legend of
-  „Neue Runde“), each a proposal until the owner approves it:
+  „Neue Runde“); **[E]** the owner approved all fourteen (2026-11-22):
 
   | Feature file | Heading | Source |
   | --- | --- | --- |
@@ -191,6 +191,16 @@ universe settings) and their ranges are not decided yet.
   focus; the server still words the refusal. In „Neue Runde“ the dialog then
   stays open. That a size of the universe lies below a planet only the server
   can tell; that refusal unfolds nothing.
+* **[E]** Owner, 2026-11-22: a legend of „Neue Runde“ that repeats the
+  heading of its group is not shown. **[V]** The fieldset stays (it frames
+  the members and their preview) and is named by the heading
+  (`aria-labelledby` on the `<h4>` of its group, `rowSections` of
+  `client/logic/admin.ts`); the registry keeps the legend, which groups the
+  fields. That are the legends „Aktivität“, „Fremde Flotten erkennen“,
+  „Expeditionen“, „Marktplatz“ and „Planetengrenze“ („Aktivität“ was not in
+  the owner's list of four but repeats its heading, so the rule covers it
+  [V]); „Belohnungen für die neue Runde“ (heading „Tagesbelohnung und
+  Erfolge“) and „Rückbau“ (heading „Zurückbauen“) stay.
 
 ## The registry of the round settings (#283)
 

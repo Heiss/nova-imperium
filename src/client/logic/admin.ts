@@ -98,6 +98,8 @@ function settingRow(s: GameState, x: AdminState['specs'][number]): SettingRow {
  */
 export interface Section<R> {
   heading: string | null;
+  /** The id of the heading, where a fieldset of the group is named by it. */
+  id?: string;
   rows: R[];
 }
 
@@ -207,7 +209,13 @@ export type RoundRow =
   | { kind: 'field'; field: RoundField }
   | {
       kind: 'group';
-      legend: string;
+      /**
+       * The legend of the fieldset; null where it would repeat the heading of
+       * its group (owner, 2026-11-22), and the fieldset is then named by the
+       * heading (`labelledBy`, the id of the heading).
+       */
+      legend: string | null;
+      labelledBy?: string;
       members: RoundMember[];
       /** The preview line of the group, written again by the browser whenever a field changes. */
       preview: { name: string; text: string } | null;
@@ -317,9 +325,18 @@ function rowSections(
   const out: Section<RoundRow>[] = [];
   for (const row of rows) {
     const h = byId.get(idsOf(row)[0]!) ?? null;
-    const last = out.at(-1);
-    if (last && last.heading === h) last.rows.push(row);
-    else out.push({ heading: h, rows: [row] });
+    let last = out.at(-1);
+    if (!last || last.heading !== h) {
+      last = { heading: h, id: `round-heading-${out.length}`, rows: [] };
+      out.push(last);
+    }
+    // A legend that repeats the heading of its group goes; the heading names
+    // the fieldset instead (owner, 2026-11-22).
+    last.rows.push(
+      row.kind === 'group' && h !== null && row.legend === h
+        ? { ...row, legend: null, labelledBy: last.id! }
+        : row,
+    );
   }
   return out;
 }
