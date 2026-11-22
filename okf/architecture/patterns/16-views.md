@@ -37,5 +37,7 @@ description: 'A view exports clientViews (key, mount or html, anew or fresh, men
   any other render (the poll, the clock, the news) keeps it and hands its
   `update` the view state. `mountsAnew()` of `mount.ts` is the rule;
   `registry.test.ts` checks it for every view. Built for the Sternenkarte
-  (`views/galaxy.ts`, `GalaxyView.svelte`); the other views mounted anew with
-  typed fields are listed in #352.
+  (`views/galaxy.ts`, `GalaxyView.svelte`) and for „Optionen“ (`views/options.ts`,
+  `OptionsView.svelte`, #355: the page jumped on a phone and a tap hit the
+  wrong switch); the other views mounted anew with typed fields are listed in
+  #352.

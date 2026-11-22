@@ -11,6 +11,7 @@ import { optionsForm } from '../logic/options-form.svelte.ts';
 import { DEFAULT_SECTION, OPTION_SECTIONS } from '../logic/phone-options.ts';
 import { phoneOptions } from '../logic/phone-options.svelte.ts';
 import type { GameState } from '../logic/types.ts';
+import { ANEW, FRESH, MOUNTED, mountsAnew } from './mount.ts';
 import type { V } from './common.ts';
 
 function page(): string {
@@ -173,5 +174,18 @@ describe('the fields keep what was typed and chosen over a redraw (#332)', () =>
     expect(choices(html, 'o_levels')).toEqual(['always*', 'icon', 'hidden']);
     expect(html).toMatch(/id="pw_next"[^>]*value="neu &amp; &lt;geheim>"/);
     expect(html).toContain('>Es ging &lt;nicht>.</textarea>');
+  });
+});
+
+describe('the mounting of „Optionen“ (#355)', () => {
+  it('is mounted once and kept by a render that is not fresh, so the page does not move', () => {
+    expect(MOUNTED.has('help')).toBe(true);
+    expect(ANEW.has('help')).toBe(false);
+    expect(mountsAnew('help', false, false)).toBe(false);
+  });
+
+  it('is mounted anew by a fresh render, which drops what was typed', () => {
+    expect(FRESH.has('help')).toBe(true);
+    expect(mountsAnew('help', true, false)).toBe(true);
   });
 });
