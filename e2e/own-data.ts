@@ -2,20 +2,32 @@
 // of the universe and its own guild tags from here, so no test meets what
 // another one left behind, in whatever order the tests run. What is handed out
 // goes to the ledger (e2e/ledger.ts), which the seed command checks.
+import { execFileSync } from 'node:child_process';
 import { randomInt } from 'node:crypto';
 import { test } from '@playwright/test';
 import {
   type Area,
-  areaAt,
+  firstEmptyArea,
   nextArea,
   readLedger,
   record,
   systemOf,
 } from './ledger.ts';
+import { E2E_ENV } from './env.ts';
 
 /** The first slot of a home planet; the game places them on 4 to 12 only. */
 const FIRST_HOME_SLOT = 4;
 const LAST_HOME_SLOT = 12;
+
+/** The planets in `area`, read from the database of the server under test. */
+const planetsIn = (area: Area): string[] =>
+  JSON.parse(
+    execFileSync(
+      process.execPath,
+      ['e2e/area-planets.ts', JSON.stringify({ g: area.g, s: area.s })],
+      { env: { ...process.env, ...E2E_ENV }, encoding: 'utf8' },
+    ),
+  ) as string[];
 
 /** What the running test has been handed. */
 interface Own {
@@ -61,7 +73,16 @@ export function ownArea(): Area & {
 } {
   const own = current();
   if (!own.area) {
-    own.area = areaAt(nextArea());
+    const { area, passed } = firstEmptyArea(nextArea(), planetsIn);
+    // An area with planets of a new round is recorded as passed over, so the
+    // next test does not look at it again.
+    for (const p of passed)
+      record({
+        kind: 'area',
+        owner: `(passed over: ${p.planets.join(', ')})`,
+        ...p.area,
+      });
+    own.area = area;
     record({ kind: 'area', owner: own.owner, ...own.area });
   }
   const area = own.area;
