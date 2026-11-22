@@ -1,5 +1,23 @@
 # Neuigkeiten
 
+## Version 26.11.25 – 22.11.2026
+
+### Neu
+
+- Regeln: Das Spiel darf nicht von einer KI oder einem Programm bedient werden; die Spielleitung kann das prüfen.
+
+### Geändert
+
+- Admin: Die Einstellungen in „Neue Runde“ und im Tab „Universum“ stehen unter Überschriften nach Funktion, in Gruppen zum Auf- und Zuklappen; ein Wert mit Fehler klappt seine Gruppe auf.
+- Marktplatz: Die Spielleitung kann die Preiserholung einer Runde auf 0 Stunden setzen; dann erholen sich die Preise in dieser Runde nicht.
+
+### Behoben
+
+- Flotte, Marktplatz, Freunde, Achievements, Gilden und Admin: Wer einen Wert markiert und überschreibt, bekommt genau das Getippte, auch wenn sich die Seite gerade aktualisiert.
+- Optionen: Die Seite springt beim Scrollen und beim Umschalten der Benachrichtigungen nicht mehr hin und her, ein Tippen trifft den gewählten Schalter.
+- Flotte: Die Seite lädt wieder, wenn ein letztes Ziel zugleich der Hauptplanet eines Freundes oder Gildenmitglieds ist; die Schnellwahl nennt jeden Ort nur einmal.
+- Sternenkarte: Wer Galaxie oder System markiert und überschreibt, bekommt genau die getippte Zahl, auch wenn sich die Seite gerade aktualisiert.
+
 ## Version 26.11.24 – 21.11.2026
 
 ### Neu
