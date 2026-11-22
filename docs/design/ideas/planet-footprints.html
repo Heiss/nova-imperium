@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Studie – Gebäude mit Grundfläche</title>
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="mock.css" />
+    <style>
+      .war {
+        display: grid;
+        grid-template-columns: 1fr 340px;
+        gap: 14px;
+      }
+      .leg {
+        display: grid;
+        grid-template-columns: 16px 1fr auto;
+        gap: 8px;
+        font-size: 15px;
+        padding: 3px 0;
+        align-items: center;
+      }
+      .leg i {
+        width: 14px;
+        height: 14px;
+        border-radius: 3px;
+      }
+      .eff {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 4px 10px;
+        font-size: 15px;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="mock" style="max-width: 1240px">
+      <p class="cap">
+        Studie [V] · Bauen auf Feldern · Runde 2: Gebäude wachsen mit jeder
+        Stufe in die Fläche · jede Stufe belegt Felder (wie #51),
+        zusammenhängend · Ausschnitt, Beispielwerte
+      </p>
+      <h2>
+        Kolonie Varn · Oberfläche (Ausschnitt) · <span id="used"></span> / 163
+        Felder
+      </h2>
+      <div class="war">
+        <div class="box">
+          <div class="bd">
+            <svg
+              id="f"
+              viewBox="0 0 860 560"
+              width="100%"
+              role="img"
+              aria-label="Oberfläche mit Gebäuden als zusammenhängende Flächen verschiedener Größe; eine Metallmine wächst über eine Erzader, freie Nachbarfelder für die nächste Stufe sind markiert"
+            ></svg>
+          </div>
+        </div>
+        <aside>
+          <div class="box">
+            <div class="hd">Gebäude und Fläche</div>
+            <div class="bd" id="legend"></div>
+          </div>
+          <div class="box">
+            <div class="hd">Metallmine 18 → 19</div>
+            <div class="bd">
+              <p style="margin-top: 0; font-size: 15px">
+                Wähle ein freies Nachbarfeld für die neue Stufe:
+              </p>
+              <div class="eff">
+                <span>Feld G6 · Erzader (reich)</span
+                ><span class="good">+3 % gesamt</span>
+                <span>Feld E7 · Ödland</span><span class="dim">±0</span>
+                <span>Feld H4 · neben Fusionskraftwerk</span
+                ><span class="bad">−1 % (Hitze)</span>
+              </div>
+              <p class="dim" style="font-size: 14px">
+                Bonus je Feld auf einer Erzader: <span id="onore"></span> von 18
+                Feldern liegen heute auf der Ader.
+              </p>
+              <button class="go">Stufe 19 auf G6 bauen</button>
+            </div>
+          </div>
+        </aside>
+      </div>
+      <p class="note">
+        Industrialisierung wird sichtbar: große Minen fressen sich über die
+        Adern, die Werft braucht viel Platz am Stück, wer schlecht plant,
+        verbaut sich die besten Felder.
+      </p>
+    </main>
+    <script>
+      const svg = document.getElementById('f');
+      const R = 25,
+        W = Math.sqrt(3) * R,
+        COLS = 19,
+        ROWS = 13;
+      const center = (c, r) => [
+        W * c + (r % 2 ? W / 2 : 0) + W / 2 + 4,
+        1.5 * R * r + R + 6,
+      ];
+      const key = (c, r) => `${c},${r}`;
+      const nb = (c, r) =>
+        r % 2
+          ? [
+              [c + 1, r],
+              [c - 1, r],
+              [c, r - 1],
+              [c + 1, r - 1],
+              [c, r + 1],
+              [c + 1, r + 1],
+            ]
+          : [
+              [c + 1, r],
+              [c - 1, r],
+              [c - 1, r - 1],
+              [c, r - 1],
+              [c - 1, r + 1],
+              [c, r + 1],
+            ];
+      const occ = {};
+      const grow = (name, start, n) => {
+        const q = [start],
+          cells = [];
+        while (q.length && cells.length < n) {
+          const [c, r] = q.shift();
+          if (
+            c < 0 ||
+            r < 0 ||
+            c >= COLS ||
+            r >= ROWS ||
+            occ[key(c, r)] ||
+            blocked.has(key(c, r))
+          )
+            continue;
+          occ[key(c, r)] = name;
+          cells.push([c, r]);
+          for (const x of nb(c, r)) q.push(x);
+        }
+        return cells;
+      };
+      const ore = new Set([
+        '5,6',
+        '6,6',
+        '6,5',
+        '7,6',
+        '5,7',
+        '6,7',
+        '7,7',
+        '8,6',
+        '7,5',
+        '4,6',
+        '6,8',
+        '2,7',
+        '2,8',
+        '3,9',
+      ]);
+      const blocked = new Set([
+        '0,0',
+        '1,0',
+        '0,1',
+        '18,0',
+        '17,0',
+        '18,1',
+        '18,12',
+        '17,12',
+        '0,12',
+        '1,12',
+        '0,11',
+        '9,0',
+        '10,0',
+        '9,1',
+      ]);
+      const B = [
+        [
+          'Schiffswerft',
+          [13, 7],
+          24,
+          '#7a2436',
+          '#ee7660',
+          'Stufe 8 · 3 Felder je Stufe',
+        ],
+        [
+          'Metallmine',
+          [5, 6],
+          18,
+          '#5a4a3a',
+          '#c9c2b6',
+          'Stufe 18 · 1 Feld je Stufe',
+        ],
+        [
+          'Kristallmine',
+          [10, 2],
+          14,
+          '#16404e',
+          '#7fd3f5',
+          'Stufe 14 · 1 Feld je Stufe',
+        ],
+        [
+          'Solarkraftwerk',
+          [3, 2],
+          20,
+          '#4a3e14',
+          '#f3d36b',
+          'Stufe 20 · 1 Feld je Stufe',
+        ],
+        ['Fusionskraftwerk', [9, 5], 6, '#4a1e10', '#f0a050', 'Stufe 6'],
+        ['Forschungslabor', [3, 10], 8, '#2a2036', '#b08cf0', 'Stufe 8'],
+        [
+          'Roboterfabrik',
+          [8, 9],
+          10,
+          '#2a3a20',
+          '#9ccb76',
+          'Stufe 5 · 2 Felder je Stufe',
+        ],
+        ['Speicher', [15, 2], 6, '#2b2219', '#d4a537', '3 Speicher je Stufe 2'],
+      ];
+      const placed = B.map(([n, s, size, f, st, d]) => [
+        n,
+        grow(n, s, size),
+        f,
+        st,
+        d,
+      ]);
+      const color = {};
+      placed.forEach(([n, , f, st]) => (color[n] = [f, st]));
+      const mine = placed[1][1];
+      const cand = new Set();
+      mine.forEach(([c, r]) =>
+        nb(c, r).forEach(([x, y]) => {
+          const k = key(x, y);
+          if (
+            x >= 0 &&
+            y >= 0 &&
+            x < COLS &&
+            y < ROWS &&
+            !occ[k] &&
+            !blocked.has(k)
+          )
+            cand.add(k);
+        }),
+      );
+      let out = '';
+      for (let r = 0; r < ROWS; r++)
+        for (let c = 0; c < COLS; c++) {
+          const [x, y] = center(c, r),
+            k = key(c, r);
+          const pts = [0, 1, 2, 3, 4, 5]
+            .map((i) => {
+              const a = (Math.PI / 180) * (60 * i - 30);
+              return `${(x + R * Math.cos(a)).toFixed(1)},${(y + R * Math.sin(a)).toFixed(1)}`;
+            })
+            .join(' ');
+          let fill = '#231a14',
+            stroke = '#3b2f22',
+            sw = 1;
+          if (blocked.has(k)) fill = '#0f2236';
+          if (ore.has(k) && !occ[k]) {
+            fill = '#3a2c22';
+            stroke = '#c9c2b6';
+          }
+          if (occ[k]) {
+            [fill, stroke] = color[occ[k]];
+          }
+          if (cand.has(k)) {
+            stroke = '#f1d27a';
+            sw = 3;
+          }
+          out += `<polygon points="${pts}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}"/>`;
+          if (ore.has(k) && occ[k] === 'Metallmine')
+            out += `<circle cx="${x}" cy="${y}" r="4" fill="#f1d27a"/>`;
+          if (cand.has(k))
+            out += `<text x="${x}" y="${y + 5}" text-anchor="middle" font-size="14" fill="#f1d27a">+</text>`;
+        }
+      placed.forEach(([n, cells, , st]) => {
+        const cxm =
+          cells.reduce((a, [c, r]) => a + center(c, r)[0], 0) / cells.length;
+        const cym =
+          cells.reduce((a, [c, r]) => a + center(c, r)[1], 0) / cells.length;
+        out += `<text x="${cxm}" y="${cym + 5}" text-anchor="middle" font-family="Cinzel, serif" font-size="13" fill="${st}" stroke="#0d0a08" stroke-width="3" paint-order="stroke">${n}</text>`;
+      });
+      svg.innerHTML = out;
+      document.getElementById('used').textContent = Object.keys(occ).length;
+      document.getElementById('onore').textContent = mine.filter(([c, r]) =>
+        ore.has(key(c, r)),
+      ).length;
+      document.getElementById('legend').innerHTML = placed
+        .map(
+          ([n, cells, f, st, d]) =>
+            `<div class="leg"><i style="background:${f};border:1px solid ${st}"></i><span>${n}<br><span class="dim" style="font-size:13px">${d}</span></span><span>${cells.length} F.</span></div>`,
+        )
+        .join('');
+    </script>
+  </body>
+</html>

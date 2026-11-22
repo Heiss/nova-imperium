@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Studie – Gildenforschung</title>
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="mock.css" />
+    <style>
+      .war {
+        display: grid;
+        grid-template-columns: 1fr 340px;
+        gap: 14px;
+      }
+      .tree {
+        background: var(--box);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+      }
+      .contrib {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 3px 10px;
+        font-size: 15px;
+      }
+      .legend {
+        display: flex;
+        gap: 14px;
+        flex-wrap: wrap;
+        font-size: 14px;
+        color: var(--dim);
+        margin-top: 8px;
+      }
+      .legend i {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 3px;
+        margin-right: 5px;
+        vertical-align: -1px;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="mock" style="max-width: 1240px">
+      <p class="cap">
+        Studie [V] · Gildenforschung · ein eigener Baum für die Gilde, bezahlt
+        aus Einzahlungen der Mitglieder · Namen, Effekte und Zahlen sind
+        Vorschläge, Beispielwerte
+      </p>
+      <h2>Gilde „Sternenwacht“ · Forschung</h2>
+      <div class="war">
+        <div>
+          <div class="tree">
+            <svg
+              id="t"
+              viewBox="0 0 860 560"
+              width="100%"
+              role="img"
+              aria-label="Forschungsbaum der Gilde mit vier Zweigen: Logistik, Bündnis, Aufklärung, Gemeinschaft"
+            ></svg>
+          </div>
+          <div class="legend">
+            <span><i style="background: #d4a537"></i>erforscht</span>
+            <span><i style="background: #f0a050"></i>läuft</span>
+            <span
+              ><i style="background: #2a3a20; border: 1px solid #9ccb76"></i
+              >Einzahlung läuft</span
+            >
+            <span
+              ><i style="background: #231a14; border: 1px solid #5a4a3a"></i
+              >gesperrt</span
+            >
+          </div>
+        </div>
+        <aside>
+          <div class="box">
+            <div class="hd">Sensorkette · Aufklärung II</div>
+            <div class="bd" style="font-size: 15px">
+              <p style="margin-top: 0">
+                Flotten im Anflug auf <b>jeden</b> Planeten eines Mitglieds
+                erscheinen in der Lagekarte (#160) und als Ereignis im
+                Gildenchat (#169).
+              </p>
+              <div class="contrib">
+                <span>Adamant</span><span>248.000 / 400.000</span>
+                <span>Psikristall</span><span>300.000 / 300.000</span>
+                <span>Promethium</span><span>41.000 / 100.000</span>
+              </div>
+              <div class="meter" style="margin: 8px 0">
+                <b style="width: 73%"></b>
+              </div>
+              <div class="contrib">
+                <span>Verschiedene Einzahlende</span
+                ><span class="good">5 (mind. 3)</span>
+                <span>Forschungszeit danach</span><span>18 h</span>
+                <span>Voraussetzung</span
+                ><span class="good">Geteilte Berichte ✓</span>
+              </div>
+              <div
+                style="
+                  margin-top: 10px;
+                  display: flex;
+                  gap: 6px;
+                  flex-wrap: wrap;
+                "
+              >
+                <button class="small">Einzahlen</button>
+                <button
+                  class="small"
+                  disabled
+                  title="Recht „Gildenforschung starten“ (#163)"
+                >
+                  Forschung starten
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="box">
+            <div class="hd">Einzahlungen dieser Woche</div>
+            <div class="bd">
+              <div class="contrib">
+                <span>Kaiser</span><span>212.000</span> <span>Mira</span
+                ><span>160.000</span> <span>du</span><span>95.000</span>
+                <span>Orrin</span><span>62.000</span> <span>Nyx</span
+                ><span>60.000</span>
+              </div>
+              <p class="dim" style="font-size: 13px; margin-bottom: 0">
+                Zählt nicht in die eigenen Punkte; eigene Wertung
+                „Gildendienst“.
+              </p>
+            </div>
+          </div>
+        </aside>
+      </div>
+      <p class="note">
+        Ausgleich (#21): Kosten wachsen mit der Wurzel der Mitgliederzahl, Boni
+        sind gedeckelt, wirken vor allem zwischen Mitgliedern und in der Abwehr,
+        wirtschaftliche Boni bleiben klein – kein Bonus auf den Angriff.
+      </p>
+    </main>
+    <script>
+      const svg = document.getElementById('t');
+      const branches = [
+        [
+          'Logistik',
+          '#7fd3f5',
+          [
+            ['Konvoirouten', '−10 % Flugzeit zu Mitgliedern', 'done'],
+            [
+              'Gemeinsame Depots',
+              '+10 % Laderaum bei Versorgungsflügen',
+              'done',
+            ],
+            ['Treibstoffpakt', '−15 % Promethium zu Mitgliedern', 'avail'],
+            [
+              'Sprungkorridor',
+              '1× am Tag: halbe Flugzeit zu einem Mitglied',
+              'lock',
+            ],
+          ],
+        ],
+        [
+          'Bündnis',
+          '#9ccb76',
+          [
+            ['Frühwarnnetz', 'Angriffe auf Mitglieder sofort im Chat', 'done'],
+            ['Beistandspakt', 'Halten bei Mitgliedern +8 h (#55)', 'run'],
+            [
+              'Schildverbund',
+              '+5 % Schild, wenn ein Mitglied im System verteidigt',
+              'lock',
+            ],
+            [
+              'Bastion',
+              'Belagerungen (#155) gegen Mitglieder +1 Runde Vorbereitung',
+              'lock',
+            ],
+          ],
+        ],
+        [
+          'Aufklärung',
+          '#b08cf0',
+          [
+            [
+              'Geteilte Berichte',
+              'Spionageberichte der Mitglieder in der Lagekarte',
+              'done',
+            ],
+            [
+              'Sensorkette',
+              'Anflüge auf alle Mitgliedsplaneten sichtbar',
+              'fund',
+            ],
+            ['Gildenauspex', 'Spähschädel −20 % Kosten', 'lock'],
+            [
+              'Echolot',
+              'Einmal am Tag ein System ohne Sonden erkunden',
+              'lock',
+            ],
+          ],
+        ],
+        [
+          'Gemeinschaft',
+          '#d4a537',
+          [
+            ['Größere Halle', '+5 Mitgliederplätze', 'done'],
+            [
+              'Gildenkasse',
+              'Einzahlungen werden gelagert statt verfallen',
+              'avail',
+            ],
+            ['Solidarität', '+2 % Förderung für alle (gedeckelt)', 'lock'],
+            [
+              'Gildenrelikt',
+              'ein Relikt (#157), das nicht gestohlen werden kann',
+              'lock',
+            ],
+          ],
+        ],
+      ];
+      const colX = (i) => 110 + i * 213,
+        rowY = (j) => 92 + j * 116;
+      const st = {
+        done: ['#3a2c18', '#d4a537', '#f1d27a'],
+        run: ['#4a2e10', '#f0a050', '#f0a050'],
+        fund: ['#2a3a20', '#9ccb76', '#e9dfc8'],
+        avail: ['#231a14', '#a8997f', '#e9dfc8'],
+        lock: ['#1a1411', '#3b2f22', '#6a5c48'],
+      };
+      let out = '';
+      branches.forEach(([name, col, nodes], i) => {
+        out += `<text x="${colX(i)}" y="30" text-anchor="middle" font-family="Cinzel, serif" font-size="15" fill="${col}" letter-spacing="1">${name}</text>`;
+        nodes.forEach(([n, fx, s], j) => {
+          const x = colX(i),
+            y = rowY(j),
+            [f, b, tc] = st[s];
+          if (j > 0)
+            out += `<line x1="${x}" y1="${rowY(j - 1) + 38}" x2="${x}" y2="${y - 38}" stroke="${s === 'lock' ? '#3b2f22' : col}" stroke-width="3" stroke-dasharray="${s === 'lock' ? '4 5' : ''}"/>`;
+          out += `<rect x="${x - 95}" y="${y - 38}" width="190" height="76" rx="8" fill="${f}" stroke="${b}" stroke-width="${s === 'fund' ? 3 : 1.5}"/>`;
+          out += `<text x="${x}" y="${y - 12}" text-anchor="middle" font-family="Cinzel, serif" font-size="14" fill="${tc}">${n}</text>`;
+          const words = fx.split(' ');
+          let line = '',
+            lines = [];
+          for (const w of words) {
+            if ((line + ' ' + w).length > 28) {
+              lines.push(line);
+              line = w;
+            } else line = line ? line + ' ' + w : w;
+          }
+          lines.push(line);
+          lines
+            .slice(0, 2)
+            .forEach(
+              (l, k) =>
+                (out += `<text x="${x}" y="${y + 8 + k * 15}" text-anchor="middle" font-family="EB Garamond, serif" font-size="12.5" fill="${s === 'lock' ? '#6a5c48' : '#a8997f'}">${l}</text>`),
+            );
+          if (s === 'run')
+            out += `<rect x="${x - 80}" y="${y + 30}" width="160" height="4" fill="#3b2f22"/><rect x="${x - 80}" y="${y + 30}" width="96" height="4" fill="#f0a050"/>`;
+          if (s === 'fund')
+            out += `<rect x="${x - 80}" y="${y + 30}" width="160" height="4" fill="#3b2f22"/><rect x="${x - 80}" y="${y + 30}" width="117" height="4" fill="#9ccb76"/>`;
+        });
+      });
+      svg.innerHTML = out;
+    </script>
+  </body>
+</html>

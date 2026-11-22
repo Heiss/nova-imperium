@@ -1,0 +1,902 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Studie – Endloser Zoom</title>
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="mock.css" />
+    <style>
+      .war {
+        display: grid;
+        grid-template-columns: 1fr 300px;
+        gap: 14px;
+      }
+      .map {
+        background: #07050a;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        overflow: hidden;
+        position: relative;
+      }
+      .map svg {
+        display: block;
+        cursor: grab;
+      }
+      .crumbs {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 10px;
+        font: 600 14px var(--head);
+        letter-spacing: 0.04em;
+        min-height: 22px;
+      }
+      .crumbs a {
+        color: var(--dim);
+        cursor: pointer;
+      }
+      .crumbs a.on {
+        color: var(--gold-hi);
+      }
+      .crumbs span.sep {
+        color: var(--line);
+      }
+      .zoom {
+        position: absolute;
+        right: 10px;
+        top: 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .zoom button {
+        min-width: 0;
+        width: 34px;
+        padding: 2px 0;
+      }
+      .scale {
+        position: absolute;
+        left: 12px;
+        bottom: 10px;
+        font: 600 12px var(--head);
+        color: var(--dim);
+        letter-spacing: 0.06em;
+      }
+      .hint {
+        font-size: 14px;
+        color: var(--dim);
+      }
+    </style>
+  </head>
+  <body>
+    <main class="mock" style="max-width: 1240px">
+      <p class="cap">
+        Studie [V] · Sternenkarte als eine durchgehende Welt: stufenloser Zoom
+        ohne Überblenden, Details erscheinen, sobald sie groß genug sind ·
+        Planeten mit den Texturen des Spiels · Schiffe im Orbit: eigene live,
+        fremde aus der letzten Erkundung · eigene Planeten bis in die Bauansicht
+        (#158) · Beispieldaten
+      </p>
+      <nav class="crumbs" id="crumbs" aria-label="Wo bin ich"></nav>
+      <div class="war">
+        <div class="map">
+          <svg
+            id="v"
+            viewBox="0 0 860 540"
+            width="100%"
+            role="img"
+            aria-label="Zoombare Sternenkarte"
+          >
+            <defs>
+              <radialGradient id="shade" cx="36%" cy="34%">
+                <stop offset="0.42" stop-color="#000" stop-opacity="0" />
+                <stop offset="0.66" stop-color="#000" stop-opacity="0.55" />
+                <stop offset="0.88" stop-color="#000" stop-opacity="0.92" />
+              </radialGradient>
+              <g id="haloDefs"></g>
+            </defs>
+            <defs id="dd"></defs>
+            <g id="dyn"></g>
+            <g id="pls"></g>
+            <g id="top"></g>
+            <g id="ics"></g>
+          </svg>
+          <div class="zoom">
+            <button id="zin" aria-label="Hineinzoomen">+</button
+            ><button id="zout" aria-label="Herauszoomen">−</button>
+          </div>
+          <div class="scale" id="scale"></div>
+        </div>
+        <aside>
+          <div class="box">
+            <div class="hd" id="ph"></div>
+            <div class="bd" id="pb"></div>
+          </div>
+          <p class="hint">
+            Mausrad: stufenlos zum Zeiger · Klick: Flug zum Objekt · Ziehen:
+            verschieben · Esc: eine Ebene hinaus · Telefon: zwei Finger zoomen.
+            „Hilfe &amp; Optionen“: „Klassische Sternenkarte“ schaltet auf die
+            bisherige Tabelle zurück.
+          </p>
+        </aside>
+      </div>
+    </main>
+    <script>
+      const svg = document.getElementById('v');
+      const VW = 860,
+        VH = 540,
+        SX = VW / 2,
+        SY = VH / 2;
+      const NS = 'http://www.w3.org/2000/svg';
+      // ---------- the world (one coordinate system, units are arbitrary) ----------
+      const GALAXIES = 5,
+        SYSTEMS = 50,
+        POSITIONS = 15;
+      const G_GAP = 260,
+        G_R = 95; // galaxy discs
+      const SYS_R = 0.55; // a system's outer orbit (in units)
+      const PL_R = SYS_R * 0.045; // a planet's radius
+      const ATMO = {
+        normal: '#6fb8ff',
+        wasser: '#7fd3ff',
+        dschungel: '#8fe0b0',
+        trocken: '#d9b98a',
+        wueste: '#f0a050',
+        eis: '#cfefff',
+        gas: '#f5d29a',
+      };
+      const ROWS = [
+        ['trocken', 'wueste'],
+        ['normal', 'trocken'],
+        ['dschungel', 'normal'],
+        ['wasser', 'dschungel'],
+        ['eis', 'wasser'],
+        ['gas', 'eis'],
+        ['normal', 'gas'],
+      ];
+      const ptype = (s, p) => {
+        const r = ROWS[Math.max(0, Math.floor((p - 2) / 2))];
+        return r ? r[s % 2 === 0 ? 1 : 0] : 'gas';
+      };
+      const pvar = (g, s, p) => (g + s + p) % 3;
+      const TYPE_NAME = {
+        wueste: 'Wüstenplanet',
+        trocken: 'Trockener Planet',
+        normal: 'Normaler Planet',
+        dschungel: 'Dschungelplanet',
+        wasser: 'Wasserplanet',
+        eis: 'Eisplanet',
+        gas: 'Gasriese',
+      };
+      const galPos = (g) => [
+        (g - (GALAXIES + 1) / 2) * G_GAP,
+        (g % 2 ? -1 : 1) * 30,
+      ];
+      const sysLocal = (s) => {
+        const t = s - 1,
+          a = t * 0.3 + 0.3,
+          r = 8 + t * 1.6;
+        return [Math.cos(a) * r * 1.3, Math.sin(a) * r * 0.9];
+      };
+      const sysPos = (g, s) => {
+        const [gx, gy] = galPos(g),
+          [x, y] = sysLocal(s);
+        return [gx + x, gy + y];
+      };
+      const orbitR = (p) => SYS_R * (0.12 + 0.82 * (p / 16));
+      const plPos = (g, s, p) => {
+        const [x, y] = sysPos(g, s),
+          a = p * 1.7 + s,
+          r = orbitR(p);
+        return [x + Math.cos(a) * r, y + Math.sin(a) * r * 0.55];
+      };
+      const hash = (a, b, c) =>
+        ((a * 73856093) ^ (b * 19349663) ^ (c * 83492791)) >>> 0;
+      const OWN = new Set(['1:27:11', '1:12:4', '1:9:7']);
+      // What the player knows about the ships and defense of a planet: own planets live, others from the last espionage report.
+      const SHIPS = {
+        '1:27:11': {
+          live: true,
+          ships: [
+            ['light_fighter', 120],
+            ['cruiser', 24],
+            ['battleship', 8],
+            ['large_cargo', 15],
+            ['espionage_probe', 5],
+          ],
+        },
+        '1:27:8': {
+          age: 'vor 3 h',
+          ships: [
+            ['heavy_fighter', 40],
+            ['battleship', 12],
+            ['deathstar', 1],
+          ],
+          def: [
+            ['rocket_launcher', 200],
+            ['gauss_cannon', 6],
+            ['large_shield_dome', 1],
+          ],
+        },
+      };
+      const occupied = (g, s, p) =>
+        OWN.has(`${g}:${s}:${p}`) ||
+        `${g}:${s}:${p}` in SHIPS ||
+        `${g}:${s}:${p}` === '1:27:3' ||
+        hash(g, s, p) % 3 === 0;
+      const ownerOf = (g, s, p) =>
+        OWN.has(`${g}:${s}:${p}`)
+          ? 'du'
+          : `${g}:${s}:${p}` === '1:27:8'
+            ? 'Vex'
+            : ['Vex', 'Kaiser', 'Mira', 'Orrin', 'Nyx'][hash(g, s, p) % 5];
+      const ownSystems = new Set(
+        [...OWN].map((k) => k.split(':').slice(0, 2).join(':')),
+      );
+
+      for (const [t, c] of Object.entries(ATMO)) {
+        const gr = document.createElementNS(NS, 'radialGradient');
+        gr.setAttribute('id', 'halo-' + t);
+        gr.setAttribute('cx', '42%');
+        gr.setAttribute('cy', '40%');
+        for (const [o, op] of [
+          [0, 1],
+          [0.62, 0.45],
+          [0.71, 0],
+        ]) {
+          const st = document.createElementNS(NS, 'stop');
+          st.setAttribute('offset', o);
+          st.setAttribute('stop-color', c);
+          st.setAttribute('stop-opacity', op);
+          gr.appendChild(st);
+        }
+        svg.querySelector('defs').appendChild(gr);
+      }
+      // ---------- camera ----------
+      const cam = { x: 0, y: 0, s: 0.55 }; // world units → px
+      const toScreen = (x, y) => [
+        SX + (x - cam.x) * cam.s,
+        SY + (y - cam.y) * cam.s,
+      ];
+      const toWorld = (px, py) => [
+        cam.x + (px - SX) / cam.s,
+        cam.y + (py - SY) / cam.s,
+      ];
+      const inView = (x, y, r) =>
+        x + r > -40 && x - r < VW + 40 && y + r > -40 && y - r < VH + 40;
+      const clamp01 = (v) => Math.max(0, Math.min(1, v));
+      const ramp = (v, a, b) => clamp01((v - a) / (b - a)); // 0 below a, 1 above b
+
+      let defs = '';
+      // Planets are persistent nodes: their textures load once and only move per frame.
+      const plNodes = new Map();
+      let plUsed = new Set();
+      function planetNode(id, type, v, own) {
+        let n = plNodes.get(id);
+        if (n) return n;
+        const g = document.createElementNS(NS, 'g');
+        const cp = document.createElementNS(NS, 'clipPath');
+        cp.setAttribute('id', 'c' + id);
+        const cc = document.createElementNS(NS, 'circle');
+        cp.appendChild(cc);
+        g.appendChild(cp);
+        const halo = document.createElementNS(NS, 'circle');
+        halo.setAttribute('fill', `url(#halo-${type})`);
+        halo.setAttribute('opacity', '0.6');
+        g.appendChild(halo);
+        const body = document.createElementNS(NS, 'g');
+        body.setAttribute('clip-path', `url(#c${id})`);
+        g.appendChild(body);
+        const bg = document.createElementNS(NS, 'rect');
+        bg.setAttribute('fill', '#000');
+        body.appendChild(bg);
+        const imgs = [];
+        for (const [kind, op] of [
+          ['surface', 1],
+          ['clouds', 0.9],
+        ])
+          for (let k = 0; k < 2; k++) {
+            const im = document.createElementNS(NS, 'image');
+            im.setAttribute('href', `/planets/${type}-${v}-${kind}.svg`);
+            im.setAttribute('preserveAspectRatio', 'none');
+            im.setAttribute('opacity', op);
+            body.appendChild(im);
+            imgs.push([im, kind, k]);
+          }
+        const shade = document.createElementNS(NS, 'circle');
+        shade.setAttribute('fill', 'url(#shade)');
+        body.appendChild(shade);
+        const ring = document.createElementNS(NS, 'circle');
+        ring.setAttribute('fill', 'none');
+        ring.setAttribute('stroke', own ? '#f1d27a' : 'none');
+        g.appendChild(ring);
+        document.getElementById('pls').appendChild(g);
+        n = { g, cc, halo, bg, imgs, shade, ring };
+        plNodes.set(id, n);
+        return n;
+      }
+      function placePlanet(id, x, y, r, type, v, own, alpha) {
+        const n = planetNode(id, type, v, own);
+        plUsed.add(id);
+        const t = performance.now() / 1000,
+          shift = {
+            surface: ((t * 6) % 100) / 100,
+            clouds: ((t * 14) % 100) / 100,
+          };
+        n.g.style.display = '';
+        n.g.setAttribute('opacity', alpha);
+        n.cc.setAttribute('cx', x);
+        n.cc.setAttribute('cy', y);
+        n.cc.setAttribute('r', r);
+        n.halo.setAttribute('cx', x);
+        n.halo.setAttribute('cy', y);
+        n.halo.setAttribute('r', r * 1.14);
+        n.bg.setAttribute('x', x - r);
+        n.bg.setAttribute('y', y - r);
+        n.bg.setAttribute('width', 2 * r);
+        n.bg.setAttribute('height', 2 * r);
+        for (const [im, kind, k] of n.imgs) {
+          im.setAttribute('x', x - r - shift[kind] * 4 * r + k * 4 * r);
+          im.setAttribute('y', y - r);
+          im.setAttribute('width', 4 * r);
+          im.setAttribute('height', 2 * r);
+        }
+        n.shade.setAttribute('cx', x);
+        n.shade.setAttribute('cy', y);
+        n.shade.setAttribute('r', r);
+        n.ring.setAttribute('cx', x);
+        n.ring.setAttribute('cy', y);
+        n.ring.setAttribute('r', r + 2);
+        n.ring.setAttribute('stroke-width', Math.max(1.5, r * 0.04));
+      }
+
+      // Ship and defense icons: persistent <image> nodes, like the planets.
+      const icNodes = new Map();
+      let icUsed = new Set();
+      function placeIcon(id, href, x, y, size, alpha) {
+        let im = icNodes.get(id);
+        if (!im) {
+          im = document.createElementNS(NS, 'image');
+          im.setAttribute('href', href);
+          document.getElementById('ics').appendChild(im);
+          icNodes.set(id, im);
+        }
+        icUsed.add(id);
+        im.style.display = '';
+        im.setAttribute('x', x - size / 2);
+        im.setAttribute('y', y - size / 2);
+        im.setAttribute('width', size);
+        im.setAttribute('height', size);
+        im.setAttribute('opacity', alpha);
+      }
+      function orbitShips(key, px, py, pr, alpha) {
+        const info = SHIPS[key];
+        let o = '';
+        if (!info) {
+          o += `<circle cx="${px}" cy="${py}" r="${pr * 1.45}" fill="none" stroke="#5a4a3a" stroke-dasharray="4 8" opacity="${alpha}"/><text x="${px + pr * 1.45}" y="${py}" font-family="Cinzel, serif" font-size="18" fill="#9a8c74" opacity="${alpha}">?</text>`;
+          return o;
+        }
+        const t = performance.now() / 1000,
+          R = pr * 1.45,
+          size = Math.max(16, Math.min(46, pr * 0.2));
+        o += `<circle cx="${px}" cy="${py}" r="${R}" fill="none" stroke="${info.live ? '#9ccb76' : '#9a8c74'}" stroke-dasharray="${info.live ? '' : '5 6'}" opacity="${alpha * 0.5}"/>`;
+        info.ships.forEach(([k, n], i) => {
+          const a = t * 0.08 + (i / info.ships.length) * Math.PI * 2,
+            x = px + Math.cos(a) * R,
+            y = py + Math.sin(a) * R * 0.92;
+          placeIcon(
+            `${key}:${k}`,
+            `/icons/ships/${k}.svg`,
+            x,
+            y,
+            size,
+            alpha * (info.live ? 1 : 0.85),
+          );
+          o += `<text x="${x}" y="${y + size / 2 + 13}" text-anchor="middle" font-family="EB Garamond, serif" font-size="13" fill="#e9dfc8" stroke="#0d0a08" stroke-width="3" paint-order="stroke" opacity="${alpha}">${n}</text>`;
+        });
+        (info.def || []).forEach(([k, n], i, arr) => {
+          const a = Math.PI * (0.62 + (i / Math.max(1, arr.length)) * 0.32),
+            x = px + Math.cos(a) * pr * 0.78,
+            y = py + Math.sin(a) * pr * 0.78;
+          placeIcon(
+            `${key}:d:${k}`,
+            `/icons/defense/${k}.svg`,
+            x,
+            y,
+            size * 0.85,
+            alpha,
+          );
+          o += `<text x="${x}" y="${y + size * 0.42 + 12}" text-anchor="middle" font-family="EB Garamond, serif" font-size="12" fill="#e9dfc8" stroke="#0d0a08" stroke-width="3" paint-order="stroke" opacity="${alpha}">${n}</text>`;
+        });
+        o += `<text x="${px}" y="${py + R + size / 2 + 30}" text-anchor="middle" font-family="Cinzel, serif" font-size="13" fill="${info.live ? '#9ccb76' : '#d9b98a'}" opacity="${alpha}">${info.live ? 'live · deine Flotte im Orbit' : 'Auspex-Erkundung ' + info.age}</text>`;
+        return o;
+      }
+
+      // The surface of an own planet (#158): a hex grid with buildings, inside the planet disc.
+      const BUILD = [
+        [
+          '#5a4a3a',
+          '#c9c2b6',
+          'Metallmine',
+          [
+            [5, 6],
+            [6, 6],
+            [6, 5],
+            [7, 6],
+            [5, 7],
+            [6, 7],
+            [7, 7],
+            [4, 6],
+          ],
+        ],
+        [
+          '#7a2436',
+          '#ee7660',
+          'Schiffswerft',
+          [
+            [12, 6],
+            [13, 6],
+            [12, 7],
+            [13, 7],
+            [11, 6],
+            [12, 5],
+            [13, 5],
+            [11, 7],
+            [14, 6],
+          ],
+        ],
+        [
+          '#16404e',
+          '#7fd3f5',
+          'Kristallmine',
+          [
+            [9, 3],
+            [10, 3],
+            [9, 4],
+            [10, 4],
+            [11, 3],
+          ],
+        ],
+        [
+          '#4a3e14',
+          '#f3d36b',
+          'Solarkraftwerk',
+          [
+            [4, 3],
+            [5, 3],
+            [4, 4],
+            [3, 4],
+            [5, 4],
+            [6, 3],
+          ],
+        ],
+        [
+          '#2a2036',
+          '#b08cf0',
+          'Forschungslabor',
+          [
+            [8, 9],
+            [9, 9],
+            [8, 10],
+          ],
+        ],
+        [
+          '#2a3a20',
+          '#9ccb76',
+          'Servitorenschmiede',
+          [
+            [9, 7],
+            [9, 6],
+            [10, 7],
+          ],
+        ],
+      ];
+      const cellOwner = {};
+      BUILD.forEach(([f, st, n, cells]) =>
+        cells.forEach(([c, r]) => (cellOwner[`${c},${r}`] = [f, st, n])),
+      );
+      function surfaceSVG(x, y, r, alpha) {
+        if (alpha <= 0) return '';
+        const cols = 18,
+          R = (2 * r) / (cols * Math.sqrt(3)),
+          W = Math.sqrt(3) * R;
+        let o = `<g opacity="${alpha}" clip-path="url(#csurf)">`;
+        defs += `<clipPath id="csurf"><circle cx="${x}" cy="${y}" r="${r}"/></clipPath>`;
+        const rows = Math.ceil((2 * r) / (1.5 * R)) + 1;
+        const labels = {};
+        for (let rr = 0; rr < rows; rr++)
+          for (let c = 0; c < cols + 1; c++) {
+            const hx = x - r + W * c + (rr % 2 ? W / 2 : 0),
+              hy = y - r + 1.5 * R * rr + R;
+            if (!inView(hx, hy, R)) continue;
+            const owner = cellOwner[`${c},${rr}`];
+            const pts = [0, 1, 2, 3, 4, 5]
+              .map((i) => {
+                const a = (Math.PI / 180) * (60 * i - 30);
+                return `${(hx + R * Math.cos(a)).toFixed(1)},${(hy + R * Math.sin(a)).toFixed(1)}`;
+              })
+              .join(' ');
+            o += `<polygon points="${pts}" fill="${owner ? owner[0] : '#231a14'}" stroke="${owner ? owner[1] : '#3b2f22'}" stroke-width="1" fill-opacity="${owner ? 0.95 : 0.55}"/>`;
+            if (owner) {
+              (labels[owner[2]] ||= []).push([hx, hy]);
+            }
+          }
+        if (R > 14)
+          for (const n in labels) {
+            const L = labels[n];
+            const lx = L.reduce((a, p) => a + p[0], 0) / L.length,
+              ly = L.reduce((a, p) => a + p[1], 0) / L.length;
+            o += `<text x="${lx}" y="${ly + 5}" text-anchor="middle" font-family="Cinzel, serif" font-size="14" fill="#f1d27a" stroke="#0d0a08" stroke-width="3" paint-order="stroke">${n}</text>`;
+          }
+        return o + '</g>';
+      }
+
+      function frame() {
+        defs = '';
+        plUsed = new Set();
+        icUsed = new Set();
+        let out = '',
+          top = '';
+        for (let i = 0; i < 220; i++) {
+          const x = (i * 137.5) % VW,
+            y = (i * 59.3) % VH;
+          out += `<circle cx="${x}" cy="${y}" r="0.7" fill="#5a4a3a"/>`;
+        }
+        const gR = G_R * cam.s;
+        for (let g = 1; g <= GALAXIES; g++) {
+          const [gx, gy] = toScreen(...galPos(g));
+          if (!inView(gx, gy, gR * 1.4)) continue;
+          out += `<ellipse cx="${gx}" cy="${gy}" rx="${gR * 1.25}" ry="${gR * 0.85}" fill="#f1d27a" opacity="${0.05 * (1 - ramp(gR, 300, 1500))}"/>`;
+          out += `<circle cx="${gx}" cy="${gy}" r="${Math.min(gR * 0.18, 60)}" fill="#f1d27a" opacity="${0.18 * (1 - ramp(gR, 150, 400))}"/>`;
+          const la = 1 - ramp(gR, 160, 320);
+          if (la > 0)
+            out += `<text x="${gx}" y="${gy + gR * 0.95 + 16}" text-anchor="middle" font-family="Cinzel, serif" font-size="14" fill="#f1d27a" opacity="${la}">Galaxie ${g}</text>`;
+          // systems
+          for (let s = 1; s <= SYSTEMS; s++) {
+            const [x, y] = toScreen(...sysPos(g, s));
+            const sR = SYS_R * cam.s;
+            if (!inView(x, y, Math.max(4, sR))) continue;
+            const own = ownSystems.has(`${g}:${s}`);
+            const starR = Math.max(1.6, Math.min(16, sR * 0.12));
+            out += `<circle cx="${x}" cy="${y}" r="${starR}" fill="${own ? '#f1d27a' : '#d9cbb0'}" opacity="${0.5 + 0.5 * ramp(gR, 60, 240)}"/>`;
+            if (sR > 6)
+              out += `<circle cx="${x}" cy="${y}" r="${starR * 2.2}" fill="#f0a050" opacity="${0.12 * ramp(sR, 6, 30)}"/>`;
+            const nl = ramp(gR, 500, 900) * (1 - ramp(sR, 120, 220));
+            if (nl > 0)
+              out += `<text x="${x + starR + 4}" y="${y - 4}" font-family="EB Garamond, serif" font-size="12" fill="${own ? '#f1d27a' : '#a8997f'}" opacity="${nl}">${g}:${s}</text>`;
+            // planets
+            const pa = ramp(sR, 40, 110);
+            if (pa <= 0) continue;
+            for (let p = 1; p <= POSITIONS; p++) {
+              const rr = orbitR(p) * cam.s;
+              out += `<ellipse cx="${x}" cy="${y}" rx="${rr}" ry="${rr * 0.55}" fill="none" stroke="#3b2f22" opacity="${pa}"/>`;
+              if (!occupied(g, s, p)) continue;
+              const [px, py] = toScreen(...plPos(g, s, p));
+              const pr = Math.max(2, PL_R * cam.s);
+              if (!inView(px, py, pr * 1.3)) continue;
+              const ownP = OWN.has(`${g}:${s}:${p}`);
+              if (pr < 5)
+                out += `<circle cx="${px}" cy="${py}" r="${pr}" fill="${ATMO[ptype(s, p)]}" opacity="${pa}"/>`;
+              else
+                placePlanet(
+                  `${g}_${s}_${p}`,
+                  px,
+                  py,
+                  pr,
+                  ptype(s, p),
+                  pvar(g, s, p),
+                  ownP,
+                  pa,
+                );
+              const ll = pa * ramp(pr, 6, 12) * (1 - ramp(pr, 120, 200));
+              if (ll > 0)
+                top += `<text x="${px}" y="${py - pr - 6}" text-anchor="middle" font-family="EB Garamond, serif" font-size="13" fill="${ownP ? '#f1d27a' : '#a8997f'}" opacity="${ll}">${p} · ${ownerOf(g, s, p)}</text>`;
+              if (pr > 30) {
+                const ma = ramp(pr, 30, 60);
+                top += `<circle cx="${px + pr * 1.7}" cy="${py - pr * 0.3}" r="${pr * 0.22}" fill="#c9c2b6" opacity="${ma}"/>`;
+              }
+              if (ownP) top += surfaceSVG(px, py, pr, ramp(pr, 260, 700));
+              const sa = ramp(pr, 50, 90) * (1 - ramp(pr, 260, 420));
+              if (sa > 0) top += orbitShips(`${g}:${s}:${p}`, px, py, pr, sa);
+            }
+          }
+        }
+        document.getElementById('dd').innerHTML = defs;
+        document.getElementById('dyn').innerHTML = out;
+        document.getElementById('top').innerHTML = top;
+        for (const [id, n] of plNodes)
+          if (!plUsed.has(id)) n.g.style.display = 'none';
+        for (const [id, n] of icNodes)
+          if (!icUsed.has(id)) n.style.display = 'none';
+        crumbs();
+      }
+
+      // ---------- where am I ----------
+      function focus() {
+        const [wx, wy] = [cam.x, cam.y];
+        let g = 1,
+          best = Infinity;
+        for (let i = 1; i <= GALAXIES; i++) {
+          const [x, y] = galPos(i);
+          const d = Math.hypot(x - wx, y - wy);
+          if (d < best) {
+            best = d;
+            g = i;
+          }
+        }
+        const f = { g: null, s: null, p: null, surf: false };
+        if (G_R * cam.s > 200) f.g = g;
+        else return f;
+        let s = 1;
+        best = Infinity;
+        for (let i = 1; i <= SYSTEMS; i++) {
+          const [x, y] = sysPos(g, i);
+          const d = Math.hypot(x - wx, y - wy);
+          if (d < best) {
+            best = d;
+            s = i;
+          }
+        }
+        if (SYS_R * cam.s > 120) f.s = s;
+        else return f;
+        let p = null;
+        best = Infinity;
+        for (let i = 1; i <= POSITIONS; i++) {
+          if (!occupied(g, s, i)) continue;
+          const [x, y] = plPos(g, s, i);
+          const d = Math.hypot(x - wx, y - wy);
+          if (d < best) {
+            best = d;
+            p = i;
+          }
+        }
+        if (p && PL_R * cam.s > 90) f.p = p;
+        else return f;
+        if (OWN.has(`${g}:${s}:${p}`) && PL_R * cam.s > 500) f.surf = true;
+        return f;
+      }
+      let lastCrumb = '';
+      function crumbs() {
+        const f = focus();
+        const parts = [['Universum', 0]];
+        if (f.g) parts.push([`Galaxie ${f.g}`, 1]);
+        if (f.s) parts.push([`System ${f.s}`, 2]);
+        if (f.p) parts.push([`Planet ${f.p}`, 3]);
+        if (f.surf) parts.push(['Bauansicht', 4]);
+        const key = parts.map((p) => p[0]).join('|');
+        if (key !== lastCrumb) {
+          lastCrumb = key;
+          document.getElementById('crumbs').innerHTML = parts
+            .map(
+              ([n, l], i) =>
+                `<a data-l="${l}" class="${i === parts.length - 1 ? 'on' : ''}">${n}</a>`,
+            )
+            .join('<span class="sep">›</span>');
+          const ph = document.getElementById('ph'),
+            pb = document.getElementById('pb');
+          const last = parts[parts.length - 1][1];
+          if (last === 0) {
+            ph.textContent = 'Universum';
+            pb.innerHTML =
+              '5 Galaxien in ihrer Reihenfolge. Mausrad oder Klick auf eine Galaxie.';
+          }
+          if (last === 1) {
+            ph.textContent = `Galaxie ${f.g}`;
+            pb.innerHTML =
+              '50 Systeme · eigene gold. Weiter hineinzoomen zeigt Nummern, dann Bahnen und Planeten.';
+          }
+          if (last === 2) {
+            ph.textContent = `System [${f.g}:${f.s}]`;
+            pb.innerHTML =
+              'Bahnen und Planeten mit den Texturen des Spiels (Typ und Variante wie <code>planet-type.ts</code>).';
+          }
+          if (last === 3) {
+            const own = OWN.has(`${f.g}:${f.s}:${f.p}`);
+            ph.textContent = `[${f.g}:${f.s}:${f.p}] · ${ownerOf(f.g, f.s, f.p)}`;
+            pb.innerHTML =
+              `<div class="kv"><span>Typ</span><span>${TYPE_NAME[ptype(f.s, f.p)]}</span><span>Besitzer</span><span>${ownerOf(f.g, f.s, f.p)}</span></div>` +
+              (SHIPS[`${f.g}:${f.s}:${f.p}`]
+                ? own
+                  ? '<p style="font-size:14px">Schiffe im Orbit: live.</p>'
+                  : '<p style="font-size:14px">Schiffe und Verteidigung aus der Auspex-Erkundung vor 3 h.</p>'
+                : '<p class="dim" style="font-size:14px">Keine Erkundung: was hier steht, ist unbekannt.</p>') +
+              (own
+                ? '<p class="dim" style="font-size:14px">Eigener Planet: weiter hineinzoomen öffnet die Bauansicht.</p>'
+                : '<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap"><button class="small">Auspex-Erkundung</button><button class="small">Sturmangriff</button></div>');
+          }
+          if (last === 4) {
+            ph.textContent = `Bauansicht [${f.g}:${f.s}:${f.p}]`;
+            pb.innerHTML =
+              'Die Oberfläche aus #158: Gebäude als Flächen, die mit der Stufe wachsen. Klick auf ein Feld: bauen.';
+          }
+        }
+        document.getElementById('scale').textContent =
+          `Zoom ×${(cam.s / 0.55).toExponential(1).replace('e+', 'e')}`;
+      }
+
+      // ---------- movement ----------
+      let flying = null;
+      function fly(tx, ty, ts, ms = 2200) {
+        const from = { x: cam.x, y: cam.y, l: Math.log(cam.s) },
+          to = { x: tx, y: ty, l: Math.log(ts) };
+        const t0 = performance.now();
+        flying = (now) => {
+          const t = Math.min(1, (now - t0) / ms),
+            e = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+          const l = from.l + (to.l - from.l) * e;
+          const s = Math.exp(l),
+            s0 = Math.exp(from.l),
+            s1 = Math.exp(to.l);
+          // keep the target fixed on screen while zooming: interpolate in screen-scale space
+          const w = s0 === s1 ? e : (1 / s0 - 1 / s) / (1 / s0 - 1 / s1);
+          cam.x = from.x + (to.x - from.x) * w;
+          cam.y = from.y + (to.y - from.y) * w;
+          cam.s = s;
+          if (t >= 1) flying = null;
+        };
+        return new Promise((r) => {
+          const chk = () => (flying ? requestAnimationFrame(chk) : r());
+          chk();
+        });
+      }
+      function loop(now) {
+        if (flying) flying(now);
+        frame();
+        requestAnimationFrame(loop);
+      }
+      requestAnimationFrame(loop);
+
+      const target = {
+        universe: () => [0, 0, 0.55],
+        galaxy: (g) => [...galPos(g), 2.6],
+        galaxyClose: (g, s) => {
+          const [x, y] = sysPos(g, s);
+          return [x, y, 9];
+        },
+        system: (g, s) => [...sysPos(g, s), 420],
+        planet: (g, s, p) => [...plPos(g, s, p), 5200],
+        surface: (g, s, p) => [...plPos(g, s, p), 42000],
+      };
+      svg.addEventListener(
+        'wheel',
+        (ev) => {
+          ev.preventDefault();
+          if (flying) return;
+          const pt = svg.createSVGPoint();
+          pt.x = ev.clientX;
+          pt.y = ev.clientY;
+          const p = pt.matrixTransform(svg.getScreenCTM().inverse());
+          const [wx, wy] = toWorld(p.x, p.y),
+            k = Math.exp(-ev.deltaY * 0.0025);
+          cam.s = Math.max(0.4, Math.min(60000, cam.s * k));
+          cam.x = wx - (p.x - SX) / cam.s;
+          cam.y = wy - (p.y - SY) / cam.s;
+        },
+        { passive: false },
+      );
+      let drag = null;
+      svg.addEventListener(
+        'pointerdown',
+        (e) =>
+          (drag = {
+            x: e.clientX,
+            y: e.clientY,
+            cx: cam.x,
+            cy: cam.y,
+            moved: false,
+          }),
+      );
+      window.addEventListener('pointermove', (e) => {
+        if (!drag) return;
+        const k = VW / svg.clientWidth;
+        if (Math.abs(e.clientX - drag.x) + Math.abs(e.clientY - drag.y) > 4)
+          drag.moved = true;
+        cam.x = drag.cx - ((e.clientX - drag.x) * k) / cam.s;
+        cam.y = drag.cy - ((e.clientY - drag.y) * k) / cam.s;
+      });
+      window.addEventListener('pointerup', (e) => {
+        if (drag && !drag.moved) {
+          const pt = svg.createSVGPoint();
+          pt.x = e.clientX;
+          pt.y = e.clientY;
+          const p = pt.matrixTransform(svg.getScreenCTM().inverse());
+          const [wx, wy] = toWorld(p.x, p.y),
+            f = focus();
+          if (!f.g) {
+            let g = 1,
+              b = Infinity;
+            for (let i = 1; i <= GALAXIES; i++) {
+              const [x, y] = galPos(i);
+              const d = Math.hypot(x - wx, y - wy);
+              if (d < b) {
+                b = d;
+                g = i;
+              }
+            }
+            fly(...target.galaxy(g));
+          } else if (!f.s) {
+            let s = 1,
+              b = Infinity;
+            for (let i = 1; i <= SYSTEMS; i++) {
+              const [x, y] = sysPos(f.g, i);
+              const d = Math.hypot(x - wx, y - wy);
+              if (d < b) {
+                b = d;
+                s = i;
+              }
+            }
+            fly(...target.system(f.g, s));
+          } else if (!f.p) {
+            let q = null,
+              b = Infinity;
+            for (let i = 1; i <= POSITIONS; i++) {
+              if (!occupied(f.g, f.s, i)) continue;
+              const [x, y] = plPos(f.g, f.s, i);
+              const d = Math.hypot(x - wx, y - wy);
+              if (d < b) {
+                b = d;
+                q = i;
+              }
+            }
+            if (q) fly(...target.planet(f.g, f.s, q));
+          } else if (OWN.has(`${f.g}:${f.s}:${f.p}`))
+            fly(...target.surface(f.g, f.s, f.p), 1400);
+        }
+        drag = null;
+      });
+      function outOne() {
+        const f = focus();
+        if (f.surf) return fly(...target.planet(f.g, f.s, f.p), 1400);
+        if (f.p) return fly(...target.system(f.g, f.s));
+        if (f.s) return fly(...target.galaxy(f.g));
+        return fly(...target.universe());
+      }
+      document.getElementById('zin').onclick = () => {
+        cam.s = Math.min(60000, cam.s * 1.6);
+      };
+      document.getElementById('zout').onclick = () => {
+        cam.s = Math.max(0.4, cam.s / 1.6);
+      };
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') outOne();
+      });
+      document.getElementById('crumbs').addEventListener('click', (e) => {
+        const a = e.target.closest('a');
+        if (!a) return;
+        const f = focus(),
+          l = +a.dataset.l;
+        if (l === 0) fly(...target.universe());
+        if (l === 1) fly(...target.galaxy(f.g));
+        if (l === 2) fly(...target.system(f.g, f.s));
+        if (l === 3) fly(...target.planet(f.g, f.s, f.p));
+      });
+
+      // Demo: ?demo=1 – universe → galaxy 1 → closer → system 27 → own planet 11 → building view → back to the universe.
+      if (location.search.includes('demo')) {
+        const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+        (async () => {
+          await wait(900);
+          await fly(...target.galaxy(1), 1800);
+          await wait(700);
+          await fly(...target.galaxyClose(1, 27), 1600);
+          await wait(700);
+          await fly(...target.system(1, 27), 2000);
+          await wait(900);
+          await fly(...target.planet(1, 27, 8), 1800);
+          await wait(1800);
+          await fly(...target.system(1, 27), 1400);
+          await wait(500);
+          await fly(...target.planet(1, 27, 11), 1800);
+          await wait(1800);
+          await fly(...target.surface(1, 27, 11), 1600);
+          await wait(1600);
+          await fly(...target.universe(), 3200);
+          await wait(800);
+          window.demoDone = true;
+        })();
+      }
+    </script>
+  </body>
+</html>

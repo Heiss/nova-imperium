@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Studie – Planetenoberfläche</title>
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="mock.css" />
+    <style>
+      .war {
+        display: grid;
+        grid-template-columns: 1fr 330px;
+        gap: 14px;
+      }
+      .eff {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 4px 10px;
+        font-size: 15px;
+      }
+      .eff .up {
+        color: var(--green);
+        text-align: right;
+      }
+      .eff .down {
+        color: var(--red);
+        text-align: right;
+      }
+      .opt {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        padding: 5px 0;
+        border-bottom: 1px dashed var(--line);
+        font-size: 15px;
+      }
+      .opt:last-child {
+        border-bottom: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="mock" style="max-width: 1240px">
+      <p class="cap">
+        Studie [V] · Bauen auf Feldern · Oberfläche einer Kolonie (Wasserplanet,
+        Position 9) · Formeln klassisch, nur Faktoren je Feld · Beispielwerte
+      </p>
+      <h2>Kolonie Varn · Oberfläche (Ausschnitt) · 54 / 163 Felder</h2>
+      <div class="war">
+        <div class="box">
+          <div class="bd">
+            <svg
+              id="surf"
+              viewBox="0 0 820 520"
+              width="100%"
+              role="img"
+              aria-label="Sechseckige Planetenoberfläche mit Feldeigenschaften, Gebäuden und Nachbarschaftsboni"
+            ></svg>
+          </div>
+        </div>
+        <aside>
+          <div class="box">
+            <div class="hd">Feld E5 · Erzader (reich)</div>
+            <div class="bd">
+              <p style="margin-top: 0">
+                Steht hier: <b>Metallmine, Stufe 12</b>
+              </p>
+              <div class="eff">
+                <span>Grundförderung (klassische Formel, ×5)</span
+                ><span>5.749 / h</span> <span>Erzader reich</span
+                ><span class="up">+30 %</span> <span>Nachbar Roboterfabrik</span
+                ><span class="up">+5 % Bautempo</span>
+                <span>Nachbar Metallspeicher</span><span class="up">+5 %</span>
+                <span>Nachbar Fusionskraftwerk (Hitze)</span
+                ><span class="down">−10 %</span> <span><b>Förderung</b></span
+                ><span><b>7.186 / h</b></span>
+              </div>
+            </div>
+          </div>
+          <div class="box">
+            <div class="hd">Feld C2 · Hydrothermalquelle · frei</div>
+            <div class="bd">
+              <div class="opt">
+                <span>Deuteriumsynthetisierer</span
+                ><span class="good">140 %</span>
+              </div>
+              <div class="opt">
+                <span>Fusionskraftwerk</span
+                ><span class="good">120 % · −20 % Verbrauch</span>
+              </div>
+              <div class="opt">
+                <span>Solarkraftwerk</span><span class="bad">70 %</span>
+              </div>
+              <div class="opt">
+                <span>Forschungslabor</span><span class="dim">100 %</span>
+              </div>
+              <div class="opt">
+                <span>Metallmine</span><span class="bad">nicht möglich</span>
+              </div>
+              <button class="go" style="margin-top: 8px">
+                Deuteriumsynthetisierer hier bauen
+              </button>
+            </div>
+          </div>
+        </aside>
+      </div>
+      <p class="note">
+        Alle Felder neutral = das klassische Spiel. Die Faktoren wirken auf die
+        klassischen Formeln (<code>prod()</code>), ändern sie aber nicht.
+      </p>
+    </main>
+    <script>
+      const svg = document.getElementById('surf');
+      const R = 34,
+        W = Math.sqrt(3) * R,
+        COLS = 12,
+        ROWS = 8;
+      const center = (c, r) => [
+        W * c + (r % 2 ? W / 2 : 0) + W / 2 + 6,
+        1.5 * R * r + R + 8,
+      ];
+      const T = {
+        ore: ['#3a2c22', '#c9c2b6', 'Erz'],
+        crystal: ['#16303a', '#7fd3f5', 'Kri'],
+        vent: ['#123028', '#6fe0a8', 'Hyd'],
+        ocean: ['#0f2236', '#4a7fb0', ''],
+        sun: ['#3a3214', '#f3d36b', 'Son'],
+        mount: ['#1a1411', '#5a4a3a', '▲'],
+        ruin: ['#2a2036', '#b08cf0', 'Vor'],
+        plain: ['#231a14', '#3b2f22', ''],
+      };
+      const map = {};
+      const put = (k, list) => list.forEach((p) => (map[p] = k));
+      put('ocean', [
+        '0,0',
+        '1,0',
+        '0,1',
+        '0,2',
+        '1,7',
+        '0,7',
+        '0,6',
+        '2,7',
+        '11,7',
+        '10,7',
+        '11,6',
+        '11,0',
+      ]);
+      put('ore', ['4,4', '5,4', '4,5', '5,5', '6,5']);
+      put('crystal', ['8,1', '9,1', '8,2', '9,2']);
+      put('vent', ['2,2', '3,1']);
+      put('sun', ['7,6', '8,6', '9,6', '8,7']);
+      put('mount', ['6,0', '7,0', '6,1', '10,4', '11,4', '10,3']);
+      put('ruin', ['2,5']);
+      const B = {
+        '5,4': 'Me 12',
+        '4,4': 'Ro 8',
+        '5,5': 'MSp 6',
+        '6,4': 'Fu 5',
+        '8,1': 'Kr 10',
+        '2,2': '',
+        '8,6': 'So 14',
+        '2,5': 'La 7',
+        '4,6': 'Wf 6',
+      };
+      let out = '';
+      const labels = [];
+      for (let r = 0; r < ROWS; r++)
+        for (let c = 0; c < COLS; c++) {
+          const [x, y] = center(c, r);
+          const pts = [0, 1, 2, 3, 4, 5]
+            .map((i) => {
+              const a = (Math.PI / 180) * (60 * i - 30);
+              return `${(x + R * Math.cos(a)).toFixed(1)},${(y + R * Math.sin(a)).toFixed(1)}`;
+            })
+            .join(' ');
+          const t = T[map[`${c},${r}`] || 'plain'];
+          const sel = c === 5 && r === 4,
+            sel2 = c === 2 && r === 2;
+          out += `<polygon points="${pts}" fill="${t[0]}" stroke="${sel ? '#f1d27a' : sel2 ? '#f0a050' : t[1]}" stroke-width="${sel || sel2 ? 4 : 1.2}"/>`;
+          const b = B[`${c},${r}`];
+          labels.push([x, y, b, t]);
+        }
+      const link = (a, b, col) => {
+        const [x1, y1] = center(...a),
+          [x2, y2] = center(...b);
+        out += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${col}" stroke-width="3" stroke-dasharray="5 4" opacity="0.8"/>`;
+      };
+      link([4, 4], [5, 4], '#9ccb76');
+      link([5, 5], [5, 4], '#9ccb76');
+      link([6, 4], [5, 4], '#ee7660');
+      for (const [x, y, b, t] of labels) {
+        if (b)
+          out += `<rect x="${x - 22}" y="${y - 12}" width="44" height="24" rx="4" fill="#0d0a08" stroke="#d4a537"/><text x="${x}" y="${y + 5}" text-anchor="middle" font-family="Cinzel, serif" font-size="12" fill="#f1d27a">${b}</text>`;
+        else if (t[2])
+          out += `<text x="${x}" y="${y + 5}" text-anchor="middle" font-family="Cinzel, serif" font-size="12" fill="${t[1]}">${t[2]}</text>`;
+      }
+      svg.innerHTML = out;
+    </script>
+  </body>
+</html>

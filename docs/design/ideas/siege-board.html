@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Studie – Bodenkampf</title>
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="mock.css" />
+    <style>
+      .war {
+        display: grid;
+        grid-template-columns: 1fr 300px;
+        gap: 14px;
+      }
+      .board {
+        background: var(--box);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 8px;
+      }
+      .q {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        counter-reset: q;
+      }
+      .q li {
+        counter-increment: q;
+        display: grid;
+        grid-template-columns: 26px 1fr;
+        gap: 6px;
+        padding: 4px 0;
+        border-bottom: 1px dashed var(--line);
+        font-size: 15px;
+      }
+      .q li::before {
+        content: counter(q);
+        color: var(--gold);
+        font: 600 13px var(--head);
+      }
+      .q li.empty {
+        color: var(--dim);
+        font-style: italic;
+      }
+      .top {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+      .clock {
+        font: 800 18px var(--head);
+        color: var(--orange);
+      }
+      .hp {
+        height: 8px;
+        background: var(--box-2);
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        overflow: hidden;
+      }
+      .hp b {
+        display: block;
+        height: 100%;
+        background: var(--green);
+      }
+      .acts {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+      .acts .pill {
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="mock" style="max-width: 1240px">
+      <p class="cap">
+        Studie [V] · Landetruppen &amp; Belagerung · Schlachtfeld mit Zugplanung
+        · Feld zufällig erzeugt, Beispielwerte
+      </p>
+      <div class="top">
+        <h2 style="margin: 0; border: 0">Bodenkampf · Kolonie Varn [1:42:8]</h2>
+        <span
+          ><span class="pill hot">Runde 14 / 48</span>
+          <span class="clock">Dein Zug · 0:37 + 1:50 Guthaben</span></span
+        >
+      </div>
+      <div class="war">
+        <div class="board">
+          <svg
+            id="hex"
+            viewBox="0 0 860 520"
+            width="100%"
+            role="img"
+            aria-label="Sechseckfeld mit Einheiten beider Seiten, Ruinen und Kratern; ausgewählte Einheit mit Reichweite und geplantem Weg"
+          ></svg>
+        </div>
+        <aside>
+          <div class="box">
+            <div class="hd">Ausgewählt · Sturmtrupp II</div>
+            <div class="bd">
+              <div class="kv">
+                <span>Lebenspunkte</span><span>34 / 50</span>
+              </div>
+              <div class="hp"><b style="width: 68%"></b></div>
+              <div class="kv" style="margin-top: 8px">
+                <span>Nahkampf</span><span>12</span>
+                <span>Fernkampf (Reichweite 3)</span><span>7</span>
+                <span>Bewegung</span><span>4 Felder</span>
+                <span>Aktionen je Zug</span><span>2</span>
+              </div>
+              <div class="acts" style="margin-top: 8px">
+                <span class="pill hot">Bewegen</span
+                ><span class="pill">Schießen</span
+                ><span class="pill">Nahkampf</span
+                ><span class="pill">Halten</span>
+              </div>
+            </div>
+          </div>
+          <div class="box">
+            <div class="hd">Geplante Züge (4 von 10)</div>
+            <div class="bd">
+              <ol class="q">
+                <li>Sturmtrupp II → Ruine C5, schießt auf Wache A</li>
+                <li>Läufer I hält, Feuer auf Durchgang</li>
+                <li>Sturmtrupp II Nahkampf, falls Wache A noch steht</li>
+                <li>Mörser zielt auf Bunker E2</li>
+                <li class="empty">frei</li>
+                <li class="empty">frei</li>
+              </ol>
+              <p class="dim" style="font-size: 14px">
+                Jeder geplante Zug bringt 1 h Zeit für den Gegner – und das
+                gesparte Guthaben bleibt dir.
+              </p>
+              <button class="go">Züge abschicken</button>
+            </div>
+          </div>
+        </aside>
+      </div>
+      <p class="note">
+        Offen: abwechselnde Züge (wie beschrieben) oder gleichzeitige Ausführung
+        beider geplanter Züge (wie im Vorbild)? Was passiert bei Zeitablauf –
+        Zug verfällt oder die KI hält die Stellung?
+      </p>
+    </main>
+    <script>
+      // Static mockup: a deterministic hex field, pointy top.
+      const svg = document.getElementById('hex');
+      const R = 30,
+        W = Math.sqrt(3) * R,
+        COLS = 15,
+        ROWS = 11;
+      const terrain = (c, r) => {
+        const v = (c * 7 + r * 13 + c * r) % 23;
+        if (v === 0 || v === 11) return 'crater';
+        if (v === 5 || v === 17 || v === 20) return 'ruin';
+        return 'plain';
+      };
+      const fill = { plain: '#231a14', ruin: '#3a2c18', crater: '#120d0a' };
+      const reach = new Set([
+        '5,5',
+        '6,5',
+        '6,4',
+        '5,4',
+        '4,5',
+        '4,6',
+        '5,6',
+        '6,6',
+        '7,5',
+        '7,4',
+        '6,3',
+        '5,3',
+        '4,4',
+        '3,5',
+        '3,6',
+        '4,7',
+        '5,7',
+        '7,6',
+      ]);
+      const path = [
+        [5, 5],
+        [6, 4],
+        [6, 3],
+        [7, 3],
+      ];
+      const center = (c, r) => [
+        W * c + (r % 2 ? W / 2 : 0) + W / 2 + 6,
+        1.5 * R * r + R + 6,
+      ];
+      let out = '';
+      for (let r = 0; r < ROWS; r++)
+        for (let c = 0; c < COLS; c++) {
+          const [x, y] = center(c, r);
+          const pts = [0, 1, 2, 3, 4, 5].map((i) => {
+            const a = (Math.PI / 180) * (60 * i - 30);
+            return `${(x + R * Math.cos(a)).toFixed(1)},${(y + R * Math.sin(a)).toFixed(1)}`;
+          });
+          const t = terrain(c, r);
+          const hi = reach.has(`${c},${r}`);
+          out += `<polygon points="${pts.join(' ')}" fill="${fill[t]}" stroke="${hi ? '#d4a537' : '#3b2f22'}" stroke-width="${hi ? 2 : 1}" opacity="${hi ? 1 : 0.95}"/>`;
+          if (t === 'ruin')
+            out += `<rect x="${x - 9}" y="${y - 8}" width="18" height="14" fill="none" stroke="#9a8c74" stroke-width="2"/>`;
+          if (t === 'crater')
+            out += `<circle cx="${x}" cy="${y}" r="10" fill="none" stroke="#5a4a3a" stroke-width="2"/>`;
+        }
+      const pp = path.map(([c, r]) => center(c, r).join(',')).join(' ');
+      out += `<polyline points="${pp}" fill="none" stroke="#f1d27a" stroke-width="4" stroke-dasharray="8 6"/>`;
+      const unit = (c, r, label, side, hp) => {
+        const [x, y] = center(c, r);
+        const col = side === 'a' ? '#ee7660' : '#7fd3f5';
+        return (
+          `<circle cx="${x}" cy="${y}" r="17" fill="#0d0a08" stroke="${col}" stroke-width="3"/>` +
+          `<text x="${x}" y="${y + 6}" text-anchor="middle" font-family="Cinzel, serif" font-size="16" fill="${col}">${label}</text>` +
+          `<rect x="${x - 16}" y="${y + 19}" width="32" height="5" fill="#231a14"/><rect x="${x - 16}" y="${y + 19}" width="${32 * hp}" height="5" fill="${hp > 0.5 ? '#9ccb76' : '#f0a050'}"/>`
+        );
+      };
+      out +=
+        unit(5, 5, 'S', 'a', 0.68) +
+        unit(3, 7, 'L', 'a', 1) +
+        unit(2, 4, 'M', 'a', 0.9) +
+        unit(4, 8, 'S', 'a', 0.4);
+      out +=
+        unit(9, 3, 'W', 'd', 0.8) +
+        unit(11, 5, 'B', 'd', 1) +
+        unit(10, 7, 'W', 'd', 0.5) +
+        unit(12, 2, 'F', 'd', 1);
+      const [tx, ty] = center(9, 3);
+      out += `<circle cx="${tx}" cy="${ty}" r="24" fill="none" stroke="#ee7660" stroke-width="2" stroke-dasharray="4 4"/>`;
+      svg.innerHTML = out;
+    </script>
+  </body>
+</html>
