@@ -186,6 +186,28 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   skipping releases is fine. The game shows every version since the one that
   ran before ([Changelog in the game](/features/changelog.md)).
 
+## Collecting pull request (owner, 2026-11-22)
+
+A collecting pull request bundles the issues of a release in one branch
+and one CI run (26.11.24; #347 for 26.11.25).
+
+* **[E]** Its branch asks CodeRabbit for the review at its first push, with
+  `@coderabbitai review` on the draft, not only when it is marked ready, so
+  the findings arrive before the long run (owner, 2026-11-22). Reason: the
+  six findings on the second part of #347 came after its complete run had
+  started, and their fix started it again. CodeRabbit reviews no draft by
+  itself (see „Proposals“ below).
+* **[E]** The scope of a release closes; what comes later goes to the next
+  release, unless the owner says „Ausnahme“ for it, and the loop names the
+  consequence for the date each time (owner, 2026-11-22). **[V]** The scope
+  closes when the collecting pull request is opened (the owner decided the
+  rule, not the moment). Reason: the scope of 26.11.25 grew from four items
+  to twelve.
+* **[E]** 26.11.25 was released from its collecting pull request, without a
+  release pull request and a candidate image, by the owner's exception of
+  2026-11-22 ([log](/log/2026-11-22-release-in-collect.md)); the rule for
+  such a release is planned in #363.
+
 ## Hotfix (owner, 2026-11-12)
 
 * **[E]** When `main` holds no unreleased work, a hotfix is a normal release
