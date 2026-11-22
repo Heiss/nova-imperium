@@ -157,5 +157,13 @@ Issue #292, built after #253 with the owner's „Geklärt“ comments of
   target. The table keeps the newest 20 targets per player so that dropped
   targets can be replaced; a new round deletes it. The words „Freund:“,
   „Gilde:“ and „Ziel:“ are the owner's (above).
+* **[V]** A place is listed once (#362; the owner's rule of 2026-11-17 for a
+  friend who is a guild member, extended to the last targets): under the
+  first group that has it, friend, then guild, then last target. The server
+  leaves a last target out that is the main planet of a friend or a guild
+  member and still fills the last targets up to 5 with older ones; the
+  browser keeps the first entry of an id whatever the server sends, as the
+  list is keyed by the id (a key twice made the fleet page throw
+  `each_key_duplicate` on 26.11.24).
 * Code: `quickTargets`, `ownQuickTargets` in
   `src/client/logic/fleet-target.ts`.

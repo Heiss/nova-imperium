@@ -45,6 +45,17 @@ describe('state: fleets and the home planet', () => {
     expect(s.fleets[0]).not.toEqual(foreignView(own, 0, RECOGNITION_DEFAULT));
   });
 
+  it('lists an own fleet on its way to the shown own planet once (#362: the fleet page keys its list by id)', () => {
+    const ctx = testCtx();
+    const a = addUser(ctx, 'Anna');
+    addPlanet(ctx, a.id, { g: 1, s: 1, p: 5 });
+    addPlanet(ctx, a.id, { g: 1, s: 2, p: 5 });
+    const own = fleet({ id: 'own' });
+    ctx.fleets.save(own);
+    const s = stateFor(ctx, a, 'p1_2_5') as Shown;
+    expect(s.fleets.map((f) => f.id)).toEqual(['own']);
+  });
+
   it('shows foreign fleets only on their way to the shown planet', () => {
     const ctx = testCtx();
     const a = addUser(ctx, 'Anna');

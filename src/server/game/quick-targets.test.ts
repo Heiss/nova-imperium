@@ -228,3 +228,49 @@ describe('the state', () => {
     expect(keys.indexOf('quick')).toBe(keys.indexOf('admin') + 1);
   });
 });
+
+describe('a place listed once (#362; owner, 2026-11-17, extended [V])', () => {
+  it('lists the main planet of a friend that was a hostile target once, as the friend', () => {
+    const { ctx, anna } = world();
+    friends(ctx, 'Bert');
+    send(ctx, anna, go('spy', 2, { probe: 1 }));
+    ctx.clock.t += 10;
+    send(ctx, anna, go('attack', 3));
+    expect(ids(ctx)).toEqual({
+      friends: ['p1_2_6'],
+      guild: [],
+      last: ['p1_3_6'],
+    });
+  });
+
+  it('lists the main planet of a guild member that was a hostile target once, as the guild member', () => {
+    const { ctx, anna } = world();
+    guild(ctx, 'Cora');
+    send(ctx, anna, go('attack', 3));
+    ctx.clock.t += 10;
+    send(ctx, anna, go('attack', 4));
+    expect(ids(ctx)).toEqual({
+      friends: [],
+      guild: ['p1_3_6'],
+      last: ['p1_4_6'],
+    });
+  });
+
+  it('still fills the last targets up to five with older ones', () => {
+    const { ctx, anna } = world();
+    friends(ctx, 'Bert');
+    guild(ctx, 'Cora');
+    // The friend and the guild member were the newest targets.
+    for (const s of [4, 5, 6, 7, 8, 2, 3]) {
+      send(ctx, anna, go('attack', s));
+      ctx.clock.t += 10;
+    }
+    expect(ids(ctx).last).toEqual([
+      'p1_8_6',
+      'p1_7_6',
+      'p1_6_6',
+      'p1_5_6',
+      'p1_4_6',
+    ]);
+  });
+});
