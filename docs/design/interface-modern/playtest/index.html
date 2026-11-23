@@ -511,6 +511,81 @@
         },
       ],
     },
+    {
+      id: 'r2',
+      title: 'Runde 2 · Forschen, verteidigen, auskundschaften',
+      stations: [4, 5, 6],
+      situations: [
+        {
+          id: 's5',
+          title: 'Forschung: Plasma-Lehre ist das Ziel',
+          text: 'Du willst die Plasma-Lehre. Dafür fehlt Ionen-Lehre 5; Warp-Antrieb 5 läuft noch bis 16:32. Kosten aus dem Katalog, Zeiten sind Beispiele.',
+          order: 'cab',
+          desc: {
+            a: 'Kompakt-Raster aller Forschungen; antippen öffnet die Infoseite mit „In die Forschungsschlange“.',
+            b: 'Ein Baum der Voraussetzungen; der Weg zum Ziel ist hervorgehoben.',
+            c: 'Ein Ziel wählen; das Spiel zeigt die Schritte dahin, Kosten, Gesamtzeit, und legt alle in die Schlange.',
+          },
+          emph: {
+            a: 'Ansicht: Raster',
+            b: 'Ansicht: Baum',
+            c: 'Ansicht: Ziel mit Weg',
+          },
+          ask: 'Soll man mehrere Forschungen vormerken können (eine Schlange), auch wenn das Spiel heute nur eine auf einmal forscht?',
+        },
+        {
+          id: 's6',
+          title: 'Abwehr auf Nox vor dem Angriff',
+          text: 'Nox wird um 14:32 angegriffen. Auf Nox liegen 61 k Adamant, 33 k Psikristall, 12 k Promethium. Kosten aus dem Katalog, Bauzeiten sind Beispiele.',
+          order: 'bca',
+          desc: {
+            a: 'Kompakt-Raster der Abwehr; antippen, Menge wählen, sehen ob sie vor dem Angriff fertig wird.',
+            b: 'Eine Anlage groß, die Menge ziehen; Rohstoff-Balken und eine Zeitleiste bis zum Angriff.',
+            c: '„Was schaffst du bis 14:32?“: Vorschläge, die mit den Rohstoffen vor dem Angriff fertig werden.',
+          },
+          emph: {
+            a: 'Ansicht: Raster + Menge',
+            b: 'Ansicht: Menge mit Zeitleiste',
+            c: 'Ansicht: Vorschläge bis zum Termin',
+          },
+          ask: 'Woran entscheidest du, was du gegen einen Angriff baust? (Stärke des Angreifers, Rohstoffe, Zeit, Hilfe der Gilde …)',
+        },
+        {
+          id: 's7',
+          title: 'Spionage',
+          text: 'Du willst wissen, ob sich ein Angriff auf Varn lohnt. Dein letzter Bericht ist 26 Stunden alt; nur eigene Berichte unter 24 Stunden gelten als aktuell (#160).',
+          order: 'acb',
+          desc: {
+            a: 'Aus der System-Ansicht: Varn antippen, im Schieber Alter des Berichts sehen und Spähschädel losschicken.',
+            b: 'Eine Liste deiner Ziele mit Alter des Berichts und geschätzter Beute; mehrere auf einmal ausspionieren.',
+            c: 'Eine Kartenebene „Alter der Berichte“: jede Welt zeigt, wie alt dein Bericht ist; antippen schickt Spähschädel los.',
+          },
+          emph: {
+            a: 'Ansicht: aus dem System',
+            b: 'Ansicht: Zielliste',
+            c: 'Ansicht: Kartenebene',
+          },
+          ask: 'Sollen mehrere Ziele auf einmal ausspioniert werden können, oder ist das zu nah an „Automatisierung“ (#181)?',
+        },
+      ],
+      questions: [
+        {
+          id: 'pace',
+          type: 'one',
+          label: 'Wie fühlt sich das Tempo der Situationen an?',
+          options: [
+            'zu langsam, mehr auf einmal',
+            'genau richtig',
+            'zu schnell',
+          ],
+        },
+        {
+          id: 'next',
+          type: 'text',
+          label: 'Was fehlt dir bisher in den Varianten am meisten?',
+        },
+      ],
+    },
   ];
 
   // One step at a time: the situations of every round in order, each round

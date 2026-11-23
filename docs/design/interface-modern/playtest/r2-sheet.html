@@ -1,0 +1,2368 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <title>Playtest r2</title>
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="../modern.css" />
+    <link rel="stylesheet" href="../studies.css" />
+  </head>
+  <body
+    style="
+      background: #070504;
+      padding: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+    "
+  >
+    <figure id="r2-s5-a" style="margin: 0; display: inline-block">
+      <div class="k-phone" style="">
+        <div class="k-stars" style="position: absolute; inset: 0"></div>
+        <div style="position: relative; padding: 100px 10px 0">
+          <div
+            style="
+              display: flex;
+              gap: 8px;
+              align-items: baseline;
+              margin-bottom: 6px;
+            "
+          >
+            <b style="font: 800 17px var(--head); color: var(--gold)"
+              >Forschung</b
+            ><span class="m-dim" style="font-size: 12.5px"
+              >Warp-Antrieb 5 läuft · 3 h 12</span
+            >
+          </div>
+          <div
+            class="k-grid"
+            style="grid-template-columns: repeat(5, 62px); gap: 8px"
+          >
+            <div class="k-tile run" style="width: 62px; height: 62px">
+              <img src="/icons/research/hyperspace_drive.svg" alt="" /><span
+                class="k-lv"
+                >4</span
+              ><span class="k-st">3 h 12</span>
+            </div>
+            <div class="k-tile ok" style="width: 62px; height: 62px">
+              <img src="/icons/research/energy_technology.svg" alt="" /><span
+                class="k-lv"
+                >8</span
+              ><span class="k-st">baubar</span>
+            </div>
+            <div class="k-tile ok" style="width: 62px; height: 62px">
+              <img src="/icons/research/laser_technology.svg" alt="" /><span
+                class="k-lv"
+                >10</span
+              ><span class="k-st">baubar</span>
+            </div>
+            <div class="k-tile ok sel" style="width: 62px; height: 62px">
+              <img src="/icons/research/ion_technology.svg" alt="" /><span
+                class="k-lv"
+                >0</span
+              ><span class="k-st">baubar</span>
+            </div>
+            <div class="k-tile lock" style="width: 62px; height: 62px">
+              <img src="/icons/research/plasma_technology.svg" alt="" /><span
+                class="k-lv"
+                >0</span
+              ><span class="k-st">Ionen 5</span>
+            </div>
+            <div class="k-tile ok" style="width: 62px; height: 62px">
+              <img
+                src="/icons/research/hyperspace_technology.svg"
+                alt=""
+              /><span class="k-lv">6</span><span class="k-st">baubar</span>
+            </div>
+            <div class="k-tile ok" style="width: 62px; height: 62px">
+              <img src="/icons/research/combustion_drive.svg" alt="" /><span
+                class="k-lv"
+                >8</span
+              ><span class="k-st">baubar</span>
+            </div>
+            <div class="k-tile ok" style="width: 62px; height: 62px">
+              <img src="/icons/research/impulse_drive.svg" alt="" /><span
+                class="k-lv"
+                >6</span
+              ><span class="k-st">baubar</span>
+            </div>
+            <div class="k-tile ok" style="width: 62px; height: 62px">
+              <img src="/icons/research/espionage_technology.svg" alt="" /><span
+                class="k-lv"
+                >8</span
+              ><span class="k-st">baubar</span>
+            </div>
+            <div class="k-tile ok" style="width: 62px; height: 62px">
+              <img src="/icons/research/computer_technology.svg" alt="" /><span
+                class="k-lv"
+                >9</span
+              ><span class="k-st">baubar</span>
+            </div>
+            <div class="k-tile soon" style="width: 62px; height: 62px">
+              <img src="/icons/research/weapons_technology.svg" alt="" /><span
+                class="k-lv"
+                >10</span
+              ><span class="k-st">14:50</span>
+            </div>
+            <div class="k-tile ok" style="width: 62px; height: 62px">
+              <img src="/icons/research/shielding_technology.svg" alt="" /><span
+                class="k-lv"
+                >8</span
+              ><span class="k-st">baubar</span>
+            </div>
+            <div class="k-tile ok" style="width: 62px; height: 62px">
+              <img src="/icons/research/armour_technology.svg" alt="" /><span
+                class="k-lv"
+                >9</span
+              ><span class="k-st">baubar</span>
+            </div>
+            <div class="k-tile lock" style="width: 62px; height: 62px">
+              <img src="/icons/research/graviton_technology.svg" alt="" /><span
+                class="k-lv"
+                >0</span
+              ><span class="k-st">Energie 12</span>
+            </div>
+            <div class="k-tile lock" style="width: 62px; height: 62px">
+              <img
+                src="/icons/research/intergalactic_research_network.svg"
+                alt=""
+              /><span class="k-lv">0</span
+              ><span class="k-st">Scholarium 10</span>
+            </div>
+          </div>
+          <div class="k-info" style="margin-top: 10px; padding: 10px">
+            <div class="k-ih">
+              <img
+                src="/icons/research/ion_technology.svg"
+                alt=""
+                style="width: 56px; height: 56px"
+              />
+              <div>
+                <h2 style="font-size: 16px">Ionen-Lehre 1</h2>
+                <span class="m-dim">nötig für Plasma-Lehre (Stufe 5)</span>
+              </div>
+            </div>
+            <div class="k-need have">
+              <img src="/icons/resources/small/metal.svg" alt="" /><span
+                >1.000</span
+              ><b style="font-weight: 600">✓</b>
+            </div>
+            <div class="k-need have">
+              <img src="/icons/resources/small/crystal.svg" alt="" /><span
+                >300</span
+              ><b style="font-weight: 600">✓</b>
+            </div>
+            <div class="k-need have">
+              <img src="/icons/resources/small/deuterium.svg" alt="" /><span
+                >100</span
+              ><b style="font-weight: 600">✓</b>
+            </div>
+            <div class="m-kv">
+              <span>Dauer</span><b>≈ 2 min</b><span>startet</span
+              ><b>nach Warp-Antrieb 5 · 16:32</b>
+            </div>
+            <span class="m-btn big" style="display: block"
+              >In die Forschungsschlange</span
+            >
+          </div>
+        </div>
+        <div
+          class="k-abs"
+          style="
+            left: 0;
+            right: 0;
+            top: 0;
+            padding: 30px 10px 6px;
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            background: rgb(18 13 10 / 0.92);
+            border-bottom: 1px solid var(--line);
+            z-index: 3;
+          "
+        >
+          <span class="k-pill"
+            ><img src="/icons/resources/small/metal.svg" alt="" />184 k</span
+          ><span class="k-pill"
+            ><img src="/icons/resources/small/crystal.svg" alt="" />92 k</span
+          ><span class="k-pill"
+            ><img src="/icons/resources/small/deuterium.svg" alt="" />41 k</span
+          ><span class="k-pill" style="margin-left: auto">Aurelia ▾</span>
+        </div>
+        <div
+          class="k-abs"
+          style="
+            left: 0;
+            right: 0;
+            top: 640px;
+            bottom: 62px;
+            background: #17110d;
+            border-top: 1px solid var(--gold);
+            border-radius: 16px 16px 0 0;
+            box-shadow: 0 -8px 24px rgb(0 0 0 / 0.6);
+            padding: 6px 12px;
+            z-index: 3;
+          "
+        >
+          <div
+            style="
+              width: 40px;
+              height: 4px;
+              border-radius: 2px;
+              background: var(--line);
+              margin: 0 auto 6px;
+            "
+          ></div>
+          <div
+            style="
+              display: flex;
+              gap: 6px;
+              align-items: center;
+              font-size: 12.5px;
+              white-space: nowrap;
+              overflow: hidden;
+            "
+          >
+            <b
+              style="
+                font: 600 12px var(--head);
+                color: var(--gold-hi);
+                letter-spacing: 0.06em;
+              "
+              >LAGE ▴</b
+            ><span class="m-tag red">ANGRIFF 14:32</span
+            ><span class="m-tag gold">LAGER 1 h 40</span
+            ><span class="m-tag blue">3 BERICHTE</span>
+          </div>
+        </div>
+        <div
+          class="k-abs"
+          style="
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 62px;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            background: #110c09;
+            border-top: 1px solid var(--line);
+            z-index: 3;
+          "
+        >
+          <span
+            style="display: grid; place-items: center; color: var(--gold-hi)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <circle cx="6" cy="7" r="2" />
+              <circle cx="17" cy="6" r="2" />
+              <circle cx="12" cy="17" r="2" />
+              <path d="M8 8l3 7M15 7l-2 8" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="12" r="6" />
+              <ellipse cx="12" cy="12" rx="10" ry="3.5" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <path d="M3 16l9-11 9 11-9-3z" />
+              <path d="M12 13v7" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <rect x="4" y="4" width="16" height="16" rx="2" />
+              <path d="M8 9h8M8 13h8M8 17h5" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <path d="M4 7h16M4 12h16M4 17h16" /></svg
+          ></span>
+        </div>
+      </div>
+    </figure>
+    <figure id="r2-s5-b" style="margin: 0; display: inline-block">
+      <div class="k-phone" style="">
+        <div class="k-stars" style="position: absolute; inset: 0"></div>
+        <div style="position: relative; padding: 100px 10px 0">
+          <div
+            style="
+              display: flex;
+              gap: 8px;
+              align-items: baseline;
+              margin-bottom: 6px;
+            "
+          >
+            <b style="font: 800 17px var(--head); color: var(--gold)"
+              >Forschung · Baum</b
+            ><span class="m-dim" style="font-size: 12.5px"
+              >Weg zu Plasma-Lehre hervorgehoben</span
+            >
+          </div>
+          <div style="position: relative; height: 360px">
+            <svg
+              width="370"
+              height="360"
+              style="position: absolute; left: 0; top: 0"
+            >
+              <line
+                x1="45"
+                y1="66"
+                x2="175"
+                y2="121"
+                stroke="#f1d27a"
+                stroke-width="2"
+              />
+              <line
+                x1="45"
+                y1="176"
+                x2="175"
+                y2="121"
+                stroke="#f1d27a"
+                stroke-width="2"
+              />
+              <line
+                x1="175"
+                y1="121"
+                x2="305"
+                y2="121"
+                stroke="#f1d27a"
+                stroke-width="2"
+              />
+              <line
+                x1="45"
+                y1="66"
+                x2="305"
+                y2="121"
+                stroke="#f1d27a"
+                stroke-width="2"
+              />
+              <line
+                x1="45"
+                y1="176"
+                x2="305"
+                y2="121"
+                stroke="#f1d27a"
+                stroke-width="2"
+              />
+              <line
+                x1="45"
+                y1="296"
+                x2="175"
+                y2="296"
+                stroke="#3b2f22"
+                stroke-width="2"
+              />
+            </svg>
+            <div
+              class="k-abs"
+              style="left: 0px; top: 40px; width: 90px; text-align: center"
+            >
+              <img
+                src="/icons/research/energy_technology.svg"
+                alt=""
+                style="
+                  width: 52px;
+                  height: 52px;
+                  border: 2px solid var(--green);
+                  border-radius: 8px;
+                  background: #120d0a;
+                "
+              />
+              <div
+                style="font-size: 10.5px; line-height: 1.15; margin-top: 2px"
+              >
+                Machina-Energetik 8
+              </div>
+            </div>
+            <div
+              class="k-abs"
+              style="left: 0px; top: 150px; width: 90px; text-align: center"
+            >
+              <img
+                src="/icons/research/laser_technology.svg"
+                alt=""
+                style="
+                  width: 52px;
+                  height: 52px;
+                  border: 2px solid var(--green);
+                  border-radius: 8px;
+                  background: #120d0a;
+                "
+              />
+              <div
+                style="font-size: 10.5px; line-height: 1.15; margin-top: 2px"
+              >
+                Lichtlanzen-Lehre 10
+              </div>
+            </div>
+            <div
+              class="k-abs"
+              style="left: 130px; top: 95px; width: 90px; text-align: center"
+            >
+              <img
+                src="/icons/research/ion_technology.svg"
+                alt=""
+                style="
+                  width: 52px;
+                  height: 52px;
+                  border: 2px solid var(--orange);
+                  border-radius: 8px;
+                  background: #120d0a;
+                "
+              />
+              <div
+                style="font-size: 10.5px; line-height: 1.15; margin-top: 2px"
+              >
+                Ionen-Lehre 0 → 5
+              </div>
+            </div>
+            <div
+              class="k-abs"
+              style="left: 260px; top: 95px; width: 90px; text-align: center"
+            >
+              <img
+                src="/icons/research/plasma_technology.svg"
+                alt=""
+                style="
+                  width: 52px;
+                  height: 52px;
+                  border: 2px solid var(--line);
+                  border-radius: 8px;
+                  background: #120d0a;
+                "
+              />
+              <div
+                style="font-size: 10.5px; line-height: 1.15; margin-top: 2px"
+              >
+                Plasma-Lehre
+              </div>
+            </div>
+            <div
+              class="k-abs"
+              style="left: 0px; top: 270px; width: 90px; text-align: center"
+            >
+              <img
+                src="/icons/research/hyperspace_technology.svg"
+                alt=""
+                style="
+                  width: 52px;
+                  height: 52px;
+                  border: 2px solid var(--green);
+                  border-radius: 8px;
+                  background: #120d0a;
+                "
+              />
+              <div
+                style="font-size: 10.5px; line-height: 1.15; margin-top: 2px"
+              >
+                Warp-Theorie 6
+              </div>
+            </div>
+            <div
+              class="k-abs"
+              style="left: 130px; top: 270px; width: 90px; text-align: center"
+            >
+              <img
+                src="/icons/research/hyperspace_drive.svg"
+                alt=""
+                style="
+                  width: 52px;
+                  height: 52px;
+                  border: 2px solid var(--gold-hi);
+                  border-radius: 8px;
+                  background: #120d0a;
+                "
+              />
+              <div
+                style="font-size: 10.5px; line-height: 1.15; margin-top: 2px"
+              >
+                Warp-Antrieb 4 → 5
+              </div>
+            </div>
+            <div
+              class="k-abs"
+              style="left: 260px; top: 270px; width: 90px; text-align: center"
+            >
+              <img
+                src="/icons/research/graviton_technology.svg"
+                alt=""
+                style="
+                  width: 52px;
+                  height: 52px;
+                  border: 2px solid var(--line);
+                  border-radius: 8px;
+                  background: #120d0a;
+                "
+              />
+              <div
+                style="font-size: 10.5px; line-height: 1.15; margin-top: 2px"
+              >
+                Gravitonen-Mysterium
+              </div>
+            </div>
+          </div>
+          <div class="m-dim" style="font-size: 12.5px">
+            Ziehen zum Verschieben, Antippen öffnet die Infoseite.
+          </div>
+        </div>
+        <div
+          class="k-abs"
+          style="
+            left: 0;
+            right: 0;
+            top: 0;
+            padding: 30px 10px 6px;
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            background: rgb(18 13 10 / 0.92);
+            border-bottom: 1px solid var(--line);
+            z-index: 3;
+          "
+        >
+          <span class="k-pill"
+            ><img src="/icons/resources/small/metal.svg" alt="" />184 k</span
+          ><span class="k-pill"
+            ><img src="/icons/resources/small/crystal.svg" alt="" />92 k</span
+          ><span class="k-pill"
+            ><img src="/icons/resources/small/deuterium.svg" alt="" />41 k</span
+          ><span class="k-pill" style="margin-left: auto">Aurelia ▾</span>
+        </div>
+        <div
+          class="k-abs"
+          style="
+            left: 0;
+            right: 0;
+            top: 640px;
+            bottom: 62px;
+            background: #17110d;
+            border-top: 1px solid var(--gold);
+            border-radius: 16px 16px 0 0;
+            box-shadow: 0 -8px 24px rgb(0 0 0 / 0.6);
+            padding: 6px 12px;
+            z-index: 3;
+          "
+        >
+          <div
+            style="
+              width: 40px;
+              height: 4px;
+              border-radius: 2px;
+              background: var(--line);
+              margin: 0 auto 6px;
+            "
+          ></div>
+          <div
+            style="
+              display: flex;
+              gap: 6px;
+              align-items: center;
+              font-size: 12.5px;
+              white-space: nowrap;
+              overflow: hidden;
+            "
+          >
+            <b
+              style="
+                font: 600 12px var(--head);
+                color: var(--gold-hi);
+                letter-spacing: 0.06em;
+              "
+              >LAGE ▴</b
+            ><span class="m-tag red">ANGRIFF 14:32</span
+            ><span class="m-tag gold">LAGER 1 h 40</span
+            ><span class="m-tag blue">3 BERICHTE</span>
+          </div>
+        </div>
+        <div
+          class="k-abs"
+          style="
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 62px;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            background: #110c09;
+            border-top: 1px solid var(--line);
+            z-index: 3;
+          "
+        >
+          <span
+            style="display: grid; place-items: center; color: var(--gold-hi)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <circle cx="6" cy="7" r="2" />
+              <circle cx="17" cy="6" r="2" />
+              <circle cx="12" cy="17" r="2" />
+              <path d="M8 8l3 7M15 7l-2 8" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="12" r="6" />
+              <ellipse cx="12" cy="12" rx="10" ry="3.5" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <path d="M3 16l9-11 9 11-9-3z" />
+              <path d="M12 13v7" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <rect x="4" y="4" width="16" height="16" rx="2" />
+              <path d="M8 9h8M8 13h8M8 17h5" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <path d="M4 7h16M4 12h16M4 17h16" /></svg
+          ></span>
+        </div>
+      </div>
+    </figure>
+    <figure id="r2-s5-c" style="margin: 0; display: inline-block">
+      <div class="k-phone" style="">
+        <div class="k-stars" style="position: absolute; inset: 0"></div>
+        <div style="position: relative; padding: 100px 10px 0">
+          <div
+            style="
+              display: flex;
+              gap: 8px;
+              align-items: baseline;
+              margin-bottom: 6px;
+            "
+          >
+            <b style="font: 800 17px var(--head); color: var(--gold)"
+              >Forschungsziel</b
+            ><span class="m-dim" style="font-size: 12.5px"></span>
+          </div>
+          <div class="k-panel" style="padding: 8px 10px; margin-bottom: 8px">
+            <span class="m-dim" style="font-size: 12.5px">Ziel</span><br /><b
+              style="font: 600 16px var(--head); color: var(--gold-hi)"
+              >Plasma-Lehre 1</b
+            >
+            <span class="m-dim">· schaltet Plasmabatterie frei</span>
+          </div>
+          <div class="m-dim" style="font-size: 12.5px">
+            Machina-Energetik 8 ✓ · Lichtlanzen-Lehre 10 ✓ · Ionen-Lehre 5 fehlt
+          </div>
+          <div
+            style="
+              display: grid;
+              grid-template-columns: 22px 44px 1fr auto;
+              gap: 8px;
+              align-items: center;
+              padding: 6px 0;
+              border-bottom: 1px solid var(--line);
+            "
+          >
+            <b class="m-dim">1</b
+            ><img
+              src="/icons/research/ion_technology.svg"
+              alt=""
+              style="
+                width: 44px;
+                height: 44px;
+                border-radius: 6px;
+                border: 1px solid var(--line);
+              "
+            />
+            <div>
+              <b>Ionen-Lehre 1–5</b><br /><span
+                class="m-dim"
+                style="font-size: 12px"
+                >31.000 / 9.300 / 3.100</span
+              >
+            </div>
+            <span class="m-num">≈ 48 min</span>
+          </div>
+          <div
+            style="
+              display: grid;
+              grid-template-columns: 22px 44px 1fr auto;
+              gap: 8px;
+              align-items: center;
+              padding: 6px 0;
+              border-bottom: 1px solid var(--line);
+            "
+          >
+            <b class="m-dim">2</b
+            ><img
+              src="/icons/research/plasma_technology.svg"
+              alt=""
+              style="
+                width: 44px;
+                height: 44px;
+                border-radius: 6px;
+                border: 1px solid var(--line);
+              "
+            />
+            <div>
+              <b>Plasma-Lehre 1</b><br /><span
+                class="m-dim"
+                style="font-size: 12px"
+                >2.000 / 4.000 / 1.000</span
+              >
+            </div>
+            <span class="m-num">≈ 7 min</span>
+          </div>
+          <div class="m-kv">
+            <span>Gesamt</span><b>≈ 55 min</b><span>startet</span
+            ><b>nach Warp-Antrieb 5 · 16:32</b><span>fertig</span><b>≈ 17:27</b>
+          </div>
+          <span class="m-btn big" style="display: block"
+            >Ziel in die Schlange (6 Schritte)</span
+          >
+        </div>
+        <div
+          class="k-abs"
+          style="
+            left: 0;
+            right: 0;
+            top: 0;
+            padding: 30px 10px 6px;
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            background: rgb(18 13 10 / 0.92);
+            border-bottom: 1px solid var(--line);
+            z-index: 3;
+          "
+        >
+          <span class="k-pill"
+            ><img src="/icons/resources/small/metal.svg" alt="" />184 k</span
+          ><span class="k-pill"
+            ><img src="/icons/resources/small/crystal.svg" alt="" />92 k</span
+          ><span class="k-pill"
+            ><img src="/icons/resources/small/deuterium.svg" alt="" />41 k</span
+          ><span class="k-pill" style="margin-left: auto">Aurelia ▾</span>
+        </div>
+        <div
+          class="k-abs"
+          style="
+            left: 0;
+            right: 0;
+            top: 640px;
+            bottom: 62px;
+            background: #17110d;
+            border-top: 1px solid var(--gold);
+            border-radius: 16px 16px 0 0;
+            box-shadow: 0 -8px 24px rgb(0 0 0 / 0.6);
+            padding: 6px 12px;
+            z-index: 3;
+          "
+        >
+          <div
+            style="
+              width: 40px;
+              height: 4px;
+              border-radius: 2px;
+              background: var(--line);
+              margin: 0 auto 6px;
+            "
+          ></div>
+          <div
+            style="
+              display: flex;
+              gap: 6px;
+              align-items: center;
+              font-size: 12.5px;
+              white-space: nowrap;
+              overflow: hidden;
+            "
+          >
+            <b
+              style="
+                font: 600 12px var(--head);
+                color: var(--gold-hi);
+                letter-spacing: 0.06em;
+              "
+              >LAGE ▴</b
+            ><span class="m-tag red">ANGRIFF 14:32</span
+            ><span class="m-tag gold">LAGER 1 h 40</span
+            ><span class="m-tag blue">3 BERICHTE</span>
+          </div>
+        </div>
+        <div
+          class="k-abs"
+          style="
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 62px;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            background: #110c09;
+            border-top: 1px solid var(--line);
+            z-index: 3;
+          "
+        >
+          <span
+            style="display: grid; place-items: center; color: var(--gold-hi)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <circle cx="6" cy="7" r="2" />
+              <circle cx="17" cy="6" r="2" />
+              <circle cx="12" cy="17" r="2" />
+              <path d="M8 8l3 7M15 7l-2 8" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="12" r="6" />
+              <ellipse cx="12" cy="12" rx="10" ry="3.5" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <path d="M3 16l9-11 9 11-9-3z" />
+              <path d="M12 13v7" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <rect x="4" y="4" width="16" height="16" rx="2" />
+              <path d="M8 9h8M8 13h8M8 17h5" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <path d="M4 7h16M4 12h16M4 17h16" /></svg
+          ></span>
+        </div>
+      </div>
+    </figure>
+    <figure id="r2-s6-a" style="margin: 0; display: inline-block">
+      <div class="k-phone" style="">
+        <div class="k-stars" style="position: absolute; inset: 0"></div>
+        <div style="position: relative; padding: 100px 10px 0">
+          <div
+            style="
+              display: flex;
+              gap: 8px;
+              align-items: baseline;
+              margin-bottom: 6px;
+            "
+          >
+            <b style="font: 800 17px var(--head); color: var(--gold)"
+              >Abwehr · Nox</b
+            ><span class="m-dim" style="font-size: 12.5px">Angriff 14:32</span>
+          </div>
+          <div
+            class="k-grid"
+            style="grid-template-columns: repeat(5, 62px); gap: 8px"
+          >
+            <div class="k-tile ok sel" style="width: 62px; height: 62px">
+              <img src="/icons/defense/rocket_launcher.svg" alt="" /><span
+                class="k-lv"
+                >120</span
+              ><span class="k-st"></span>
+            </div>
+            <div class="k-tile ok" style="width: 62px; height: 62px">
+              <img src="/icons/defense/light_laser.svg" alt="" /><span
+                class="k-lv"
+                >80</span
+              ><span class="k-st"></span>
+            </div>
+            <div class="k-tile ok" style="width: 62px; height: 62px">
+              <img src="/icons/defense/heavy_laser.svg" alt="" /><span
+                class="k-lv"
+                >20</span
+              ><span class="k-st"></span>
+            </div>
+            <div class="k-tile ok" style="width: 62px; height: 62px">
+              <img src="/icons/defense/gauss_cannon.svg" alt="" /><span
+                class="k-lv"
+                >6</span
+              ><span class="k-st"></span>
+            </div>
+            <div class="k-tile lock" style="width: 62px; height: 62px">
+              <img src="/icons/defense/ion_cannon.svg" alt="" /><span
+                class="k-lv"
+                >0</span
+              ><span class="k-st">gesperrt</span>
+            </div>
+            <div class="k-tile lock" style="width: 62px; height: 62px">
+              <img src="/icons/defense/plasma_turret.svg" alt="" /><span
+                class="k-lv"
+                >0</span
+              ><span class="k-st">gesperrt</span>
+            </div>
+            <div class="k-tile have" style="width: 62px; height: 62px">
+              <img src="/icons/defense/small_shield_dome.svg" alt="" /><span
+                class="k-lv"
+                >1</span
+              ><span class="k-st">vorhanden</span>
+            </div>
+            <div class="k-tile no" style="width: 62px; height: 62px">
+              <img src="/icons/defense/large_shield_dome.svg" alt="" /><span
+                class="k-lv"
+                >0</span
+              ><span class="k-st">fehlt</span>
+            </div>
+          </div>
+        </div>
+        <div
+          class="k-abs"
+          style="
+            left: 0;
+            right: 0;
+            top: 0;
+            padding: 30px 10px 6px;
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            background: rgb(18 13 10 / 0.92);
+            border-bottom: 1px solid var(--line);
+            z-index: 3;
+          "
+        >
+          <span class="k-pill"
+            ><img src="/icons/resources/small/metal.svg" alt="" />61 k</span
+          ><span class="k-pill"
+            ><img src="/icons/resources/small/crystal.svg" alt="" />33 k</span
+          ><span class="k-pill"
+            ><img src="/icons/resources/small/deuterium.svg" alt="" />12 k</span
+          ><span class="k-pill" style="margin-left: auto">Nox ▾</span>
+        </div>
+        <div
+          class="k-abs"
+          style="
+            left: 0;
+            right: 0;
+            bottom: 62px;
+            height: 300px;
+            background: #17110d;
+            border-top: 1px solid var(--gold);
+            border-radius: 16px 16px 0 0;
+            box-shadow: 0 -10px 30px rgb(0 0 0 / 0.7);
+            padding: 6px 12px;
+            z-index: 3;
+            overflow: hidden;
+          "
+        >
+          <div
+            style="
+              width: 40px;
+              height: 4px;
+              border-radius: 2px;
+              background: var(--line);
+              margin: 0 auto 6px;
+            "
+          ></div>
+          <b style="color: var(--gold-hi)">Raketenbatterie</b>
+          <span class="m-dim">· 120 auf Nox</span>
+          <div
+            style="display: flex; gap: 8px; align-items: center; margin: 8px 0"
+          >
+            <span class="m-stepper"><span>−</span><b>30</b><span>+</span></span
+            ><span class="m-chip">max 30</span>
+          </div>
+          <div class="k-need have">
+            <img src="/icons/resources/small/metal.svg" alt="" /><span
+              >60.000 (von 61.000)</span
+            ><b style="font-weight: 600">✓</b>
+          </div>
+          <div class="m-kv">
+            <span>fertig</span><b class="up">14:18 · vor dem Angriff</b>
+          </div>
+          <span class="m-btn big" style="display: block">30 bauen</span>
+        </div>
+        <div
+          class="k-abs"
+          style="
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 62px;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            background: #110c09;
+            border-top: 1px solid var(--line);
+            z-index: 3;
+          "
+        >
+          <span
+            style="display: grid; place-items: center; color: var(--gold-hi)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <circle cx="6" cy="7" r="2" />
+              <circle cx="17" cy="6" r="2" />
+              <circle cx="12" cy="17" r="2" />
+              <path d="M8 8l3 7M15 7l-2 8" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="12" r="6" />
+              <ellipse cx="12" cy="12" rx="10" ry="3.5" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <path d="M3 16l9-11 9 11-9-3z" />
+              <path d="M12 13v7" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <rect x="4" y="4" width="16" height="16" rx="2" />
+              <path d="M8 9h8M8 13h8M8 17h5" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <path d="M4 7h16M4 12h16M4 17h16" /></svg
+          ></span>
+        </div>
+      </div>
+    </figure>
+    <figure id="r2-s6-b" style="margin: 0; display: inline-block">
+      <div class="k-phone" style="">
+        <div class="k-stars" style="position: absolute; inset: 0"></div>
+        <div style="position: relative; padding: 100px 10px 0">
+          <div
+            style="
+              display: flex;
+              gap: 8px;
+              align-items: baseline;
+              margin-bottom: 6px;
+            "
+          >
+            <b style="font: 800 17px var(--head); color: var(--gold)"
+              >Abwehr · Nox</b
+            ><span class="m-dim" style="font-size: 12.5px"
+              >Raketenbatterie</span
+            >
+          </div>
+          <div style="display: flex; gap: 10px; align-items: center">
+            <img
+              src="/icons/defense/rocket_launcher.svg"
+              alt=""
+              style="
+                width: 70px;
+                height: 70px;
+                border: 1px solid var(--gold);
+                border-radius: 8px;
+              "
+            />
+            <div style="flex: 1">
+              <div style="font: 800 28px var(--head); color: var(--gold-hi)">
+                30
+              </div>
+              <div class="m-prog" style="height: 10px">
+                <i style="width: 100%"></i>
+              </div>
+              <div class="m-dim" style="font-size: 12px">
+                Menge ziehen · max 30
+              </div>
+            </div>
+          </div>
+          <div
+            style="
+              display: grid;
+              grid-template-columns: 16px 1fr 90px;
+              gap: 6px;
+              align-items: center;
+              font-size: 13px;
+              margin: 4px 0;
+            "
+          >
+            <img
+              src="/icons/resources/small/metal.svg"
+              alt=""
+              style="width: 16px"
+            />
+            <div class="m-prog" style="height: 8px">
+              <i style="width: 98%; background: var(--gold)"></i>
+            </div>
+            <span class="m-num">60 k / 61 k</span>
+          </div>
+          <div
+            style="
+              display: grid;
+              grid-template-columns: 16px 1fr 90px;
+              gap: 6px;
+              align-items: center;
+              font-size: 13px;
+              margin: 4px 0;
+            "
+          >
+            <img
+              src="/icons/resources/small/crystal.svg"
+              alt=""
+              style="width: 16px"
+            />
+            <div class="m-prog" style="height: 8px">
+              <i style="width: 0%; background: var(--gold)"></i>
+            </div>
+            <span class="m-num">0 / 33 k</span>
+          </div>
+          <div
+            style="
+              display: grid;
+              grid-template-columns: 16px 1fr 90px;
+              gap: 6px;
+              align-items: center;
+              font-size: 13px;
+              margin: 4px 0;
+            "
+          >
+            <img
+              src="/icons/resources/small/deuterium.svg"
+              alt=""
+              style="width: 16px"
+            />
+            <div class="m-prog" style="height: 8px">
+              <i style="width: 0%; background: var(--gold)"></i>
+            </div>
+            <span class="m-num">0 / 12 k</span>
+          </div>
+          <div
+            style="
+              position: relative;
+              height: 46px;
+              margin: 10px 0 4px;
+              border-bottom: 1px solid var(--line);
+            "
+          >
+            <div
+              class="k-abs"
+              style="
+                left: 0;
+                top: 18px;
+                width: 82%;
+                height: 12px;
+                border-radius: 3px;
+                background: var(--gold);
+              "
+            ></div>
+            <div
+              class="k-abs"
+              style="
+                left: 88%;
+                top: 4px;
+                bottom: 0;
+                border-left: 2px dashed var(--red);
+              "
+            ></div>
+            <span
+              class="k-abs"
+              style="left: 0; top: 32px; font-size: 11px"
+              class="m-dim"
+              >13:20</span
+            ><span class="k-abs" style="left: 70%; top: 32px; font-size: 11px"
+              >14:18</span
+            ><span
+              class="k-abs"
+              style="right: 0; top: -14px; font-size: 11px; color: var(--red)"
+              >Angriff 14:32</span
+            >
+          </div>
+          <div style="font-size: 13px">
+            Die letzte Batterie ist
+            <b class="up">14 min vor dem Angriff</b> fertig.
+          </div>
+          <span class="m-btn big" style="display: block; margin-top: 8px"
+            >30 bauen</span
+          >
+        </div>
+        <div
+          class="k-abs"
+          style="
+            left: 0;
+            right: 0;
+            top: 0;
+            padding: 30px 10px 6px;
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            background: rgb(18 13 10 / 0.92);
+            border-bottom: 1px solid var(--line);
+            z-index: 3;
+          "
+        >
+          <span class="k-pill"
+            ><img src="/icons/resources/small/metal.svg" alt="" />61 k</span
+          ><span class="k-pill"
+            ><img src="/icons/resources/small/crystal.svg" alt="" />33 k</span
+          ><span class="k-pill"
+            ><img src="/icons/resources/small/deuterium.svg" alt="" />12 k</span
+          ><span class="k-pill" style="margin-left: auto">Nox ▾</span>
+        </div>
+        <div
+          class="k-abs"
+          style="
+            left: 0;
+            right: 0;
+            top: 640px;
+            bottom: 62px;
+            background: #17110d;
+            border-top: 1px solid var(--gold);
+            border-radius: 16px 16px 0 0;
+            box-shadow: 0 -8px 24px rgb(0 0 0 / 0.6);
+            padding: 6px 12px;
+            z-index: 3;
+          "
+        >
+          <div
+            style="
+              width: 40px;
+              height: 4px;
+              border-radius: 2px;
+              background: var(--line);
+              margin: 0 auto 6px;
+            "
+          ></div>
+          <div
+            style="
+              display: flex;
+              gap: 6px;
+              align-items: center;
+              font-size: 12.5px;
+              white-space: nowrap;
+              overflow: hidden;
+            "
+          >
+            <b
+              style="
+                font: 600 12px var(--head);
+                color: var(--gold-hi);
+                letter-spacing: 0.06em;
+              "
+              >LAGE ▴</b
+            ><span class="m-tag red">ANGRIFF 14:32</span
+            ><span class="m-tag gold">LAGER 1 h 40</span
+            ><span class="m-tag blue">3 BERICHTE</span>
+          </div>
+        </div>
+        <div
+          class="k-abs"
+          style="
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 62px;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            background: #110c09;
+            border-top: 1px solid var(--line);
+            z-index: 3;
+          "
+        >
+          <span
+            style="display: grid; place-items: center; color: var(--gold-hi)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <circle cx="6" cy="7" r="2" />
+              <circle cx="17" cy="6" r="2" />
+              <circle cx="12" cy="17" r="2" />
+              <path d="M8 8l3 7M15 7l-2 8" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="12" r="6" />
+              <ellipse cx="12" cy="12" rx="10" ry="3.5" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <path d="M3 16l9-11 9 11-9-3z" />
+              <path d="M12 13v7" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <rect x="4" y="4" width="16" height="16" rx="2" />
+              <path d="M8 9h8M8 13h8M8 17h5" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <path d="M4 7h16M4 12h16M4 17h16" /></svg
+          ></span>
+        </div>
+      </div>
+    </figure>
+    <figure id="r2-s6-c" style="margin: 0; display: inline-block">
+      <div class="k-phone" style="">
+        <div class="k-stars" style="position: absolute; inset: 0"></div>
+        <div style="position: relative; padding: 100px 10px 0">
+          <div
+            style="
+              display: flex;
+              gap: 8px;
+              align-items: baseline;
+              margin-bottom: 6px;
+            "
+          >
+            <b style="font: 800 17px var(--head); color: var(--gold)"
+              >Was schaffst du bis 14:32?</b
+            ><span class="m-dim" style="font-size: 12.5px">Nox</span>
+          </div>
+          <div class="m-dim" style="font-size: 12.5px; margin-bottom: 8px">
+            Vorschläge mit den Rohstoffen auf Nox, die vor dem Angriff fertig
+            werden. Mira hält mit 40 Abfangjägern.
+          </div>
+          <div
+            class="k-panel"
+            style="
+              padding: 8px 10px;
+              margin-bottom: 8px;
+              outline: 2px solid var(--gold-hi);
+            "
+          >
+            <div style="display: flex; gap: 8px; align-items: center">
+              <img
+                src="/icons/defense/rocket_launcher.svg"
+                alt=""
+                style="width: 44px; height: 44px; border-radius: 6px"
+              />
+              <div style="flex: 1">
+                <b>30 Raketenbatterien</b><br /><span
+                  class="m-dim"
+                  style="font-size: 12px"
+                  >60.000 Adamant</span
+                >
+              </div>
+              <b class="up">14:18</b>
+            </div>
+          </div>
+          <div class="k-panel" style="padding: 8px 10px; margin-bottom: 8px">
+            <div style="display: flex; gap: 8px; align-items: center">
+              <img
+                src="/icons/defense/light_laser.svg"
+                alt=""
+                style="width: 44px; height: 44px; border-radius: 6px"
+              />
+              <div style="flex: 1">
+                <b>20 Lichtlanzen</b><br /><span
+                  class="m-dim"
+                  style="font-size: 12px"
+                  >30.000 / 10.000</span
+                >
+              </div>
+              <b class="up">13:58</b>
+            </div>
+          </div>
+          <div class="k-panel" style="padding: 8px 10px; margin-bottom: 8px">
+            <div style="display: flex; gap: 8px; align-items: center">
+              <img
+                src="/icons/defense/gauss_cannon.svg"
+                alt=""
+                style="width: 44px; height: 44px; border-radius: 6px"
+              />
+              <div style="flex: 1">
+                <b>1 Massebeschleuniger</b><br /><span
+                  class="m-dim"
+                  style="font-size: 12px"
+                  >20.000 / 15.000 / 2.000</span
+                >
+              </div>
+              <b class="up">13:54</b>
+            </div>
+          </div>
+          <div class="m-dim" style="font-size: 12.5px">
+            Kombinieren möglich, solange die Rohstoffe reichen.
+          </div>
+          <span class="m-btn big" style="display: block; margin-top: 8px"
+            >30 Raketenbatterien bauen</span
+          >
+        </div>
+        <div
+          class="k-abs"
+          style="
+            left: 0;
+            right: 0;
+            top: 0;
+            padding: 30px 10px 6px;
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            background: rgb(18 13 10 / 0.92);
+            border-bottom: 1px solid var(--line);
+            z-index: 3;
+          "
+        >
+          <span class="k-pill"
+            ><img src="/icons/resources/small/metal.svg" alt="" />61 k</span
+          ><span class="k-pill"
+            ><img src="/icons/resources/small/crystal.svg" alt="" />33 k</span
+          ><span class="k-pill"
+            ><img src="/icons/resources/small/deuterium.svg" alt="" />12 k</span
+          ><span class="k-pill" style="margin-left: auto">Nox ▾</span>
+        </div>
+        <div
+          class="k-abs"
+          style="
+            left: 0;
+            right: 0;
+            top: 640px;
+            bottom: 62px;
+            background: #17110d;
+            border-top: 1px solid var(--gold);
+            border-radius: 16px 16px 0 0;
+            box-shadow: 0 -8px 24px rgb(0 0 0 / 0.6);
+            padding: 6px 12px;
+            z-index: 3;
+          "
+        >
+          <div
+            style="
+              width: 40px;
+              height: 4px;
+              border-radius: 2px;
+              background: var(--line);
+              margin: 0 auto 6px;
+            "
+          ></div>
+          <div
+            style="
+              display: flex;
+              gap: 6px;
+              align-items: center;
+              font-size: 12.5px;
+              white-space: nowrap;
+              overflow: hidden;
+            "
+          >
+            <b
+              style="
+                font: 600 12px var(--head);
+                color: var(--gold-hi);
+                letter-spacing: 0.06em;
+              "
+              >LAGE ▴</b
+            ><span class="m-tag red">ANGRIFF 14:32</span
+            ><span class="m-tag gold">LAGER 1 h 40</span
+            ><span class="m-tag blue">3 BERICHTE</span>
+          </div>
+        </div>
+        <div
+          class="k-abs"
+          style="
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 62px;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            background: #110c09;
+            border-top: 1px solid var(--line);
+            z-index: 3;
+          "
+        >
+          <span
+            style="display: grid; place-items: center; color: var(--gold-hi)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <circle cx="6" cy="7" r="2" />
+              <circle cx="17" cy="6" r="2" />
+              <circle cx="12" cy="17" r="2" />
+              <path d="M8 8l3 7M15 7l-2 8" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="12" r="6" />
+              <ellipse cx="12" cy="12" rx="10" ry="3.5" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <path d="M3 16l9-11 9 11-9-3z" />
+              <path d="M12 13v7" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <rect x="4" y="4" width="16" height="16" rx="2" />
+              <path d="M8 9h8M8 13h8M8 17h5" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <path d="M4 7h16M4 12h16M4 17h16" /></svg
+          ></span>
+        </div>
+      </div>
+    </figure>
+    <figure id="r2-s7-a" style="margin: 0; display: inline-block">
+      <div class="k-phone" style="">
+        <div class="k-stars" style="position: absolute; inset: 0"></div>
+        <div class="k-abs" style="left: 10px; top: 104px">
+          <span class="k-pill">Galaxie 1 › System 1:44</span>
+        </div>
+        <div
+          class="k-abs"
+          style="left: 90px; top: 220px; text-align: center; font-size: 11.5px"
+        >
+          <span
+            class="m-ball"
+            style="
+              display: inline-block;
+              width: 46px;
+              height: 46px;
+              background-image: url(/planets/trocken-1-surface.svg);
+            "
+          ></span
+          ><br /><b style="color: #ee7660">4 · Varn</b>
+        </div>
+        <div
+          class="k-abs"
+          style="left: 200px; top: 290px; text-align: center; font-size: 11.5px"
+        >
+          <span
+            class="m-ball"
+            style="
+              display: inline-block;
+              width: 36px;
+              height: 36px;
+              background-image: url(/planets/wueste-1-surface.svg);
+            "
+          ></span
+          ><br /><b style="color: #6fe0a8">6 · Kessra Prime</b>
+        </div>
+        <div
+          class="k-abs"
+          style="left: 120px; top: 390px; text-align: center; font-size: 11.5px"
+        >
+          <span
+            class="m-ball"
+            style="
+              display: inline-block;
+              width: 34px;
+              height: 34px;
+              background-image: url(/planets/gas-1-surface.svg);
+            "
+          ></span
+          ><br /><b style="color: #a8997f">8 · Tarsis</b>
+        </div>
+        <div
+          class="k-abs"
+          style="
+            left: 78px;
+            top: 208px;
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            border: 2px solid #f1d27a;
+          "
+        ></div>
+        <div
+          class="k-abs"
+          style="
+            left: 0;
+            right: 0;
+            top: 0;
+            padding: 30px 10px 6px;
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            background: rgb(18 13 10 / 0.92);
+            border-bottom: 1px solid var(--line);
+            z-index: 3;
+          "
+        >
+          <span class="k-pill"
+            ><img src="/icons/resources/small/metal.svg" alt="" />184 k</span
+          ><span class="k-pill"
+            ><img src="/icons/resources/small/crystal.svg" alt="" />92 k</span
+          ><span class="k-pill"
+            ><img src="/icons/resources/small/deuterium.svg" alt="" />41 k</span
+          ><span class="k-pill" style="margin-left: auto">Aurelia ▾</span>
+        </div>
+        <div
+          class="k-abs"
+          style="
+            left: 0;
+            right: 0;
+            bottom: 62px;
+            height: 250px;
+            background: #17110d;
+            border-top: 1px solid var(--gold);
+            border-radius: 16px 16px 0 0;
+            box-shadow: 0 -10px 30px rgb(0 0 0 / 0.7);
+            padding: 6px 12px;
+            z-index: 3;
+            overflow: hidden;
+          "
+        >
+          <div
+            style="
+              width: 40px;
+              height: 4px;
+              border-radius: 2px;
+              background: var(--line);
+              margin: 0 auto 6px;
+            "
+          ></div>
+          <b style="color: var(--gold-hi)">Varn [1:44:4]</b>
+          <span class="m-tag red">KRIEG</span>
+          <div class="m-kv">
+            <span>dein letzter Bericht</span
+            ><b style="color: var(--orange)">vor 26 h · veraltet</b
+            ><span>Aktivität</span><b>vor 2 h</b>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center">
+            <span class="m-stepper"><span>−</span><b>3</b><span>+</span></span
+            ><span class="m-dim" style="font-size: 12.5px"
+              >Spähschädel · 4 min</span
+            >
+          </div>
+          <span class="m-btn big" style="display: block; margin-top: 8px"
+            >Spionieren</span
+          >
+        </div>
+        <div
+          class="k-abs"
+          style="
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 62px;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            background: #110c09;
+            border-top: 1px solid var(--line);
+            z-index: 3;
+          "
+        >
+          <span
+            style="display: grid; place-items: center; color: var(--gold-hi)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <circle cx="6" cy="7" r="2" />
+              <circle cx="17" cy="6" r="2" />
+              <circle cx="12" cy="17" r="2" />
+              <path d="M8 8l3 7M15 7l-2 8" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="12" r="6" />
+              <ellipse cx="12" cy="12" rx="10" ry="3.5" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <path d="M3 16l9-11 9 11-9-3z" />
+              <path d="M12 13v7" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <rect x="4" y="4" width="16" height="16" rx="2" />
+              <path d="M8 9h8M8 13h8M8 17h5" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <path d="M4 7h16M4 12h16M4 17h16" /></svg
+          ></span>
+        </div>
+      </div>
+    </figure>
+    <figure id="r2-s7-b" style="margin: 0; display: inline-block">
+      <div class="k-phone" style="">
+        <div class="k-stars" style="position: absolute; inset: 0"></div>
+        <div style="position: relative; padding: 100px 10px 0">
+          <div
+            style="
+              display: flex;
+              gap: 8px;
+              align-items: baseline;
+              margin-bottom: 6px;
+            "
+          >
+            <b style="font: 800 17px var(--head); color: var(--gold)">Ziele</b
+            ><span class="m-dim" style="font-size: 12.5px">Spionage</span>
+          </div>
+          <div class="m-chips">
+            <span class="m-chip on">Alle</span><span class="m-chip">Krieg</span
+            ><span class="m-chip">veraltet</span>
+          </div>
+          <div
+            style="
+              display: grid;
+              grid-template-columns: 22px 30px 1fr auto;
+              gap: 8px;
+              align-items: center;
+              padding: 6px 0;
+              border-bottom: 1px solid var(--line);
+            "
+          >
+            <span>☑</span
+            ><span
+              class="m-ball"
+              style="
+                display: inline-block;
+                width: 28px;
+                height: 28px;
+                background-image: url(/planets/trocken-1-surface.svg);
+              "
+            ></span>
+            <div>
+              <b>Varn</b>
+              <span class="m-dim" style="font-size: 12px">1:44:4 · Krieg</span
+              ><br /><span style="font-size: 12px; color: var(--orange)"
+                >Bericht 26 h alt</span
+              >
+            </div>
+            <span class="m-dim" style="font-size: 12px">≈ 600 k</span>
+          </div>
+          <div
+            style="
+              display: grid;
+              grid-template-columns: 22px 30px 1fr auto;
+              gap: 8px;
+              align-items: center;
+              padding: 6px 0;
+              border-bottom: 1px solid var(--line);
+            "
+          >
+            <span>☑</span
+            ><span
+              class="m-ball"
+              style="
+                display: inline-block;
+                width: 28px;
+                height: 28px;
+                background-image: url(/planets/gas-1-surface.svg);
+              "
+            ></span>
+            <div>
+              <b>Tarsis</b>
+              <span class="m-dim" style="font-size: 12px">1:44:8</span
+              ><br /><span style="font-size: 12px; color: var(--green)"
+                >Bericht 4 h alt</span
+              >
+            </div>
+            <span class="m-dim" style="font-size: 12px">≈ 155 k</span>
+          </div>
+          <div
+            style="
+              display: grid;
+              grid-template-columns: 22px 30px 1fr auto;
+              gap: 8px;
+              align-items: center;
+              padding: 6px 0;
+              border-bottom: 1px solid var(--line);
+            "
+          >
+            <span>☐</span
+            ><span
+              class="m-ball"
+              style="
+                display: inline-block;
+                width: 28px;
+                height: 28px;
+                background-image: url(/planets/wueste-1-surface.svg);
+              "
+            ></span>
+            <div>
+              <b>Ödwacht</b>
+              <span class="m-dim" style="font-size: 12px">1:31:5 · Krieg</span
+              ><br /><span style="font-size: 12px; color: var(--red)"
+                >kein Bericht</span
+              >
+            </div>
+            <span class="m-dim" style="font-size: 12px">?</span>
+          </div>
+          <div
+            style="
+              display: grid;
+              grid-template-columns: 22px 30px 1fr auto;
+              gap: 8px;
+              align-items: center;
+              padding: 6px 0;
+              border-bottom: 1px solid var(--line);
+            "
+          >
+            <span>☐</span
+            ><span
+              class="m-ball"
+              style="
+                display: inline-block;
+                width: 28px;
+                height: 28px;
+                background-image: url(/planets/eis-1-surface.svg);
+              "
+            ></span>
+            <div>
+              <b>Frostgrab</b>
+              <span class="m-dim" style="font-size: 12px">1:29:3</span
+              ><br /><span style="font-size: 12px; color: var(--dim)"
+                >Bericht 3 Tage alt</span
+              >
+            </div>
+            <span class="m-dim" style="font-size: 12px">?</span>
+          </div>
+          <span class="m-btn big" style="display: block; margin-top: 10px"
+            >2 ausspionieren · je 3 Spähschädel</span
+          >
+          <div class="m-dim" style="font-size: 12px; margin-top: 6px">
+            Beute: geschätzt aus deinem letzten Bericht.
+          </div>
+        </div>
+        <div
+          class="k-abs"
+          style="
+            left: 0;
+            right: 0;
+            top: 0;
+            padding: 30px 10px 6px;
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            background: rgb(18 13 10 / 0.92);
+            border-bottom: 1px solid var(--line);
+            z-index: 3;
+          "
+        >
+          <span class="k-pill"
+            ><img src="/icons/resources/small/metal.svg" alt="" />184 k</span
+          ><span class="k-pill"
+            ><img src="/icons/resources/small/crystal.svg" alt="" />92 k</span
+          ><span class="k-pill"
+            ><img src="/icons/resources/small/deuterium.svg" alt="" />41 k</span
+          ><span class="k-pill" style="margin-left: auto">Aurelia ▾</span>
+        </div>
+        <div
+          class="k-abs"
+          style="
+            left: 0;
+            right: 0;
+            top: 640px;
+            bottom: 62px;
+            background: #17110d;
+            border-top: 1px solid var(--gold);
+            border-radius: 16px 16px 0 0;
+            box-shadow: 0 -8px 24px rgb(0 0 0 / 0.6);
+            padding: 6px 12px;
+            z-index: 3;
+          "
+        >
+          <div
+            style="
+              width: 40px;
+              height: 4px;
+              border-radius: 2px;
+              background: var(--line);
+              margin: 0 auto 6px;
+            "
+          ></div>
+          <div
+            style="
+              display: flex;
+              gap: 6px;
+              align-items: center;
+              font-size: 12.5px;
+              white-space: nowrap;
+              overflow: hidden;
+            "
+          >
+            <b
+              style="
+                font: 600 12px var(--head);
+                color: var(--gold-hi);
+                letter-spacing: 0.06em;
+              "
+              >LAGE ▴</b
+            ><span class="m-tag red">ANGRIFF 14:32</span
+            ><span class="m-tag gold">LAGER 1 h 40</span
+            ><span class="m-tag blue">3 BERICHTE</span>
+          </div>
+        </div>
+        <div
+          class="k-abs"
+          style="
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 62px;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            background: #110c09;
+            border-top: 1px solid var(--line);
+            z-index: 3;
+          "
+        >
+          <span
+            style="display: grid; place-items: center; color: var(--gold-hi)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <circle cx="6" cy="7" r="2" />
+              <circle cx="17" cy="6" r="2" />
+              <circle cx="12" cy="17" r="2" />
+              <path d="M8 8l3 7M15 7l-2 8" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="12" r="6" />
+              <ellipse cx="12" cy="12" rx="10" ry="3.5" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <path d="M3 16l9-11 9 11-9-3z" />
+              <path d="M12 13v7" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <rect x="4" y="4" width="16" height="16" rx="2" />
+              <path d="M8 9h8M8 13h8M8 17h5" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <path d="M4 7h16M4 12h16M4 17h16" /></svg
+          ></span>
+        </div>
+      </div>
+    </figure>
+    <figure id="r2-s7-c" style="margin: 0; display: inline-block">
+      <div class="k-phone" style="">
+        <div class="k-stars" style="position: absolute; inset: 0"></div>
+        <div
+          class="k-abs"
+          style="left: 10px; top: 104px; display: flex; gap: 6px"
+        >
+          <span class="m-chip">Besitz</span
+          ><span class="m-chip on">Alter der Berichte</span
+          ><span class="m-chip">Aktivität</span>
+        </div>
+        <div
+          class="k-abs"
+          style="left: 60px; top: 200px; text-align: center; font-size: 11px"
+        >
+          <div
+            style="
+              width: 38px;
+              height: 38px;
+              margin: 0 auto;
+              border-radius: 50%;
+              border: 3px solid var(--orange);
+              display: grid;
+              place-items: center;
+              background: #120d0a;
+              font-weight: 700;
+            "
+          >
+            26h
+          </div>
+          Varn
+        </div>
+        <div
+          class="k-abs"
+          style="left: 170px; top: 260px; text-align: center; font-size: 11px"
+        >
+          <div
+            style="
+              width: 38px;
+              height: 38px;
+              margin: 0 auto;
+              border-radius: 50%;
+              border: 3px solid var(--green);
+              display: grid;
+              place-items: center;
+              background: #120d0a;
+              font-weight: 700;
+            "
+          >
+            4h
+          </div>
+          Tarsis
+        </div>
+        <div
+          class="k-abs"
+          style="left: 280px; top: 190px; text-align: center; font-size: 11px"
+        >
+          <div
+            style="
+              width: 38px;
+              height: 38px;
+              margin: 0 auto;
+              border-radius: 50%;
+              border: 3px solid var(--red);
+              display: grid;
+              place-items: center;
+              background: #120d0a;
+              font-weight: 700;
+            "
+          >
+            –
+          </div>
+          Ödwacht
+        </div>
+        <div
+          class="k-abs"
+          style="left: 110px; top: 360px; text-align: center; font-size: 11px"
+        >
+          <div
+            style="
+              width: 38px;
+              height: 38px;
+              margin: 0 auto;
+              border-radius: 50%;
+              border: 3px solid var(--dim);
+              display: grid;
+              place-items: center;
+              background: #120d0a;
+              font-weight: 700;
+            "
+          >
+            3T
+          </div>
+          Frostgrab
+        </div>
+        <div
+          class="k-abs"
+          style="left: 250px; top: 400px; text-align: center; font-size: 11px"
+        >
+          <div
+            style="
+              width: 38px;
+              height: 38px;
+              margin: 0 auto;
+              border-radius: 50%;
+              border: 3px solid var(--green);
+              display: grid;
+              place-items: center;
+              background: #120d0a;
+              font-weight: 700;
+            "
+          >
+            1h
+          </div>
+          Kessra
+        </div>
+        <div
+          class="k-abs"
+          style="left: 10px; top: 470px; right: 10px; font-size: 12px"
+          class="m-dim"
+        >
+          <span style="color: var(--green)">●</span> frisch &lt; 6 h
+          <span style="color: var(--orange)">●</span> veraltet
+          <span style="color: var(--red)">●</span> nie · Antippen = Spähschädel
+          los
+        </div>
+        <div
+          class="k-abs"
+          style="
+            left: 0;
+            right: 0;
+            top: 0;
+            padding: 30px 10px 6px;
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            background: rgb(18 13 10 / 0.92);
+            border-bottom: 1px solid var(--line);
+            z-index: 3;
+          "
+        >
+          <span class="k-pill"
+            ><img src="/icons/resources/small/metal.svg" alt="" />184 k</span
+          ><span class="k-pill"
+            ><img src="/icons/resources/small/crystal.svg" alt="" />92 k</span
+          ><span class="k-pill"
+            ><img src="/icons/resources/small/deuterium.svg" alt="" />41 k</span
+          ><span class="k-pill" style="margin-left: auto">Aurelia ▾</span>
+        </div>
+        <div
+          class="k-abs"
+          style="
+            left: 0;
+            right: 0;
+            top: 640px;
+            bottom: 62px;
+            background: #17110d;
+            border-top: 1px solid var(--gold);
+            border-radius: 16px 16px 0 0;
+            box-shadow: 0 -8px 24px rgb(0 0 0 / 0.6);
+            padding: 6px 12px;
+            z-index: 3;
+          "
+        >
+          <div
+            style="
+              width: 40px;
+              height: 4px;
+              border-radius: 2px;
+              background: var(--line);
+              margin: 0 auto 6px;
+            "
+          ></div>
+          <div
+            style="
+              display: flex;
+              gap: 6px;
+              align-items: center;
+              font-size: 12.5px;
+              white-space: nowrap;
+              overflow: hidden;
+            "
+          >
+            <b
+              style="
+                font: 600 12px var(--head);
+                color: var(--gold-hi);
+                letter-spacing: 0.06em;
+              "
+              >LAGE ▴</b
+            ><span class="m-tag red">ANGRIFF 14:32</span
+            ><span class="m-tag gold">LAGER 1 h 40</span
+            ><span class="m-tag blue">3 BERICHTE</span>
+          </div>
+        </div>
+        <div
+          class="k-abs"
+          style="
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 62px;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            background: #110c09;
+            border-top: 1px solid var(--line);
+            z-index: 3;
+          "
+        >
+          <span
+            style="display: grid; place-items: center; color: var(--gold-hi)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <circle cx="6" cy="7" r="2" />
+              <circle cx="17" cy="6" r="2" />
+              <circle cx="12" cy="17" r="2" />
+              <path d="M8 8l3 7M15 7l-2 8" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="12" r="6" />
+              <ellipse cx="12" cy="12" rx="10" ry="3.5" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <path d="M3 16l9-11 9 11-9-3z" />
+              <path d="M12 13v7" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <rect x="4" y="4" width="16" height="16" rx="2" />
+              <path d="M8 9h8M8 13h8M8 17h5" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <path d="M4 7h16M4 12h16M4 17h16" /></svg
+          ></span>
+        </div>
+      </div>
+    </figure>
+  </body>
+</html>

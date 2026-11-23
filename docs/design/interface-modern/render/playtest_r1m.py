@@ -183,3 +183,83 @@ if __name__ == '__main__':
     with open(os.path.join(out, 'r1m-sheet.html'), 'w', encoding='utf-8') as f:
         f.write(build_sheet())
     print('wrote playtest/r1m-sheet.html')
+
+
+# ------------------------------------------------------------------ s1n: stars with pips plus names (owner's note on s1m)
+SYS_N = {  # system: (x, y, [(pos, colour, player)])
+    '1:24': (60, 70, [(5, OTHER, 'Orlan'), (9, OTHER, 'Orlan')]), '1:26': (120, 200, [(7, GUILD, 'Mira'), (12, OTHER, 'Sev')]),
+    '1:27': (190, 300, [(4, OWN, 'du'), (8, OWN, 'du'), (11, OWN, 'du'), (14, OTHER, 'Leander')]), '1:29': (310, 150, [(6, OTHER, 'Leander')]),
+    '1:31': (300, 390, [(3, WAR, 'Haus Valcor'), (5, WAR, 'Haus Valcor'), (9, WAR, 'Haus Valcor')]), '1:35': (90, 430, [(8, OTHER, 'Tarsis'), (10, OTHER, 'Ilka')]),
+    '1:44': (330, 500, [(4, WAR, 'Varn'), (6, GUILD, 'Kessra'), (8, OTHER, 'Tarsis')]), '1:21': (250, 60, [(2, OTHER, 'Quill')])}
+
+
+def owners(occ):
+    seen = {}
+    for _, col, who in occ:
+        seen.setdefault(who, [col, 0])[1] += 1
+    return seen
+
+
+def map_n(mode):
+    w, h = W, SHEET_TOP - TOP
+    svg = [f'<svg width="{w}" height="{h}" viewBox="0 0 {w} {h}">', bg_stars(160, w, h, 4)]
+    svg.append(route(300, 390, 196, 306, WAR, 'Angriff 14:32', 0.2, lx=280, ly=345))
+    svg.append(route(120, 200, 184, 290, GUILD, 'Mira hält', -0.25, lx=120, ly=262))
+    svg.append(route(196, 312, 326, 492, '#f1d27a', 'Spionage', -0.3, '2 4', lx=225, ly=455))
+    extra = ''
+    for name, (x, y, occ) in SYS_N.items():
+        big = name == '1:27'
+        svg.append(pips(x, y, [(p, c) for p, c, _ in occ], 16 if big else 11, big))
+        if mode == 'a':
+            who = ', '.join(f'{k}{" ×" + str(v[1]) if v[1] > 1 else ""}' for k, v in owners(occ).items())
+            right = x > 280
+            tx = x - 16 if right else x + (24 if big else 16)
+            anc = 'end' if right else 'start'
+            svg.append(f'<text x="{tx}" y="{y - 2}" text-anchor="{anc}" fill="{"#f1d27a" if big else "#a8997f"}" font-size="10.5" font-family="Georgia">{name}</text>'
+                       f'<text x="{tx}" y="{y + 11}" text-anchor="{anc}" fill="#e9dfc8" font-size="11" font-family="Georgia">{who}</text>')
+        elif mode == 'b':
+            svg.append(f'<text x="{x + (24 if big else 16)}" y="{y + 4}" fill="{"#f1d27a" if big else "#a8997f"}" font-size="10.5" font-family="Georgia">{name}</text>')
+        else:
+            svg.append(f'<text x="{x + (24 if big else 16)}" y="{y + 4}" fill="{"#f1d27a" if big else "#a8997f"}" font-size="10.5" font-family="Georgia">{name}</text>')
+    svg.append('</svg>')
+    if mode == 'b':
+        # zoomed one step: the area around 1:27 larger, a name at every pip
+        z = ['<svg width="390" height="544" viewBox="0 0 390 544">', bg_stars(90, 390, 544, 7)]
+        z.append(route(235, 465, 205, 300, WAR, 'Angriff 14:32', 0.3, lx=300, ly=380))
+        z.append(route(90, 150, 180, 270, GUILD, 'Mira hält', -0.2, lx=85, ly=240))
+        for name, (x, y, r, occ) in {'1:27': (200, 290, 52, SYS_N['1:27'][2]), '1:26': (110, 140, 34, SYS_N['1:26'][2]), '1:31': (225, 470, 38, SYS_N['1:31'][2])}.items():
+            z.append(f'<circle cx="{x}" cy="{y}" r="9" fill="#f3d36b" /><circle cx="{x}" cy="{y}" r="{r}" fill="none" stroke="#3b2f22" />')
+            z.append(f'<text x="{x}" y="{y - r - 8}" text-anchor="middle" fill="{"#f1d27a" if name == "1:27" else "#a8997f"}" font-size="12" font-family="Georgia">{name}</text>')
+            for p, col, who in occ:
+                a = -math.pi / 2 + (p - 1) * 2 * math.pi / 15
+                px, py = x + r * math.cos(a), y + r * math.sin(a)
+                anchor = 'start' if math.cos(a) >= 0 else 'end'
+                dx = 9 if anchor == 'start' else -9
+                z.append(f'<circle cx="{px:.0f}" cy="{py:.0f}" r="5" fill="{col}" stroke="#0f0b08" />'
+                         f'<text x="{px + dx:.0f}" y="{py + 4:.0f}" text-anchor="{anchor}" fill="#e9dfc8" font-size="11" font-family="Georgia">{p} · {who}</text>')
+        z.append('</svg>')
+        hint = ('<div class="k-abs" style="left: 10px; top: 104px; z-index: 2"><span class="k-pill">Zoom: Namen erscheinen ab der zweiten Stufe</span></div>')
+        return frame(''.join(z), hint)
+    if mode == 'c':
+        extra = ('<div class="k-panel k-abs" style="left: 150px; top: 230px; width: 225px; z-index: 2"><div class="k-ph">1:31 · 3 Welten</div><div class="k-pb" style="font-size: 12.5px; line-height: 1.6">'
+                 f'<span style="color: {WAR}">3</span> Haus Valcor · Krieg<br /><span style="color: {WAR}">5</span> Haus Valcor<br /><span style="color: {WAR}">9</span> Haus Valcor<br />'
+                 '<span class="m-dim">12 Positionen frei · Tippen auf eine Welt öffnet sie</span></div></div>'
+                 '<div class="k-abs" style="left: 284px; top: 470px; width: 34px; height: 34px; border-radius: 50%; border: 2px solid #f1d27a; z-index: 1"></div>')
+    return frame(''.join(svg), extra)
+
+
+VARIANTS_N = {'a': lambda: map_n('a'), 'b': lambda: map_n('b'), 'c': lambda: map_n('c')}
+
+
+def build_sheet_n():
+    parts = [f'<figure id="r1-s1n-{e}" style="margin: 0; display: inline-block">{fn()}</figure>' for e, fn in VARIANTS_N.items()]
+    return ('<!doctype html>\n<html lang="de">\n<head>\n<meta charset="utf-8" />\n<title>Playtest s1n</title>\n'
+            '<link rel="stylesheet" href="/style.css" />\n<link rel="stylesheet" href="../modern.css" />\n<link rel="stylesheet" href="../studies.css" />\n</head>\n'
+            '<body style="background: #070504; padding: 10px; display: flex; flex-wrap: wrap; gap: 14px">\n' + '\n'.join(parts) + '\n</body>\n</html>\n')
+
+
+if __name__ == '__main__':
+    out = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'playtest')
+    with open(os.path.join(out, 'r1n-sheet.html'), 'w', encoding='utf-8') as f:
+        f.write(build_sheet_n())
+    print('wrote playtest/r1n-sheet.html')
