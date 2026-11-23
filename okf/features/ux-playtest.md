@@ -80,7 +80,7 @@ the owner as test person.
   (`/_blob/<id>`), and `status/claude` (`text`, `updated`) tells the owner
   what comes next. The top of the page lists the queue (count of prepared,
   done and open steps, each with its short title `short`) instead of the
-  game loop (owner, 2026-11-23). A copy of the queue is in
+  game loop (owner, 2026-11-23; version 9). A copy of the queue is in
   `docs/design/interface-modern/playtest/queue/`. The page subscribes to both and draws the open step
   again only when it changes, so typing is never disturbed.
 * **[E]** Tracking here and on the branch `claude/ux-modern-study`
@@ -125,7 +125,7 @@ Taken from the code (views, missions, reports) and the open ideas:
 |---|---|---|---|
 | 1 | 1–4 | s1m galaxy map · s1s own system · s2m content of the Lage sheet · s3 building on fields · s4 info page · s1n names on the map, one by one | done 2026-11-23 15:40 |
 | 1b | race skins | brut · ewige · r1b-quest (Brut sentence, friends colour, who is an enemy): the galaxy map with the Lage sheet, three versions each, animated (GIF); Brut a membran, b chitin, c schwarm; Ewige a monolith, b uhrwerk, c gitter | done 2026-11-23 15:46 |
-| 2 | 5–7 (+ repeat of the round-1 winners) | s5 research · s6 defense on Nox · s7 espionage (queued on the page) | open |
+| 2 | 5–7 | s5 research · s6 defense on Nox · s7 espionage · questions | done 2026-11-23 15:58 |
 | 3 | 8–10 | planned | open |
 | 4 | 11–13 | planned | open |
 | d1 | desktop: galaxy + Lage in three layouts (a side panel, b sheet as on the phone, c windows; order c·a·b) | queued after round 2 |
@@ -155,10 +155,13 @@ s2 of version 1 (galaxy without systems; dashboard not yet a sheet).
 | r1b questions | – | Brut: „elemente hat. wie bei starcraft 2 bei den zergs, auch ein wenig eklige bewegung.“ · friends: „eigene Farbe für Freunde“ · enemy: all three (guilds at war with mine, who attacked me lately, whom I mark myself) | **[E]** friends get their own colour; the colour language has five kinds: self, friends, guild, enemies, others. **[E]** „enemy“ = guilds at war with mine, players who attacked me lately, players I mark myself. |
 | s5 research (goal Plasma-Lehre) | variant 3 = b, tree of prerequisites with the path to the goal highlighted | note: „damit wird viel deutlicher wie dinge zusammenhängen. gerne auch mal als vollständigen forschungsbaum darstellen. den man von rechts nach links scorllen kann.“ · answer (queue of several researches): „nur mit einer speziellen forschung. die dann eben eine warteschleife freischaltet. bei verschiedenen stufen wird beim bau, forschung und flottenbewegung möglich.“ | **[E]** research is shown as a tree of prerequisites with the path to the goal highlighted; also as a full research tree that scrolls sideways. **[E]** game rule: queues only through a special research that unlocks a queue; its levels unlock queues for building, research and fleet movements (names, levels and order open; belongs into a feature file). |
 | s6 defense on Nox before the attack | variant 1 = b, one installation large, drag the amount, resource bars and a timeline up to the attack | note: „gerne darf man auch bei einem angriff im unteren schieber eine entsprechende meldung angezeigt bekommen. eine art mission control“ · answer: left empty on purpose | **[E]** defense: one installation large with an amount slider, resource bars and a timeline to the attack. **[E]** during an attack the Lage sheet shows an alert, „a kind of mission control“. |
+| s7 espionage | variant 1 = a, from the system view: tap Varn, the sheet shows the age of the report and sends spy skulls | note: „gerne auch den angriffs knopf darunter packen zum spionieren“ · answer (spy on several targets at once?): „wäre in ordnung. nimmt einem klicks ab und daher keine automatisierung.“ | **[E]** espionage starts from the system view in the sheet; the attack button sits right under the spy button. **[E]** spying on several targets at once is fine: it saves clicks and is not automation (#181). |
+| r2 questions | – | pace: „genau richtig“ · missing: „berichte sollten auch schnell einsehbar sien. vllt kann man das mit der spionage zusammenbringen. also das spionage auch mit dem bericht zusammen gedacht wird.“ | **[E]** reports must be quick to reach; espionage and its report are designed together. Next situation: spy and report in one place. |
 
 ## Open work
 
-* Read the picks of round 2 and d1.
+* Read the pick of d1.
+* Build next: espionage + report together (r3), then fleet send (station 8).
 * Race follow-up: Brut chitin with organic, slightly disgusting motion; Ewige clockwork with 65° bends; per-race terms; a colour for friends.
 * Build the desktop round of the round-1 winners and append it after round 2.
 * Build round 2 from them (stations 5–7 and a repeat of the winners).
