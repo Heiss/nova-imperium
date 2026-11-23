@@ -1,0 +1,30 @@
+{
+  "seq": 280,
+  "kind": "sit",
+  "round": "r6",
+  "roundTitle": "Runde 6 · Wiederholungen",
+  "station": 0,
+  "id": "sg",
+  "short": "Mehrere Galaxien",
+  "title": "Mehrere Galaxien auf der Karte",
+  "text": "Deine Beobachtung: die Karte zeigt nur eine Galaxie. Wie viele Galaxien es gibt, stellt der Admin ein; Flotten können in eine andere Galaxie fliegen (beides aus dem Code). Hier drei Galaxien als Beispiel; Mira hat eine zweite Welt in Galaxie 2.",
+  "order": "acb",
+  "variants": {
+    "a": {
+      "img": "/_blob/afd730bfd5fe05563806ae848b45793a",
+      "desc": "Umschalter oben: „Galaxie 1 ▾“ öffnet die Liste aller Galaxien, mit dem, was dich dort betrifft.",
+      "emph": "Galaxien: Umschalter"
+    },
+    "b": {
+      "img": "/_blob/224f39eaae89d90c4d55d82762fdfc8b",
+      "desc": "Eine Zoomstufe darüber: das Universum mit allen Galaxien und Routen dazwischen; antippen zoomt hinein.",
+      "emph": "Galaxien: Universum als Zoomstufe"
+    },
+    "c": {
+      "img": "/_blob/6f12145b4b078dba017d973917bc9bc1",
+      "desc": "Wischen zwischen Galaxien: oben Punkte und die Nachbarn, am Rand ein Hinweis, wenn dort eine Flotte unterwegs ist.",
+      "emph": "Galaxien: wischen"
+    }
+  },
+  "ask": "Wie viele Galaxien erwartest du in euren Runden ungefähr? (Das entscheidet, ob eine Liste reicht.)"
+}

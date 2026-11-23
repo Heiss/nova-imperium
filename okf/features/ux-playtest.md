@@ -133,7 +133,7 @@ Taken from the code (views, missions, reports) and the open ideas:
 | d2 | desktop: windows, drag a world onto a target (a target window, b two system windows, c choice in the sheet; order b·c·a) | done 2026-11-23 16:16 |
 | 4 | 10–11 | s11 new colony (c·a·b) · s12 guild + chat (a·b·c) · s13 Herold in the game (b·c·a) · s14 Börse (c·a·b) | done 2026-11-23 16:23 |
 | 5 | 12, 9 | s15 away and back (b·a·c) · s16 ground combat #155 (a·c·b) | running |
-| 6 | repeats | s2r the one Lage line (b·c·a) · sc the colour language (c·a·b) | queued |
+| 6 | repeats | s2r the one Lage line (b·c·a) · sc the colour language (c·a·b) · sg several galaxies (a·c·b) | queued |
 | d3 | desktop: building on fields + info page (a three columns, b windows, c as on the phone; order c·a·b) | queued |
 | 5 | more desktop views (building, info page) | planned | open |
 
@@ -177,7 +177,7 @@ s2 of version 1 (galaxy without systems; dashboard not yet a sheet).
 ## Open work
 
 * Read s16, s2r, sc, d3.
-* Build: several galaxies on the map (owner, s15).
+* Build next: the races again inside the winners (Brut chitin, organic and slightly disgusting; Ewige clockwork with 65° bends), animated.
 * The loop is covered once (s1–s16, d1–d2). Next: repeats with variants inside the winners, and desktop views of the new winners.
 * Race follow-up: Brut chitin with organic, slightly disgusting motion; Ewige clockwork with 65° bends; per-race terms; a colour for friends.
 * Build the desktop round of the round-1 winners and append it after round 2.
