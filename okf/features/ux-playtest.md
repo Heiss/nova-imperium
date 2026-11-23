@@ -136,6 +136,8 @@ Taken from the code (views, missions, reports) and the open ideas:
 | 6 | repeats | s2r the one Lage line (b·c·a) · sc the colour language (c·a·b) · sg several galaxies (a·c·b) · brut2 (c·a·b) · ewige2 (b·c·a) | running |
 | 7 | tabs not tested yet | s17 Welten (b·c·a) · s18 Berichte (c·a·b) · s19 Menü (a·b·c) | done 2026-11-23 16:45 |
 | 6b | races, third time | brut3 organic borders (b·c·a) · ewige3 technical frames (c·a·b), map unchanged | done 2026-11-23 17:56 |
+| 6c | Brut again | brut4 more goo (c·a·b) · brut5 lit relief, prerendered (b·c·a) | brut4 done; brut5 queued |
+| d4–d6 | desktop | d4 research tree (b·c·a) · d5 fleet with presets (c·a·b) · d6 Herold + Börse (a·b·c) | d4 done; d5, d6 queued |
 | d3 | desktop: building on fields + info page (a three columns, b windows, c as on the phone; order c·a·b) | done 2026-11-23 16:35 |
 | 5 | more desktop views (building, info page) | planned | open |
 
@@ -187,10 +189,13 @@ s2 of version 1 (galaxy without systems; dashboard not yet a sheet).
 | s19 tab Menü | variant 1 = a, the menu as a sheet from below | note: „füllt den schieber wieder, ist ein wiederkehrendes element. und das runter ziehen schließt das menü, genauso wie der klick auf die karte.“ · answer (Admin in the same menu?): „darf da ruhig mit drin stehen.“ | **[E]** the menu (Lexikon, Soziales, Optionen, Admin) opens as the sheet; pulling it down or tapping the map closes it. **[E]** „Admin“ stands in the same menu for admins. |
 | brut3 Brut, only the borders | variant 3 = a, chitin thorns on the edges of bar, sheet and tabs, veins along the edge | note: „dürfte durch organisch sein. also so richtig mit erkennbaren adern von zergähnlichen wesen. ruhig ein wenig mehr schmodder.“ · answer (buttons and pills too?): „nur ränder und große flächen“ | **[E]** Brut: chitin thorns on the edges of the large surfaces (top bar, sheet, tab bar) with veins; it may be more organic: clearly visible veins of creature-like beings, „ein wenig mehr Schmodder“ (goo). **[E]** only borders and large surfaces, not buttons or pills. |
 | ewige3 Ewige, only the frames | variant 2 = a, bronze double frames with 65° corners and a glowing gem | answer (terms Sternkarte, Chronik, Zeitlauf, Kreis?): „passt so“ | **[E]** Ewige: bronze double frames with 65° corners and a glowing gem in the middle of the edges. **[E]** terms: Sternkarte, Welten, Flotten, Chronik, Zeitlauf (for Lage), Kreis (for galaxy). |
+| brut4 Brut, more goo | variant 1 = c, a fleshy band with veins under the thorns | note: „mach die ganze sache tetwas plastischer und realistischer. also auch ruhig 3d. es muss auf nichts reagieren, also darf es prerendered sein. lass es echt wirken.“ · answer (is this the direction?): „ja, siehe meinen beitrag oben“ | **[E]** Brut direction: a fleshy band with veins; more plastic and realistic, 3D allowed; it reacts to nothing, so prerendered images are fine. Next: brut5 as lit relief (prerendered). |
+| d4 desktop: research tree | variant 1 = b, the tree as a window over the map, the goal as a second window | note: „eine forschung als voraussetzung sollte mehrfach vorkommen, wenn es in verschiedenen ausbaustufen benötigt wird. sonst hat man sehr verwirrende überschneidungen.“ · answer: „derb aum soll alle forschungen zeigen und beim ziel nur den weg hervorheben“ | **[E]** desktop research: the tree is a window, the goal a second window. **[E]** the tree shows all researches; with a goal only its path is highlighted. **[E]** a prerequisite needed at different levels appears once per level, so lines do not cross. |
 
 ## Open work
 
-* Ask the owner how to go on (Brut once more with more goo, more repeats, or rewrite #388 and the study).
+* Owner chose (2026-11-23 18:00): Brut once more, more desktop rounds, the rules into the feature issues (#382, #386, #155, #158, #154); not yet the rewrite of #388.
+* Read d5, d6, brut5.
 * After the race repeats: sum up and ask the owner whether more repeats are needed or #388 and the study get rewritten.
 * The loop is covered once (s1–s16, d1–d2). Next: repeats with variants inside the winners, and desktop views of the new winners.
 * Race follow-up: Brut chitin with organic, slightly disgusting motion; Ewige clockwork with 65° bends; per-race terms; a colour for friends.

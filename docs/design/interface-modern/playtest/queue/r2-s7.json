@@ -6,6 +6,7 @@
   "round": "r2",
   "roundTitle": "Runde 2 · Forschen, verteidigen, auskundschaften",
   "seq": 120,
+  "short": "Spionage",
   "station": 6,
   "text": "Du willst wissen, ob sich ein Angriff auf Varn lohnt. Dein letzter Bericht ist 26 Stunden alt; nur eigene Berichte unter 24 Stunden gelten als aktuell (#160).",
   "title": "Spionage",
@@ -25,6 +26,5 @@
       "emph": "Ansicht: Kartenebene",
       "img": "img/r2-s7-c.jpg"
     }
-  },
-  "short": "Spionage"
+  }
 }

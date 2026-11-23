@@ -5,6 +5,7 @@
   "round": "r1",
   "roundTitle": "Runde 1 · Ankommen und bauen",
   "seq": 60,
+  "short": "Namen auf der Karte",
   "station": 0,
   "text": "Du hast die Karte mit einem Punkt je besetzter Position gewählt. Hier dieselbe Karte, dreimal anders mit den Namen der Spieler.",
   "title": "Noch einmal die Galaxiekarte: Namen der Spieler",
@@ -24,6 +25,5 @@
       "emph": "Namen: beim Antippen",
       "img": "img/r1-s1n-c.jpg"
     }
-  },
-  "short": "Namen auf der Karte"
+  }
 }

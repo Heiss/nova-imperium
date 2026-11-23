@@ -1,30 +1,30 @@
 {
-  "seq": 300,
+  "ask": "Sollen die Begriffe der Ewigen eher technisch sein („Protokoll“, „Sektor“) oder eher feierlich-alt („Chronik“, „Zeitalter“)?",
+  "id": "ewige2",
   "kind": "sit",
+  "order": "bca",
   "round": "r6",
   "roundTitle": "Runde 6 · Wiederholungen",
-  "station": 0,
-  "id": "ewige2",
+  "seq": 300,
   "short": "Ewige noch einmal",
-  "title": "Die Ewigen noch einmal: Uhrwerk mit 65°-Knicken",
+  "station": 0,
   "text": "Deine Wahl: Uhrwerk, eher ruhig, mehr Mechanik, Knicke im 65°-Winkel. Alle drei Varianten haben 65°-Kanten an Blatt, Marken und Reitern. Die Bilder bewegen sich leicht.",
-  "order": "bca",
+  "title": "Die Ewigen noch einmal: Uhrwerk mit 65°-Knicken",
   "variants": {
     "a": {
-      "img": "/_blob/7b9b7cbf3c27108af2f61ce53e9d9db4",
       "desc": "Kanten: ein Zeiger tickt um dein System, Streben mit 65°-Knick am Rand.",
-      "emph": "Ewige: Zeiger und Kanten"
+      "emph": "Ewige: Zeiger und Kanten",
+      "img": "/_blob/7b9b7cbf3c27108af2f61ce53e9d9db4"
     },
     "b": {
-      "img": "/_blob/fc815c3f75a249a80c5333b258118ac8",
       "desc": "Zahnräder: sichtbare Räder greifen langsam ineinander, dickere Rahmen.",
-      "emph": "Ewige: Zahnräder"
+      "emph": "Ewige: Zahnräder",
+      "img": "/_blob/fc815c3f75a249a80c5333b258118ac8"
     },
     "c": {
-      "img": "/_blob/048c31ffee4f361e5b91d2c7dd1896c3",
       "desc": "Pendel: nur ein ruhiges Pendel und feine Kanten, fast keine Bewegung.",
-      "emph": "Ewige: Pendel, sehr ruhig"
+      "emph": "Ewige: Pendel, sehr ruhig",
+      "img": "/_blob/048c31ffee4f361e5b91d2c7dd1896c3"
     }
-  },
-  "ask": "Sollen die Begriffe der Ewigen eher technisch sein („Protokoll“, „Sektor“) oder eher feierlich-alt („Chronik“, „Zeitalter“)?"
+  }
 }

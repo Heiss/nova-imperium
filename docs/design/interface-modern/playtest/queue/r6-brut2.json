@@ -1,30 +1,30 @@
 {
-  "seq": 290,
+  "ask": "Darf das Wabern auch die Bedienung stören (z. B. Knöpfe, die leicht pulsieren), oder nur Hintergrund und Ränder?",
+  "id": "brut2",
   "kind": "sit",
+  "order": "cab",
   "round": "r6",
   "roundTitle": "Runde 6 · Wiederholungen",
-  "station": 0,
-  "id": "brut2",
+  "seq": 290,
   "short": "Brut noch einmal",
-  "title": "Die Brut noch einmal: Chitin, organisch, ein wenig eklig",
+  "station": 0,
   "text": "Deine Wahl: Chitin, mit organischen Elementen, die sich leicht bewegen, gern ein wenig eklig, im Geist der Zerg (nur als Anregung, eigene Formen). Drei Arten, das auf dem Chitin zu zeigen. Die Bilder bewegen sich.",
-  "order": "cab",
+  "title": "Die Brut noch einmal: Chitin, organisch, ein wenig eklig",
   "variants": {
     "a": {
-      "img": "/_blob/0f1c1e454dbbc945a40f3a899314c668",
       "desc": "Adern: pulsierende Adern kriechen über die Ränder von Leiste und Blatt.",
-      "emph": "Brut: Chitin mit Adern"
+      "emph": "Brut: Chitin mit Adern",
+      "img": "/_blob/0f1c1e454dbbc945a40f3a899314c668"
     },
     "b": {
-      "img": "/_blob/9d485c3a4e61064049e21a02f8ee7e1d",
       "desc": "Schleim: Tropfen laufen von den Kanten herab, ein feuchter Glanz zieht über die Flächen.",
-      "emph": "Brut: Chitin mit Schleim"
+      "emph": "Brut: Chitin mit Schleim",
+      "img": "/_blob/9d485c3a4e61064049e21a02f8ee7e1d"
     },
     "c": {
-      "img": "/_blob/d5aad34bbc580d9976a312e5ce083e26",
       "desc": "Blasen: Beulen auf der Karte schwellen an und ab, das Blatt atmet.",
-      "emph": "Brut: Chitin mit Blasen"
+      "emph": "Brut: Chitin mit Blasen",
+      "img": "/_blob/d5aad34bbc580d9976a312e5ce083e26"
     }
-  },
-  "ask": "Darf das Wabern auch die Bedienung stören (z. B. Knöpfe, die leicht pulsieren), oder nur Hintergrund und Ränder?"
+  }
 }

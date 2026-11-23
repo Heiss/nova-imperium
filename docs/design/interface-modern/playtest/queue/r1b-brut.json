@@ -6,6 +6,7 @@
   "round": "r1b",
   "roundTitle": "Runde 1b · Die Rassen",
   "seq": 80,
+  "short": "Brut",
   "station": 0,
   "text": "Wer die Brut spielt, bekommt eine eigene Oberfläche; der Aufbau bleibt gleich (Karte, Lage-Schieber, Leiste). Die Bilder bewegen sich. Begriffe wie „Nest“ oder „Witterung“ sind nur Beispiele.",
   "title": "Die Brut: dieselbe Karte",
@@ -25,6 +26,5 @@
       "emph": "Brut: Schwarm",
       "img": "img/r1b-brut-c.gif"
     }
-  },
-  "short": "Brut"
+  }
 }

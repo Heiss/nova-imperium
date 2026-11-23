@@ -5,6 +5,7 @@
   "round": "r1",
   "roundTitle": "Runde 1 · Ankommen und bauen",
   "seq": 40,
+  "short": "Bauen auf Feldern",
   "station": 2,
   "text": "Du willst auf Aurelia ein Gebäude setzen. Die Oberfläche hat Felder mit Eigenschaften (Erzader, Sonnenhang, Gebirge …). Die Regeln dazu sind noch offen; es geht nur um die Bedienung.",
   "title": "Bauen auf Feldern (#158)",
@@ -24,6 +25,5 @@
       "emph": "Schwerpunkt Mobile Strategie (Clash of Clans, Rise of Kingdoms)",
       "img": "img/r1-s3-c.jpg"
     }
-  },
-  "short": "Bauen auf Feldern"
+  }
 }

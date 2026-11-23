@@ -1,0 +1,30 @@
+{
+  "ask": "Soll der Kriegsbericht (die Godot-Wiederholung) am Desktop in einem Fenster laufen oder als Vollbild?",
+  "id": "d6",
+  "kind": "sit",
+  "order": "abc",
+  "round": "d4",
+  "roundTitle": "Desktop 4 · Forschung, Flotte, Herold und Börse",
+  "seq": 390,
+  "short": "Desktop: Herold + Börse",
+  "station": 11,
+  "text": "Deine Wahl vom Handy: der Herold als eigene Zeitungsseite und als Reiter im Lage-Blatt mit dem neuesten Kriegsbericht; die Börse als Kartenebene, beim Antippen einer Welt „Tauschen“, Lieferzeit als Option. Preise und Schlagzeilen sind Beispiele.",
+  "title": "Am Desktop: Herold und Börse",
+  "variants": {
+    "a": {
+      "desc": "Herold und Tauschen als zwei Fenster über der Karte, die Gebote stehen an den Systemen.",
+      "emph": "Desktop: zwei Fenster",
+      "img": "/_blob/b27aebec7c0ef6c7d190cf4d2ae3110c"
+    },
+    "b": {
+      "desc": "Der Herold als laufende Zeile unter der Leiste, die Börse als Kartenebene mit einem Fenster beim Klick.",
+      "emph": "Desktop: Ticker und Kartenebene",
+      "img": "/_blob/8c0abf0cb9b392c3b1fe20c91c27689e"
+    },
+    "c": {
+      "desc": "Beides im hochgezogenen Lage-Blatt nebeneinander: Herold links, Orderbuch rechts.",
+      "emph": "Desktop: beides im Blatt",
+      "img": "/_blob/0c99abd9a5684d84605c007133c62390"
+    }
+  }
+}

@@ -6,6 +6,7 @@
   "round": "r1",
   "roundTitle": "Runde 1 · Ankommen und bauen",
   "seq": 10,
+  "short": "Galaxiekarte",
   "station": 0,
   "text": "Deine drei Welten liegen alle in System 1:27, so wie die meisten Spieler ihr System besiedeln. Die Karte zeigt deshalb Systeme und die Routen zwischen Spielern; das Dashboard liegt unten als Schieber zum Hochziehen. Nox wird um 14:32 angegriffen, Mira aus deiner Gilde hält Nox, du spionierst Varn aus.",
   "title": "Direkt nach dem Login: die Galaxiekarte",
@@ -25,6 +26,5 @@
       "emph": "Darstellung: Spieler-Marken",
       "img": "img/r1-s1m-c.jpg"
     }
-  },
-  "short": "Galaxiekarte"
+  }
 }

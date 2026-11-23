@@ -6,6 +6,7 @@
   "round": "d1",
   "roundTitle": "Desktop 1 · Karte und Lage am großen Bildschirm",
   "seq": 140,
+  "short": "Desktop: Karte + Lage",
   "station": 0,
   "text": "Dieselbe Lage wie in Runde 1, jetzt am Desktop (1280 Pixel breit): Galaxie mit Punkten, Namen auf Klick, die Lage als Zeitleiste, dieselben Farben. Nur die Anordnung unterscheidet sich.",
   "title": "Am Desktop: Galaxie und Lage",
@@ -25,6 +26,5 @@
       "emph": "Desktop: Fenster",
       "img": "/_blob/c5b54277359654afa6549aace8e4f2be"
     }
-  },
-  "short": "Desktop: Karte + Lage"
+  }
 }

@@ -1,30 +1,30 @@
 {
-  "seq": 330,
+  "ask": "Soll „Admin“ für den Admin im selben Menü stehen, oder als eigener Bereich, den nur Admins sehen?",
+  "id": "s19",
   "kind": "sit",
+  "order": "abc",
   "round": "r7",
   "roundTitle": "Runde 7 · Welten, Berichte, Menü",
-  "station": 11,
-  "id": "s19",
+  "seq": 330,
   "short": "Reiter Menü",
-  "title": "Der Reiter „Menü“: Lexikon, Soziales, Optionen, Admin",
+  "station": 11,
   "text": "Deine Idee: ein kleines Menü für Lexikon, Soziales (Freunde und Gilde) und Optionen (+ Admin). In die Optionen gehören nach deinen Antworten auch Farbsets, nur Kreise, nur Wischen.",
-  "order": "abc",
+  "title": "Der Reiter „Menü“: Lexikon, Soziales, Optionen, Admin",
   "variants": {
     "a": {
-      "img": "/_blob/0ca458095504f5edd311c5dde92949d3",
       "desc": "Das Menü kommt als Blatt von unten über die Karte.",
-      "emph": "Menü: Blatt"
+      "emph": "Menü: Blatt",
+      "img": "/_blob/0ca458095504f5edd311c5dde92949d3"
     },
     "b": {
-      "img": "/_blob/81dce1d86b703cfb299f28e947a9083c",
       "desc": "Eine eigene Seite mit vier großen Kacheln.",
-      "emph": "Menü: Kacheln"
+      "emph": "Menü: Kacheln",
+      "img": "/_blob/81dce1d86b703cfb299f28e947a9083c"
     },
     "c": {
-      "img": "/_blob/f528a642e1f6a859186af151ecbce980",
       "desc": "Eine Schublade von links über die Karte.",
-      "emph": "Menü: Schublade"
+      "emph": "Menü: Schublade",
+      "img": "/_blob/f528a642e1f6a859186af151ecbce980"
     }
-  },
-  "ask": "Soll „Admin“ für den Admin im selben Menü stehen, oder als eigener Bereich, den nur Admins sehen?"
+  }
 }

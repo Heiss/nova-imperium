@@ -6,6 +6,7 @@
   "round": "r1",
   "roundTitle": "Runde 1 · Ankommen und bauen",
   "seq": 20,
+  "short": "Eigenes System",
   "station": 0,
   "text": "Du tippst auf dein System 1:27. Es hat 15 Positionen; drei gehören dir (Nox, Aurelia, Vesper), auf 14 liegt der Stille Hafen von Leander, der Rest ist frei. Der Lage-Schieber bleibt unten.",
   "title": "In dein System hineinzoomen",
@@ -25,6 +26,5 @@
       "emph": "Darstellung: Ring",
       "img": "img/r1-s1s-c.jpg"
     }
-  },
-  "short": "Eigenes System"
+  }
 }

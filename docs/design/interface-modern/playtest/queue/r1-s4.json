@@ -5,6 +5,7 @@
   "round": "r1",
   "roundTitle": "Runde 1 · Ankommen und bauen",
   "seq": 50,
+  "short": "Gebäude-Info",
   "station": 3,
   "text": "Im Kompakt-Modus tippst du auf die Servitorenschmiede. Es fehlt Promethium; leistbar wäre sie um 18:39.",
   "title": "Kompakt-Modus: Infoseite eines Gebäudes",
@@ -24,6 +25,5 @@
       "emph": "Schwerpunkt Mobile Strategie (Clash of Clans, Rise of Kingdoms)",
       "img": "img/r1-s4-c.jpg"
     }
-  },
-  "short": "Gebäude-Info"
+  }
 }

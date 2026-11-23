@@ -1,30 +1,30 @@
 {
-  "seq": 180,
+  "ask": "Sollen offene Fenster und ihre Position beim nächsten Login wieder da sein?",
+  "id": "d2",
   "kind": "sit",
+  "order": "bca",
   "round": "d2",
   "roundTitle": "Desktop 2 · Fenster und Ziehen",
-  "station": 7,
-  "id": "d2",
+  "seq": 180,
   "short": "Desktop: Fenster ziehen",
-  "title": "Am Desktop: eine Welt auf ein Ziel ziehen",
+  "station": 7,
   "text": "Deine Idee aus d1: Die Lage bleibt unten, dazu System-Fenster. Du ziehst Aurelia aus dem Fenster von System 1:27 auf ein Ziel. Die Aktionen heißen wie im Spiel (Sturmangriff, Auspex-Erkundung, Versorgungsflug). Die drei Varianten unterscheiden sich darin, wo du loslässt und wo du wählst.",
-  "order": "bca",
+  "title": "Am Desktop: eine Welt auf ein Ziel ziehen",
   "variants": {
     "a": {
-      "img": "/_blob/4cd8443746430184f269dc054b98d4e6",
       "desc": "Auf ein System der Karte ziehen: ein zweites Fenster „Ziel in System 1:44“ geht auf; dort Welt und Aktion wählen.",
-      "emph": "Ziehen auf die Karte, Ziel-Fenster"
+      "emph": "Ziehen auf die Karte, Ziel-Fenster",
+      "img": "/_blob/4cd8443746430184f269dc054b98d4e6"
     },
     "b": {
-      "img": "/_blob/a53d6f4276182d2b08fe762d43ad8832",
       "desc": "Zwei System-Fenster nebeneinander: Aurelia direkt auf Varn ziehen; beim Loslassen erscheinen die Aktionen daneben.",
-      "emph": "Zwei Fenster, direkt auf die Welt"
+      "emph": "Zwei Fenster, direkt auf die Welt",
+      "img": "/_blob/a53d6f4276182d2b08fe762d43ad8832"
     },
     "c": {
-      "img": "/_blob/6f6cd9b6e5d6c8cb094884e2ed157bd0",
       "desc": "Auf ein System der Karte ziehen: Ziel und Aktion erscheinen unten im Lage-Blatt statt in einem Fenster.",
-      "emph": "Ziehen auf die Karte, Auswahl im Blatt"
+      "emph": "Ziehen auf die Karte, Auswahl im Blatt",
+      "img": "/_blob/6f6cd9b6e5d6c8cb094884e2ed157bd0"
     }
-  },
-  "ask": "Sollen offene Fenster und ihre Position beim nächsten Login wieder da sein?"
+  }
 }

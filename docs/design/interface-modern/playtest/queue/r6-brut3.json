@@ -1,30 +1,30 @@
 {
-  "seq": 340,
+  "ask": "Sollen auch Knöpfe und Marken organische Ränder bekommen, oder nur die großen Flächen (Leiste, Blatt, Reiter)?",
+  "id": "brut3",
   "kind": "sit",
+  "order": "bca",
   "round": "r6",
   "roundTitle": "Runde 6 · Wiederholungen",
-  "station": 0,
-  "id": "brut3",
+  "seq": 340,
   "short": "Brut: nur Ränder",
-  "title": "Die Brut ein drittes Mal: nur die Ränder",
+  "station": 0,
   "text": "Deine Korrektur: die Rasse steckt in den Bedienelementen, in Rändern und Rahmen; Bewegung nur in Hintergrund und Rändern, die Adern bleiben. Die Karte ist jetzt dieselbe wie beim Imperium. Begriffe sind Vorschläge.",
-  "order": "bca",
+  "title": "Die Brut ein drittes Mal: nur die Ränder",
   "variants": {
     "a": {
-      "img": "/_blob/e40a89019e262cffb9e79252c8eb1aab",
       "desc": "Chitin-Stacheln an den Kanten von Leiste, Blatt und Reitern, Adern pulsieren entlang der Kante.",
-      "emph": "Brut-Ränder: Chitin-Stacheln"
+      "emph": "Brut-Ränder: Chitin-Stacheln",
+      "img": "/_blob/e40a89019e262cffb9e79252c8eb1aab"
     },
     "b": {
-      "img": "/_blob/eaa95fcd8379d8711ea6b73bee593857",
       "desc": "Ranken rollen sich an den Ecken von Blatt und Leiste ein, kleine Ranken an den Marken, Adern entlang der Kante.",
-      "emph": "Brut-Ränder: Ranken"
+      "emph": "Brut-Ränder: Ranken",
+      "img": "/_blob/eaa95fcd8379d8711ea6b73bee593857"
     },
     "c": {
-      "img": "/_blob/37af95379add211cb04e518eab7fc07d",
       "desc": "Knochenwülste als Kanten, Hörner an den Ecken des Blatts mit Haut dazwischen.",
-      "emph": "Brut-Ränder: Knochen"
+      "emph": "Brut-Ränder: Knochen",
+      "img": "/_blob/37af95379add211cb04e518eab7fc07d"
     }
-  },
-  "ask": "Sollen auch Knöpfe und Marken organische Ränder bekommen, oder nur die großen Flächen (Leiste, Blatt, Reiter)?"
+  }
 }

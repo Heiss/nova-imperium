@@ -6,6 +6,7 @@
   "round": "r2",
   "roundTitle": "Runde 2 · Forschen, verteidigen, auskundschaften",
   "seq": 110,
+  "short": "Abwehr",
   "station": 5,
   "text": "Nox wird um 14:32 angegriffen. Auf Nox liegen 61 k Adamant, 33 k Psikristall, 12 k Promethium. Kosten aus dem Katalog, Bauzeiten sind Beispiele.",
   "title": "Abwehr auf Nox vor dem Angriff",
@@ -25,6 +26,5 @@
       "emph": "Ansicht: Vorschläge bis zum Termin",
       "img": "img/r2-s6-c.jpg"
     }
-  },
-  "short": "Abwehr"
+  }
 }

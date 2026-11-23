@@ -1,0 +1,30 @@
+{
+  "ask": "Sollen Schleimtropfen und Schleimfäden bleiben, nur Tropfen, oder beides weg?",
+  "id": "brut5",
+  "kind": "sit",
+  "order": "bca",
+  "round": "r6",
+  "roundTitle": "Runde 6 · Wiederholungen",
+  "seq": 400,
+  "short": "Brut: plastisch",
+  "station": 0,
+  "text": "Deine Wahl: Fleisch mit Adern, plastischer und realistischer, gern 3D, vorgerendert. Hier ist die Oberfläche beleuchtetes Relief (Licht, Glanz, erhabene Adern), das als fertige Bilder ausgeliefert würde. Nur Ränder und große Flächen; die Bilder bewegen sich leicht.",
+  "title": "Die Brut ein fünftes Mal: plastisch und vorgerendert",
+  "variants": {
+    "a": {
+      "desc": "Fleisch: rote Haut mit Relief, dunkle erhabene Adern, die Kanten wulstig.",
+      "emph": "Brut plastisch: Fleisch",
+      "img": "/_blob/60dda1050b577311062896b7d5720689"
+    },
+    "b": {
+      "desc": "Chitin: braune, hornige Oberfläche mit Zacken an den Kanten, Adern darin.",
+      "emph": "Brut plastisch: Chitin",
+      "img": "/_blob/109bda78027974109c42b0555da6d0b7"
+    },
+    "c": {
+      "desc": "Nass: glänzendes Fleisch, von dem Schleim tropft.",
+      "emph": "Brut plastisch: nass mit Tropfen",
+      "img": "/_blob/f6c5b3b412c1d14cd7722d7f5adff448"
+    }
+  }
+}

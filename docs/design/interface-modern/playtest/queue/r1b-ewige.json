@@ -6,6 +6,7 @@
   "round": "r1b",
   "roundTitle": "Runde 1b · Die Rassen",
   "seq": 90,
+  "short": "Ewige",
   "station": 0,
   "text": "Die Ewigen sind die Maschinen-Rasse: langsam, kühl, präzise. Auch hier bleibt der Aufbau gleich; die Bilder bewegen sich leicht.",
   "title": "Die Ewigen: dieselbe Karte",
@@ -25,6 +26,5 @@
       "emph": "Ewige: Kristallgitter",
       "img": "img/r1b-ewige-c.gif"
     }
-  },
-  "short": "Ewige"
+  }
 }

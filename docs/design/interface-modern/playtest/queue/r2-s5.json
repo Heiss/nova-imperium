@@ -6,6 +6,7 @@
   "round": "r2",
   "roundTitle": "Runde 2 · Forschen, verteidigen, auskundschaften",
   "seq": 100,
+  "short": "Forschung",
   "station": 4,
   "text": "Du willst die Plasma-Lehre. Dafür fehlt Ionen-Lehre 5; Warp-Antrieb 5 läuft noch bis 16:32. Kosten aus dem Katalog, Zeiten sind Beispiele.",
   "title": "Forschung: Plasma-Lehre ist das Ziel",
@@ -25,6 +26,5 @@
       "emph": "Ansicht: Ziel mit Weg",
       "img": "img/r2-s5-c.jpg"
     }
-  },
-  "short": "Forschung"
+  }
 }
