@@ -1,0 +1,30 @@
+{
+  "seq": 240,
+  "kind": "sit",
+  "round": "r5",
+  "roundTitle": "Runde 5 · Abwesend und zurück, Bodenkampf",
+  "station": 9,
+  "id": "s16",
+  "short": "Bodenkampf",
+  "title": "Bodenkampf: dein Zug in der Belagerung",
+  "text": "Eine Idee (#155), die Regeln sind offen; hier geht es nur um die Oberfläche. Aus #155: bis zu 10 Züge vorplanen, höchstens 1 h zwischen den Zügen, eine Belagerung hält höchstens 2 Tage und nur so lange, wie Nachschub kommt. Felder (Ruine, Bunker, Landezone) sind Vorschläge, Werte Beispiele.",
+  "order": "acb",
+  "variants": {
+    "a": {
+      "img": "/_blob/d893a76a7d8020a3a0e025e85101805a",
+      "desc": "Das Schlachtfeld füllt den Schirm; im Blatt unten die geplanten Züge, deine Zeit und „Züge abschicken“.",
+      "emph": "Bodenkampf: Schlachtfeld mit Planer im Blatt"
+    },
+    "b": {
+      "img": "/_blob/0ec30e3d6d29b5fe20c0e3a4cff612c7",
+      "desc": "Erst die Belagerung im Überblick (Phase, Nachschub, Schäden, Truppen), das Schlachtfeld hinter einem Knopf.",
+      "emph": "Bodenkampf: Überblick der Belagerung zuerst"
+    },
+    "c": {
+      "img": "/_blob/3d63ca9112b6c5c1e9d172ae914214ca",
+      "desc": "„Du bist am Zug“ kommt als Eintrag der Lage; das Blatt wird zum Planer, oben das Schlachtfeld.",
+      "emph": "Bodenkampf: Zug aus der Lage heraus"
+    }
+  },
+  "ask": "Sollst du am Handy wirklich Züge planen können, oder reicht dort „Du bist am Zug“, und geplant wird am Desktop?"
+}
