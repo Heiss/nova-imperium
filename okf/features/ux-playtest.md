@@ -47,6 +47,10 @@ the owner as test person.
   prepares the next situations ahead, asks follow-up questions on the page
   („Rückfrage von Claude“, saved as `answer`), and keeps offering choices
   until it is clear how each view works (owner, 2026-11-23).
+* **[E]** A situation counts only once the owner clicked „Weiter“
+  (`done: true`); before that Claude reads nothing into the pick or the
+  note and does not republish the page while a situation is open, because
+  a republish reloads it (owner, 2026-11-23).
 * **[E]** Tracking here and on the branch `claude/ux-modern-study`
   (pull request #389).
 
