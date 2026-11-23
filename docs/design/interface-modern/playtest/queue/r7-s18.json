@@ -1,0 +1,30 @@
+{
+  "seq": 320,
+  "kind": "sit",
+  "round": "r7",
+  "roundTitle": "Runde 7 · Welten, Berichte, Menü",
+  "station": 8,
+  "id": "s18",
+  "short": "Reiter Berichte",
+  "title": "Der Reiter „Berichte“: die Liste für „was weiß ich“",
+  "text": "Du hast gesagt: Berichte erreicht man über Zeitleiste, Liste und Welt; die Liste beantwortet „was weiß ich“. Wie soll sie aussehen? Ein Antippen öffnet den Bericht im Blatt seiner Welt.",
+  "order": "cab",
+  "variants": {
+    "a": {
+      "img": "/_blob/d1000d40ca6dffa82d26c9fa7cccabf3",
+      "desc": "Liste nach Zeit mit Filtern: Kampf, Auspex, Flotte, Lieferung.",
+      "emph": "Berichte: Liste mit Filtern"
+    },
+    "b": {
+      "img": "/_blob/03c19be4064eddc33dc5bf0a85b4b896",
+      "desc": "Nach Welt geordnet: alles über Nox, alles über Varn …",
+      "emph": "Berichte: nach Welt"
+    },
+    "c": {
+      "img": "/_blob/6dc4b1206334ace57bbeea4c43db7bab",
+      "desc": "Kacheln je Bericht mit Art und Farbe.",
+      "emph": "Berichte: Kacheln"
+    }
+  },
+  "ask": "Sollen alte Berichte automatisch verschwinden (heute: eine Grenze je Spieler), oder willst du sie selbst löschen und anheften?"
+}

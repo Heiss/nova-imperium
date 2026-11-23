@@ -1,0 +1,30 @@
+{
+  "seq": 310,
+  "kind": "sit",
+  "round": "r7",
+  "roundTitle": "Runde 7 · Welten, Berichte, Menü",
+  "station": 2,
+  "id": "s17",
+  "short": "Reiter Welten",
+  "title": "Der Reiter „Welten“: deine Welten im Überblick",
+  "text": "Die Ansichten der Leiste unten sind noch nicht getestet. Hier „Welten“: Nox, Aurelia, Vesper mit dem, was gerade läuft. Werte sind Beispiele.",
+  "order": "bca",
+  "variants": {
+    "a": {
+      "img": "/_blob/75c7164b990871c2c15ad8c40211081e",
+      "desc": "Karten je Welt: Bild, was läuft, Fortschritt, der wichtigste Hinweis; eine Welt mit Gefahr hat einen roten Rand.",
+      "emph": "Welten: Karten"
+    },
+    "b": {
+      "img": "/_blob/134b0bdc6172144aca1324b374c484cd",
+      "desc": "Eine knappe Tabelle: Bau, Lager, Warnung je Welt.",
+      "emph": "Welten: Tabelle"
+    },
+    "c": {
+      "img": "/_blob/8685370800ac2691bdc928f9da8b38e9",
+      "desc": "Eine Welt groß, zu den anderen wischen.",
+      "emph": "Welten: eine groß, wischen"
+    }
+  },
+  "ask": "Was willst du in der Übersicht deiner Welten auf einen Blick sehen, das hier fehlt?"
+}
