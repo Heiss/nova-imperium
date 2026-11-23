@@ -1,0 +1,30 @@
+{
+  "seq": 270,
+  "kind": "sit",
+  "round": "d3",
+  "roundTitle": "Desktop 3 · Bauen und Infoseite",
+  "station": 2,
+  "id": "d3",
+  "short": "Desktop: Bauen + Info",
+  "title": "Am Desktop: auf Feldern bauen, Infoseite im Standardmodus",
+  "text": "Deine Wahl vom Handy: Gebäude auf ein Feld ziehen oder antippen und Feld wählen, jedes Feld zeigt den Ertrag; im Standardmodus eine Infoseite mit Reitern. Kosten und Energie aus dem Katalog (Sonnenkathedrale Stufe 19); ob ein Feld eine eigene Stufe hat, ist in #158 offen, die Erträge der Felder sind Beispiele.",
+  "order": "cab",
+  "variants": {
+    "a": {
+      "img": "/_blob/0fb8494b80da9e63794ed91d5332ca1a",
+      "desc": "Planetenseite: Gebäude links, Felder in der Mitte, Infoseite mit Reitern rechts fest.",
+      "emph": "Desktop-Bauen: drei Spalten"
+    },
+    "b": {
+      "img": "/_blob/c26eddd457f4d6d249ae6d541e5d34a9",
+      "desc": "Die Oberfläche als Fenster über der Karte, die Infoseite als zweites Fenster.",
+      "emph": "Desktop-Bauen: Fenster"
+    },
+    "c": {
+      "img": "/_blob/b47d2a5824dda037b91ec0fc0324c37b",
+      "desc": "Wie am Handy, nur breiter: Gebäudeleiste oben, die Infoseite als Blatt von unten.",
+      "emph": "Desktop-Bauen: wie am Handy"
+    }
+  },
+  "ask": "Sollen am Desktop die Reiter der Infoseite (Übersicht, Stufen, Schaltet frei) nebeneinander statt als Reiter stehen, weil Platz da ist?"
+}
