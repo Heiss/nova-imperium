@@ -200,6 +200,63 @@ def s13c():
 SITS['s13'] = {'a': s13a, 'b': s13b, 'c': s13c}
 
 
+# ------------------------------------------------------------------ s14 the Börse (#386)
+# [E] #386: an order book; both sides deliver with a cargo fleet, the goods
+# held in escrow („Treuhand“); the admin picks off / marketplace / Börse /
+# both. Scenario: the Psikristall storage is full in 1 h 40 (r1). Prices are
+# examples; Lastbarke cargo 25.000 (catalog): 40.000 Psikristall need 2.
+BOOK_BUY = [('1,9', '120 k', 'Thalor'), ('1,8', '60 k', '–'), ('1,7', '200 k', '–')]
+BOOK_SELL = [('2,1', '80 k', '–'), ('2,2', '150 k', 'Leander'), ('2,4', '40 k', '–')]
+
+
+def s14a():
+    def side(rows, col, title):
+        return (f'<div><div style="font: 600 11.5px var(--head); letter-spacing: 0.1em; color: var(--{col})">{title}</div>'
+                + ''.join(f'<div style="display: grid; grid-template-columns: 40px 1fr auto; gap: 6px; font-size: 12.5px; padding: 3px 0; border-bottom: 1px solid var(--line)">'
+                          f'<b style="color: var(--{col})">{p}</b><span>{q}</span><span class="m-dim">{w}</span></div>' for p, q, w in rows) + '</div>')
+    form = ('<div style="border: 1px solid var(--gold); border-radius: 8px; padding: 8px; margin-top: 10px; font-size: 13px">'
+            '<b style="color: var(--gold-hi)">Verkaufen: Psikristall</b><div class="m-kv"><span>Menge</span><b>40.000</b><span>Preis (Adamant je Psikristall)</span><b>1,9 · bestes Gebot</b>'
+            '<span>du bekommst</span><b style="color: var(--green)">76.000 Adamant</b><span>Lieferung</span><b>2 Lastbarken · Treuhand</b></div>'
+            '<span class="m-btn big" style="display: block; margin-top: 6px; text-align: center">Auftrag stellen</span></div>')
+    inner = ('<div style="position: relative; padding: 100px 10px 0"><div style="display: flex; gap: 8px; align-items: baseline"><b style="font: 800 17px var(--head); color: var(--gold)">Börse</b>'
+             '<span class="m-dim" style="font-size: 12.5px">Psikristall ↔ Adamant</span></div>'
+             '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 6px">' + side(BOOK_BUY, 'green', 'GEBOTE') + side(BOOK_SELL, 'red', 'ANGEBOTE') + '</div>' + form + '</div>')
+    return phone('<div class="k-stars" style="position: absolute; inset: 0"></div>' + inner + header() + sheet() + tabs())
+
+
+def s14b():
+    from playtest_r1x import pulled as pl
+    body = ('<b style="color: var(--gold-hi)">Tauschen</b> <span class="m-dim" style="font-size: 12px">Psikristall-Lager voll in 1 h 40</span>'
+            '<div style="display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: center; margin: 10px 0">'
+            '<div style="border: 1px solid var(--line); border-radius: 8px; padding: 8px; text-align: center"><span class="m-dim" style="font-size: 12px">du gibst</span><br /><b style="font-size: 18px">40.000</b><br />Psikristall</div>'
+            '<b style="color: var(--gold-hi); font-size: 20px">→</b>'
+            '<div style="border: 1px solid var(--green); border-radius: 8px; padding: 8px; text-align: center"><span class="m-dim" style="font-size: 12px">du bekommst</span><br /><b style="font-size: 18px; color: var(--green)">76.000</b><br />Adamant</div></div>'
+            '<div class="m-kv"><span>Kurs</span><b>1,9 (bestes Gebot, Thalor)</b><span>Lieferung</span><b>2 Lastbarken · Treuhand bis beide da sind</b></div>'
+            '<span class="m-btn big" style="display: block; margin-top: 8px; text-align: center">Tauschen</span>'
+            '<div class="m-dim" style="font-size: 12px; margin-top: 6px">Eigener Preis? → Auftrag ins Buch stellen</div>')
+    from playtest_d1 import galaxy
+    m = f'<div class="k-stars" style="position: absolute; inset: 0"></div><div class="k-abs" style="left: 0; top: 96px">{galaxy(390, 544, tip=False)}</div>'
+    return phone(m + header() + pl(400, body) + tabs())
+
+
+def s14c():
+    from playtest_d1 import SYSTEMS, galaxy
+    w, h = 390, 544
+    P = {n: (fx * w, fy * h) for n, (fx, fy, _) in SYSTEMS.items()}
+    offers = [('1:44', 'Thalor kauft 120 k zu 1,9', '18 min', GUILD), ('1:27', 'Leander verkauft zu 2,2', '6 min', OTHER), ('1:24', 'kauft 60 k zu 1,8', '41 min', OTHER)]
+    html = ''
+    for n, txt, t, c in offers:
+        x, y = P[n]
+        html += (f'<div class="k-abs" style="left: {min(x - 40, 250):.0f}px; top: {96 + y + 10:.0f}px; z-index: 2; background: #17110d; border: 1px solid {c}; border-radius: 8px; '
+                 f'padding: 3px 7px; font-size: 11.5px; max-width: 140px"><b style="color: {c}">{txt}</b><br /><span class="m-dim">Lieferzeit {t}</span></div>')
+    m = (f'<div class="k-stars" style="position: absolute; inset: 0"></div><div class="k-abs" style="left: 0; top: 96px">{galaxy(w, h, tip=False, routes=False)}</div>' + html
+         + '<div class="k-abs" style="left: 10px; top: 104px; z-index: 2; display: flex; gap: 6px"><span class="m-chip">Besitz</span><span class="m-chip on">Börse: Psikristall</span></div>')
+    return phone(m + header() + sheet() + tabs())
+
+
+SITS['s14'] = {'a': s14a, 'b': s14b, 'c': s14c}
+
+
 def build_sheet():
     parts = [f'<figure id="r4-{sid}-{e}" style="margin: 0; display: inline-block">{fn()}</figure>' for sid, vs in SITS.items() for e, fn in vs.items()]
     return ('<!doctype html>\n<html lang="de">\n<head>\n<meta charset="utf-8" />\n<title>Playtest r4</title>\n'
