@@ -1,0 +1,30 @@
+{
+  "ask": "Fehlt im Gesamtbild etwas, das du im Spiel jeden Tag brauchst?",
+  "id": "views",
+  "kind": "sit",
+  "order": "abc",
+  "round": "gv",
+  "roundTitle": "Gesamtbild",
+  "seq": 490,
+  "short": "Gesamtbild Ansichten",
+  "station": 0,
+  "text": "Diesmal keine Wahl zwischen Varianten: Die drei Bilder setzen alle deine Entscheidungen zusammen. Bild 1: Handy-Start (Punktkarte mit Farben und Formen, unten die eine Zeile mit dem Dringendsten). Bild 2: Handy mit hochgezogenem Lage-Blatt (Zeitleiste, Funk, Herold, Berichte; die Meldung zum Angriff). Bild 3: Desktop (links Welten mit Rohstoffen, rechts Lexikon, oben Menü, unten das Lage-Blatt mittig, ein System-Fenster, Börse und Gilde als Ebenen). Wähle das Bild, das am meisten Korrektur braucht, und schreib in die Notiz, was nicht stimmt; passt alles, wähle eins und schreib „passt“. Nicht entschieden war, wo angeheftete, minimierte Fenster liegen: hier als kleine Reihe oben auf der Karte (Vorschlag). Im Desktop-Bild fehlen noch die Formen der Farbsprache.",
+  "title": "Gesamtbild: Handy und Desktop",
+  "variants": {
+    "a": {
+      "desc": "Handy: Start auf der Galaxie.",
+      "emph": "Gesamtbild: Handy-Start",
+      "img": "/_blob/341e8d1d2e5ac5ea3ba4fa003c69f516"
+    },
+    "b": {
+      "desc": "Handy: das Lage-Blatt hochgezogen.",
+      "emph": "Gesamtbild: Handy mit Blatt",
+      "img": "/_blob/3d4a2378eb88487a0d46b70d160c1305"
+    },
+    "c": {
+      "desc": "Desktop: alles zusammen.",
+      "emph": "Gesamtbild: Desktop",
+      "img": "/_blob/a853b81ec0a1b98a83e215a4174748ed"
+    }
+  }
+}

@@ -59,6 +59,8 @@ def gem(cx, cy, size, col, t):
 
 
 def ewige_frames(kind, t):
+    gemcol = '#ff6a4a' if kind == 'final' else '#7fe0f0'  # [E] ewige8: the gem changes colour on events (here: the attack)
+    kind = 'dunkel' if kind == 'final' else kind
     bronze = {'poliert': '#9a7a46', 'patina': '#7a6440', 'dunkel': '#5a4a36'}[kind]
     spec = {'poliert': 1.0, 'patina': 0.55, 'dunkel': 0.7}[kind]
     s = [f'<svg width="{W}" height="{H}" viewBox="0 0 {W} {H}" style="position: absolute; left: 0; top: 0; z-index: 4; pointer-events: none">',
@@ -72,13 +74,16 @@ def ewige_frames(kind, t):
     if kind == 'dunkel':  # engraved lines in the strips
         for x in range(30, W - 20, 40):
             s.append(f'<path d="M {x} {TOP - 4} l {4 * T65:.1f} 4 h 10 l {4 * T65:.1f} -4" stroke="#2a2218" stroke-width="1" fill="none" />')
-    s.append(gem(W / 2, TOP + 1, 6, '#7fe0f0', t) + gem(W / 2, SHEET, 5, '#7fe0f0', t))
+    s.append(gem(W / 2, TOP + 1, 6, gemcol, t) + gem(W / 2, SHEET, 5, gemcol, t))
     s.append('</svg>')
     return ''.join(s)
 
 
 def imperium_frames(kind, t):
+    final = kind == 'final'
+    kind = 'zier' if final else kind
     gold = '#b08a3a'
+    orn = '#d8a840' if final else gold  # [E] imperium8: the ornaments more golden
     s = [f'<svg width="{W}" height="{H}" viewBox="0 0 {W} {H}" style="position: absolute; left: 0; top: 0; z-index: 4; pointer-events: none">',
          metal_defs(t, '#fff4d8', 0.8 if kind != 'heute' else 0.0, 0.08)]
     if kind == 'heute':  # today's styling: thin gold lines, no relief
@@ -90,14 +95,14 @@ def imperium_frames(kind, t):
         s.append(f'<path d="M 0 {TABS - 2} H {W} V {TABS + 2} H 0 Z" fill="{gold}" filter="url(#metal)" />')
         if kind == 'zier':  # corner ornaments: a pointed arch and a small cross of lines
             for x, f in [(10, 1), (W - 10, -1)]:
-                s.append(f'<g filter="url(#shade)"><path d="M {x} {SHEET + 2} q {f * 2} -22 {f * 18} -28 q {-f * 6} 10 {-f * 4} 26 Z" fill="{gold}" filter="url(#metal)" />'
+                s.append(f'<g filter="url(#shade)"><path d="M {x} {SHEET + 2} q {f * 2} -22 {f * 18} -28 q {-f * 6} 10 {-f * 4} 26 Z" fill="{orn}" filter="url(#metal)" />'
                          f'<circle cx="{x + f * 14}" cy="{SHEET - 14}" r="3" fill="#d4a537" /></g>')
-            s.append(f'<g filter="url(#shade)"><path d="M {W / 2 - 22} {SHEET + 1} q 22 -20 44 0 Z" fill="{gold}" filter="url(#metal)" /><circle cx="{W / 2}" cy="{SHEET - 8}" r="3.5" fill="#f1d27a" /></g>')
+            s.append(f'<g filter="url(#shade)"><path d="M {W / 2 - 22} {SHEET + 1} q 22 -20 44 0 Z" fill="{orn}" filter="url(#metal)" /><circle cx="{W / 2}" cy="{SHEET - 8}" r="3.5" fill="#f1d27a" /></g>')
     s.append('</svg>')
     return ''.join(s)
 
 
-VARIANTS = {'ewige': [('a', 'poliert'), ('b', 'patina'), ('c', 'dunkel')], 'imperium': [('a', 'heute'), ('b', 'gold'), ('c', 'zier')]}
+VARIANTS = {'ewige': [('a', 'poliert'), ('b', 'patina'), ('c', 'dunkel'), ('f', 'final')], 'imperium': [('a', 'heute'), ('b', 'gold'), ('c', 'zier'), ('f', 'final')]}
 
 
 def page(race, kind, t):

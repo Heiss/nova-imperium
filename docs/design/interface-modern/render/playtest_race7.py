@@ -71,6 +71,10 @@ def frames(kind, t):
             s.append(vertebra(round(x), round(TOP - 2 + rnd.uniform(-1, 2)), w, w * 0.5))
             x += w + rnd.uniform(18, 40)
         goo = drop(60, TOP + 4, t, 0.0, 28) + drop(250, TOP + 4, t, 0.5, 34) + strand(118, 170, SHEET - 6, t, 0.25) + strand(220, 262, SHEET - 6, t, 0.65)
+    elif kind == 'final':  # owner: ribs on top, small bone spurs below
+        s.append('<g filter="url(#shade)">' + ''.join(rib(x, TOP - 4, h, lean) for x, h, lean in [(24, 26, 4), (64, 34, 5), (104, 28, 4), (282, 30, -4), (322, 36, -5), (362, 26, -4)]) + '</g>')
+        s.append('<g filter="url(#shade)">' + ''.join(spur(x, SHEET + 1, 12, x > W / 2, True) for x in (30, 110, 190, 270, 350)) + '</g>')
+        goo = drop(84, TOP + 2, t, 0.1, 30) + drop(300, TOP + 2, t, 0.6, 26) + strand(64, 104, TOP + 22, t, 0.3) + strand(282, 322, TOP + 22, t, 0.7) + strand(110, 190, SHEET - 6, t, 0.5)
     else:  # sporne
         s.append('<g filter="url(#shade)">' + spur(8, SHEET + 2, 30, False, True) + spur(W - 8, SHEET + 2, 30, True, True) + spur(6, TOP - 2, 24, False, False)
                  + spur(W - 6, TOP - 2, 24, True, False) + spur(150, SHEET + 1, 14, False, True) + spur(240, SHEET + 1, 14, True, True) + '</g>')
@@ -80,7 +84,7 @@ def frames(kind, t):
     return ''.join(s)
 
 
-VARIANTS = [('a', 'rippen'), ('b', 'wirbel'), ('c', 'sporne')]
+VARIANTS = [('a', 'rippen'), ('b', 'wirbel'), ('c', 'sporne'), ('f', 'final')]
 
 
 def page(kind, t):
