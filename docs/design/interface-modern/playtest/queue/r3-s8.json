@@ -1,0 +1,30 @@
+{
+  "seq": 150,
+  "kind": "sit",
+  "round": "r3",
+  "roundTitle": "Runde 3 · Spionage, Bericht, Flotte",
+  "station": 8,
+  "id": "s8",
+  "short": "Spionage + Bericht",
+  "title": "Der Bericht kommt zurück",
+  "text": "Du hast Varn aus dem System heraus ausspioniert (deine Wahl bei s7). Vier Minuten später ist der Bericht da. Wo soll er erscheinen? „Angreifen“ steht jeweils direkt dabei. Namen aus dem Katalog; die Beute ist die Hälfte der Rohstoffe.",
+  "order": "bca",
+  "variants": {
+    "a": {
+      "img": "/_blob/14a1e35f1d27f17df21af88e7658e280",
+      "desc": "Im Blatt der Welt: der Bericht öffnet sich dort, wo du spioniert hast; er bleibt an Varn hängen.",
+      "emph": "Bericht im Blatt der Welt"
+    },
+    "b": {
+      "img": "/_blob/759f12cc91ff8160556188ed968be189",
+      "desc": "Auf der Karte: jede Welt mit Bericht trägt ein kleines Schild mit dem Wichtigsten; antippen öffnet den ganzen Bericht.",
+      "emph": "Bericht als Schild auf der Karte"
+    },
+    "c": {
+      "img": "/_blob/eedfe71bc4aad32c66609259c5073440",
+      "desc": "In der Lage-Zeitleiste: der Bericht kommt als Eintrag an und ist dort aufgeklappt.",
+      "emph": "Bericht in der Zeitleiste"
+    }
+  },
+  "ask": "Wo suchst du einen alten Bericht wieder: an der Welt, in einer Liste aller Berichte, oder in der Zeitleiste?"
+}
