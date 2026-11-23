@@ -147,6 +147,59 @@ def s12c():
 SITS['s12'] = {'a': s12a, 'b': s12b, 'c': s12c}
 
 
+# ------------------------------------------------------------------ s13 the Imperial Herald in the game
+# [E] #382: news are delayed; Chronisten get better over a round; fake news
+# are text only and later exposed with a „Dementi“; the research
+# „Schweigegelübde“ protects the own empire. [E] s10: every battle has a
+# private „Kriegsbericht“ for attacker and defender; a player can leak it to
+# the public Herold („durchgestochen“). Headlines are examples.
+NEWS = [('vor 2 h', 'Haus Valcor steigt auf Platz 1', 'gold'), ('vor 3 h', 'Plasma-Lehre zum ersten Mal erforscht', 'red'),
+        ('vor 5 h', 'Dementi: Die Meldung über eine Flotte in 1:38 war falsch', 'dim')]
+
+
+def ticker_line():
+    return ('<div class="k-abs" style="left: 0; right: 0; top: 96px; z-index: 3; height: 28px; background: #0f0b08; border-bottom: 1px solid var(--line); '
+            'display: flex; gap: 10px; align-items: center; padding: 0 10px; font-size: 12.5px; white-space: nowrap; overflow: hidden">'
+            '<b style="font: 700 11px var(--head); color: var(--gold); letter-spacing: 0.08em">HEROLD</b>'
+            + ' · '.join(f'<span>{h}</span>' for _, h, _ in NEWS) + '</div>')
+
+
+def s13a():
+    from playtest_r1x import pulled as pl
+    rows = ''.join(f'<div style="display: grid; grid-template-columns: 58px 1fr; gap: 6px; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 13px">'
+                   f'<span class="m-dim" style="font-size: 12px">{t}</span><span style="color: var(--{"txt" if c != "dim" else "dim"})">{h}</span></div>' for t, h, c in NEWS)
+    priv = ('<div style="border: 1px solid var(--gold); border-radius: 8px; padding: 8px; margin-top: 8px; font-size: 13px">'
+            '<b style="color: var(--gold-hi)">Dein Kriegsbericht: Varn</b> <span class="m-dim" style="font-size: 12px">nur für dich und Varn</span>'
+            '<div style="display: flex; gap: 8px; margin-top: 6px"><span class="m-btn">▶ ansehen</span><span class="m-btn" style="background: none; color: var(--gold-hi); border: 1px solid var(--gold)">Durchstechen</span></div></div>')
+    body = ('<div class="m-chips" style="margin: 0 0 6px"><span class="m-chip">Zeitleiste</span><span class="m-chip">Funk</span><span class="m-chip on">Herold</span></div>' + rows + priv)
+    from playtest_d1 import galaxy
+    m = f'<div class="k-stars" style="position: absolute; inset: 0"></div><div class="k-abs" style="left: 0; top: 96px">{galaxy(390, 544, tip=False)}</div>'
+    return phone(m + header() + pl(420, body) + tabs())
+
+
+def s13b():
+    from playtest_d1 import galaxy
+    m = f'<div class="k-stars" style="position: absolute; inset: 0"></div><div class="k-abs" style="left: 0; top: 124px">{galaxy(390, 516, tip=False)}</div>'
+    return phone(m + ticker_line() + header() + sheet() + tabs())
+
+
+def s13c():
+    cards = ''.join(f'<div style="border-bottom: 1px solid var(--line); padding: 8px 0"><span class="m-dim" style="font-size: 12px">{t}</span><br />'
+                    f'<b style="font: 700 15px var(--head); color: var(--{"txt" if c != "dim" else "dim"})">{h}</b></div>' for t, h, c in NEWS)
+    hero = ('<div style="border: 1px solid var(--gold); border-radius: 8px; overflow: hidden; margin: 8px 0">'
+            '<div style="height: 120px; background: radial-gradient(circle at 70% 40%, #f0a050 0 6%, transparent 7%), radial-gradient(circle at 30% 60%, #6fb8ff 0 3%, transparent 4%), linear-gradient(160deg, #1a1210, #0b0806); position: relative">'
+            '<span style="position: absolute; left: 10px; bottom: 8px; font-size: 26px">▶</span></div>'
+            '<div style="padding: 8px"><b style="color: var(--gold-hi)">Kriegsbericht: die Schlacht um Varn</b><div class="m-dim" style="font-size: 12px">nur für dich und Varn sichtbar · '
+            '<span style="color: var(--gold-hi)">Durchstechen</span> macht ihn öffentlich</div></div></div>')
+    inner = ('<div style="position: relative; padding: 100px 12px 0"><div style="text-align: center; border-bottom: 2px solid var(--gold); padding-bottom: 6px">'
+             '<b style="font: 800 22px var(--head); color: var(--gold); letter-spacing: 0.08em">IMPERIALER HEROLD</b><br /><span class="m-dim" style="font-size: 12px">Meldungen mit Verzögerung</span></div>'
+             + hero + cards + '</div>')
+    return phone('<div class="k-stars" style="position: absolute; inset: 0"></div>' + inner + header() + sheet() + tabs())
+
+
+SITS['s13'] = {'a': s13a, 'b': s13b, 'c': s13c}
+
+
 def build_sheet():
     parts = [f'<figure id="r4-{sid}-{e}" style="margin: 0; display: inline-block">{fn()}</figure>' for sid, vs in SITS.items() for e, fn in vs.items()]
     return ('<!doctype html>\n<html lang="de">\n<head>\n<meta charset="utf-8" />\n<title>Playtest r4</title>\n'

@@ -1,0 +1,30 @@
+{
+  "seq": 210,
+  "kind": "sit",
+  "round": "r4",
+  "roundTitle": "Runde 4 · Kolonie, Gilde, Herold, Börse",
+  "station": 11,
+  "id": "s13",
+  "short": "Herold im Spiel",
+  "title": "Der Imperiale Herold im Spiel",
+  "text": "Der Herold (#382) hat seine eigene Seite. Wie erscheint er im Spiel? Deine Entscheidungen von eben sind drin: der Kriegsbericht nur für dich und Varn, „Durchstechen“ macht ihn öffentlich. Schlagzeilen sind Beispiele.",
+  "order": "bca",
+  "variants": {
+    "a": {
+      "img": "/_blob/01d21508d17d30c3a3ec2b1a8df2db8f",
+      "desc": "Ein Reiter „Herold“ im Lage-Blatt: Schlagzeilen und dein privater Kriegsbericht mit „ansehen“ und „Durchstechen“.",
+      "emph": "Herold: Reiter im Lage-Blatt"
+    },
+    "b": {
+      "img": "/_blob/ffab08ec962680d319c603e79b1526c6",
+      "desc": "Eine laufende Zeile oben unter den Rohstoffen, wie ein Börsenticker; antippen öffnet den Herold.",
+      "emph": "Herold: Ticker oben"
+    },
+    "c": {
+      "img": "/_blob/187c8a2aceac3c41da6dc3d91f4f187d",
+      "desc": "Eigene Zeitungsseite im Spiel, oben der Kriegsbericht als Film, darunter die Schlagzeilen.",
+      "emph": "Herold: Zeitungsseite"
+    }
+  },
+  "ask": "Soll eine Meldung des Herolds, die dich betrifft (z. B. über deine Welten), auch in deiner Zeitleiste erscheinen?"
+}
