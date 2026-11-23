@@ -204,6 +204,53 @@ def d6c():
 SITS['d6'] = {'a': d6a, 'b': d6b, 'c': d6c}
 
 
+# ------------------------------------------------------------------ d7 reports on the desktop
+# [E] s18: Berichte = a list by time with filters; a tap opens the report in its world's sheet; limit per player.
+# [E] s8: a report is reached from the timeline, the list and the world. [E] s10: battle report as a table.
+def report_list(width=360):
+    from playtest_r7 import REPORTS
+    chips = '<div class="m-chips">' + ''.join(f'<span class="m-chip{" on" if i == 0 else ""}">{t}</span>' for i, t in enumerate(['Alle', 'Kampf', 'Auspex', 'Flotte', 'Lieferung'])) + '</div>'
+    rows = ''.join(f'<div style="display: grid; grid-template-columns: 8px 1fr auto; gap: 8px; align-items: center; padding: 7px 4px; border-bottom: 1px solid var(--line); font-size: 13px;'
+                   f'{" background: rgb(212 165 55 / 0.1)" if "Varn" in t else ""}">'
+                   f'<span style="width: 8px; height: 8px; border-radius: 50%; background: var(--{c})"></span><span>{t}<br /><span class="m-dim" style="font-size: 11.5px">{k} · {w}</span></span>'
+                   f'<span class="m-dim" style="font-size: 12px">{tm}</span></div>' for k, c, t, tm, w in sorted(REPORTS, key=lambda r: r[3], reverse=True))
+    return f'<div style="width: {width}px">{chips}{rows}</div>'
+
+
+def report_full():
+    from playtest_r3 import report_body
+    return f'<div style="width: 360px; font-size: 13px">{report_body()}</div>'
+
+
+def d7a():
+    lw = window(30, TOPBAR + 20, 400, 420, 'Berichte · 5 neu', report_list(370), 3)
+    rw = window(460, TOPBAR + 60, 400, 420, 'Bericht · Varn [1:44:4]', report_full(), 4)
+    return stars_bg() + f'<div class="k-abs" style="left: 0; top: {TOPBAR}px">{galaxy(DW, DH - TOPBAR, tip=False)}</div>' + lw + rw + topbar(0, tabs=True) + sheet_line() + chat()
+
+
+def d7b():
+    tabs = ''.join(f'<span style="padding: 6px 12px; border-bottom: 2px solid var(--{"gold" if t == "Berichte" else "line"}); color: var(--{"gold-hi" if t == "Berichte" else "dim"})">{t}</span>'
+                   for t in ['Zeitleiste', 'Funk', 'Herold', 'Berichte'])
+    sh = ('<div class="k-abs" style="left: 40px; width: 460px; bottom: 0; height: 430px; background: #17110d; border: 1px solid var(--gold); border-bottom: 0; '
+          'border-radius: 16px 16px 0 0; box-shadow: 0 -10px 30px rgb(0 0 0 / 0.7); z-index: 4; padding: 8px 20px">'
+          f'<div style="display: flex; gap: 4px; font-size: 13px; margin-bottom: 8px">{tabs}</div>{report_list(420)}</div>')
+    rw = window(560, TOPBAR + 60, 400, 420, 'Bericht · Varn [1:44:4]', report_full(), 4)
+    return stars_bg() + f'<div class="k-abs" style="left: 0; top: {TOPBAR}px">{galaxy(DW, DH - TOPBAR, tip=False)}</div>' + rw + topbar(0, tabs=True) + sh + chat()
+
+
+def d7c():
+    from playtest_d1 import SYSTEMS
+    x, y = SYSTEMS['1:44'][0] * DW, SYSTEMS['1:44'][1] * (DH - TOPBAR) + TOPBAR
+    pop = (f'<div class="k-abs" style="left: {x - 420:.0f}px; top: {y - 330:.0f}px; width: 380px; z-index: 5; background: #17110d; border: 1px solid var(--green); border-radius: 10px; '
+           'padding: 10px 12px; box-shadow: 0 10px 30px rgb(0 0 0 / 0.7)">' + report_full() + '</div>'
+           f'<svg class="k-abs" style="left: 0; top: 0; z-index: 4" width="{DW}" height="{DH}"><path d="M {x - 40:.0f} {y - 40:.0f} L {x - 6:.0f} {y - 6:.0f}" stroke="#7fd18b" stroke-width="2" /></svg>')
+    lw = window(30, TOPBAR + 20, 400, 420, 'Berichte · 5 neu', report_list(370), 3)
+    return stars_bg() + f'<div class="k-abs" style="left: 0; top: {TOPBAR}px">{galaxy(DW, DH - TOPBAR, tip=False)}</div>' + lw + pop + topbar(0, tabs=True) + sheet_line() + chat()
+
+
+SITS['d7'] = {'a': d7a, 'b': d7b, 'c': d7c}
+
+
 def build_sheet():
     parts = [f'<figure id="{sid}-{sid}-{e}" style="margin: 0"><div class="k-desk">{fn()}</div></figure>' for sid, vs in SITS.items() for e, fn in vs.items()]
     return ('<!doctype html>\n<html lang="de">\n<head>\n<meta charset="utf-8" />\n<title>Playtest d4</title>\n'

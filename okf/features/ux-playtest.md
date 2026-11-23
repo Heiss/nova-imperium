@@ -137,7 +137,7 @@ Taken from the code (views, missions, reports) and the open ideas:
 | 7 | tabs not tested yet | s17 Welten (b·c·a) · s18 Berichte (c·a·b) · s19 Menü (a·b·c) | done 2026-11-23 16:45 |
 | 6b | races, third time | brut3 organic borders (b·c·a) · ewige3 technical frames (c·a·b), map unchanged | done 2026-11-23 17:56 |
 | 6c | Brut again | brut4 more goo (c·a·b) · brut5 lit relief, prerendered (b·c·a) | brut4 done; brut5 queued |
-| d4–d6 | desktop | d4 research tree (b·c·a) · d5 fleet with presets (c·a·b) · d6 Herold + Börse (a·b·c) | d4 done; d5, d6 queued |
+| d4–d7 | desktop | d4 research tree (b·c·a) · d5 fleet with presets (c·a·b) · d6 Herold + Börse (a·b·c) · d7 reports (b·c·a) | d4 done; d5–d7 queued |
 | d3 | desktop: building on fields + info page (a three columns, b windows, c as on the phone; order c·a·b) | done 2026-11-23 16:35 |
 | 5 | more desktop views (building, info page) | planned | open |
 
@@ -196,7 +196,7 @@ s2 of version 1 (galaxy without systems; dashboard not yet a sheet).
 
 * Owner chose (2026-11-23 18:00): Brut once more, more desktop rounds, the rules into the feature issues (#382, #386, #155, #158, #154); not yet the rewrite of #388.
 * Rules handed to the feature issues as comments (2026-11-23): [#382](https://github.com/Heiss/nova-imperium/issues/382#issuecomment-7109729537), [#386](https://github.com/Heiss/nova-imperium/issues/386#issuecomment-7109730732), [#155](https://github.com/Heiss/nova-imperium/issues/155#issuecomment-7109731930), [#158](https://github.com/Heiss/nova-imperium/issues/158#issuecomment-7109733023), [#154](https://github.com/Heiss/nova-imperium/issues/154#issuecomment-7109734744). New idea issues (owner, 2026-11-23): queues through a special research (s5) [#391](https://github.com/Heiss/nova-imperium/issues/391); spying on several targets at once (s7) [#392](https://github.com/Heiss/nova-imperium/issues/392).
-* Read d5, d6, brut5.
+* Read d5, d6, brut5, d7.
 * After the race repeats: sum up and ask the owner whether more repeats are needed or #388 and the study get rewritten.
 * The loop is covered once (s1–s16, d1–d2). Next: repeats with variants inside the winners, and desktop views of the new winners.
 * Race follow-up: Brut chitin with organic, slightly disgusting motion; Ewige clockwork with 65° bends; per-race terms; a colour for friends.
