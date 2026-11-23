@@ -61,6 +61,7 @@ okf_version: "0.2"
 * [Demolition of buildings](/features/demolition.md) - one level per order, refund factor −100 % to +100 % and time share per round (#202)
 * [Surveying free positions](/features/survey.md) - the mission „Vermessung“ with Spähschädel, the research „Auspex-Kartographie“, report tiers, loss and the values fixed for the colony (#190)
 * [Marketplace](/features/marketplace.md) - exchange resources at ratios per pair with moving prices, the Handelsposten lowers the fee, cap by the free storage, limit per player per day (#171)
+* [UX playtest of the interface „Modern“](/features/ux-playtest.md) - blind three-way picks along the game loop with the owner, plan, rounds and results (#388, #236)
 
 * [Invitations](/features/invitations.md) - registration only by invitation, mail or copied link
 * [Admin](/features/admin.md) - operator roles, diagnostics, audit log, moderation and live universe settings

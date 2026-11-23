@@ -473,3 +473,9 @@
   letter-spacing: 0.08em;
   color: var(--dim);
 }
+
+.k-g {
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.6;
+}

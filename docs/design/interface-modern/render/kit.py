@@ -32,12 +32,12 @@ GLYPH = {
 
 
 def g(name, size=20):
-    return (f'<svg viewBox="0 0 24 24" width="{size}" height="{size}" aria-hidden="true">'
+    return (f'<svg class="k-g" viewBox="0 0 24 24" width="{size}" height="{size}" aria-hidden="true">'
             f'{GLYPH[name]}</svg>')
 
 
 def ball(kind='normal', n=1, size=28, extra=''):
-    return (f'<span class="m-ball" style="width: {size}px; height: {size}px; background-image: '
+    return (f'<span class="m-ball" style="display: inline-block; width: {size}px; height: {size}px; background-image: '
             f'url(/planets/{kind}-{n}-surface.svg){extra}"></span>')
 
 
@@ -63,15 +63,15 @@ BUILDINGS = [
     ('buildings/deuterium_synthesizer.svg', 'Promethium-Raffinerie', 12, 'ok', 'baubar'),
     ('buildings/solar_plant.svg', 'Sonnenkathedrale', 16, 'ok', 'baubar'),
     ('buildings/fusion_reactor.svg', 'Fusionssanktum', 0, 'ok', 'baubar'),
-    ('buildings/robotics_factory.svg', 'Servitorenschmiede', 8, 'no', 'fehlt 14 k'),
+    ('buildings/robotics_factory.svg', 'Servitorenschmiede', 8, 'no', 'fehlt 10 k'),
     ('buildings/shipyard.svg', 'Orbitale Schiffsschmiede', 8, 'ok', 'baubar'),
     ('buildings/research_lab.svg', 'Scholarium', 9, 'soon', '15:10'),
-    ('buildings/metal_storage.svg', 'Adamant-Gewölbe', 6, 'ok', 'baubar'),
-    ('buildings/crystal_storage.svg', 'Psikristall-Reliquiar', 5, 'ok', 'baubar'),
-    ('buildings/deuterium_tank.svg', 'Promethium-Zisterne', 4, 'no', 'fehlt 31 k'),
-    ('buildings/nanite_factory.svg', 'Machina-Schwarmhalle', 1, 'no', 'fehlt 1,2 Mio.'),
+    ('buildings/metal_storage.svg', 'Adamant-Gewölbe', 2, 'ok', 'baubar'),
+    ('buildings/crystal_storage.svg', 'Psikristall-Reliquiar', 0, 'ok', 'baubar'),
+    ('buildings/deuterium_tank.svg', 'Promethium-Zisterne', 1, 'ok', 'baubar'),
+    ('buildings/nanite_factory.svg', 'Machina-Schwarmhalle', 0, 'lock', 'Servitoren 10'),
     ('buildings/missile_silo.svg', 'Raketensilo', 0, 'ok', 'baubar'),
-    ('buildings/trading_post.svg', 'Handelsposten', 0, 'soon', '16:40'),
+    ('buildings/trading_post.svg', 'Handelsposten', 0, 'ok', 'baubar'),
     ('buildings/terraformer.svg', 'Weltenschmiede', 0, 'lock', 'gesperrt'),
     ('buildings/sensor_phalanx.svg', 'Auspex-Phalanx', 0, 'lock', 'nur Mond'),
 ]
@@ -100,12 +100,12 @@ def info(width=330, small=False):
     pad = 'padding: 10px' if small else ''
     return (f'<div class="k-info" style="width: {width}px; {pad}"><div class="k-ih">'
             f'<img src="{I}buildings/crystal_storage.svg" alt="" /><div><h2>Psikristall-Reliquiar</h2>'
-            '<span class="m-dim">Stufe 5 → 6 · Lager</span></div></div>'
-            '<div style="font-size: 13.5px; margin-bottom: 6px">Lager für Psikristall <b class="up">+52.000</b>. '
+            '<span class="m-dim">Stufe 0 → 1 · Lager</span></div></div>'
+            '<div style="font-size: 13.5px; margin-bottom: 6px">Lager für Psikristall <b class="up">+50.000</b> (100.000 → 150.000). '
             'Ohne Ausbau ist das Lager in <b style="color: var(--orange)">1 h 40 min</b> voll.</div>'
-            + need('metal', '40.960') + need('crystal', '20.480')
-            + '<div class="m-kv" style="margin: 6px 0"><span>Bauzeit</span><b>41 min</b><span>fertig</span><b>14:01</b></div>'
-            '<div style="display: flex; gap: 8px"><span class="m-btn big" style="flex: 1">Ausbauen auf 6</span>'
+            + need('metal', '1.000') + need('crystal', '500')
+            + '<div class="m-kv" style="margin: 6px 0"><span>Bauzeit</span><b>4 min</b><span>fertig</span><b>13:24</b></div>'
+            '<div style="display: flex; gap: 8px"><span class="m-btn big" style="flex: 1">Bauen</span>'
             '<span class="m-btn ghost big">Lexicanum</span></div></div>')
 
 
@@ -113,9 +113,9 @@ def info_missing(width=330):
     return (f'<div class="k-info" style="width: {width}px"><div class="k-ih">'
             f'<img src="{I}buildings/robotics_factory.svg" alt="" /><div><h2>Servitorenschmiede</h2>'
             '<span class="m-dim">Stufe 8 → 9 · Bauzeit aller Gebäude −10 %</span></div></div>'
-            + need('metal', '102.400') + need('crystal', '51.200', False, '14.200') + need('deuterium', '25.600')
-            + '<div class="m-dim" style="font-size: 13px; margin: 6px 0">leistbar um <b style="color: var(--orange)">15:25</b> (in 2 h 05)</div>'
-            '<span class="m-btn dis big" style="display: block">Ausbauen ab 15:25</span></div>')
+            + need('metal', '102.400') + need('crystal', '30.720') + need('deuterium', '51.200', False, '10.200')
+            + '<div class="m-dim" style="font-size: 13px; margin: 6px 0">leistbar um <b style="color: var(--orange)">18:39</b> (in 5 h 19)</div>'
+            '<span class="m-btn dis big" style="display: block">Ausbauen ab 18:39</span></div>')
 
 
 # ------------------------------------------------------------- map

@@ -1,0 +1,738 @@
+<title>Nova Imperium Playtest</title>
+<meta name="claude:viewport-fit-sides" content="cover" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link
+  rel="stylesheet"
+  href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap"
+/>
+<style>
+  /* One dark world, the game's own: bronze ground, gold frames, Cinzel for
+     headings, EB Garamond for text. Layout: a narrow reading column with the
+     loop strip on top, then one block per situation with three cards. */
+  :root {
+    --bg: #0d0a08;
+    --panel: #1a1411;
+    --panel-2: #231a14;
+    --line: #3b2f22;
+    --txt: #e9dfc8;
+    --dim: #a8997f;
+    --gold: #d4a537;
+    --gold-hi: #f1d27a;
+    --ok: #9ccb76;
+    --warn: #f0a050;
+    --bad: #ee7660;
+    --head: 'Cinzel', Georgia, serif;
+    --body: 'EB Garamond', Georgia, serif;
+    color-scheme: dark;
+  }
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    background:
+      radial-gradient(
+        ellipse at 20% 0%,
+        rgb(212 165 55 / 0.08),
+        transparent 55%
+      ),
+      var(--bg);
+    color: var(--txt);
+    font: 17px/1.5 var(--body);
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 20px 60px;
+  }
+  .wrap {
+    max-width: 1080px;
+    margin: 0 auto;
+    display: grid;
+    gap: 22px;
+  }
+  h1,
+  h2,
+  h3 {
+    font-family: var(--head);
+    color: var(--gold-hi);
+    text-wrap: balance;
+    margin: 0;
+  }
+  h1 {
+    font-size: clamp(24px, 4vw, 34px);
+    letter-spacing: 0.08em;
+  }
+  h2 {
+    font-size: 21px;
+    letter-spacing: 0.06em;
+    color: var(--gold);
+  }
+  h3 {
+    font-size: 17px;
+    letter-spacing: 0.04em;
+  }
+  p {
+    margin: 0;
+    max-width: 68ch;
+  }
+  .dim {
+    color: var(--dim);
+  }
+  .intro {
+    display: grid;
+    gap: 8px;
+  }
+  .loop {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .loop li {
+    font-size: 13.5px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 2px 10px;
+    color: var(--dim);
+  }
+  .loop li.now {
+    border-color: var(--gold);
+    color: var(--gold-hi);
+    background: rgb(212 165 55 / 0.12);
+  }
+  .loop li.done {
+    color: var(--ok);
+    border-color: var(--ok);
+  }
+  .round {
+    display: grid;
+    gap: 18px;
+    border-top: 1px solid var(--line);
+    padding-top: 16px;
+  }
+  .sit {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 16px;
+    display: grid;
+    gap: 12px;
+  }
+  .sit-head {
+    display: flex;
+    gap: 10px;
+    align-items: baseline;
+    flex-wrap: wrap;
+  }
+  .sit-head .no {
+    font: 600 13px var(--head);
+    color: var(--dim);
+    letter-spacing: 0.1em;
+  }
+  .opts {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+  }
+  @media (max-width: 760px) {
+    .opts {
+      grid-template-columns: 1fr;
+    }
+  }
+  .opt {
+    display: grid;
+    gap: 8px;
+    align-content: start;
+    min-width: 0;
+    border: 2px solid var(--line);
+    border-radius: 10px;
+    padding: 10px;
+    background: var(--panel-2);
+  }
+  .opt.chosen {
+    border-color: var(--gold-hi);
+    box-shadow: 0 0 0 3px rgb(241 210 122 / 0.18);
+  }
+  .opt img {
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    aspect-ratio: 390 / 780;
+    object-fit: cover;
+    border-radius: 14px;
+    border: 1px solid var(--line);
+    cursor: zoom-in;
+    background: #000;
+  }
+  .opt .lab {
+    font: 600 14px var(--head);
+    letter-spacing: 0.08em;
+    color: var(--gold);
+  }
+  .opt .desc {
+    font-size: 15px;
+  }
+  .opt .emph {
+    font-size: 13.5px;
+    color: var(--dim);
+    font-style: italic;
+  }
+  button,
+  .btn {
+    font: 600 13px var(--head);
+    letter-spacing: 0.06em;
+    border: 1px solid var(--gold);
+    border-radius: 6px;
+    padding: 9px 14px;
+    cursor: pointer;
+    background: linear-gradient(#e2b54a, #b8862a);
+    color: #1a120b;
+  }
+  button.ghost {
+    background: none;
+    color: var(--gold-hi);
+  }
+  .opt.chosen button {
+    background: var(--ok);
+    border-color: var(--ok);
+  }
+  button:focus-visible,
+  textarea:focus-visible,
+  input:focus-visible,
+  img:focus-visible {
+    outline: 2px solid var(--gold-hi);
+    outline-offset: 2px;
+  }
+  label {
+    font-size: 15px;
+  }
+  textarea,
+  input[type='text'] {
+    width: 100%;
+    font: 16px/1.4 var(--body);
+    color: var(--txt);
+    background: #0f0b08;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 8px 10px;
+  }
+  textarea {
+    min-height: 72px;
+    resize: vertical;
+  }
+  .note {
+    display: grid;
+    gap: 6px;
+  }
+  .state {
+    font-size: 13.5px;
+    color: var(--dim);
+  }
+  .state.ok {
+    color: var(--ok);
+  }
+  .state.bad {
+    color: var(--bad);
+  }
+  form.quest {
+    background: var(--panel);
+    border: 1px solid var(--gold);
+    border-radius: 8px;
+    padding: 16px;
+    display: grid;
+    gap: 14px;
+  }
+  fieldset {
+    border: 0;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 6px;
+  }
+  legend {
+    font: 600 15px var(--head);
+    color: var(--gold-hi);
+    margin-bottom: 4px;
+  }
+  .choices {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+  }
+  .choices label {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+  .row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .lightbox {
+    position: fixed;
+    inset: 0;
+    background: rgb(0 0 0 / 0.86);
+    display: grid;
+    place-items: center;
+    z-index: 20;
+    padding: calc(env(safe-area-inset-top, 0px) + 16px) 16px 16px;
+  }
+  .lightbox[hidden] {
+    display: none;
+  }
+  .lightbox img {
+    max-height: 92vh;
+    max-width: 100%;
+    border-radius: 18px;
+  }
+  .lightbox button {
+    position: absolute;
+    top: calc(env(safe-area-inset-top, 0px) + 12px);
+    right: max(12px, env(safe-area-inset-right, 0px));
+  }
+  .banner {
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 15px;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .opt {
+      transition:
+        border-color 0.15s,
+        box-shadow 0.15s;
+    }
+  }
+</style>
+
+<div class="wrap">
+  <header class="intro">
+    <h1>Nova Imperium · Playtest</h1>
+    <p>
+      Wir gehen den Spielablauf Schritt für Schritt durch. Zu jeder Situation
+      siehst du drei Varianten, ohne Etikett. Wähle die, die dir besser gefällt,
+      und schreib dazu, was dir daran gefällt. Erst nach deiner Wahl steht da,
+      welcher Schwerpunkt dahintersteckt. Ein Klick auf ein Bild vergrößert es.
+    </p>
+    <p class="dim">
+      Alles wird gespeichert, sobald du wählst oder schreibst; Claude liest die
+      Antworten und baut die nächste Runde daraus. Situationen kommen ruhig
+      mehrmals, damit wir sicher sind.
+    </p>
+    <ol class="loop" id="loop" aria-label="Spielablauf"></ol>
+    <div class="banner state" id="conn">Speicher wird verbunden …</div>
+  </header>
+  <main id="rounds"></main>
+</div>
+
+<div class="lightbox" id="lightbox" hidden>
+  <button class="ghost" id="lb-close" type="button">Schließen</button>
+  <img id="lb-img" alt="" />
+</div>
+
+<script>
+  const LOOP = [
+    'Login & Karte',
+    'Lage / Dashboard',
+    'Bauen auf Feldern',
+    'Gebäude-Info',
+    'Forschung',
+    'Werft & Abwehr',
+    'Spionage',
+    'Flotte senden',
+    'Raumschlacht & Bericht',
+    'Bodenkampf / Belagerung',
+    'Trümmer, Beute, Kolonie',
+    'Gilde, Chat, Herold, Börse',
+    'Abwesenheit & Hinweise',
+  ];
+  const EMPH = {
+    a: 'Schwerpunkt Browser-Strategie (Travian, Forge of Empires, Grepolis)',
+    b: 'Schwerpunkt 4X / Weltraum (Stellaris, EVE Online)',
+    c: 'Schwerpunkt Mobile Strategie (Clash of Clans, Rise of Kingdoms)',
+  };
+  const ROUNDS = [
+    {
+      id: 'r1',
+      title: 'Runde 1 · Ankommen und bauen',
+      stations: [0, 1, 2, 3],
+      situations: [
+        {
+          id: 's1',
+          title: 'Direkt nach dem Login',
+          text: 'Die Galaxiekarte mit den wichtigsten Infos aus dem Dashboard. Es ist 13:20, du warst seit gestern Abend weg; Nox wird um 14:32 angegriffen, das Psikristall-Lager auf Aurelia ist bald voll.',
+          order: 'cab',
+          desc: {
+            a: 'Galaxie als Sektor-Kacheln; drei Hinweise oben; Leiste der Welten und Menüleiste unten.',
+            b: 'Galaxie als freie Karte; Alarme oben rechts; Übersicht als ausklappbare Seitenleiste; Lagebuch unten.',
+            c: 'Galaxie als freie Karte; eigene Welten groß mit ihrem Zustand; Zeiten oben; große Knöpfe Flotte · Lage · Bauen.',
+          },
+        },
+        {
+          id: 's2',
+          title: 'Das Dashboard',
+          text: 'Du öffnest das Dashboard, um zu sehen, was passiert ist, was läuft und was die anderen tun.',
+          order: 'bca',
+          desc: {
+            a: 'Karten untereinander: Achtung, Läuft, Seit deinem Besuch, Nachbarn.',
+            b: 'Lagebuch als Blatt über der Karte: Gruppen zum Auf- und Zuklappen, darunter die Welten mit Fortschritt.',
+            c: '„Während du weg warst“ groß, darunter was die anderen tun; große Knöpfe.',
+          },
+        },
+        {
+          id: 's3',
+          title: 'Bauen auf Feldern (#158)',
+          text: 'Du willst auf Aurelia ein Gebäude setzen. Die Oberfläche hat Felder mit Eigenschaften (Erzader, Sonnenhang, Gebirge …). Die Regeln dazu sind noch offen; es geht nur um die Bedienung.',
+          order: 'acb',
+          desc: {
+            a: 'Quadratische Felder; Feld antippen, sehen was dort wie gut läuft, „Hier bauen“.',
+            b: 'Sechseck-Felder mit Ebenen Ertrag und Nachbarn; Vergleichstabelle im Blatt.',
+            c: 'Gebäude aus der Leiste auf ein Feld ziehen; jedes Feld zeigt dabei den Ertrag; erst „Bestätigen“ baut.',
+          },
+        },
+        {
+          id: 's4',
+          title: 'Kompakt-Modus: Infoseite eines Gebäudes',
+          text: 'Im Kompakt-Modus tippst du auf die Servitorenschmiede. Es fehlt Promethium; leistbar wäre sie um 18:39.',
+          order: 'bac',
+          desc: {
+            a: 'Eigene Seite mit Reitern; Kosten Zeile für Zeile grün oder rot; „Erinnern, wenn leistbar“.',
+            b: 'Fenster mit Stufentabelle, Kosten und Abhängigkeiten; „In Warteschlange“.',
+            c: 'Großes Blatt: Bild, ein Satz Wirkung, Kosten als farbige Chips, großer Knopf; wischen zum nächsten Gebäude.',
+          },
+        },
+      ],
+      questions: [
+        {
+          id: 'focus',
+          type: 'multi',
+          label: 'Worauf achtest du beim Vergleichen am meisten?',
+          options: [
+            'schnell erfassen, was los ist',
+            'wenige Klicks',
+            'Atmosphäre und Optik',
+            'alles auf einen Blick',
+            'mit dem Daumen bedienbar',
+            'vertraut, wie früher',
+          ],
+        },
+        {
+          id: 'device',
+          type: 'one',
+          label: 'Wo spielst du meistens?',
+          options: ['Handy', 'Desktop', 'beides gleich'],
+        },
+        {
+          id: 'visit',
+          type: 'one',
+          label: 'Wie lange dauert ein typischer Besuch?',
+          options: [
+            'unter 2 Minuten',
+            '2 bis 10 Minuten',
+            'länger als 10 Minuten',
+          ],
+        },
+        {
+          id: 'first',
+          type: 'text',
+          label: 'Was willst du direkt nach dem Login als Erstes wissen?',
+        },
+        {
+          id: 'next',
+          type: 'text',
+          label:
+            'Was soll ich in der nächsten Runde zeigen oder anders machen?',
+        },
+      ],
+    },
+  ];
+
+  const state = { picks: {}, answers: {}, db: null };
+  const $ = (sel, el = document) => el.querySelector(sel);
+  const esc = (s) =>
+    String(s).replace(
+      /[&<>"]/g,
+      (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c],
+    );
+
+  function setConn(text, cls) {
+    const el = $('#conn');
+    el.textContent = text;
+    el.className = 'banner state ' + (cls || '');
+  }
+
+  function renderLoop() {
+    const now = new Set(ROUNDS[ROUNDS.length - 1].stations);
+    const done = new Set(ROUNDS.slice(0, -1).flatMap((r) => r.stations));
+    $('#loop').innerHTML = LOOP.map(
+      (s, i) =>
+        `<li class="${now.has(i) ? 'now' : done.has(i) ? 'done' : ''}">${i + 1} · ${esc(s)}</li>`,
+    ).join('');
+  }
+
+  function renderRounds() {
+    const main = $('#rounds');
+    main.innerHTML = ROUNDS.map((r) => {
+      const sits = r.situations
+        .map((s, si) => {
+          const pick = state.picks[r.id + '-' + s.id] || {};
+          const opts = [...s.order]
+            .map((e, i) => {
+              const n = i + 1;
+              const chosen = pick.choice === n;
+              const reveal = pick.choice
+                ? `<span class="emph">${esc(EMPH[e])}</span>`
+                : '';
+              return `<div class="opt${chosen ? ' chosen' : ''}">
+                <span class="lab">Variante ${n}</span>
+                <img src="img/${r.id}-${s.id}-${e}.jpg" alt="Variante ${n}: ${esc(s.desc[e])}" tabindex="0" data-zoom="img/${r.id}-${s.id}-${e}.jpg" loading="lazy" />
+                <span class="desc">${esc(s.desc[e])}</span>${reveal}
+                <button type="button" data-pick="${r.id}|${s.id}|${n}|${e}">${chosen ? 'Gewählt ✓' : 'Diese gefällt mir besser'}</button>
+              </div>`;
+            })
+            .join('');
+          return `<section class="sit" aria-labelledby="h-${r.id}-${s.id}">
+            <div class="sit-head"><span class="no">SITUATION ${si + 1}</span><h3 id="h-${r.id}-${s.id}">${esc(s.title)}</h3></div>
+            <p>${esc(s.text)}</p>
+            <div class="opts">${opts}</div>
+            <div class="note">
+              <label for="note-${r.id}-${s.id}">Was gefällt dir an deiner Wahl besonders? Was würdest du ändern?</label>
+              <textarea id="note-${r.id}-${s.id}" data-note="${r.id}|${s.id}" placeholder="z. B. „Die Knöpfe unten, aber die Zeiten oben sind mir zu klein.“">${esc(pick.note || '')}</textarea>
+              <span class="state" id="st-${r.id}-${s.id}">${pick.choice ? 'Gespeichert' : 'Noch keine Wahl'}</span>
+            </div>
+          </section>`;
+        })
+        .join('');
+      const a = state.answers[r.id] || {};
+      const qs = r.questions
+        .map((q) => {
+          if (q.type === 'text') {
+            return `<fieldset><legend>${esc(q.label)}</legend>
+              <textarea id="q-${r.id}-${q.id}" name="${q.id}">${esc(a[q.id] || '')}</textarea></fieldset>`;
+          }
+          const multi = q.type === 'multi';
+          const have = multi ? a[q.id] || [] : [a[q.id]];
+          const items = q.options
+            .map(
+              (o, i) =>
+                `<label><input type="${multi ? 'checkbox' : 'radio'}" id="q-${r.id}-${q.id}-${i}" name="${q.id}" value="${esc(o)}"${have.includes(o) ? ' checked' : ''} /> ${esc(o)}</label>`,
+            )
+            .join('');
+          return `<fieldset><legend>${esc(q.label)}</legend><div class="choices">${items}</div></fieldset>`;
+        })
+        .join('');
+      return `<section class="round" aria-labelledby="h-${r.id}">
+        <h2 id="h-${r.id}">${esc(r.title)}</h2>
+        ${sits}
+        <form class="quest" data-round="${r.id}">
+          <h3>Kurze Fragen an dich</h3>
+          ${qs}
+          <div class="row"><button type="submit">Antworten speichern</button><span class="state" id="qs-${r.id}">${a.updated ? 'Gespeichert' : ''}</span></div>
+        </form>
+      </section>`;
+    }).join('');
+  }
+
+  async function savePick(round, sit, data) {
+    const st = $('#st-' + round + '-' + sit);
+    const key = round + '-' + sit;
+    state.picks[key] = {
+      ...(state.picks[key] || {}),
+      ...data,
+      round,
+      situation: sit,
+      updated: new Date().toISOString(),
+    };
+    if (!state.db) {
+      if (st) st.textContent = 'Nicht gespeichert: kein Speicher verbunden.';
+      return;
+    }
+    try {
+      if (st) st.textContent = 'Speichert …';
+      await state.db.doc('picks/' + key).set(state.picks[key]);
+      if (st) {
+        st.textContent = 'Gespeichert';
+        st.className = 'state ok';
+      }
+    } catch (e) {
+      if (st) {
+        st.textContent =
+          'Nicht gespeichert (' +
+          (e && e.code ? e.code : 'Fehler') +
+          '). Bitte noch einmal versuchen.';
+        st.className = 'state bad';
+      }
+    }
+  }
+
+  document.addEventListener('click', (ev) => {
+    const b = ev.target.closest('[data-pick]');
+    if (b) {
+      const [round, sit, n, e] = b.dataset.pick.split('|');
+      const note = $('#note-' + round + '-' + sit);
+      state.picks[round + '-' + sit] = {
+        ...(state.picks[round + '-' + sit] || {}),
+        choice: Number(n),
+        emphasis: e,
+      };
+      const scrollY = window.scrollY;
+      renderRounds();
+      window.scrollTo(0, scrollY);
+      savePick(round, sit, {
+        choice: Number(n),
+        emphasis: e,
+        note: note ? note.value : '',
+      });
+      return;
+    }
+    const z = ev.target.closest('[data-zoom]');
+    if (z) openZoom(z.dataset.zoom, z.alt);
+  });
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Escape') closeZoom();
+    const z = ev.target.closest && ev.target.closest('[data-zoom]');
+    if (z && (ev.key === 'Enter' || ev.key === ' ')) {
+      ev.preventDefault();
+      openZoom(z.dataset.zoom, z.alt);
+    }
+  });
+  function openZoom(src, alt) {
+    $('#lb-img').src = src;
+    $('#lb-img').alt = alt || '';
+    $('#lightbox').hidden = false;
+    $('#lb-close').focus();
+  }
+  function closeZoom() {
+    $('#lightbox').hidden = true;
+  }
+  $('#lb-close').addEventListener('click', closeZoom);
+  $('#lightbox').addEventListener('click', (ev) => {
+    if (ev.target.id === 'lightbox') closeZoom();
+  });
+
+  const timers = {};
+  document.addEventListener('input', (ev) => {
+    const t = ev.target.closest('[data-note]');
+    if (!t) return;
+    const [round, sit] = t.dataset.note.split('|');
+    const st = $('#st-' + round + '-' + sit);
+    if (st) {
+      st.textContent = 'Ungespeichert …';
+      st.className = 'state';
+    }
+    clearTimeout(timers[t.id]);
+    timers[t.id] = setTimeout(
+      () => savePick(round, sit, { note: t.value }),
+      900,
+    );
+  });
+
+  document.addEventListener('submit', async (ev) => {
+    const f = ev.target.closest('form.quest');
+    if (!f) return;
+    ev.preventDefault();
+    const r = ROUNDS.find((x) => x.id === f.dataset.round);
+    const out = { round: r.id, updated: new Date().toISOString() };
+    for (const q of r.questions) {
+      if (q.type === 'multi')
+        out[q.id] = [
+          ...f.querySelectorAll(`input[name="${q.id}"]:checked`),
+        ].map((i) => i.value);
+      else if (q.type === 'one')
+        out[q.id] =
+          (f.querySelector(`input[name="${q.id}"]:checked`) || {}).value || '';
+      else out[q.id] = f.querySelector(`textarea[name="${q.id}"]`).value;
+    }
+    state.answers[r.id] = out;
+    const st = $('#qs-' + r.id);
+    if (!state.db) {
+      st.textContent = 'Nicht gespeichert: kein Speicher verbunden.';
+      return;
+    }
+    try {
+      st.textContent = 'Speichert …';
+      await state.db.doc('answers/' + r.id).set(out);
+      st.textContent = 'Gespeichert';
+      st.className = 'state ok';
+    } catch (e) {
+      st.textContent =
+        'Nicht gespeichert (' + (e && e.code ? e.code : 'Fehler') + ').';
+      st.className = 'state bad';
+    }
+  });
+
+  renderLoop();
+  renderRounds();
+
+  (async () => {
+    const use = window.claude && window.claude.use;
+    if (!use) {
+      setConn(
+        'Kein Speicher: Diese Ansicht kann nichts speichern. Öffne die Seite auf claude.ai.',
+        'bad',
+      );
+      return;
+    }
+    const db = await window.claude.use('db');
+    if (!db) {
+      setConn(
+        'Kein Speicher in dieser Ansicht. Du kannst schauen, aber nichts wird gespeichert.',
+        'bad',
+      );
+      return;
+    }
+    state.db = db;
+    const slow = setTimeout(
+      () =>
+        setConn(
+          'Speicher antwortet noch nicht; deine Wahl wird gesendet, sobald er da ist.',
+          'bad',
+        ),
+      10000,
+    );
+    let first = true;
+    db.collection('picks').onSnapshot(
+      (snap) => {
+        clearTimeout(slow);
+        for (const d of snap.docs) state.picks[d.id] = { ...d.data() };
+        setConn(
+          'Speicher verbunden. Deine Wahl wird automatisch gespeichert.',
+          'ok',
+        );
+        if (
+          first ||
+          !document.activeElement ||
+          document.activeElement.tagName !== 'TEXTAREA'
+        ) {
+          const y = window.scrollY;
+          renderRounds();
+          window.scrollTo(0, y);
+        }
+        first = false;
+      },
+      () => {
+        clearTimeout(slow);
+        setConn(
+          'Speicher nicht erreichbar. Bitte die Seite später neu öffnen.',
+          'bad',
+        );
+      },
+    );
+    try {
+      const a = await db.collection('answers').get();
+      for (const d of a.docs) state.answers[d.id] = { ...d.data() };
+      if (
+        !document.activeElement ||
+        document.activeElement.tagName !== 'TEXTAREA'
+      ) {
+        const y = window.scrollY;
+        renderRounds();
+        window.scrollTo(0, y);
+      }
+    } catch (e) {
+      /* answers stay empty; the form still saves */
+    }
+  })();
+</script>
