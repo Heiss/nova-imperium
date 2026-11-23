@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Studie – Schlacht-Aufzeichnung (Storyboard)</title>
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="study.css" />
+    <style>
+      .sb {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+      .fr {
+        background: var(--box);
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        overflow: hidden;
+      }
+      .fr img {
+        display: block;
+        width: 100%;
+        aspect-ratio: 1280 / 536;
+        object-fit: cover;
+      }
+      .fr .tx {
+        padding: 8px 12px 10px;
+        font-size: 15px;
+        line-height: 1.35;
+      }
+      .fr .hd {
+        display: flex;
+        gap: 8px;
+        align-items: baseline;
+        font: 600 13px var(--head);
+        letter-spacing: 0.06em;
+        color: var(--gold-hi);
+        margin-bottom: 4px;
+      }
+      .fr .hd .r {
+        margin-left: auto;
+        color: var(--dim);
+      }
+      .fr dl {
+        display: grid;
+        grid-template-columns: 74px 1fr;
+        gap: 2px 8px;
+        margin: 0;
+      }
+      .fr dt {
+        color: var(--dim);
+        font-size: 13.5px;
+      }
+      .fr dd {
+        margin: 0;
+      }
+      .anim {
+        display: grid;
+        grid-template-columns: 640px 1fr;
+        gap: 16px;
+        align-items: start;
+        margin-bottom: 16px;
+      }
+      .anim img {
+        width: 640px;
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="mock">
+      <p class="cap">
+        Studie [V] · Storyboard einer Schlacht-Aufzeichnung im Imperialen Herold
+        · die Bilder sind Platzhalter aus einer einfachen 3D-Szene (Three.js),
+        nicht aus Godot · Schiffsformen, Farben und Zahlen sind Beispiele ·
+        Kamera „dokumentarisch“ wie im Owner-Wunsch [E]: Reißzoom, Handkamera,
+        harte Schnitte, gedämpfter Ton; Formationen im Geist von Homeworld [E]
+      </p>
+      <h2>Schlacht-Aufzeichnung · Gorgonis III</h2>
+
+      <div class="anim">
+        <img
+          src="camera.gif"
+          alt="Animation: Anflug, Reißzoom auf die Verteidiger, Einschlag auf einen Massebeschleuniger, Abschlusskarte"
+        />
+        <div>
+          <div class="note">
+            <b>Animation (8 s, 12 Bilder/s):</b> drei Schnitte, wie die
+            automatische Regie sie aus dem Kampfprotokoll wählen würde, und eine
+            Abschlusskarte. In Godot liefe das mit 60 Bildern/s,
+            Bewegungsunschärfe und Ton.
+          </div>
+          <ol
+            style="
+              margin: 0;
+              padding-left: 20px;
+              font-size: 15px;
+              line-height: 1.5;
+            "
+          >
+            <li>
+              <b>Anflug</b> – Weitwinkel, langsame Fahrt, die Flotte fällt aus
+              dem Warp.
+            </li>
+            <li>
+              <b>Runde 1</b> – Tele mit Reißzoom auf die Linie der Verteidiger;
+              Handkamera wackelt stärker, sobald Treffer einschlagen.
+            </li>
+            <li>
+              <b>Runde 4</b> – Bodenkamera: Feuer aus dem Orbit, der Schutzdom
+              flackert, ein Massebeschleuniger explodiert; Kamerastoß beim
+              Einschlag.
+            </li>
+            <li>
+              <b>Abschlusskarte</b> – die Zahlen kommen aus dem Kampfbericht,
+              nicht aus der Darstellung.
+            </li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="sb">
+        <div class="fr">
+          <img
+            src="shot-1.jpg"
+            alt="Anflug: Kathedralschiffe fallen vor dem Planeten aus dem Warp"
+          />
+          <div class="tx">
+            <div class="hd">
+              1 · ANFLUG<span class="r">vor Runde 1 · 0:00–0:12</span>
+            </div>
+            <dl>
+              <dt>Kamera</dt>
+              <dd>
+                Weitwinkel, langsame Fahrt auf die Flotte zu; leichtes Wackeln.
+              </dd>
+              <dt>Ton</dt>
+              <dd>Stille, dann dumpfes Grollen beim Austritt aus dem Warp.</dd>
+              <dt>Daten</dt>
+              <dd>
+                Teilnehmer und Einheiten zu Beginn von Runde 1 (Gruppen je Typ).
+              </dd>
+            </dl>
+          </div>
+        </div>
+        <div class="fr">
+          <img
+            src="shot-2.jpg"
+            alt="Tele auf die Linie der Verteidiger, erste Salve, ein Schild leuchtet auf"
+          />
+          <div class="tx">
+            <div class="hd">
+              2 · ERSTE SALVE<span class="r">Runde 1 · 0:12–0:30</span>
+            </div>
+            <dl>
+              <dt>Kamera</dt>
+              <dd>Tele, Reißzoom; Schärfe zieht nach; Handkamera.</dd>
+              <dt>Ton</dt>
+              <dd>Abschüsse gedämpft wie durch Rumpfmetall gehört.</dd>
+              <dt>Daten</dt>
+              <dd>
+                Schüsse je Paar (Schütze → Ziel), wie viele der Schild
+                schluckte.
+              </dd>
+            </dl>
+          </div>
+        </div>
+        <div class="fr">
+          <img
+            src="shot-3.jpg"
+            alt="Jäger stürzen durch Flakfeuer auf ein Kathedralschiff zu"
+          />
+          <div class="tx">
+            <div class="hd">
+              3 · JÄGER IM FLAKFEUER<span class="r">Runde 2 · 0:30–0:52</span>
+            </div>
+            <dl>
+              <dt>Kamera</dt>
+              <dd>
+                Mitflug hinter dem Schwarm, starkes Wackeln, Bewegungsunschärfe.
+              </dd>
+              <dt>Ton</dt>
+              <dd>
+                Laut und direkt (einziger „Innen“-Ton), Funkfetzen ohne Worte.
+              </dd>
+              <dt>Daten</dt>
+              <dd>
+                Abfangjäger und Sturmjäger, Verluste der Runde,
+                Schnellfeuer-Ketten.
+              </dd>
+            </dl>
+          </div>
+        </div>
+        <div class="fr">
+          <img
+            src="shot-4.jpg"
+            alt="Nahaufnahme: ein Kathedralschiff unter Beschuss, Schild bricht"
+          />
+          <div class="tx">
+            <div class="hd">
+              4 · SCHILD BRICHT<span class="r">Runde 3 · 0:52–1:15</span>
+            </div>
+            <dl>
+              <dt>Kamera</dt>
+              <dd>Halbnah, Gegenlicht, Lens-Flare beim Schildtreffer.</dd>
+              <dt>Ton</dt>
+              <dd>Hohes Sirren des Schilds, dann Stille.</dd>
+              <dt>Daten</dt>
+              <dd>
+                Treffer auf Rumpf statt Schild; Einheit unter 70 % Rumpf
+                (Explosionsgefahr).
+              </dd>
+            </dl>
+          </div>
+        </div>
+        <div class="fr">
+          <img
+            src="shot-5.jpg"
+            alt="Ein Kathedralschiff zerbricht in einer Explosion"
+          />
+          <div class="tx">
+            <div class="hd">
+              5 · VERLUST<span class="r">Runde 4 · 1:15–1:40</span>
+            </div>
+            <dl>
+              <dt>Kamera</dt>
+              <dd>Zeitlupe, ruhig; der einzige ruhige Schnitt der Schlacht.</dd>
+              <dt>Ton</dt>
+              <dd>Fast ganz stumm, dumpfer Nachhall, tiefer Ton.</dd>
+              <dt>Daten</dt>
+              <dd>
+                Größter Einzelverlust der Runde (nach Kosten) wird gezeigt.
+              </dd>
+            </dl>
+          </div>
+        </div>
+        <div class="fr">
+          <img
+            src="shot-8.jpg"
+            alt="Bodenkamera: Feuer aus dem Orbit trifft einen Massebeschleuniger, Trümmer fliegen"
+          />
+          <div class="tx">
+            <div class="hd">
+              6 · VERTEIDIGUNG FÄLLT<span class="r">Runde 4 · 1:40–2:00</span>
+            </div>
+            <dl>
+              <dt>Kamera</dt>
+              <dd>
+                Bodenkamera zwischen den Geschützen, Kamerastoß beim Einschlag.
+              </dd>
+              <dt>Ton</dt>
+              <dd>Dumpfer Schlag durch den Boden, Rieseln, Alarmton.</dd>
+              <dt>Daten</dt>
+              <dd>
+                Zerstörte Verteidigung je Typ und Runde; Schutzdom-Zustand.
+              </dd>
+            </dl>
+          </div>
+        </div>
+        <div class="fr">
+          <img
+            src="shot-6.jpg"
+            alt="Massebeschleuniger feuern vom Boden auf die Flotte im Orbit"
+          />
+          <div class="tx">
+            <div class="hd">
+              7 · GEGENFEUER<span class="r">Runde 5 · 2:00–2:20</span>
+            </div>
+            <dl>
+              <dt>Kamera</dt>
+              <dd>Untersicht nach oben, Fahrt entlang der Geschützreihe.</dd>
+              <dt>Ton</dt>
+              <dd>Tiefe, gestaffelte Abschüsse.</dd>
+              <dt>Daten</dt>
+              <dd>
+                Schüsse der Verteidigung; Treffer im Orbit als ferne Blitze.
+              </dd>
+            </dl>
+          </div>
+        </div>
+        <div class="fr">
+          <img
+            src="shot-7.jpg"
+            alt="Nach der Schlacht: Trümmerfeld, wenige Überlebende ziehen ab"
+          />
+          <div class="tx">
+            <div class="hd">
+              8 · DANACH<span class="r">nach Runde 6 · 2:20–2:40</span>
+            </div>
+            <dl>
+              <dt>Kamera</dt>
+              <dd>Lange, ruhige Totale durch das Trümmerfeld.</dd>
+              <dt>Ton</dt>
+              <dd>Stille; nur Funkrauschen.</dd>
+              <dt>Daten</dt>
+              <dd>
+                Ausgang, Trümmerfeld, Mond-Chance, Wiederaufbau der Verteidigung
+                (70 %).
+              </dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+
+      <h2 style="margin-top: 18px">Wie Verteidigung dargestellt wird</h2>
+      <div class="grid2">
+        <div class="box">
+          <div class="hd">Im Bild [V]</div>
+          <div class="bd" style="font-size: 15px">
+            <ul style="margin: 0; padding-left: 18px">
+              <li>
+                Geschütze stehen am Boden unter dem Schutzdom; Raketenbatterien
+                und Lichtlanzen als Gruppen, Massebeschleuniger, Ionenlanzen und
+                Plasmabatterien einzeln sichtbar.
+              </li>
+              <li>
+                Treffer: Feuer aus dem Orbit zieht senkrecht herunter; der Dom
+                flackert, bekommt Risse und fällt, wenn der Kampfbericht ihn als
+                zerstört führt.
+              </li>
+              <li>
+                Zerstört: Explosion, Trümmer, ein brennender Stumpf bleibt
+                stehen.
+              </li>
+              <li>
+                Danach: Die Abschlusskarte nennt die wieder aufgebaute
+                Verteidigung. Im Bild stehen die Stümpfe noch; das Replay zeigt
+                den Kampf, nicht den Zustand danach.
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div class="box">
+          <div class="hd">Woher die Zahlen kommen</div>
+          <div class="bd" style="font-size: 15px">
+            <ul style="margin: 0; padding-left: 18px">
+              <li>
+                <b>[E] heute:</b> Verteidigung kämpft in
+                <code>battleOf</code> wie Schiffe; nach der Schlacht werden 70 %
+                der zerstörten Verteidigung wieder aufgebaut, unter 50 Stück je
+                Typ pro Stück ausgelost (<code>REBUILD_SHARE</code>,
+                <code>src/core/loot.ts</code>).
+              </li>
+              <li>
+                <b>[V]:</b> Das Protokoll speichert, wie viele je Typ in welcher
+                Runde fallen, und die Zahl des Wiederaufbaus aus derselben
+                Pipeline. So passen Bild, Abschlusskarte und Kampfbericht immer
+                zusammen.
+              </li>
+              <li>
+                <b>[V]:</b> Die Animation zeigt 3 zerstörte, 2 wieder aufgebaut
+                – Beispielzahlen.
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>

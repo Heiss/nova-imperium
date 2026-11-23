@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Studie – Imperialer Herold (eigene Seite)</title>
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="study.css" />
+    <style>
+      body {
+        margin: 0;
+      }
+      .tv {
+        width: 1600px;
+        height: 900px;
+        display: grid;
+        grid-template-rows: 64px 38px 1fr 214px;
+        grid-template-columns: 100%;
+        background:
+          radial-gradient(
+            ellipse at 20% 0%,
+            rgb(212 165 55 / 0.08),
+            transparent 60%
+          ),
+          #0a0806;
+        overflow: hidden;
+      }
+      .tv-top {
+        display: flex;
+        align-items: center;
+        gap: 22px;
+        padding: 0 22px;
+        border-bottom: 1px solid var(--line);
+      }
+      .tv-logo {
+        font: 800 28px var(--head);
+        letter-spacing: 0.16em;
+        color: var(--gold-hi);
+      }
+      .tv-logo small {
+        display: block;
+        font: 400 italic 13px var(--body);
+        letter-spacing: 0.02em;
+        color: var(--dim);
+      }
+      .tv-top .meta {
+        margin-left: auto;
+        display: flex;
+        gap: 18px;
+        align-items: center;
+        font: 600 13px var(--head);
+        letter-spacing: 0.06em;
+        color: var(--dim);
+      }
+      .tv-top .meta b {
+        color: var(--txt);
+      }
+      .pub {
+        border: 1px solid var(--gold);
+        color: var(--gold-hi);
+        padding: 3px 8px;
+        border-radius: 3px;
+      }
+      .live {
+        color: var(--red);
+      }
+      .crawl {
+        display: flex;
+        align-items: center;
+        gap: 0;
+        background: #140f0b;
+        border-bottom: 1px solid var(--line);
+        white-space: nowrap;
+        overflow: hidden;
+        font: 600 15px var(--body);
+      }
+      .crawl .lbl {
+        flex: none;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        padding: 0 14px;
+        background: var(--red);
+        color: #140f0b;
+        font: 800 13px var(--head);
+        letter-spacing: 0.1em;
+      }
+      .crawl span.it {
+        padding: 0 18px;
+        border-right: 1px solid var(--line);
+      }
+      .crawl .px {
+        font-variant-numeric: tabular-nums;
+      }
+      .tv-main {
+        display: grid;
+        grid-template-columns: 1fr 470px;
+        gap: 16px;
+        padding: 14px 22px 10px;
+        min-height: 0;
+      }
+      .hero {
+        position: relative;
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        overflow: hidden;
+        background: #000;
+      }
+      .hero img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+      .hero .bars::before,
+      .hero .bars::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        right: 0;
+        height: 26px;
+        background: #000;
+      }
+      .hero .bars::before {
+        top: 0;
+      }
+      .hero .bars::after {
+        bottom: 0;
+      }
+      .hero .cap2 {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 26px;
+        padding: 60px 22px 14px;
+        background: linear-gradient(transparent, rgb(0 0 0 / 0.85));
+      }
+      .hero h1 {
+        margin: 6px 0 4px;
+        font: 800 30px var(--head);
+        letter-spacing: 0.04em;
+        color: var(--gold-hi);
+      }
+      .hero .sub {
+        font-size: 17px;
+        color: var(--txt);
+      }
+      .hero .src {
+        margin-top: 6px;
+        font-size: 14px;
+        color: var(--dim);
+      }
+      .hero .play {
+        position: absolute;
+        top: 44px;
+        right: 22px;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        font: 600 14px var(--head);
+        letter-spacing: 0.06em;
+        color: var(--txt);
+        background: rgb(0 0 0 / 0.55);
+        border: 1px solid var(--gold);
+        padding: 8px 14px;
+        border-radius: 3px;
+      }
+      .hero .play b {
+        color: var(--gold-hi);
+        font-size: 18px;
+      }
+      .hero .rounds {
+        position: absolute;
+        top: 44px;
+        left: 22px;
+        display: flex;
+        gap: 4px;
+      }
+      .hero .rounds i {
+        width: 38px;
+        height: 6px;
+        background: rgb(255 255 255 / 0.18);
+        border-radius: 1px;
+      }
+      .hero .rounds i.on {
+        background: var(--gold);
+      }
+      .feed {
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        background: var(--box);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      .feed .hd {
+        padding: 8px 14px;
+        border-bottom: 1px solid var(--line);
+        font: 600 14px var(--head);
+        letter-spacing: 0.08em;
+        color: var(--gold);
+        display: flex;
+        justify-content: space-between;
+      }
+      .feed ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      .feed li {
+        padding: 9px 14px;
+        border-bottom: 1px solid var(--line);
+        display: grid;
+        grid-template-columns: 92px 1fr;
+        gap: 4px 10px;
+        font-size: 15.5px;
+        line-height: 1.3;
+      }
+      .feed li .tag {
+        align-self: start;
+        text-align: center;
+      }
+      .feed li .t {
+        grid-column: 2;
+        font-size: 13px;
+        color: var(--dim);
+      }
+      .feed li.fake {
+        opacity: 0.85;
+      }
+      .feed li.fake s {
+        color: var(--dim);
+      }
+      .tv-low {
+        display: grid;
+        grid-template-columns: 1.5fr 1fr 1fr;
+        gap: 16px;
+        padding: 0 22px 16px;
+      }
+      .tv-low .box {
+        margin: 0;
+        overflow: hidden;
+      }
+      .tv-low table td,
+      .tv-low table th {
+        padding: 4px 8px;
+        font-size: 15px;
+      }
+      .spark {
+        width: 120px;
+        height: 26px;
+        vertical-align: middle;
+      }
+      .tv-low ol {
+        margin: 0;
+        padding: 8px 14px 8px 32px;
+        font-size: 15px;
+        line-height: 1.55;
+      }
+      .ann {
+        position: absolute;
+        font: 600 12px var(--head);
+        letter-spacing: 0.04em;
+        color: #120d0a;
+        background: var(--orange);
+        padding: 3px 7px;
+        border-radius: 3px;
+        box-shadow: 0 2px 8px rgb(0 0 0 / 0.5);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="tv">
+      <div class="tv-top">
+        <div class="tv-logo">
+          IMPERIALER HEROLD<small
+            >Die Chronisten berichten – verzögert, ungenau und manchmal
+            falsch.</small
+          >
+        </div>
+        <div class="meta">
+          <span>Runde <b>7</b> · Tag <b>23</b></span>
+          <span>Chronisten-Stufe <b>4</b></span>
+          <span>Stand <b>14:32</b> UTC</span>
+          <span class="pub">Öffentlicher Link</span>
+          <span class="live">● LIVE</span>
+        </div>
+      </div>
+
+      <div class="crawl">
+        <span class="lbl">TICKER</span>
+        <span class="it"
+          ><img
+            class="ri"
+            src="/icons/resources/small/crystal.svg"
+            alt=""
+          />Psikristall / Adamant <span class="px">1,92</span>
+          <span class="up">▲ 3,1 %</span></span
+        >
+        <span class="it"
+          ><img
+            class="ri"
+            src="/icons/resources/small/deuterium.svg"
+            alt=""
+          />Promethium / Adamant <span class="px">4,35</span>
+          <span class="down">▼ 1,4 %</span></span
+        >
+        <span class="it"
+          ><img
+            class="ri"
+            src="/icons/resources/small/deuterium.svg"
+            alt=""
+          />Promethium / Psikristall <span class="px">2,27</span>
+          <span class="down">▼ 4,6 %</span></span
+        >
+        <span class="it"
+          ><span class="tag battle">SCHLACHT</span> 312 Kathedralschiffe über
+          Gorgonis III vernichtet</span
+        >
+        <span class="it"
+          ><span class="tag research">FORSCHUNG</span> Erstes Imperium erreicht
+          Warp-Antrieb 12</span
+        >
+        <span class="it"
+          ><span class="tag denial">DEMENTI</span> Die Belagerung von Vharos hat
+          nie stattgefunden</span
+        >
+      </div>
+
+      <section class="tv-main">
+        <div class="hero">
+          <img
+            src="shot-4.jpg"
+            alt="Standbild der Schlacht: ein Kathedralschiff unter Beschuss, sein Schild flackert"
+          />
+          <div class="bars"></div>
+          <div class="rounds" aria-label="Runden der Schlacht">
+            <i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i
+            ><i></i>
+          </div>
+          <div class="play">
+            <b>▶</b> Aufzeichnung ansehen · 2:40 · Runde 3 von 6
+          </div>
+          <div class="cap2">
+            <span class="tag battle">SCHLACHT DES TAGES</span>
+            <h1>Kathedralschiffe brennen über Gorgonis III</h1>
+            <div class="sub">
+              Die Flotte von <b>Haus Valcor</b> greift die Welt von
+              <b>Brüderschaft Ashkar</b> an. Nach sechs Runden bleibt ein
+              Trümmerfeld von etwa <b>2,4 Mio.</b> Einheiten.
+            </div>
+            <div class="src">
+              Gemeldet vor ca. 6 Std. · Schlacht vor ca. 1 Tag · Quelle:
+              Chronist im Orbit · Genauigkeit: hoch (Stufe 4)
+            </div>
+          </div>
+        </div>
+
+        <aside class="feed">
+          <div class="hd">
+            <span>EILMELDUNGEN</span><span class="dim">neueste zuerst</span>
+          </div>
+          <ul>
+            <li>
+              <span class="tag battle">SCHLACHT</span
+              ><span
+                >Abfangjäger-Schwarm zerreißt Frachtkonvoi bei [2:118:4]</span
+              >
+              <span class="t"
+                >vor ca. 9 Std. · Verluste: rund 40 Lastbarken</span
+              >
+            </li>
+            <li>
+              <span class="tag research">FORSCHUNG</span
+              ><span>Erstes Imperium erreicht <b>Warp-Antrieb 12</b></span>
+              <span class="t"
+                >vor ca. 11 Std. · Wer, bleibt geheim (Schweigegelübde)</span
+              >
+            </li>
+            <li>
+              <span class="tag empire">IMPERIUM</span
+              ><span>Neuer Mond über [3:401:9] aus Trümmern geboren</span>
+              <span class="t">vor ca. 14 Std.</span>
+            </li>
+            <li>
+              <span class="tag market">BÖRSE</span
+              ><span
+                >Großauftrag: 1,2 Mio. Promethium gegen Psikristall
+                gehandelt</span
+              >
+              <span class="t">vor ca. 16 Std. · Lieferung unterwegs</span>
+            </li>
+            <li class="fake">
+              <span class="tag denial">DEMENTI</span
+              ><span
+                ><s>Belagerung von Vharos: 900 Schiffe verloren</s> – die
+                Meldung war falsch.</span
+              >
+              <span class="t"
+                >korrigiert vor ca. 18 Std. · ursprünglich vor 3 Tagen</span
+              >
+            </li>
+            <li>
+              <span class="tag rumor">UNBESTÄTIGT</span
+              ><span
+                >Gerüchte über eine Flotte von „mehreren Hundert“ Fregatten in
+                Galaxie 1</span
+              >
+              <span class="t">vor ca. 20 Std. · Quelle: unsicher</span>
+            </li>
+            <li>
+              <span class="tag empire">IMPERIUM</span
+              ><span>Haus Valcor steigt auf Platz 2 der Flottenwertung</span>
+              <span class="t">vor ca. 1 Tag</span>
+            </li>
+          </ul>
+        </aside>
+      </section>
+
+      <section class="tv-low">
+        <div class="box">
+          <div class="hd">BÖRSE · LETZTER KURS JE 1 EINHEIT</div>
+          <table>
+            <tr>
+              <th>Paar</th>
+              <th class="n">Kurs</th>
+              <th class="n">24 Std.</th>
+              <th>Verlauf 7 Tage</th>
+              <th class="n">Umsatz</th>
+            </tr>
+            <tr>
+              <td>
+                <img
+                  class="ri"
+                  src="/icons/resources/small/crystal.svg"
+                  alt=""
+                />Psikristall / Adamant
+              </td>
+              <td class="n">1,92</td>
+              <td class="n up">+3,1 %</td>
+              <td>
+                <svg class="spark" viewBox="0 0 120 26">
+                  <polyline
+                    fill="none"
+                    stroke="#9ccb76"
+                    stroke-width="1.6"
+                    points="0,20 12,18 24,19 36,15 48,16 60,12 72,13 84,9 96,10 108,6 120,5"
+                  />
+                </svg>
+              </td>
+              <td class="n">3,4 Mio.</td>
+            </tr>
+            <tr>
+              <td>
+                <img
+                  class="ri"
+                  src="/icons/resources/small/deuterium.svg"
+                  alt=""
+                />Promethium / Adamant
+              </td>
+              <td class="n">4,35</td>
+              <td class="n down">−1,4 %</td>
+              <td>
+                <svg class="spark" viewBox="0 0 120 26">
+                  <polyline
+                    fill="none"
+                    stroke="#ee7660"
+                    stroke-width="1.6"
+                    points="0,8 12,9 24,7 36,10 48,12 60,11 72,14 84,13 96,15 108,17 120,16"
+                  />
+                </svg>
+              </td>
+              <td class="n">1,9 Mio.</td>
+            </tr>
+            <tr>
+              <td>Promethium / Psikristall</td>
+              <td class="n">2,27</td>
+              <td class="n down">−4,6 %</td>
+              <td>
+                <svg class="spark" viewBox="0 0 120 26">
+                  <polyline
+                    fill="none"
+                    stroke="#ee7660"
+                    stroke-width="1.6"
+                    points="0,6 12,7 24,9 36,8 48,12 60,14 72,13 84,17 96,18 108,20 120,21"
+                  />
+                </svg>
+              </td>
+              <td class="n">0,8 Mio.</td>
+            </tr>
+          </table>
+        </div>
+        <div class="box">
+          <div class="hd">FORSCHUNG · ERSTE IHRER STUFE</div>
+          <ol>
+            <li>Warp-Antrieb 12 – <i class="dim">Name geheim</i></li>
+            <li>Plasma-Lehre 9 – Brüderschaft Ashkar</li>
+            <li>Gravitonen-Mysterium 1 – <i class="dim">Gerücht</i></li>
+            <li>Waffensegnung 15 – Haus Valcor</li>
+          </ol>
+        </div>
+        <div class="box">
+          <div class="hd">IMPERIEN · BEWEGUNG DER WOCHE</div>
+          <ol>
+            <li>Haus Valcor <span class="up">▲ 2</span> · Flotte</li>
+            <li>Brüderschaft Ashkar <span class="down">▼ 1</span> · Gesamt</li>
+            <li>Orden von Kessra <span class="up">▲ 3</span> · Forschung</li>
+            <li>7 neue Kolonien · 1 aufgegeben</li>
+          </ol>
+        </div>
+      </section>
+    </div>
+  </body>
+</html>
