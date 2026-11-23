@@ -67,9 +67,11 @@ the owner as test person.
   saved a few seconds after „Weiter“; read a pick again before acting on it.
   Bug found by the owner (2026-11-23): two writes of the same pick could
   run at once, and a slow early write overwrote „Weiter“ (half note, `done`
-  lost) while the page went on. Fixed: one write at a time per pick, each
-  sends the newest state, „Weiter“ waits for all of them; a warning shows
-  when leaving with unsaved text. The mechanism: the page is a player for a
+  lost) while the page went on. Fixed in version 8 (owner chose an
+  immediate reload): one write at a time per pick, each sends the newest
+  state, „Weiter“ waits for all of them; a warning shows when leaving with
+  unsaved text. All picks checked afterwards: every one has `done: true`;
+  the empty answer of s6 was left empty on purpose (owner). The mechanism: the page is a player for a
   queue in its store and is not republished any more (version 7 is the
   last). Steps are documents `queue/<round>-<id>` (`seq` orders them;
   `kind` `sit` or `quest`; `variants.a|b|c` with `img`, `desc`, `emph`;
@@ -149,6 +151,8 @@ s2 of version 1 (galaxy without systems; dashboard not yet a sheet).
 | r1b Brut | variant 1 = b, chitin | answer (should terms change per race): „ja“ · note: „mit wabern meinte ich so ein organisches ding wie bei starcraft 2. dass das interface dann eben organische“ (completed a few seconds later: „… organische elemente hat und sich so ein bisschen bewegt. gerne auch ein wenig eklig“) | **[E]** terms change per race. **[E]** Brut leads with chitin; the wobbling means organic elements that move a little, „gerne auch ein wenig eklig“, in the spirit of StarCraft II's Zerg (inspiration only, own design). The note was finished after „Weiter“ (saved late), so r1b-quest asked again. |
 | r1b Ewige | variant 3 = b, clockwork | answer (how much motion): „eher ruhig“ · note: „gerne mehr "mechanik" und future knicke 65 grad.“ | **[E]** Ewige lead with clockwork: calm motion, more visible mechanics, futuristic bends at 65°. |
 | r1b questions | – | Brut: „elemente hat. wie bei starcraft 2 bei den zergs, auch ein wenig eklige bewegung.“ · friends: „eigene Farbe für Freunde“ · enemy: all three (guilds at war with mine, who attacked me lately, whom I mark myself) | **[E]** friends get their own colour; the colour language has five kinds: self, friends, guild, enemies, others. **[E]** „enemy“ = guilds at war with mine, players who attacked me lately, players I mark myself. |
+| s5 research (goal Plasma-Lehre) | variant 3 = b, tree of prerequisites with the path to the goal highlighted | note: „damit wird viel deutlicher wie dinge zusammenhängen. gerne auch mal als vollständigen forschungsbaum darstellen. den man von rechts nach links scorllen kann.“ · answer (queue of several researches): „nur mit einer speziellen forschung. die dann eben eine warteschleife freischaltet. bei verschiedenen stufen wird beim bau, forschung und flottenbewegung möglich.“ | **[E]** research is shown as a tree of prerequisites with the path to the goal highlighted; also as a full research tree that scrolls sideways. **[E]** game rule: queues only through a special research that unlocks a queue; its levels unlock queues for building, research and fleet movements (names, levels and order open; belongs into a feature file). |
+| s6 defense on Nox before the attack | variant 1 = b, one installation large, drag the amount, resource bars and a timeline up to the attack | note: „gerne darf man auch bei einem angriff im unteren schieber eine entsprechende meldung angezeigt bekommen. eine art mission control“ · answer: left empty on purpose | **[E]** defense: one installation large with an amount slider, resource bars and a timeline to the attack. **[E]** during an attack the Lage sheet shows an alert, „a kind of mission control“. |
 
 ## Open work
 
