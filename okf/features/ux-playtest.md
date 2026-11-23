@@ -132,8 +132,8 @@ Taken from the code (views, missions, reports) and the open ideas:
 | 3 | 7–9 | s8 espionage + report (b·c·a) · s9 send the fleet (a·c·b) · s10 battle + report (c·a·b) | done 2026-11-23 16:12 |
 | d2 | desktop: windows, drag a world onto a target (a target window, b two system windows, c choice in the sheet; order b·c·a) | done 2026-11-23 16:16 |
 | 4 | 10–11 | s11 new colony (c·a·b) · s12 guild + chat (a·b·c) · s13 Herold in the game (b·c·a) · s14 Börse (c·a·b) | done 2026-11-23 16:23 |
-| 5 | 12, 9 | s15 away and back (b·a·c) · s16 ground combat #155 (a·c·b) | running |
-| 6 | repeats | s2r the one Lage line (b·c·a) · sc the colour language (c·a·b) · sg several galaxies (a·c·b) | queued |
+| 5 | 12, 9 | s15 away and back (b·a·c) · s16 ground combat #155 (a·c·b) | done 2026-11-23 16:29 |
+| 6 | repeats | s2r the one Lage line (b·c·a) · sc the colour language (c·a·b) · sg several galaxies (a·c·b) · brut2 (c·a·b) · ewige2 (b·c·a) | running |
 | d3 | desktop: building on fields + info page (a three columns, b windows, c as on the phone; order c·a·b) | queued |
 | 5 | more desktop views (building, info page) | planned | open |
 
@@ -173,11 +173,12 @@ s2 of version 1 (galaxy without systems; dashboard not yet a sheet).
 | s13 Herold in the game | variant 2 = c, its own newspaper page in the game | note: „finde aber auch variante 3 sehr sinnvoll, um da den herold im schieber schnell verfügbar zu machen. das der neueste kriegsbericht dort direkt zum durchstehcen agneboten wird, finde ich spannend. erspart wieder klciks.“ · answer (Herold news about you in your timeline?): „auf jedenfall. gute idee.“ | **[E]** the Herold has its own newspaper page in the game, and a tab „Herold“ in the Lage sheet that offers the newest Kriegsbericht with „Durchstechen“. **[E]** Herold news about the player also appear in the player's timeline. Belongs into #382. |
 | s14 Börse | variant 3 = b, „Tauschen“ in the sheet | note: „variante 1 finde ich für die übersicht hervorragend geeignet. variante 3 ist dann, wenn man auf einen planeten klickt. durch den filter weiß der user ja dann, was es kostet, was er suchte.“ · answer (count the delivery time in the best rate?): „das ist eine option, die die oberfläche anbieten sollte.“ | **[E]** Börse: a map layer shows the offers at the traders' systems for the overview (c); a tap on a world opens „Tauschen“ in the sheet (b). **[E]** whether the delivery time counts for the best rate is an option the player sets. Belongs into #386. |
 | s15 away and back | variant 2 = a, „Willkommen zurück“ in the sheet: counts since the last visit and „Jetzt tun“ | note: „ich finde alle 3 varianten sehr cool und wichtig. gerne ist variante 2 die anzeige. und dort steht dann ein button für einen view, der diese in der galaxiekarte so anzeigt. was mir aber auffällt: die galaxiekarte respektiert ja nicht, das es auch mehrere galaxien geben kann. das müssten wir auch noch durchdenken“ · answer (which pushes): „push nachrichten sind ja einstellbar. lass den user das entscheiden. aber die nachrichten sollten dich in den entpsechenden view holen.“ | **[E]** after an absence the sheet shows „Willkommen zurück“ (counts, „Jetzt tun“) with a button that shows those places on the galaxy map (c). **[E]** pushes stay the player's choice (#192) and open the matching view. **[E]** open point: the galaxy map must handle several galaxies (the admin sets the number); next situation. |
+| s16 ground combat (#155) | variant 3 = b, the siege overview first, the board behind a button | note: „für die detaildarstellung würde ich dann viarante 1 bevorzugen.“ · answer (plan on the phone?): „ja du musst auch am handy planen können“ | **[E]** a siege opens with its overview (phase, supply, damage, troops); the board itself fills the screen with the planner in the sheet (a). **[E]** moves can be planned on the phone. Belongs into #155. |
 
 ## Open work
 
 * Read s16, s2r, sc, d3.
-* Build next: the races again inside the winners (Brut chitin, organic and slightly disgusting; Ewige clockwork with 65° bends), animated.
+* After the race repeats: sum up and ask the owner whether more repeats are needed or #388 and the study get rewritten.
 * The loop is covered once (s1–s16, d1–d2). Next: repeats with variants inside the winners, and desktop views of the new winners.
 * Race follow-up: Brut chitin with organic, slightly disgusting motion; Ewige clockwork with 65° bends; per-race terms; a colour for friends.
 * Build the desktop round of the round-1 winners and append it after round 2.
