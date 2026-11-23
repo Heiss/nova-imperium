@@ -279,6 +279,37 @@
     z-index: 20;
     padding: calc(env(safe-area-inset-top, 0px) + 16px) 16px 16px;
   }
+  .hist {
+    display: grid;
+    gap: 8px;
+  }
+  .hist ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 8px;
+  }
+  .hist li {
+    display: grid;
+    grid-template-columns: 48px minmax(0, 1fr) auto;
+    gap: 10px;
+    align-items: center;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 15px;
+  }
+  .hist img {
+    width: 48px;
+    height: 96px;
+    object-fit: cover;
+    border-radius: 6px;
+  }
+  button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
   .lightbox[hidden] {
     display: none;
   }
@@ -311,14 +342,15 @@
   <header class="intro">
     <h1>Nova Imperium · Playtest</h1>
     <p>
-      Wir gehen den Spielablauf Schritt für Schritt durch. Zu jeder Situation
-      siehst du drei Varianten, ohne Etikett. Wähle die, die dir besser gefällt,
-      und schreib dazu, was dir daran gefällt. Erst nach deiner Wahl steht da,
-      welcher Schwerpunkt dahintersteckt. Ein Klick auf ein Bild vergrößert es.
+      Wir gehen den Spielablauf Schritt für Schritt durch, immer nur eine
+      Situation auf einmal. Du siehst drei Varianten ohne Etikett. Wähle die,
+      die dir besser gefällt, schreib dazu, was dir daran gefällt, und geh mit
+      „Weiter“ zur nächsten. Erst nach deiner Wahl steht da, welcher Schwerpunkt
+      dahintersteckt. Ein Klick auf ein Bild vergrößert es.
     </p>
     <p class="dim">
-      Alles wird gespeichert, sobald du wählst oder schreibst; Claude liest die
-      Antworten und baut die nächste Runde daraus. Situationen kommen ruhig
+      Alles wird gespeichert, sobald du wählst oder schreibst; Claude liest es
+      und passt die nächsten Situationen daran an. Situationen kommen ruhig
       mehrmals, damit wir sicher sind.
     </p>
     <ol class="loop" id="loop" aria-label="Spielablauf"></ol>
@@ -449,6 +481,18 @@
     },
   ];
 
+  // One step at a time: the situations of every round in order, each round
+  // closed by its questions. The page shows the first step not done yet.
+  const STEPS = ROUNDS.flatMap((r) => [
+    ...r.situations.map((s, i) => ({
+      kind: 'sit',
+      r,
+      s,
+      i,
+      key: r.id + '-' + s.id,
+    })),
+    { kind: 'quest', r, key: r.id + '-quest' },
+  ]);
   const state = { picks: {}, answers: {}, db: null };
   const $ = (sel, el = document) => el.querySelector(sel);
   const esc = (s) =>
@@ -456,6 +500,10 @@
       /[&<>"]/g,
       (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c],
     );
+  const isDone = (st) =>
+    st.kind === 'sit'
+      ? Boolean((state.picks[st.key] || {}).done)
+      : Boolean((state.answers[st.r.id] || {}).updated);
 
   function setConn(text, cls) {
     const el = $('#conn');
@@ -464,98 +512,139 @@
   }
 
   function renderLoop() {
-    const now = new Set(ROUNDS[ROUNDS.length - 1].stations);
-    const done = new Set(ROUNDS.slice(0, -1).flatMap((r) => r.stations));
+    const done = new Set();
+    const now = new Set();
+    const cur = STEPS.find((st) => !isDone(st));
+    for (const st of STEPS) {
+      if (st.kind !== 'sit') continue;
+      const station = st.r.stations[st.i];
+      if (isDone(st)) done.add(station);
+      if (cur === st) now.add(station);
+    }
     $('#loop').innerHTML = LOOP.map(
       (s, i) =>
         `<li class="${now.has(i) ? 'now' : done.has(i) ? 'done' : ''}">${i + 1} · ${esc(s)}</li>`,
     ).join('');
   }
 
-  function renderRounds() {
-    const main = $('#rounds');
-    main.innerHTML = ROUNDS.map((r) => {
-      const sits = r.situations
-        .map((s, si) => {
-          const pick = state.picks[r.id + '-' + s.id] || {};
-          const opts = [...s.order]
-            .map((e, i) => {
-              const n = i + 1;
-              const chosen = pick.choice === n;
-              const reveal = pick.choice
-                ? `<span class="emph">${esc(EMPH[e])}</span>`
-                : '';
-              return `<div class="opt${chosen ? ' chosen' : ''}">
-                <span class="lab">Variante ${n}</span>
-                <img src="img/${r.id}-${s.id}-${e}.jpg" alt="Variante ${n}: ${esc(s.desc[e])}" tabindex="0" data-zoom="img/${r.id}-${s.id}-${e}.jpg" loading="lazy" />
-                <span class="desc">${esc(s.desc[e])}</span>${reveal}
-                <button type="button" data-pick="${r.id}|${s.id}|${n}|${e}">${chosen ? 'Gewählt ✓' : 'Diese gefällt mir besser'}</button>
-              </div>`;
-            })
-            .join('');
-          return `<section class="sit" aria-labelledby="h-${r.id}-${s.id}">
-            <div class="sit-head"><span class="no">SITUATION ${si + 1}</span><h3 id="h-${r.id}-${s.id}">${esc(s.title)}</h3></div>
-            <p>${esc(s.text)}</p>
-            <div class="opts">${opts}</div>
-            <div class="note">
-              <label for="note-${r.id}-${s.id}">Was gefällt dir an deiner Wahl besonders? Was würdest du ändern?</label>
-              <textarea id="note-${r.id}-${s.id}" data-note="${r.id}|${s.id}" placeholder="z. B. „Die Knöpfe unten, aber die Zeiten oben sind mir zu klein.“">${esc(pick.note || '')}</textarea>
-              <span class="state" id="st-${r.id}-${s.id}">${pick.choice ? 'Gespeichert' : 'Noch keine Wahl'}</span>
-            </div>
-          </section>`;
-        })
-        .join('');
-      const a = state.answers[r.id] || {};
-      const qs = r.questions
-        .map((q) => {
-          if (q.type === 'text') {
-            return `<fieldset><legend>${esc(q.label)}</legend>
-              <textarea id="q-${r.id}-${q.id}" name="${q.id}">${esc(a[q.id] || '')}</textarea></fieldset>`;
-          }
-          const multi = q.type === 'multi';
-          const have = multi ? a[q.id] || [] : [a[q.id]];
-          const items = q.options
-            .map(
-              (o, i) =>
-                `<label><input type="${multi ? 'checkbox' : 'radio'}" id="q-${r.id}-${q.id}-${i}" name="${q.id}" value="${esc(o)}"${have.includes(o) ? ' checked' : ''} /> ${esc(o)}</label>`,
-            )
-            .join('');
-          return `<fieldset><legend>${esc(q.label)}</legend><div class="choices">${items}</div></fieldset>`;
-        })
-        .join('');
-      return `<section class="round" aria-labelledby="h-${r.id}">
-        <h2 id="h-${r.id}">${esc(r.title)}</h2>
-        ${sits}
-        <form class="quest" data-round="${r.id}">
-          <h3>Kurze Fragen an dich</h3>
-          ${qs}
-          <div class="row"><button type="submit">Antworten speichern</button><span class="state" id="qs-${r.id}">${a.updated ? 'Gespeichert' : ''}</span></div>
-        </form>
-      </section>`;
-    }).join('');
+  function sitHtml(st) {
+    const { r, s } = st;
+    const pick = state.picks[st.key] || {};
+    const opts = [...s.order]
+      .map((e, i) => {
+        const n = i + 1;
+        const chosen = pick.choice === n;
+        const reveal = pick.choice
+          ? `<span class="emph">${esc(EMPH[e])}</span>`
+          : '';
+        return `<div class="opt${chosen ? ' chosen' : ''}">
+          <span class="lab">Variante ${n}</span>
+          <img src="img/${r.id}-${s.id}-${e}.jpg" alt="Variante ${n}: ${esc(s.desc[e])}" tabindex="0" data-zoom="img/${r.id}-${s.id}-${e}.jpg" />
+          <span class="desc">${esc(s.desc[e])}</span>${reveal}
+          <button type="button" data-pick="${st.key}|${n}|${e}">${chosen ? 'Gewählt ✓' : 'Diese gefällt mir besser'}</button>
+        </div>`;
+      })
+      .join('');
+    return `<section class="sit" aria-labelledby="h-${st.key}">
+      <div class="sit-head"><span class="no">${esc(r.title.toUpperCase())}</span><h3 id="h-${st.key}">${esc(s.title)}</h3></div>
+      <p>${esc(s.text)}</p>
+      <div class="opts">${opts}</div>
+      <div class="note">
+        <label for="note-${st.key}">Was gefällt dir an deiner Wahl besonders? Was würdest du ändern?</label>
+        <textarea id="note-${st.key}" data-note="${st.key}" placeholder="z. B. „Die Knöpfe unten, aber die Zeiten oben sind mir zu klein.“">${esc(pick.note || '')}</textarea>
+        <div class="row">
+          <button type="button" data-next="${st.key}"${pick.choice ? '' : ' disabled'}>Weiter</button>
+          <span class="state" id="st-${st.key}">${pick.choice ? 'Gespeichert' : 'Erst eine Variante wählen'}</span>
+        </div>
+      </div>
+    </section>`;
   }
 
-  async function savePick(round, sit, data) {
-    const st = $('#st-' + round + '-' + sit);
-    const key = round + '-' + sit;
+  function questHtml(st) {
+    const r = st.r;
+    const a = state.answers[r.id] || {};
+    const qs = r.questions
+      .map((q) => {
+        if (q.type === 'text') {
+          return `<fieldset><legend>${esc(q.label)}</legend>
+            <textarea id="q-${r.id}-${q.id}" name="${q.id}">${esc(a[q.id] || '')}</textarea></fieldset>`;
+        }
+        const multi = q.type === 'multi';
+        const have = multi ? a[q.id] || [] : [a[q.id]];
+        const items = q.options
+          .map(
+            (o, i) =>
+              `<label><input type="${multi ? 'checkbox' : 'radio'}" id="q-${r.id}-${q.id}-${i}" name="${q.id}" value="${esc(o)}"${have.includes(o) ? ' checked' : ''} /> ${esc(o)}</label>`,
+          )
+          .join('');
+        return `<fieldset><legend>${esc(q.label)}</legend><div class="choices">${items}</div></fieldset>`;
+      })
+      .join('');
+    return `<form class="quest" data-round="${r.id}">
+      <h3>${esc(r.title)} · kurze Fragen an dich</h3>
+      ${qs}
+      <div class="row"><button type="submit">Speichern und weiter</button><span class="state" id="qs-${r.id}"></span></div>
+    </form>`;
+  }
+
+  function historyHtml() {
+    const done = STEPS.filter((st) => st.kind === 'sit' && isDone(st));
+    if (!done.length) return '';
+    const items = done
+      .map((st) => {
+        const p = state.picks[st.key];
+        const note = p.note
+          ? ` · „${esc(p.note.length > 90 ? p.note.slice(0, 90) + '…' : p.note)}“`
+          : '';
+        return `<li><img src="img/${st.r.id}-${st.s.id}-${p.emphasis}.jpg" alt="" />
+          <div><b>${esc(st.s.title)}</b><br /><span class="dim">Variante ${p.choice} · ${esc(EMPH[p.emphasis])}${note}</span></div>
+          <button type="button" class="ghost" data-undo="${st.key}">Ändern</button></li>`;
+      })
+      .join('');
+    return `<section class="hist" aria-labelledby="h-hist"><h3 id="h-hist">Bisher gewählt</h3><ul>${items}</ul></section>`;
+  }
+
+  function render() {
+    const cur = STEPS.find((st) => !isDone(st));
+    const pos = cur
+      ? STEPS.filter((st) => st.kind === 'sit').indexOf(cur) + 1
+      : 0;
+    const total = STEPS.filter((st) => st.kind === 'sit').length;
+    let body;
+    if (!cur) {
+      body = `<section class="sit"><h3>Alles für jetzt erledigt</h3><p>Danke! Sag Claude kurz Bescheid; die nächste Situation kommt auf dieselbe Seite.</p></section>`;
+    } else if (cur.kind === 'sit') {
+      body =
+        `<p class="dim">Situation ${pos} von ${total} bisher vorbereiteten</p>` +
+        sitHtml(cur);
+    } else {
+      body = questHtml(cur);
+    }
+    $('#rounds').innerHTML = body + historyHtml();
+    renderLoop();
+  }
+
+  async function save(path, data) {
+    if (!state.db) throw { code: 'kein Speicher verbunden' };
+    await state.db.doc(path).set(data);
+  }
+
+  async function savePick(key, data, quiet) {
+    const st = $('#st-' + key);
     state.picks[key] = {
       ...(state.picks[key] || {}),
       ...data,
-      round,
-      situation: sit,
+      key,
       updated: new Date().toISOString(),
     };
-    if (!state.db) {
-      if (st) st.textContent = 'Nicht gespeichert: kein Speicher verbunden.';
-      return;
-    }
     try {
-      if (st) st.textContent = 'Speichert …';
-      await state.db.doc('picks/' + key).set(state.picks[key]);
+      if (st && !quiet) st.textContent = 'Speichert …';
+      await save('picks/' + key, state.picks[key]);
       if (st) {
         st.textContent = 'Gespeichert';
         st.className = 'state ok';
       }
+      return true;
     } catch (e) {
       if (st) {
         st.textContent =
@@ -564,27 +653,54 @@
           '). Bitte noch einmal versuchen.';
         st.className = 'state bad';
       }
+      return false;
     }
   }
 
-  document.addEventListener('click', (ev) => {
+  function rerenderKeepingScroll() {
+    const y = window.scrollY;
+    render();
+    window.scrollTo(0, y);
+  }
+
+  document.addEventListener('click', async (ev) => {
     const b = ev.target.closest('[data-pick]');
     if (b) {
-      const [round, sit, n, e] = b.dataset.pick.split('|');
-      const note = $('#note-' + round + '-' + sit);
-      state.picks[round + '-' + sit] = {
-        ...(state.picks[round + '-' + sit] || {}),
+      const [key, n, e] = b.dataset.pick.split('|');
+      const note = $('#note-' + key);
+      state.picks[key] = {
+        ...(state.picks[key] || {}),
         choice: Number(n),
         emphasis: e,
+        note: note ? note.value : '',
       };
-      const scrollY = window.scrollY;
-      renderRounds();
-      window.scrollTo(0, scrollY);
-      savePick(round, sit, {
+      rerenderKeepingScroll();
+      savePick(key, {
         choice: Number(n),
         emphasis: e,
         note: note ? note.value : '',
       });
+      return;
+    }
+    const nx = ev.target.closest('[data-next]');
+    if (nx) {
+      const key = nx.dataset.next;
+      const note = $('#note-' + key);
+      clearTimeout(timers['note-' + key]);
+      if (await savePick(key, { note: note ? note.value : '', done: true })) {
+        render();
+        window.scrollTo(0, 0);
+      }
+      return;
+    }
+    const u = ev.target.closest('[data-undo]');
+    if (u) {
+      const key = u.dataset.undo;
+      // Reopening an earlier situation shows it again before the open one.
+      if (await savePick(key, { done: false }, true)) {
+        render();
+        window.scrollTo(0, 0);
+      }
       return;
     }
     const z = ev.target.closest('[data-zoom]');
@@ -616,17 +732,14 @@
   document.addEventListener('input', (ev) => {
     const t = ev.target.closest('[data-note]');
     if (!t) return;
-    const [round, sit] = t.dataset.note.split('|');
-    const st = $('#st-' + round + '-' + sit);
+    const key = t.dataset.note;
+    const st = $('#st-' + key);
     if (st) {
       st.textContent = 'Ungespeichert …';
       st.className = 'state';
     }
     clearTimeout(timers[t.id]);
-    timers[t.id] = setTimeout(
-      () => savePick(round, sit, { note: t.value }),
-      900,
-    );
+    timers[t.id] = setTimeout(() => savePick(key, { note: t.value }), 900);
   });
 
   document.addEventListener('submit', async (ev) => {
@@ -645,17 +758,13 @@
           (f.querySelector(`input[name="${q.id}"]:checked`) || {}).value || '';
       else out[q.id] = f.querySelector(`textarea[name="${q.id}"]`).value;
     }
-    state.answers[r.id] = out;
     const st = $('#qs-' + r.id);
-    if (!state.db) {
-      st.textContent = 'Nicht gespeichert: kein Speicher verbunden.';
-      return;
-    }
     try {
       st.textContent = 'Speichert …';
-      await state.db.doc('answers/' + r.id).set(out);
-      st.textContent = 'Gespeichert';
-      st.className = 'state ok';
+      await save('answers/' + r.id, out);
+      state.answers[r.id] = out;
+      render();
+      window.scrollTo(0, 0);
     } catch (e) {
       st.textContent =
         'Nicht gespeichert (' + (e && e.code ? e.code : 'Fehler') + ').';
@@ -663,12 +772,10 @@
     }
   });
 
-  renderLoop();
-  renderRounds();
+  render();
 
   (async () => {
-    const use = window.claude && window.claude.use;
-    if (!use) {
+    if (!window.claude || !window.claude.use) {
       setConn(
         'Kein Speicher: Diese Ansicht kann nichts speichern. Öffne die Seite auf claude.ai.',
         'bad',
@@ -685,54 +792,32 @@
     }
     state.db = db;
     const slow = setTimeout(
-      () =>
-        setConn(
-          'Speicher antwortet noch nicht; deine Wahl wird gesendet, sobald er da ist.',
-          'bad',
-        ),
+      () => setConn('Speicher antwortet noch nicht; bitte kurz warten.', 'bad'),
       10000,
     );
-    let first = true;
-    db.collection('picks').onSnapshot(
-      (snap) => {
-        clearTimeout(slow);
-        for (const d of snap.docs) state.picks[d.id] = { ...d.data() };
-        setConn(
-          'Speicher verbunden. Deine Wahl wird automatisch gespeichert.',
-          'ok',
-        );
-        if (
-          first ||
-          !document.activeElement ||
-          document.activeElement.tagName !== 'TEXTAREA'
-        ) {
-          const y = window.scrollY;
-          renderRounds();
-          window.scrollTo(0, y);
-        }
-        first = false;
-      },
-      () => {
-        clearTimeout(slow);
-        setConn(
-          'Speicher nicht erreichbar. Bitte die Seite später neu öffnen.',
-          'bad',
-        );
-      },
-    );
     try {
-      const a = await db.collection('answers').get();
+      const [p, a] = await Promise.all([
+        db.collection('picks').get(),
+        db.collection('answers').get(),
+      ]);
+      clearTimeout(slow);
+      for (const d of p.docs) state.picks[d.id] = { ...d.data() };
       for (const d of a.docs) state.answers[d.id] = { ...d.data() };
+      setConn(
+        'Speicher verbunden. Deine Wahl wird automatisch gespeichert.',
+        'ok',
+      );
       if (
         !document.activeElement ||
         document.activeElement.tagName !== 'TEXTAREA'
-      ) {
-        const y = window.scrollY;
-        renderRounds();
-        window.scrollTo(0, y);
-      }
+      )
+        render();
     } catch (e) {
-      /* answers stay empty; the form still saves */
+      clearTimeout(slow);
+      setConn(
+        'Speicher nicht erreichbar. Bitte die Seite später neu öffnen.',
+        'bad',
+      );
     }
   })();
 </script>

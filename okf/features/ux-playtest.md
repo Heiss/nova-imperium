@@ -30,8 +30,12 @@ the owner as test person.
   `picks/<round>-<situation>` (`choice` 1–3, `emphasis` a/b/c, `note`),
   answers in `answers/<round>`. Claude reads them with the Artifact data
   tool.
-* **[E]** 3–4 situations per round; each situation shows three variants
-  without labels, in a mixed order; the emphasis is shown after the pick.
+* **[E]** One situation at a time (owner, 2026-11-23, replaces 3–4 per
+  round): the page shows only the first open situation; after the pick and
+  the note, „Weiter“ opens the next; the questions close a round. Each
+  situation shows three variants without labels, in a mixed order; the
+  emphasis is shown after the pick. Picks are reopened with „Ändern“
+  (`done: false`).
 * **[E]** Tracking here and on the branch `claude/ux-modern-study`
   (pull request #389).
 
@@ -72,7 +76,7 @@ Taken from the code (views, missions, reports) and the open ideas:
 
 | Round | Stations | Situations | Status |
 |---|---|---|---|
-| 1 | 1–4 | s1 login map · s2 dashboard · s3 building on fields · s4 info page | published 2026-11-23, waiting for picks |
+| 1 | 1–4 | s1 login map · s2 dashboard · s3 building on fields · s4 info page, shown one by one | published 2026-11-23 (version 2: one at a time), waiting for picks |
 | 2 | 5–7 (+ repeat of the round-1 winners) | planned after round 1 | open |
 | 3 | 8–10 | planned | open |
 | 4 | 11–13 | planned | open |
