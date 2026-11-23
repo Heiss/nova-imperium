@@ -51,6 +51,14 @@ the owner as test person.
   (`done: true`); before that Claude reads nothing into the pick or the
   note and does not republish the page while a situation is open, because
   a republish reloads it (owner, 2026-11-23).
+* **[E]** Races (#154) belong to v3: the interface changes with the
+  chosen race; the Brut gets organic wobbling (owner, 2026-11-23).
+  Decided the same day: the three races Imperium, Brut and Ewige (Schatten
+  and Treck later, if they come, #154 R9); the Imperium keeps today's
+  styling, Brut and Ewige get their own colours, shapes, type, frames and
+  motion while the layout (map, Lage sheet, buttons) stays the same; they
+  enter the playtest after round 1, with the same views per race in three
+  versions each, the Brut animated (GIF).
 * **[E]** Tracking here and on the branch `claude/ux-modern-study`
   (pull request #389).
 
@@ -92,7 +100,8 @@ Taken from the code (views, missions, reports) and the open ideas:
 | Round | Stations | Situations | Status |
 |---|---|---|---|
 | 1 | 1–4 | s1m galaxy map · s1s own system · s2m content of the Lage sheet · s3 building on fields · s4 info page, one by one | published 2026-11-23 (version 4), waiting for picks |
-| 2 | 5–7 (+ repeat of the round-1 winners) | planned after round 1 | open |
+| 1b | race skins | Brut and Ewige on the chosen views of round 1, three versions each, Brut animated | after round 1 |
+| 2 | 5–7 (+ repeat of the round-1 winners) | s5 research · s6 defense on Nox · s7 espionage (queued on the page) | open |
 | 3 | 8–10 | planned | open |
 | 4 | 11–13 | planned | open |
 | 5 | desktop of the chosen layouts | planned | open |
