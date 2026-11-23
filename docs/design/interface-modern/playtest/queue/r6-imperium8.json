@@ -1,0 +1,30 @@
+{
+  "seq": 450,
+  "kind": "sit",
+  "round": "r6",
+  "roundTitle": "Runde 6 · Wiederholungen",
+  "station": 0,
+  "id": "imperium8",
+  "short": "Imperium prüfen",
+  "title": "Das Imperium in denselben Rahmen",
+  "text": "Das Imperium behält sein heutiges Styling. Damit alle drei Rassen gleich weit sind, hier dieselbe Karte mit drei Stärken: so wie heute, mit plastischen Goldleisten, oder mit Zierrat an den Ecken.",
+  "order": "bca",
+  "variants": {
+    "a": {
+      "img": "/_blob/5cb9c77ab4a62029332133b417fbae06",
+      "desc": "Wie heute: dünne Goldlinien, kein Relief.",
+      "emph": "Imperium: wie heute"
+    },
+    "b": {
+      "img": "/_blob/2c72737bc91fcdeee383e0d6b113e0ad",
+      "desc": "Plastische Goldleisten an Leiste, Blatt und Reitern.",
+      "emph": "Imperium: Goldleisten"
+    },
+    "c": {
+      "img": "/_blob/4f76b8e7a8318937afc21ad0eec7ed51",
+      "desc": "Goldleisten mit Zierrat: Spitzbögen an den Ecken des Blatts und in der Mitte.",
+      "emph": "Imperium: Goldleisten mit Zierrat"
+    }
+  },
+  "ask": "Soll das Imperium ebenfalls leichte Bewegung haben (z. B. ein Lichtschimmer über dem Gold), oder ganz still bleiben?"
+}

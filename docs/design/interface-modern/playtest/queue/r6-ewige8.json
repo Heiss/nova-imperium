@@ -1,0 +1,30 @@
+{
+  "seq": 440,
+  "kind": "sit",
+  "round": "r6",
+  "roundTitle": "Runde 6 · Wiederholungen",
+  "station": 0,
+  "id": "ewige8",
+  "short": "Ewige: plastisch",
+  "title": "Die Ewigen vorgerendert: Bronze, Edelstein, 65°",
+  "text": "Wie bei der Brut: die Rahmen als plastisches, beleuchtetes Metall, vorgerendert. Deine Wahl: Bronze-Doppelrahmen mit 65°-Ecken und leuchtendem Edelstein, eher ruhig; Begriffe Sternkarte, Chronik, Zeitlauf, Kreis.",
+  "order": "acb",
+  "variants": {
+    "a": {
+      "img": "/_blob/d8f740ebe6befc9ec72b4c6cf1fe7b1d",
+      "desc": "Polierte Bronze mit hellem Glanz.",
+      "emph": "Ewige: polierte Bronze"
+    },
+    "b": {
+      "img": "/_blob/050cb895a64b166c9195ef66e6a726bf",
+      "desc": "Alte Bronze mit grünlicher Patina, matter.",
+      "emph": "Ewige: Bronze mit Patina"
+    },
+    "c": {
+      "img": "/_blob/abc14735ccdb351211273de5a954b407",
+      "desc": "Dunkle Bronze mit eingravierten 65°-Kerben.",
+      "emph": "Ewige: dunkle, gravierte Bronze"
+    }
+  },
+  "ask": "Soll der Edelstein bei Ereignissen (z. B. Angriff) die Farbe wechseln, oder immer ruhig bleiben?"
+}
