@@ -1,12 +1,836 @@
 <!doctype html>
 <html lang="de">
-<head>
-<meta charset="utf-8" />
-<title>Rasse</title>
-<link rel="stylesheet" href="/style.css" />
-<style>:root { color-scheme: dark } body { margin: 0; background: #050405 } .r-phone { width: 390px; height: 780px; position: relative; overflow: hidden; border-radius: 32px; border: 1px solid #4a1a3a; background: radial-gradient(ellipse at 40% 45%, #2a0f22, #0d0710 70%); font-family: 'EB Garamond', Georgia, serif; color: #f0e0e8 } .r-top { position: absolute; left: 0; right: 0; top: 0; padding: 30px 10px 8px; display: flex; gap: 6px; align-items: center; background: #1a0c18; border-bottom: 1px solid #4a1a3a; z-index: 3 } .r-pill { display: inline-flex; gap: 5px; align-items: center; border: 1px solid #4a1a3a; border-radius: 4px; padding: 3px 10px; font-size: 13px; background: #2a1226; clip-path: polygon(0 10px, 10px 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 0 100%) } .r-pill img { width: 15px; height: 15px; filter: hue-rotate(250deg) saturate(1.4) } .r-sheet { position: absolute; left: 4px; right: 4px; top: 642px; bottom: 64px; background: #1a0c18; border: 1.5px solid #b6e04a; border-radius: 4px; padding: 6px 12px; z-index: 3; clip-path: polygon(0 10px, 10px 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 0 100%) } .r-grip { width: 40px; height: 4px; border-radius: 2px; background: #b6e04a; opacity: 0.6; margin: 0 auto 6px } .r-row { display: flex; gap: 6px; align-items: center; font-size: 12px; white-space: nowrap; overflow: hidden } .r-row b { color: #b6e04a; letter-spacing: 0.02em } .r-tag { border: 1px solid; border-radius: 4px; padding: 1px 6px; font-size: 10.5px; letter-spacing: 0.04em } .r-tabs { position: absolute; left: 0; right: 0; bottom: 0; height: 62px; display: grid; grid-template-columns: repeat(5, 1fr); background: #1a0c18; border-top: 1px solid #4a1a3a; z-index: 3 } .r-tab { display: grid; place-items: center; font-size: 11.5px; color: #b090a8; letter-spacing: 0.02em } .r-tab.on { color: #b6e04a; background: #2a1226; border-radius: 4px; margin: 8px 4px } .r-name { position: absolute; left: 12px; top: 104px; z-index: 2; font-size: 11.5px; color: #b090a8; letter-spacing: 0.02em } @keyframes breathe { 0%, 100% { transform: scale(1) } 50% { transform: scale(1.012) } } @keyframes seam { 0%, 100% { border-color: #5a3a18 } 50% { border-color: #e0a640 } } .r-sheet { animation: breathe 1.5s ease-in-out infinite, seam 1.5s infinite } .r-pill { animation: seam 1.5s infinite }</style>
-</head>
-<body>
-<div class="r-phone" id="ph"><svg width="390" height="544" viewBox="0 0 390 544" style="position: absolute; left: 0; top: 96px"><defs><filter id="wob" x="-30%" y="-30%" width="160%" height="160%"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="3"><animate attributeName="baseFrequency" dur="3s" values="0.03;0.05;0.03" repeatCount="indefinite" /></feTurbulence><feDisplacementMap in="SourceGraphic" scale="9" /></filter><radialGradient id="nest"><stop offset="0" stop-color="#e05a7a" /><stop offset="1" stop-color="#e05a7a" stop-opacity="0" /></radialGradient></defs><polygon points="0,20 30,0 62,20 62,52 30,66 0,52" fill="none" stroke="#5a1a3a" stroke-width="1.2" opacity="0.6" /><polygon points="70,20 100,0 132,20 132,52 100,66 70,52" fill="none" stroke="#5a1a3a" stroke-width="1.2" opacity="0.6" /><polygon points="140,20 170,0 202,20 202,52 170,66 140,52" fill="none" stroke="#5a1a3a" stroke-width="1.2" opacity="0.6" /><polygon points="210,20 240,0 272,20 272,52 240,66 210,52" fill="none" stroke="#5a1a3a" stroke-width="1.2" opacity="0.6" /><polygon points="280,20 310,0 342,20 342,52 310,66 280,52" fill="none" stroke="#5a1a3a" stroke-width="1.2" opacity="0.6" /><polygon points="350,20 380,0 412,20 412,52 380,66 350,52" fill="none" stroke="#5a1a3a" stroke-width="1.2" opacity="0.6" /><polygon points="35,84 65,64 97,84 97,116 65,130 35,116" fill="none" stroke="#5a1a3a" stroke-width="1.2" opacity="0.6" /><polygon points="105,84 135,64 167,84 167,116 135,130 105,116" fill="none" stroke="#5a1a3a" stroke-width="1.2" opacity="0.6" /><polygon points="175,84 205,64 237,84 237,116 205,130 175,116" fill="none" stroke="#5a1a3a" stroke-width="1.2" opacity="0.6" /><polygon points="245,84 275,64 307,84 307,116 275,130 245,116" fill="none" stroke="#5a1a3a" stroke-width="1.2" opacity="0.6" /><polygon points="315,84 345,64 377,84 377,116 345,130 315,116" fill="none" stroke="#5a1a3a" stroke-width="1.2" opacity="0.6" /><polygon points="385,84 415,64 447,84 447,116 415,130 385,116" fill="none" stroke="#5a1a3a" stroke-width="1.2" opacity="0.6" /><polygon points="0,148 30,128 62,148 62,180 30,194 0,180" fill="none" stroke="#5a1a3a" stroke-width="1.2" opacity="0.6" /><polygon points="70,148 100,128 132,148 132,180 100,194 70,180" fill="none" stroke="#5a1a3a" stroke-width="1.2" opacity="0.6" /><polygon points="140,148 170,128 202,148 202,180 170,194 140,180" fill="none" stroke="#5a1a3a" stroke-width="1.2" opacity="0.6" /><polygon points="210,148 240,128 272,148 272,180 240,194 210,180" fill="none" stroke="#5a1a3a" stroke-width="1.2" opacity="0.6" /><polygon points="280,148 310,128 342,148 342,180 310,194 280,180" fill="none" stroke="#5a1a3a" stroke-width="1.2" opacity="0.6" /><polygon points="350,148 380,128 412,148 412,180 380,194 350,180" fill="none" stroke="#5a1a3a" stroke-width="1.2" opacity="0.6" /><polygon points="35,212 65,192 97,212 97,244 65,258 35,244" fill="none" stroke="#5a1a3a" stroke-width="1.2" opacity="0.6" /><polygon points="105,212 135,192 167,212 167,244 135,258 105,244" fill="none" stroke="#5a1a3a" stroke-width="1.2" opacity="0.6" /><polygon points="175,212 205,192 237,212 237,244 205,258 175,244" fill="none" stroke="#5a1a3a" stroke-width="1.2" opacity="0.6" /><polygon points="245,212 275,192 307,212 307,244 275,258 245,244" fill="none" stroke="#5a1a3a" stroke-width="1.2" opacity="0.6" /><polygon points="315,212 345,192 377,212 377,244 345,258 315,244" fill="none" stroke="#5a1a3a" stroke-width="1.2" opacity="0.6" /><polygon points="385,212 415,192 447,212 447,244 415,258 385,244" fill="none" stroke="#5a1a3a" stroke-width="1.2" opacity="0.6" /><polygon points="0,276 30,256 62,276 62,308 30,322 0,308" fill="none" stroke="#5a1a3a" stroke-width="1.2" opacity="0.6" /><polygon points="70,276 100,256 132,276 132,308 100,322 70,308" fill="none" stroke="#5a1a3a" stroke-width="1.2" opacity="0.6" /><polygon points="140,276 170,256 202,276 202,308 170,322 140,308" fill="none" stroke="#5a1a3a" stroke-width="1.2" opacity="0.6" /><polygon points="210,276 240,256 272,276 272,308 240,322 210,308" fill="none" stroke="#5a1a3a" stroke-width="1.2" opacity="0.6" /><polygon points="280,276 310,256 342,276 342,308 310,322 280,308" fill="none" stroke="#5a1a3a" stroke-width="1.2" opacity="0.6" /><polygon points="350,276 380,256 412,276 412,308 380,322 350,308" fill="none" stroke="#5a1a3a" stroke-width="1.2" opacity="0.6" /><polygon points="35,340 65,320 97,340 97,372 65,386 35,372" fill="none" stroke="#5a1a3a" stroke-width="1.2" opacity="0.6" /><polygon points="105,340 135,320 167,340 167,372 135,386 105,372" fill="none" stroke="#5a1a3a" stroke-width="1.2" opacity="0.6" /><polygon points="175,340 205,320 237,340 237,372 205,386 175,372" fill="none" stroke="#5a1a3a" stroke-width="1.2" opacity="0.6" /><polygon points="245,340 275,320 307,340 307,372 275,386 245,372" fill="none" stroke="#5a1a3a" stroke-width="1.2" opacity="0.6" /><polygon points="315,340 345,320 377,340 377,372 345,386 315,372" fill="none" stroke="#5a1a3a" stroke-width="1.2" opacity="0.6" /><polygon points="385,340 415,320 447,340 447,372 415,386 385,372" fill="none" stroke="#5a1a3a" stroke-width="1.2" opacity="0.6" /><polygon points="0,404 30,384 62,404 62,436 30,450 0,436" fill="none" stroke="#5a1a3a" stroke-width="1.2" opacity="0.6" /><polygon points="70,404 100,384 132,404 132,436 100,450 70,436" fill="none" stroke="#5a1a3a" stroke-width="1.2" opacity="0.6" /><polygon points="140,404 170,384 202,404 202,436 170,450 140,436" fill="none" stroke="#5a1a3a" stroke-width="1.2" opacity="0.6" /><polygon points="210,404 240,384 272,404 272,436 240,450 210,436" fill="none" stroke="#5a1a3a" stroke-width="1.2" opacity="0.6" /><polygon points="280,404 310,384 342,404 342,436 310,450 280,436" fill="none" stroke="#5a1a3a" stroke-width="1.2" opacity="0.6" /><polygon points="350,404 380,384 412,404 412,436 380,450 350,436" fill="none" stroke="#5a1a3a" stroke-width="1.2" opacity="0.6" /><polygon points="35,468 65,448 97,468 97,500 65,514 35,500" fill="none" stroke="#5a1a3a" stroke-width="1.2" opacity="0.6" /><polygon points="105,468 135,448 167,468 167,500 135,514 105,500" fill="none" stroke="#5a1a3a" stroke-width="1.2" opacity="0.6" /><polygon points="175,468 205,448 237,468 237,500 205,514 175,500" fill="none" stroke="#5a1a3a" stroke-width="1.2" opacity="0.6" /><polygon points="245,468 275,448 307,468 307,500 275,514 245,500" fill="none" stroke="#5a1a3a" stroke-width="1.2" opacity="0.6" /><polygon points="315,468 345,448 377,468 377,500 345,514 315,500" fill="none" stroke="#5a1a3a" stroke-width="1.2" opacity="0.6" /><polygon points="385,468 415,448 447,468 447,500 415,514 385,500" fill="none" stroke="#5a1a3a" stroke-width="1.2" opacity="0.6" /><polygon points="0,532 30,512 62,532 62,564 30,578 0,564" fill="none" stroke="#5a1a3a" stroke-width="1.2" opacity="0.6" /><polygon points="70,532 100,512 132,532 132,564 100,578 70,564" fill="none" stroke="#5a1a3a" stroke-width="1.2" opacity="0.6" /><polygon points="140,532 170,512 202,532 202,564 170,578 140,564" fill="none" stroke="#5a1a3a" stroke-width="1.2" opacity="0.6" /><polygon points="210,532 240,512 272,532 272,564 240,578 210,564" fill="none" stroke="#5a1a3a" stroke-width="1.2" opacity="0.6" /><polygon points="280,532 310,512 342,532 342,564 310,578 280,564" fill="none" stroke="#5a1a3a" stroke-width="1.2" opacity="0.6" /><polygon points="350,532 380,512 412,532 412,564 380,578 350,564" fill="none" stroke="#5a1a3a" stroke-width="1.2" opacity="0.6" /><path d="M 300 390 Q 265 327 196 306" stroke="#ff5a4a" stroke-width="2.4" fill="none" stroke-dasharray="6 4"><animate attributeName="stroke-dashoffset" dur="1.5s" values="20;0" repeatCount="indefinite" /></path><rect x="228" y="335" width="105" height="19" rx="9" fill="#1a0c18" stroke="#ff5a4a" /><text x="280" y="349" fill="#ff5a4a" font-size="11.5" font-family="'EB Garamond', Georgia, serif" text-anchor="middle">Angriff 14:32</text><path d="M 120 200 Q 174 229 184 290" stroke="#5ad0b0" stroke-width="2.4" fill="none" stroke-dasharray="6 4"><animate attributeName="stroke-dashoffset" dur="1.5s" values="20;0" repeatCount="indefinite" /></path><rect x="82" y="252" width="77" height="19" rx="9" fill="#1a0c18" stroke="#5ad0b0" /><text x="120" y="266" fill="#5ad0b0" font-size="11.5" font-family="'EB Garamond', Georgia, serif" text-anchor="middle">Mira hält</text><polygon points="54,70 60,63 66,70 60,77" fill="#e05a7a" /><polygon points="67.4,71.1 70.9,67.6 74.4,71.1 70.9,74.6" fill="#9a7a9a" /><polygon points="54.2,80.8 57.7,77.3 61.2,80.8 57.7,84.3" fill="#9a7a9a" /><text x="76" y="74" fill="#b090a8" font-size="10.5" font-family="'EB Garamond', Georgia, serif">1:24</text><polygon points="114,200 120,193 126,200 120,207" fill="#e05a7a" /><polygon points="123.0,208.9 126.5,205.4 130.0,208.9 126.5,212.4" fill="#5ad0b0" /><polygon points="105.6,201.1 109.1,197.6 112.6,201.1 109.1,204.6" fill="#9a7a9a" /><text x="136" y="204" fill="#b090a8" font-size="10.5" font-family="'EB Garamond', Georgia, serif">1:26</text><polygon points="184,300 190,293 196,300 190,307" fill="#e05a7a" /><circle cx="190" cy="300" r="24" fill="none" stroke="#b6e04a" stroke-width="1.5" opacity="0.8" /><polygon points="201.7,295.1 205.2,291.6 208.7,295.1 205.2,298.6" fill="#b6e04a" /><polygon points="189.8,315.7 193.3,312.2 196.8,315.7 193.3,319.2" fill="#b6e04a" /><polygon points="172.6,308.0 176.1,304.5 179.6,308.0 176.1,311.5" fill="#b6e04a" /><polygon points="174.6,289.3 178.1,285.8 181.6,289.3 178.1,292.8" fill="#9a7a9a" /><text x="214" y="304" fill="#f0e0e8" font-size="12" font-family="'EB Garamond', Georgia, serif">1:27 · dein Nest, 3 Brutwelten</text><polygon points="304,150 310,143 316,150 310,157" fill="#e05a7a" /><polygon points="316.0,155.5 319.5,152.0 323.0,155.5 319.5,159.0" fill="#9a7a9a" /><text x="326" y="154" fill="#b090a8" font-size="10.5" font-family="'EB Garamond', Georgia, serif">1:29</text><polygon points="294,390 300,383 306,390 300,397" fill="#e05a7a" /><polygon points="304.7,382.6 308.2,379.1 311.7,382.6 308.2,386.1" fill="#ff5a4a" /><polygon points="307.4,391.1 310.9,387.6 314.4,391.1 310.9,394.6" fill="#ff5a4a" /><polygon points="294.2,400.8 297.7,397.3 301.2,400.8 297.7,404.3" fill="#ff5a4a" /><text x="316" y="394" fill="#b090a8" font-size="10.5" font-family="'EB Garamond', Georgia, serif">1:31</text><polygon points="84,430 90,423 96,430 90,437" fill="#e05a7a" /><polygon points="88.8,440.8 92.3,437.3 95.8,440.8 92.3,444.3" fill="#9a7a9a" /><polygon points="80.0,438.9 83.5,435.4 87.0,438.9 83.5,442.4" fill="#9a7a9a" /><text x="106" y="434" fill="#b090a8" font-size="10.5" font-family="'EB Garamond', Georgia, serif">1:35</text><polygon points="324,500 330,493 336,500 330,507" fill="#e05a7a" /><polygon points="337.0,496.6 340.5,493.1 344.0,496.6 340.5,500.1" fill="#ff5a4a" /><polygon points="336.0,505.5 339.5,502.0 343.0,505.5 339.5,509.0" fill="#5ad0b0" /><polygon points="328.8,510.8 332.3,507.3 335.8,510.8 332.3,514.3" fill="#9a7a9a" /><text x="346" y="504" fill="#b090a8" font-size="10.5" font-family="'EB Garamond', Georgia, serif">1:44</text><polygon points="244,60 250,53 256,60 250,67" fill="#e05a7a" /><polygon points="251.0,50.0 254.5,46.5 258.0,50.0 254.5,53.5" fill="#9a7a9a" /><text x="266" y="64" fill="#b090a8" font-size="10.5" font-family="'EB Garamond', Georgia, serif">1:21</text></svg><div class="r-top"><span class="r-pill"><img src="/icons/resources/small/metal.svg" alt="" />184 k</span><span class="r-pill"><img src="/icons/resources/small/crystal.svg" alt="" />92 k</span><span class="r-pill"><img src="/icons/resources/small/deuterium.svg" alt="" />41 k</span><span class="r-pill" style="margin-left: auto">Jagdgrund 1 ▾</span></div><div class="r-sheet"><div class="r-grip"></div><div class="r-row"><b>Witterung ▴</b><span class="r-tag" style="color: #ff5a4a; border-color: #ff5a4a">ANGRIFF 14:32</span><span class="r-tag" style="color: #e0c64a; border-color: #e0c64a">SPEICHER 1 h 40</span><span class="r-tag" style="color: #5ad0b0; border-color: #5ad0b0">3 SPUREN</span></div></div><div class="r-tabs"><span class="r-tab on">Brutstätten</span><span class="r-tab">Nest</span><span class="r-tab">Schwärme</span><span class="r-tab">Spuren</span><span class="r-tab">Mehr</span></div></div>
-</body>
+  <head>
+    <meta charset="utf-8" />
+    <title>Rasse</title>
+    <link rel="stylesheet" href="/style.css" />
+    <style>
+      :root {
+        color-scheme: dark;
+      }
+      body {
+        margin: 0;
+        background: #050405;
+      }
+      .r-phone {
+        width: 390px;
+        height: 780px;
+        position: relative;
+        overflow: hidden;
+        border-radius: 32px;
+        border: 1px solid #4a1a3a;
+        background: radial-gradient(ellipse at 40% 45%, #2a0f22, #0d0710 70%);
+        font-family: 'EB Garamond', Georgia, serif;
+        color: #f0e0e8;
+      }
+      .r-top {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        padding: 30px 10px 8px;
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        background: #1a0c18;
+        border-bottom: 1px solid #4a1a3a;
+        z-index: 3;
+      }
+      .r-pill {
+        display: inline-flex;
+        gap: 5px;
+        align-items: center;
+        border: 1px solid #4a1a3a;
+        border-radius: 4px;
+        padding: 3px 10px;
+        font-size: 13px;
+        background: #2a1226;
+        clip-path: polygon(
+          0 10px,
+          10px 0,
+          calc(100% - 10px) 0,
+          100% 10px,
+          100% 100%,
+          0 100%
+        );
+      }
+      .r-pill img {
+        width: 15px;
+        height: 15px;
+        filter: hue-rotate(250deg) saturate(1.4);
+      }
+      .r-sheet {
+        position: absolute;
+        left: 4px;
+        right: 4px;
+        top: 642px;
+        bottom: 64px;
+        background: #1a0c18;
+        border: 1.5px solid #b6e04a;
+        border-radius: 4px;
+        padding: 6px 12px;
+        z-index: 3;
+        clip-path: polygon(
+          0 10px,
+          10px 0,
+          calc(100% - 10px) 0,
+          100% 10px,
+          100% 100%,
+          0 100%
+        );
+      }
+      .r-grip {
+        width: 40px;
+        height: 4px;
+        border-radius: 2px;
+        background: #b6e04a;
+        opacity: 0.6;
+        margin: 0 auto 6px;
+      }
+      .r-row {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        font-size: 12px;
+        white-space: nowrap;
+        overflow: hidden;
+      }
+      .r-row b {
+        color: #b6e04a;
+        letter-spacing: 0.02em;
+      }
+      .r-tag {
+        border: 1px solid;
+        border-radius: 4px;
+        padding: 1px 6px;
+        font-size: 10.5px;
+        letter-spacing: 0.04em;
+      }
+      .r-tabs {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 62px;
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        background: #1a0c18;
+        border-top: 1px solid #4a1a3a;
+        z-index: 3;
+      }
+      .r-tab {
+        display: grid;
+        place-items: center;
+        font-size: 11.5px;
+        color: #b090a8;
+        letter-spacing: 0.02em;
+      }
+      .r-tab.on {
+        color: #b6e04a;
+        background: #2a1226;
+        border-radius: 4px;
+        margin: 8px 4px;
+      }
+      .r-name {
+        position: absolute;
+        left: 12px;
+        top: 104px;
+        z-index: 2;
+        font-size: 11.5px;
+        color: #b090a8;
+        letter-spacing: 0.02em;
+      }
+      @keyframes breathe {
+        0%,
+        100% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.012);
+        }
+      }
+      @keyframes seam {
+        0%,
+        100% {
+          border-color: #5a3a18;
+        }
+        50% {
+          border-color: #e0a640;
+        }
+      }
+      .r-sheet {
+        animation:
+          breathe 1.5s ease-in-out infinite,
+          seam 1.5s infinite;
+      }
+      .r-pill {
+        animation: seam 1.5s infinite;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="r-phone" id="ph">
+      <svg
+        width="390"
+        height="544"
+        viewBox="0 0 390 544"
+        style="position: absolute; left: 0; top: 96px"
+      >
+        <defs>
+          <filter id="wob" x="-30%" y="-30%" width="160%" height="160%">
+            <feTurbulence
+              type="fractalNoise"
+              baseFrequency="0.035"
+              numOctaves="2"
+              seed="3"
+            >
+              <animate
+                attributeName="baseFrequency"
+                dur="3s"
+                values="0.03;0.05;0.03"
+                repeatCount="indefinite"
+              />
+            </feTurbulence>
+            <feDisplacementMap in="SourceGraphic" scale="9" />
+          </filter>
+          <radialGradient id="nest">
+            <stop offset="0" stop-color="#e05a7a" />
+            <stop offset="1" stop-color="#e05a7a" stop-opacity="0" />
+          </radialGradient>
+        </defs>
+        <polygon
+          points="0,20 30,0 62,20 62,52 30,66 0,52"
+          fill="none"
+          stroke="#5a1a3a"
+          stroke-width="1.2"
+          opacity="0.6"
+        />
+        <polygon
+          points="70,20 100,0 132,20 132,52 100,66 70,52"
+          fill="none"
+          stroke="#5a1a3a"
+          stroke-width="1.2"
+          opacity="0.6"
+        />
+        <polygon
+          points="140,20 170,0 202,20 202,52 170,66 140,52"
+          fill="none"
+          stroke="#5a1a3a"
+          stroke-width="1.2"
+          opacity="0.6"
+        />
+        <polygon
+          points="210,20 240,0 272,20 272,52 240,66 210,52"
+          fill="none"
+          stroke="#5a1a3a"
+          stroke-width="1.2"
+          opacity="0.6"
+        />
+        <polygon
+          points="280,20 310,0 342,20 342,52 310,66 280,52"
+          fill="none"
+          stroke="#5a1a3a"
+          stroke-width="1.2"
+          opacity="0.6"
+        />
+        <polygon
+          points="350,20 380,0 412,20 412,52 380,66 350,52"
+          fill="none"
+          stroke="#5a1a3a"
+          stroke-width="1.2"
+          opacity="0.6"
+        />
+        <polygon
+          points="35,84 65,64 97,84 97,116 65,130 35,116"
+          fill="none"
+          stroke="#5a1a3a"
+          stroke-width="1.2"
+          opacity="0.6"
+        />
+        <polygon
+          points="105,84 135,64 167,84 167,116 135,130 105,116"
+          fill="none"
+          stroke="#5a1a3a"
+          stroke-width="1.2"
+          opacity="0.6"
+        />
+        <polygon
+          points="175,84 205,64 237,84 237,116 205,130 175,116"
+          fill="none"
+          stroke="#5a1a3a"
+          stroke-width="1.2"
+          opacity="0.6"
+        />
+        <polygon
+          points="245,84 275,64 307,84 307,116 275,130 245,116"
+          fill="none"
+          stroke="#5a1a3a"
+          stroke-width="1.2"
+          opacity="0.6"
+        />
+        <polygon
+          points="315,84 345,64 377,84 377,116 345,130 315,116"
+          fill="none"
+          stroke="#5a1a3a"
+          stroke-width="1.2"
+          opacity="0.6"
+        />
+        <polygon
+          points="385,84 415,64 447,84 447,116 415,130 385,116"
+          fill="none"
+          stroke="#5a1a3a"
+          stroke-width="1.2"
+          opacity="0.6"
+        />
+        <polygon
+          points="0,148 30,128 62,148 62,180 30,194 0,180"
+          fill="none"
+          stroke="#5a1a3a"
+          stroke-width="1.2"
+          opacity="0.6"
+        />
+        <polygon
+          points="70,148 100,128 132,148 132,180 100,194 70,180"
+          fill="none"
+          stroke="#5a1a3a"
+          stroke-width="1.2"
+          opacity="0.6"
+        />
+        <polygon
+          points="140,148 170,128 202,148 202,180 170,194 140,180"
+          fill="none"
+          stroke="#5a1a3a"
+          stroke-width="1.2"
+          opacity="0.6"
+        />
+        <polygon
+          points="210,148 240,128 272,148 272,180 240,194 210,180"
+          fill="none"
+          stroke="#5a1a3a"
+          stroke-width="1.2"
+          opacity="0.6"
+        />
+        <polygon
+          points="280,148 310,128 342,148 342,180 310,194 280,180"
+          fill="none"
+          stroke="#5a1a3a"
+          stroke-width="1.2"
+          opacity="0.6"
+        />
+        <polygon
+          points="350,148 380,128 412,148 412,180 380,194 350,180"
+          fill="none"
+          stroke="#5a1a3a"
+          stroke-width="1.2"
+          opacity="0.6"
+        />
+        <polygon
+          points="35,212 65,192 97,212 97,244 65,258 35,244"
+          fill="none"
+          stroke="#5a1a3a"
+          stroke-width="1.2"
+          opacity="0.6"
+        />
+        <polygon
+          points="105,212 135,192 167,212 167,244 135,258 105,244"
+          fill="none"
+          stroke="#5a1a3a"
+          stroke-width="1.2"
+          opacity="0.6"
+        />
+        <polygon
+          points="175,212 205,192 237,212 237,244 205,258 175,244"
+          fill="none"
+          stroke="#5a1a3a"
+          stroke-width="1.2"
+          opacity="0.6"
+        />
+        <polygon
+          points="245,212 275,192 307,212 307,244 275,258 245,244"
+          fill="none"
+          stroke="#5a1a3a"
+          stroke-width="1.2"
+          opacity="0.6"
+        />
+        <polygon
+          points="315,212 345,192 377,212 377,244 345,258 315,244"
+          fill="none"
+          stroke="#5a1a3a"
+          stroke-width="1.2"
+          opacity="0.6"
+        />
+        <polygon
+          points="385,212 415,192 447,212 447,244 415,258 385,244"
+          fill="none"
+          stroke="#5a1a3a"
+          stroke-width="1.2"
+          opacity="0.6"
+        />
+        <polygon
+          points="0,276 30,256 62,276 62,308 30,322 0,308"
+          fill="none"
+          stroke="#5a1a3a"
+          stroke-width="1.2"
+          opacity="0.6"
+        />
+        <polygon
+          points="70,276 100,256 132,276 132,308 100,322 70,308"
+          fill="none"
+          stroke="#5a1a3a"
+          stroke-width="1.2"
+          opacity="0.6"
+        />
+        <polygon
+          points="140,276 170,256 202,276 202,308 170,322 140,308"
+          fill="none"
+          stroke="#5a1a3a"
+          stroke-width="1.2"
+          opacity="0.6"
+        />
+        <polygon
+          points="210,276 240,256 272,276 272,308 240,322 210,308"
+          fill="none"
+          stroke="#5a1a3a"
+          stroke-width="1.2"
+          opacity="0.6"
+        />
+        <polygon
+          points="280,276 310,256 342,276 342,308 310,322 280,308"
+          fill="none"
+          stroke="#5a1a3a"
+          stroke-width="1.2"
+          opacity="0.6"
+        />
+        <polygon
+          points="350,276 380,256 412,276 412,308 380,322 350,308"
+          fill="none"
+          stroke="#5a1a3a"
+          stroke-width="1.2"
+          opacity="0.6"
+        />
+        <polygon
+          points="35,340 65,320 97,340 97,372 65,386 35,372"
+          fill="none"
+          stroke="#5a1a3a"
+          stroke-width="1.2"
+          opacity="0.6"
+        />
+        <polygon
+          points="105,340 135,320 167,340 167,372 135,386 105,372"
+          fill="none"
+          stroke="#5a1a3a"
+          stroke-width="1.2"
+          opacity="0.6"
+        />
+        <polygon
+          points="175,340 205,320 237,340 237,372 205,386 175,372"
+          fill="none"
+          stroke="#5a1a3a"
+          stroke-width="1.2"
+          opacity="0.6"
+        />
+        <polygon
+          points="245,340 275,320 307,340 307,372 275,386 245,372"
+          fill="none"
+          stroke="#5a1a3a"
+          stroke-width="1.2"
+          opacity="0.6"
+        />
+        <polygon
+          points="315,340 345,320 377,340 377,372 345,386 315,372"
+          fill="none"
+          stroke="#5a1a3a"
+          stroke-width="1.2"
+          opacity="0.6"
+        />
+        <polygon
+          points="385,340 415,320 447,340 447,372 415,386 385,372"
+          fill="none"
+          stroke="#5a1a3a"
+          stroke-width="1.2"
+          opacity="0.6"
+        />
+        <polygon
+          points="0,404 30,384 62,404 62,436 30,450 0,436"
+          fill="none"
+          stroke="#5a1a3a"
+          stroke-width="1.2"
+          opacity="0.6"
+        />
+        <polygon
+          points="70,404 100,384 132,404 132,436 100,450 70,436"
+          fill="none"
+          stroke="#5a1a3a"
+          stroke-width="1.2"
+          opacity="0.6"
+        />
+        <polygon
+          points="140,404 170,384 202,404 202,436 170,450 140,436"
+          fill="none"
+          stroke="#5a1a3a"
+          stroke-width="1.2"
+          opacity="0.6"
+        />
+        <polygon
+          points="210,404 240,384 272,404 272,436 240,450 210,436"
+          fill="none"
+          stroke="#5a1a3a"
+          stroke-width="1.2"
+          opacity="0.6"
+        />
+        <polygon
+          points="280,404 310,384 342,404 342,436 310,450 280,436"
+          fill="none"
+          stroke="#5a1a3a"
+          stroke-width="1.2"
+          opacity="0.6"
+        />
+        <polygon
+          points="350,404 380,384 412,404 412,436 380,450 350,436"
+          fill="none"
+          stroke="#5a1a3a"
+          stroke-width="1.2"
+          opacity="0.6"
+        />
+        <polygon
+          points="35,468 65,448 97,468 97,500 65,514 35,500"
+          fill="none"
+          stroke="#5a1a3a"
+          stroke-width="1.2"
+          opacity="0.6"
+        />
+        <polygon
+          points="105,468 135,448 167,468 167,500 135,514 105,500"
+          fill="none"
+          stroke="#5a1a3a"
+          stroke-width="1.2"
+          opacity="0.6"
+        />
+        <polygon
+          points="175,468 205,448 237,468 237,500 205,514 175,500"
+          fill="none"
+          stroke="#5a1a3a"
+          stroke-width="1.2"
+          opacity="0.6"
+        />
+        <polygon
+          points="245,468 275,448 307,468 307,500 275,514 245,500"
+          fill="none"
+          stroke="#5a1a3a"
+          stroke-width="1.2"
+          opacity="0.6"
+        />
+        <polygon
+          points="315,468 345,448 377,468 377,500 345,514 315,500"
+          fill="none"
+          stroke="#5a1a3a"
+          stroke-width="1.2"
+          opacity="0.6"
+        />
+        <polygon
+          points="385,468 415,448 447,468 447,500 415,514 385,500"
+          fill="none"
+          stroke="#5a1a3a"
+          stroke-width="1.2"
+          opacity="0.6"
+        />
+        <polygon
+          points="0,532 30,512 62,532 62,564 30,578 0,564"
+          fill="none"
+          stroke="#5a1a3a"
+          stroke-width="1.2"
+          opacity="0.6"
+        />
+        <polygon
+          points="70,532 100,512 132,532 132,564 100,578 70,564"
+          fill="none"
+          stroke="#5a1a3a"
+          stroke-width="1.2"
+          opacity="0.6"
+        />
+        <polygon
+          points="140,532 170,512 202,532 202,564 170,578 140,564"
+          fill="none"
+          stroke="#5a1a3a"
+          stroke-width="1.2"
+          opacity="0.6"
+        />
+        <polygon
+          points="210,532 240,512 272,532 272,564 240,578 210,564"
+          fill="none"
+          stroke="#5a1a3a"
+          stroke-width="1.2"
+          opacity="0.6"
+        />
+        <polygon
+          points="280,532 310,512 342,532 342,564 310,578 280,564"
+          fill="none"
+          stroke="#5a1a3a"
+          stroke-width="1.2"
+          opacity="0.6"
+        />
+        <polygon
+          points="350,532 380,512 412,532 412,564 380,578 350,564"
+          fill="none"
+          stroke="#5a1a3a"
+          stroke-width="1.2"
+          opacity="0.6"
+        />
+        <path
+          d="M 300 390 Q 265 327 196 306"
+          stroke="#ff5a4a"
+          stroke-width="2.4"
+          fill="none"
+          stroke-dasharray="6 4"
+        >
+          <animate
+            attributeName="stroke-dashoffset"
+            dur="1.5s"
+            values="20;0"
+            repeatCount="indefinite"
+          />
+        </path>
+        <rect
+          x="228"
+          y="335"
+          width="105"
+          height="19"
+          rx="9"
+          fill="#1a0c18"
+          stroke="#ff5a4a"
+        />
+        <text
+          x="280"
+          y="349"
+          fill="#ff5a4a"
+          font-size="11.5"
+          font-family="'EB Garamond', Georgia, serif"
+          text-anchor="middle"
+        >
+          Angriff 14:32
+        </text>
+        <path
+          d="M 120 200 Q 174 229 184 290"
+          stroke="#5ad0b0"
+          stroke-width="2.4"
+          fill="none"
+          stroke-dasharray="6 4"
+        >
+          <animate
+            attributeName="stroke-dashoffset"
+            dur="1.5s"
+            values="20;0"
+            repeatCount="indefinite"
+          />
+        </path>
+        <rect
+          x="82"
+          y="252"
+          width="77"
+          height="19"
+          rx="9"
+          fill="#1a0c18"
+          stroke="#5ad0b0"
+        />
+        <text
+          x="120"
+          y="266"
+          fill="#5ad0b0"
+          font-size="11.5"
+          font-family="'EB Garamond', Georgia, serif"
+          text-anchor="middle"
+        >
+          Mira hält
+        </text>
+        <polygon points="54,70 60,63 66,70 60,77" fill="#e05a7a" />
+        <polygon
+          points="67.4,71.1 70.9,67.6 74.4,71.1 70.9,74.6"
+          fill="#9a7a9a"
+        />
+        <polygon
+          points="54.2,80.8 57.7,77.3 61.2,80.8 57.7,84.3"
+          fill="#9a7a9a"
+        />
+        <text
+          x="76"
+          y="74"
+          fill="#b090a8"
+          font-size="10.5"
+          font-family="'EB Garamond', Georgia, serif"
+        >
+          1:24
+        </text>
+        <polygon points="114,200 120,193 126,200 120,207" fill="#e05a7a" />
+        <polygon
+          points="123.0,208.9 126.5,205.4 130.0,208.9 126.5,212.4"
+          fill="#5ad0b0"
+        />
+        <polygon
+          points="105.6,201.1 109.1,197.6 112.6,201.1 109.1,204.6"
+          fill="#9a7a9a"
+        />
+        <text
+          x="136"
+          y="204"
+          fill="#b090a8"
+          font-size="10.5"
+          font-family="'EB Garamond', Georgia, serif"
+        >
+          1:26
+        </text>
+        <polygon points="184,300 190,293 196,300 190,307" fill="#e05a7a" />
+        <circle
+          cx="190"
+          cy="300"
+          r="24"
+          fill="none"
+          stroke="#b6e04a"
+          stroke-width="1.5"
+          opacity="0.8"
+        />
+        <polygon
+          points="201.7,295.1 205.2,291.6 208.7,295.1 205.2,298.6"
+          fill="#b6e04a"
+        />
+        <polygon
+          points="189.8,315.7 193.3,312.2 196.8,315.7 193.3,319.2"
+          fill="#b6e04a"
+        />
+        <polygon
+          points="172.6,308.0 176.1,304.5 179.6,308.0 176.1,311.5"
+          fill="#b6e04a"
+        />
+        <polygon
+          points="174.6,289.3 178.1,285.8 181.6,289.3 178.1,292.8"
+          fill="#9a7a9a"
+        />
+        <text
+          x="214"
+          y="304"
+          fill="#f0e0e8"
+          font-size="12"
+          font-family="'EB Garamond', Georgia, serif"
+        >
+          1:27 · dein Nest, 3 Brutwelten
+        </text>
+        <polygon points="304,150 310,143 316,150 310,157" fill="#e05a7a" />
+        <polygon
+          points="316.0,155.5 319.5,152.0 323.0,155.5 319.5,159.0"
+          fill="#9a7a9a"
+        />
+        <text
+          x="326"
+          y="154"
+          fill="#b090a8"
+          font-size="10.5"
+          font-family="'EB Garamond', Georgia, serif"
+        >
+          1:29
+        </text>
+        <polygon points="294,390 300,383 306,390 300,397" fill="#e05a7a" />
+        <polygon
+          points="304.7,382.6 308.2,379.1 311.7,382.6 308.2,386.1"
+          fill="#ff5a4a"
+        />
+        <polygon
+          points="307.4,391.1 310.9,387.6 314.4,391.1 310.9,394.6"
+          fill="#ff5a4a"
+        />
+        <polygon
+          points="294.2,400.8 297.7,397.3 301.2,400.8 297.7,404.3"
+          fill="#ff5a4a"
+        />
+        <text
+          x="316"
+          y="394"
+          fill="#b090a8"
+          font-size="10.5"
+          font-family="'EB Garamond', Georgia, serif"
+        >
+          1:31
+        </text>
+        <polygon points="84,430 90,423 96,430 90,437" fill="#e05a7a" />
+        <polygon
+          points="88.8,440.8 92.3,437.3 95.8,440.8 92.3,444.3"
+          fill="#9a7a9a"
+        />
+        <polygon
+          points="80.0,438.9 83.5,435.4 87.0,438.9 83.5,442.4"
+          fill="#9a7a9a"
+        />
+        <text
+          x="106"
+          y="434"
+          fill="#b090a8"
+          font-size="10.5"
+          font-family="'EB Garamond', Georgia, serif"
+        >
+          1:35
+        </text>
+        <polygon points="324,500 330,493 336,500 330,507" fill="#e05a7a" />
+        <polygon
+          points="337.0,496.6 340.5,493.1 344.0,496.6 340.5,500.1"
+          fill="#ff5a4a"
+        />
+        <polygon
+          points="336.0,505.5 339.5,502.0 343.0,505.5 339.5,509.0"
+          fill="#5ad0b0"
+        />
+        <polygon
+          points="328.8,510.8 332.3,507.3 335.8,510.8 332.3,514.3"
+          fill="#9a7a9a"
+        />
+        <text
+          x="346"
+          y="504"
+          fill="#b090a8"
+          font-size="10.5"
+          font-family="'EB Garamond', Georgia, serif"
+        >
+          1:44
+        </text>
+        <polygon points="244,60 250,53 256,60 250,67" fill="#e05a7a" />
+        <polygon
+          points="251.0,50.0 254.5,46.5 258.0,50.0 254.5,53.5"
+          fill="#9a7a9a"
+        />
+        <text
+          x="266"
+          y="64"
+          fill="#b090a8"
+          font-size="10.5"
+          font-family="'EB Garamond', Georgia, serif"
+        >
+          1:21
+        </text>
+      </svg>
+      <div class="r-top">
+        <span class="r-pill"
+          ><img src="/icons/resources/small/metal.svg" alt="" />184 k</span
+        ><span class="r-pill"
+          ><img src="/icons/resources/small/crystal.svg" alt="" />92 k</span
+        ><span class="r-pill"
+          ><img src="/icons/resources/small/deuterium.svg" alt="" />41 k</span
+        ><span class="r-pill" style="margin-left: auto">Jagdgrund 1 ▾</span>
+      </div>
+      <div class="r-sheet">
+        <div class="r-grip"></div>
+        <div class="r-row">
+          <b>Witterung ▴</b
+          ><span class="r-tag" style="color: #ff5a4a; border-color: #ff5a4a"
+            >ANGRIFF 14:32</span
+          ><span class="r-tag" style="color: #e0c64a; border-color: #e0c64a"
+            >SPEICHER 1 h 40</span
+          ><span class="r-tag" style="color: #5ad0b0; border-color: #5ad0b0"
+            >3 SPUREN</span
+          >
+        </div>
+      </div>
+      <div class="r-tabs">
+        <span class="r-tab on">Brutstätten</span><span class="r-tab">Nest</span
+        ><span class="r-tab">Schwärme</span><span class="r-tab">Spuren</span
+        ><span class="r-tab">Mehr</span>
+      </div>
+    </div>
+  </body>
 </html>
