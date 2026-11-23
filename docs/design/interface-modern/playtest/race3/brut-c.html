@@ -1,0 +1,696 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <title>Rasse</title>
+    <link rel="stylesheet" href="/style.css" />
+    <style>
+      body {
+        margin: 0;
+        background: #050405;
+      }
+      .r-phone {
+        width: 390px;
+        height: 780px;
+        position: relative;
+        overflow: hidden;
+        border-radius: 32px;
+        background: #0b0806;
+        font-family: 'EB Garamond', Georgia, serif;
+        color: #f0e0e8;
+      }
+      .r-ui {
+        position: absolute;
+        z-index: 3;
+      }
+      .r-pill {
+        position: absolute;
+        top: 30px;
+        height: 24px;
+        display: flex;
+        gap: 5px;
+        align-items: center;
+        padding: 0 10px;
+        font-size: 13px;
+        background: #2a1226;
+        z-index: 5;
+      }
+      .r-pill img {
+        width: 15px;
+        height: 15px;
+      }
+      .r-tab {
+        position: absolute;
+        top: 738px;
+        width: 78px;
+        text-align: center;
+        font-size: 11.5px;
+        color: #b090a8;
+        letter-spacing: 0.02em;
+        z-index: 5;
+      }
+      .r-tab.on {
+        color: #b6e04a;
+      }
+      .r-line {
+        position: absolute;
+        left: 22px;
+        right: 22px;
+        top: 672px;
+        z-index: 5;
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        font-size: 12.5px;
+        white-space: nowrap;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="r-phone" id="ph">
+      <div style="position: absolute; left: 0; top: 64px">
+        <svg width="390" height="586" viewBox="0 0 390 586">
+          <circle cx="126" cy="88" r="1.3" fill="#d9c9a8" opacity="0.22" />
+          <circle cx="320" cy="55" r="1.3" fill="#d9c9a8" opacity="0.22" />
+          <circle cx="198" cy="22" r="1" fill="#d9c9a8" opacity="0.37" />
+          <circle cx="94" cy="323" r="0.8" fill="#d9c9a8" opacity="0.53" />
+          <circle cx="48" cy="131" r="1.3" fill="#d9c9a8" opacity="0.43" />
+          <circle cx="24" cy="343" r="0.8" fill="#d9c9a8" opacity="0.59" />
+          <circle cx="18" cy="503" r="1" fill="#d9c9a8" opacity="0.37" />
+          <circle cx="211" cy="335" r="1.3" fill="#d9c9a8" opacity="0.53" />
+          <circle cx="70" cy="341" r="1.3" fill="#d9c9a8" opacity="0.28" />
+          <circle cx="38" cy="417" r="1.3" fill="#d9c9a8" opacity="0.22" />
+          <circle cx="80" cy="399" r="1" fill="#d9c9a8" opacity="0.51" />
+          <circle cx="182" cy="541" r="1" fill="#d9c9a8" opacity="0.32" />
+          <circle cx="310" cy="410" r="0.8" fill="#d9c9a8" opacity="0.23" />
+          <circle cx="117" cy="290" r="1" fill="#d9c9a8" opacity="0.49" />
+          <circle cx="112" cy="574" r="0.8" fill="#d9c9a8" opacity="0.40" />
+          <circle cx="64" cy="200" r="1" fill="#d9c9a8" opacity="0.37" />
+          <circle cx="375" cy="45" r="1.3" fill="#d9c9a8" opacity="0.43" />
+          <circle cx="341" cy="184" r="1.3" fill="#d9c9a8" opacity="0.34" />
+          <circle cx="194" cy="467" r="0.8" fill="#d9c9a8" opacity="0.54" />
+          <circle cx="368" cy="278" r="1.3" fill="#d9c9a8" opacity="0.23" />
+          <circle cx="285" cy="181" r="1.3" fill="#d9c9a8" opacity="0.60" />
+          <circle cx="321" cy="167" r="1" fill="#d9c9a8" opacity="0.55" />
+          <circle cx="135" cy="551" r="1" fill="#d9c9a8" opacity="0.27" />
+          <circle cx="46" cy="35" r="1" fill="#d9c9a8" opacity="0.25" />
+          <circle cx="97" cy="229" r="1" fill="#d9c9a8" opacity="0.23" />
+          <circle cx="175" cy="322" r="0.8" fill="#d9c9a8" opacity="0.53" />
+          <circle cx="337" cy="163" r="1" fill="#d9c9a8" opacity="0.59" />
+          <circle cx="266" cy="223" r="0.8" fill="#d9c9a8" opacity="0.26" />
+          <circle cx="69" cy="136" r="0.8" fill="#d9c9a8" opacity="0.20" />
+          <circle cx="324" cy="107" r="1" fill="#d9c9a8" opacity="0.20" />
+          <circle cx="163" cy="216" r="1.3" fill="#d9c9a8" opacity="0.33" />
+          <circle cx="49" cy="503" r="1.3" fill="#d9c9a8" opacity="0.46" />
+          <circle cx="289" cy="268" r="1.3" fill="#d9c9a8" opacity="0.52" />
+          <circle cx="153" cy="234" r="0.8" fill="#d9c9a8" opacity="0.39" />
+          <circle cx="156" cy="112" r="0.8" fill="#d9c9a8" opacity="0.38" />
+          <circle cx="43" cy="352" r="0.8" fill="#d9c9a8" opacity="0.20" />
+          <circle cx="59" cy="59" r="1" fill="#d9c9a8" opacity="0.45" />
+          <circle cx="27" cy="122" r="1" fill="#d9c9a8" opacity="0.26" />
+          <circle cx="98" cy="204" r="1" fill="#d9c9a8" opacity="0.39" />
+          <circle cx="45" cy="286" r="1" fill="#d9c9a8" opacity="0.39" />
+          <circle cx="122" cy="84" r="1.3" fill="#d9c9a8" opacity="0.34" />
+          <circle cx="103" cy="486" r="0.8" fill="#d9c9a8" opacity="0.41" />
+          <circle cx="80" cy="558" r="1" fill="#d9c9a8" opacity="0.26" />
+          <circle cx="212" cy="16" r="1.3" fill="#d9c9a8" opacity="0.32" />
+          <circle cx="251" cy="53" r="1" fill="#d9c9a8" opacity="0.41" />
+          <circle cx="354" cy="208" r="0.8" fill="#d9c9a8" opacity="0.41" />
+          <circle cx="304" cy="193" r="0.8" fill="#d9c9a8" opacity="0.45" />
+          <circle cx="307" cy="444" r="0.8" fill="#d9c9a8" opacity="0.52" />
+          <circle cx="319" cy="434" r="0.8" fill="#d9c9a8" opacity="0.28" />
+          <circle cx="192" cy="428" r="0.8" fill="#d9c9a8" opacity="0.52" />
+          <circle cx="184" cy="113" r="1.3" fill="#d9c9a8" opacity="0.58" />
+          <circle cx="174" cy="549" r="1" fill="#d9c9a8" opacity="0.58" />
+          <circle cx="142" cy="129" r="0.8" fill="#d9c9a8" opacity="0.39" />
+          <circle cx="132" cy="283" r="1.3" fill="#d9c9a8" opacity="0.54" />
+          <circle cx="187" cy="383" r="1.3" fill="#d9c9a8" opacity="0.23" />
+          <circle cx="258" cy="533" r="1.3" fill="#d9c9a8" opacity="0.50" />
+          <circle cx="186" cy="105" r="1.3" fill="#d9c9a8" opacity="0.33" />
+          <circle cx="312" cy="569" r="1" fill="#d9c9a8" opacity="0.39" />
+          <circle cx="290" cy="50" r="0.8" fill="#d9c9a8" opacity="0.27" />
+          <circle cx="50" cy="89" r="1" fill="#d9c9a8" opacity="0.52" />
+          <circle cx="57" cy="484" r="1" fill="#d9c9a8" opacity="0.46" />
+          <circle cx="137" cy="322" r="0.8" fill="#d9c9a8" opacity="0.21" />
+          <circle cx="312" cy="426" r="0.8" fill="#d9c9a8" opacity="0.41" />
+          <circle cx="364" cy="254" r="0.8" fill="#d9c9a8" opacity="0.53" />
+          <circle cx="82" cy="148" r="1" fill="#d9c9a8" opacity="0.40" />
+          <circle cx="298" cy="191" r="1.3" fill="#d9c9a8" opacity="0.37" />
+          <circle cx="51" cy="533" r="1" fill="#d9c9a8" opacity="0.56" />
+          <circle cx="258" cy="478" r="1.3" fill="#d9c9a8" opacity="0.37" />
+          <circle cx="358" cy="294" r="1.3" fill="#d9c9a8" opacity="0.26" />
+          <circle cx="199" cy="511" r="0.8" fill="#d9c9a8" opacity="0.44" />
+          <circle cx="303" cy="88" r="0.8" fill="#d9c9a8" opacity="0.39" />
+          <circle cx="283" cy="326" r="1" fill="#d9c9a8" opacity="0.47" />
+          <circle cx="207" cy="283" r="0.8" fill="#d9c9a8" opacity="0.55" />
+          <circle cx="22" cy="112" r="0.8" fill="#d9c9a8" opacity="0.51" />
+          <circle cx="198" cy="329" r="0.8" fill="#d9c9a8" opacity="0.38" />
+          <circle cx="239" cy="296" r="1.3" fill="#d9c9a8" opacity="0.28" />
+          <circle cx="108" cy="298" r="1" fill="#d9c9a8" opacity="0.40" />
+          <circle cx="97" cy="307" r="1" fill="#d9c9a8" opacity="0.57" />
+          <circle cx="348" cy="119" r="1" fill="#d9c9a8" opacity="0.25" />
+          <circle cx="47" cy="259" r="0.8" fill="#d9c9a8" opacity="0.47" />
+          <circle cx="167" cy="125" r="1" fill="#d9c9a8" opacity="0.51" />
+          <circle cx="350" cy="91" r="1.3" fill="#d9c9a8" opacity="0.46" />
+          <circle cx="143" cy="148" r="0.8" fill="#d9c9a8" opacity="0.59" />
+          <circle cx="86" cy="558" r="1" fill="#d9c9a8" opacity="0.55" />
+          <circle cx="63" cy="391" r="0.8" fill="#d9c9a8" opacity="0.26" />
+          <circle cx="168" cy="302" r="1" fill="#d9c9a8" opacity="0.37" />
+          <circle cx="139" cy="54" r="1" fill="#d9c9a8" opacity="0.21" />
+          <path
+            d="M 261 387 Q 234 345 186 334"
+            stroke="#ee7660"
+            stroke-width="2.2"
+            fill="none"
+            stroke-dasharray="6 4"
+          />
+          <circle cx="186" cy="334" r="3" fill="#ee7660" />
+          <rect
+            x="177"
+            y="387"
+            width="103"
+            height="18"
+            rx="9"
+            fill="#0f0b08"
+            stroke="#ee7660"
+          />
+          <text
+            x="228"
+            y="400"
+            fill="#ee7660"
+            font-size="11.5"
+            font-family="Georgia"
+            text-anchor="middle"
+          >
+            Angriff 14:32
+          </text>
+          <path
+            d="M 117 223 Q 166 258 168 318"
+            stroke="#6fe0a8"
+            stroke-width="2.2"
+            fill="none"
+            stroke-dasharray="6 4"
+          />
+          <circle cx="168" cy="318" r="3" fill="#6fe0a8" />
+          <rect
+            x="129"
+            y="248"
+            width="75"
+            height="18"
+            rx="9"
+            fill="#0f0b08"
+            stroke="#6fe0a8"
+          />
+          <text
+            x="166"
+            y="261"
+            fill="#6fe0a8"
+            font-size="11.5"
+            font-family="Georgia"
+            text-anchor="middle"
+          >
+            Mira hält
+          </text>
+          <path
+            d="M 184 340 Q 295 372 335 481"
+            stroke="#f1d27a"
+            stroke-width="2.2"
+            fill="none"
+            stroke-dasharray="2 4"
+          />
+          <circle cx="335" cy="481" r="3" fill="#f1d27a" />
+          <rect
+            x="290"
+            y="465"
+            width="110"
+            height="18"
+            rx="9"
+            fill="#0f0b08"
+            stroke="#f1d27a"
+          />
+          <text
+            x="345"
+            y="478"
+            fill="#f1d27a"
+            font-size="11.5"
+            font-family="Georgia"
+            text-anchor="middle"
+          >
+            Spionage 4 min
+          </text>
+          <circle cx="27" cy="246" r="4" fill="#f3d36b" />
+          <circle
+            cx="37.4"
+            cy="236.6"
+            r="2.6"
+            fill="#a8997f"
+            stroke="#0f0b08"
+            stroke-width="0.8"
+          />
+          <text
+            x="47"
+            y="250"
+            fill="#a8997f"
+            font-size="11.5"
+            font-family="Georgia"
+          >
+            1:12
+          </text>
+          <circle cx="363" cy="70" r="4" fill="#f3d36b" />
+          <circle
+            cx="376.9"
+            cy="71.5"
+            r="2.6"
+            fill="#a8997f"
+            stroke="#0f0b08"
+            stroke-width="0.8"
+          />
+          <text
+            x="383"
+            y="74"
+            fill="#a8997f"
+            font-size="11.5"
+            font-family="Georgia"
+          >
+            1:18
+          </text>
+          <circle cx="215" cy="64" r="4" fill="#f3d36b" />
+          <circle
+            cx="220.7"
+            cy="51.2"
+            r="2.6"
+            fill="#a8997f"
+            stroke="#0f0b08"
+            stroke-width="0.8"
+          />
+          <text
+            x="235"
+            y="68"
+            fill="#a8997f"
+            font-size="11.5"
+            font-family="Georgia"
+          >
+            1:21
+          </text>
+          <circle cx="70" cy="100" r="4" fill="#f3d36b" />
+          <circle
+            cx="83.9"
+            cy="101.5"
+            r="2.6"
+            fill="#a8997f"
+            stroke="#0f0b08"
+            stroke-width="0.8"
+          />
+          <circle
+            cx="67.1"
+            cy="113.7"
+            r="2.6"
+            fill="#a8997f"
+            stroke="#0f0b08"
+            stroke-width="0.8"
+          />
+          <text
+            x="90"
+            y="104"
+            fill="#a8997f"
+            font-size="11.5"
+            font-family="Georgia"
+          >
+            1:24
+          </text>
+          <circle cx="117" cy="223" r="4" fill="#f3d36b" />
+          <circle
+            cx="125.2"
+            cy="234.3"
+            r="2.6"
+            fill="#6fe0a8"
+            stroke="#0f0b08"
+            stroke-width="0.8"
+          />
+          <circle
+            cx="103.1"
+            cy="224.5"
+            r="2.6"
+            fill="#a8997f"
+            stroke="#0f0b08"
+            stroke-width="0.8"
+          />
+          <text
+            x="137"
+            y="227"
+            fill="#a8997f"
+            font-size="11.5"
+            font-family="Georgia"
+          >
+            1:26
+          </text>
+          <circle cx="176" cy="328" r="6" fill="#f3d36b" />
+          <circle
+            cx="176"
+            cy="328"
+            r="27"
+            fill="none"
+            stroke="#6fb8ff"
+            stroke-width="1.5"
+            opacity="0.7"
+          />
+          <circle
+            cx="195.0"
+            cy="321.8"
+            r="3.4"
+            fill="#6fb8ff"
+            stroke="#0f0b08"
+            stroke-width="0.8"
+          />
+          <circle
+            cx="180.2"
+            cy="347.6"
+            r="3.4"
+            fill="#6fb8ff"
+            stroke="#0f0b08"
+            stroke-width="0.8"
+          />
+          <circle
+            cx="158.7"
+            cy="338.0"
+            r="3.4"
+            fill="#6fb8ff"
+            stroke="#0f0b08"
+            stroke-width="0.8"
+          />
+          <circle
+            cx="161.1"
+            cy="314.6"
+            r="3.4"
+            fill="#a8997f"
+            stroke="#0f0b08"
+            stroke-width="0.8"
+          />
+          <text
+            x="146"
+            y="296"
+            fill="#f1d27a"
+            font-size="13"
+            font-family="Georgia"
+          >
+            1:27 · deine 3 Welten
+          </text>
+          <circle cx="277" cy="170" r="4" fill="#f3d36b" />
+          <circle
+            cx="289.1"
+            cy="177.0"
+            r="2.6"
+            fill="#a8997f"
+            stroke="#0f0b08"
+            stroke-width="0.8"
+          />
+          <text
+            x="297"
+            y="174"
+            fill="#a8997f"
+            font-size="11.5"
+            font-family="Georgia"
+          >
+            1:29
+          </text>
+          <circle cx="261" cy="387" r="4" fill="#f3d36b" />
+          <circle
+            cx="271.4"
+            cy="377.6"
+            r="2.6"
+            fill="#ee7660"
+            stroke="#0f0b08"
+            stroke-width="0.8"
+          />
+          <circle
+            cx="274.9"
+            cy="388.5"
+            r="2.6"
+            fill="#ee7660"
+            stroke="#0f0b08"
+            stroke-width="0.8"
+          />
+          <circle
+            cx="258.1"
+            cy="400.7"
+            r="2.6"
+            fill="#ee7660"
+            stroke="#0f0b08"
+            stroke-width="0.8"
+          />
+          <text
+            x="281"
+            y="391"
+            fill="#a8997f"
+            font-size="11.5"
+            font-family="Georgia"
+          >
+            1:31
+          </text>
+          <circle cx="129" cy="516" r="3.5" fill="#8a7a5c" />
+          <text
+            x="149"
+            y="520"
+            fill="#a8997f"
+            font-size="11.5"
+            font-family="Georgia"
+          >
+            1:33
+          </text>
+          <circle cx="62" cy="422" r="4" fill="#f3d36b" />
+          <circle
+            cx="64.9"
+            cy="435.7"
+            r="2.6"
+            fill="#a8997f"
+            stroke="#0f0b08"
+            stroke-width="0.8"
+          />
+          <circle
+            cx="53.8"
+            cy="433.3"
+            r="2.6"
+            fill="#a8997f"
+            stroke="#0f0b08"
+            stroke-width="0.8"
+          />
+          <text
+            x="82"
+            y="426"
+            fill="#a8997f"
+            font-size="11.5"
+            font-family="Georgia"
+          >
+            1:35
+          </text>
+          <circle cx="343" cy="270" r="4" fill="#f3d36b" />
+          <circle
+            cx="343.0"
+            cy="256.0"
+            r="2.6"
+            fill="#a8997f"
+            stroke="#0f0b08"
+            stroke-width="0.8"
+          />
+          <circle
+            cx="351.2"
+            cy="281.3"
+            r="2.6"
+            fill="#a8997f"
+            stroke="#0f0b08"
+            stroke-width="0.8"
+          />
+          <text
+            x="363"
+            y="274"
+            fill="#a8997f"
+            font-size="11.5"
+            font-family="Georgia"
+          >
+            1:38
+          </text>
+          <circle cx="226" cy="527" r="3.5" fill="#8a7a5c" />
+          <text
+            x="246"
+            y="531"
+            fill="#a8997f"
+            font-size="11.5"
+            font-family="Georgia"
+          >
+            1:40
+          </text>
+          <circle cx="335" cy="481" r="4" fill="#f3d36b" />
+          <circle
+            cx="348.3"
+            cy="476.7"
+            r="2.6"
+            fill="#ee7660"
+            stroke="#0f0b08"
+            stroke-width="0.8"
+          />
+          <circle
+            cx="347.1"
+            cy="488.0"
+            r="2.6"
+            fill="#6fe0a8"
+            stroke="#0f0b08"
+            stroke-width="0.8"
+          />
+          <circle
+            cx="337.9"
+            cy="494.7"
+            r="2.6"
+            fill="#a8997f"
+            stroke="#0f0b08"
+            stroke-width="0.8"
+          />
+          <text
+            x="355"
+            y="485"
+            fill="#a8997f"
+            font-size="11.5"
+            font-family="Georgia"
+          >
+            1:44
+          </text>
+        </svg>
+      </div>
+      <div
+        class="r-ui"
+        style="left: 0; right: 0; top: 0; height: 64px; background: #1a0c18"
+      ></div>
+      <div
+        class="r-ui"
+        style="
+          left: 6px;
+          right: 6px;
+          top: 650px;
+          height: 62px;
+          background: #1a0c18;
+        "
+      ></div>
+      <div
+        class="r-ui"
+        style="left: 0; right: 0; top: 718px; bottom: 0; background: #1a0c18"
+      ></div>
+      <svg
+        width="390"
+        height="780"
+        viewBox="0 0 390 780"
+        style="
+          position: absolute;
+          left: 0;
+          top: 0;
+          z-index: 4;
+          pointer-events: none;
+        "
+      >
+        <path
+          d="M 0 64 q 10.8 10 21.7 0 q 10.8 10 21.7 0 q 10.8 10 21.7 0 q 10.8 10 21.7 0 q 10.8 10 21.7 0 q 10.8 10 21.7 0 q 10.8 10 21.7 0 q 10.8 10 21.7 0 q 10.8 10 21.7 0 q 10.8 10 21.7 0 q 10.8 10 21.7 0 q 10.8 10 21.7 0 q 10.8 10 21.7 0 q 10.8 10 21.7 0 q 10.8 10 21.7 0 q 10.8 10 21.7 0 q 10.8 10 21.7 0 q 10.8 10 21.7 0"
+          fill="#6a3a3a"
+          stroke="#9a5a4a"
+          stroke-width="1.2"
+        />
+        <path
+          d="M 6 650 q 11.8 -10 23.6 0 q 11.8 -10 23.6 0 q 11.8 -10 23.6 0 q 11.8 -10 23.6 0 q 11.8 -10 23.6 0 q 11.8 -10 23.6 0 q 11.8 -10 23.6 0 q 11.8 -10 23.6 0 q 11.8 -10 23.6 0 q 11.8 -10 23.6 0 q 11.8 -10 23.6 0 q 11.8 -10 23.6 0 q 11.8 -10 23.6 0 q 11.8 -10 23.6 0 q 11.8 -10 23.6 0 q 11.8 -10 23.6 0"
+          fill="#6a3a3a"
+          stroke="#9a5a4a"
+          stroke-width="1.2"
+        />
+        <path
+          d="M 0 718 q 9.8 -10 19.5 0 q 9.8 -10 19.5 0 q 9.8 -10 19.5 0 q 9.8 -10 19.5 0 q 9.8 -10 19.5 0 q 9.8 -10 19.5 0 q 9.8 -10 19.5 0 q 9.8 -10 19.5 0 q 9.8 -10 19.5 0 q 9.8 -10 19.5 0 q 9.8 -10 19.5 0 q 9.8 -10 19.5 0 q 9.8 -10 19.5 0 q 9.8 -10 19.5 0 q 9.8 -10 19.5 0 q 9.8 -10 19.5 0 q 9.8 -10 19.5 0 q 9.8 -10 19.5 0 q 9.8 -10 19.5 0 q 9.8 -10 19.5 0"
+          fill="#6a3a3a"
+          stroke="#9a5a4a"
+          stroke-width="1.2"
+        />
+        <path
+          d="M 6 654 q 4 -26 22 -34 q -4 14 4 30 Z"
+          fill="#9a5a4a"
+          stroke="#6a3a3a"
+        />
+        <path
+          d="M 28 620 Q 46 642 66 650"
+          stroke="#8a2a4a"
+          stroke-width="1.2"
+          fill="rgb(138 42 74 / 0.25)"
+        />
+        <path
+          d="M 384 654 q -4 -26 -22 -34 q 4 14 -4 30 Z"
+          fill="#9a5a4a"
+          stroke="#6a3a3a"
+        />
+        <path
+          d="M 362 620 Q 344 642 324 650"
+          stroke="#8a2a4a"
+          stroke-width="1.2"
+          fill="rgb(138 42 74 / 0.25)"
+        />
+        <path
+          d="M 30 658 L 360 658"
+          stroke="#8a2a4a"
+          stroke-width="2.2"
+          fill="none"
+          stroke-linecap="round"
+        >
+          <animate
+            attributeName="stroke"
+            dur="1.5s"
+            begin="0.0s"
+            values="#8a2a4a;#d04a7a;#8a2a4a"
+            repeatCount="indefinite"
+          />
+          <animate
+            attributeName="stroke-width"
+            dur="1.5s"
+            begin="0.0s"
+            values="1.6;3.2;1.6"
+            repeatCount="indefinite"
+          />
+        </path></svg
+      ><span
+        class="r-pill"
+        style="
+          left: 12px;
+          border-radius: 12px 9px 13px 8px;
+          border: 1px solid #5a2a3a;
+        "
+        ><img src="/icons/resources/small/metal.svg" alt="" />184 k</span
+      ><span
+        class="r-pill"
+        style="
+          left: 100px;
+          border-radius: 12px 9px 13px 8px;
+          border: 1px solid #5a2a3a;
+        "
+        ><img src="/icons/resources/small/crystal.svg" alt="" />92 k</span
+      ><span
+        class="r-pill"
+        style="
+          left: 184px;
+          border-radius: 12px 9px 13px 8px;
+          border: 1px solid #5a2a3a;
+        "
+        ><img src="/icons/resources/small/deuterium.svg" alt="" />41 k</span
+      ><span
+        class="r-pill"
+        style="
+          right: 12px;
+          border-radius: 12px 9px 13px 8px;
+          border: 1px solid #5a2a3a;
+        "
+        >Jagdgrund 1 ▾</span
+      ><span class="r-tab on" style="left: 0px; font-size: 11.5px"
+        >Brutstätten</span
+      ><span class="r-tab" style="left: 78px; font-size: 11.5px">Nest</span
+      ><span class="r-tab" style="left: 156px; font-size: 11.5px">Schwärme</span
+      ><span class="r-tab" style="left: 234px; font-size: 11.5px">Spuren</span
+      ><span class="r-tab" style="left: 312px; font-size: 11.5px">Mehr</span>
+      <div class="r-line">
+        <b style="color: #b6e04a; letter-spacing: 0.02em">Witterung ▴</b
+        ><span style="color: #ff6a5a">⚠ Angriff auf Nox 14:32</span
+        ><span style="color: #b090a8">noch 1 h 12</span
+        ><span style="margin-left: auto; color: #b090a8">›</span>
+      </div>
+    </div>
+  </body>
+</html>
