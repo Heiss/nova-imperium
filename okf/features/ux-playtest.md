@@ -103,8 +103,8 @@ Taken from the code (views, missions, reports) and the open ideas:
 
 | Round | Stations | Situations | Status |
 |---|---|---|---|
-| 1 | 1–4 | s1m galaxy map · s1s own system · s2m content of the Lage sheet · s3 building on fields · s4 info page · s1n names on the map, one by one | running; s1m, s1s, s2m, s3 done |
-| 1b | race skins | brut · ewige: the galaxy map with the Lage sheet, three versions each, animated (GIF); Brut a membran, b chitin, c schwarm; Ewige a monolith, b uhrwerk, c gitter | built, published with the next „Weiter“ |
+| 1 | 1–4 | s1m galaxy map · s1s own system · s2m content of the Lage sheet · s3 building on fields · s4 info page · s1n names on the map, one by one | running; s1m, s1s, s2m, s3, s4 done; version 6 (s1n, round 1b) published 2026-11-23 15:36 |
+| 1b | race skins | brut · ewige: the galaxy map with the Lage sheet, three versions each, animated (GIF); Brut a membran, b chitin, c schwarm; Ewige a monolith, b uhrwerk, c gitter | published (version 6) |
 | 2 | 5–7 (+ repeat of the round-1 winners) | s5 research · s6 defense on Nox · s7 espionage (queued on the page) | open |
 | 3 | 8–10 | planned | open |
 | 4 | 11–13 | planned | open |
@@ -126,10 +126,11 @@ s2 of version 1 (galaxy without systems; dashboard not yet a sheet).
 | s1s own system | variant 2 = a, orbits | answer (which infos a foreign world needs): „spieler und ob dieser aktiv ist ist glaube ich genug“ | **[E]** the system view shows the worlds on their orbits. **[E]** a foreign world shows only its player and whether the player is active. |
 | s2m content of the Lage sheet | variant 1 = b, timeline | answer (what the sheet shows when pulled down): „eine zeile zeigen“ | **[E]** the Lage sheet is a timeline (events by time). **[E]** pulled down, the sheet keeps one line visible. |
 | s3 building on fields (#158) | variant 2 = c, mobile: drag a building onto a field, every field shows its yield, „Bestätigen“ builds | note: „weil es sehr eindeutig erkennbar ist, welches feld ein benefit hat. und entweder zieht man die icons auf ein feld oder per click und target click“ | **[E]** while placing, every field shows clearly what it gains. **[E]** two ways to place: drag the icon onto a field, or tap the building and then tap the target field. |
+| s4 info page of a building (compact mode) | variant 3 = c, mobile: big sheet with picture, one sentence of effect, costs as coloured chips, big button, swipe to the next building | note: „mir gefällt aus variante 1 besonders gut, dass dort steht, was es wann freischaltet. und bei variante zwei kriegt man gute übersichten über die stufen etc. aber wir reden hier ja über den kompaktmodus, da dürfen infos fehlen. bei einem standard modus würde ich variante 2 bevorzugen. bei variante 3 ist auch das gute, das man schnell wieder das schließen kann durch runterwischen.“ | **[E]** compact mode: the info page is a sheet (c) that closes by swiping down; information may be missing there. **[E]** standard mode: the info page is its own page with tabs and an overview of the levels (a, variant 2). **[V]** „what it unlocks and when“ (from b, variant 1) belongs into the standard page; whether the compact sheet shows it too is open. |
 
 ## Open work
 
-* Read the remaining picks of round 1 (s4, s1n, questions) and of round 1b.
+* Read the remaining picks of round 1 (s1n, questions) and of round 1b.
 * Build round 2 from them (stations 5–7 and a repeat of the winners).
 * At the end: rewrite #388 and the design study; carry the decisions [E]
   into the feature files they concern (#158, #155, #236).
