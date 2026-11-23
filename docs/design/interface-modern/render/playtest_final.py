@@ -35,8 +35,19 @@ def urgent_line():
             '<b style="color: var(--red)">Angriff auf Nox 14:32</b><span class="m-dim">noch 1 h 12</span><span style="margin-left: auto; color: var(--gold-hi)">›</span></div></div>')
 
 
+def legend_tab():
+    """[E] gv: the legend can be minimized; it slides away to the right and leaves a very small hint tab."""
+    marks = ''.join(f'<svg width="12" height="12" viewBox="-6 -6 12 12" style="display: block; margin: 3px auto">{mark(0, 0, PAL[k], SHAPES[k], 3.6)}</svg>' for k in 'dfgeo')
+    return ('<div class="k-abs" style="right: 0; top: 108px; z-index: 2; width: 24px; padding: 4px 0; background: rgb(15 11 8 / 0.9); border: 1px solid var(--line); '
+            f'border-right: 0; border-radius: 6px 0 0 6px; text-align: center; font-size: 11px; color: var(--dim)">‹{marks}</div>')
+
+
 def phone_start():
-    return colour_map('c').replace(sheet_chips(), urgent_line())
+    import re
+    page = colour_map('c').replace(sheet_chips(), urgent_line())
+    page, n = re.subn(r'<div class="k-abs" style="left: 10px; right: 10px; top: 104px; z-index: 2;.*?</span></div>', legend_tab(), page, count=1, flags=re.S)
+    assert n == 1
+    return page
 
 
 def phone_sheet():

@@ -1,22 +1,248 @@
-# Interface „Modern“ – four UX design studies
+# Interface „Modern“ – the design after the playtest
 
-Design studies for the owner's request of 2026-11-23 (#388, sub-issue of #236):
-rebuild the whole interface; the styling stays (colours, Cinzel/EB Garamond,
-icons, planet pictures) **[E]**; navigation, list layout, forms and number walls
-of the OGame-like structure go **[E]**. „Modern“ is the rebuild, „Classic“ stays
-today's presentation (#236) **[E]**.
+The design of the interface „Modern“ for #388 (sub-issue of #236), as the
+owner decided it in the UX playtest of 2026-11-23. It is a design study,
+not built. **[E]** marks an owner's decision, **[V]** a proposal; names and
+numbers are examples. The record of every pick, with the owner's words, is
+`okf/features/ux-playtest.md`; the playtest page is `playtest/index.html`.
 
-Owner decisions of the same day **[E]**: three studies, each in the spirit of
-one family of games from the research (browser strategy, 4X/space, mobile
-strategy), and a fourth study with the dashboard as entry point and the star
-map instead of a menu. The density „kompakt“ shows only pictures; a click opens
-an info page with the build command; the costs are coloured by whether the
-resources are there. The first study (seven areas, rows) is replaced.
+Starting point **[E]** (owner, 2026-11-23): the styling stays (colours,
+Cinzel/EB Garamond, icons, planet pictures); the navigation, the list layout,
+the forms and the number walls of the OGame-like structure go. „Modern“ is
+the rebuild, „Classic“ stays today's presentation (#236). The game must be
+playable on the phone and on the desktop: mobile first, the desktop derived
+from it **[E]**. The owner mostly plays on the desktop, in visits of 2–10
+minutes **[E]**.
 
-Every study shows the same core flow on desktop (1280 × 720) and phone
-(390 × 780): entry, building (with the compact mode), sending a fleet, map,
-reports. Everything not marked **[E]** is a proposal **[V]**; names and numbers
-are examples.
+## Animations (desktop)
+
+Four animations, MP4 1920 × 1148 at 24 frames per second and smaller GIFs.
+The bar under each picture explains the step; it is not part of the
+interface. Source: `render/anim_desk.py`.
+
+| Imperium (20 s)                         | Brut (20 s)                     | Ewige (20 s)                      |
+| --------------------------------------- | ------------------------------- | --------------------------------- |
+| ![Imperium](playtest/anim/imperium.gif) | ![Brut](playtest/anim/brut.gif) | ![Ewige](playtest/anim/ewige.gif) |
+| [MP4](playtest/anim/imperium.mp4)       | [MP4](playtest/anim/brut.mp4)   | [MP4](playtest/anim/ewige.mp4)    |
+
+The three races run the same flow: the alert in the Lage line → the Lage
+sheet with the timeline → the system window → drag Aurelia onto Nox → the
+target window with „Verlegung“ and the preset „Alles“ → the fleet in the
+line and the timeline. Only the frames and the terms change.
+
+The run through the whole loop in the Imperium, 94 s
+([MP4](playtest/anim/durchlauf.mp4)), as GIF in four parts:
+
+1. „Willkommen zurück“ → mouse wheel into system 1:27 → building on Aurelia
+   → espionage on Varn → the target window with the preset „Raubzug“ → time
+   skip. ![Part 1](playtest/anim/durchlauf-1.gif)
+2. The victory in the Lage line → the report as a table → the tab „Herold“
+   with only a preview of the Kriegsbericht.
+   ![Part 2](playtest/anim/durchlauf-2.gif)
+3. The Kriegsbericht in the big window, full screen and back (a sketch; the
+   real replay is the Godot idea of #382).
+   ![Part 3](playtest/anim/durchlauf-3.gif)
+4. „Du bist am Zug“ → the siege overview → the board with the planner
+   window → „Züge abschicken“ (#155).
+   ![Part 4](playtest/anim/durchlauf-4.gif)
+
+## The frame
+
+### Phone
+
+| Start                                | Lage sheet pulled up                | Menü                              |
+| ------------------------------------ | ----------------------------------- | --------------------------------- |
+| ![Start](playtest/final/gv-gv-a.jpg) | ![Lage](playtest/final/gv-gv-b.jpg) | ![Menü](playtest/r7/r7-s19-a.jpg) |
+
+- **Start:** the galaxy as a map of systems; each occupied position is a
+  small mark on a ring around the star **[E]** (s1m). The galaxy overview is
+  the start; windows are not restored at the login **[E]** (d2).
+- **Colour language [E]** (sc): each group has a colour and a shape – du
+  blue circle, Freunde pink diamond, Gilde green square, Feinde red
+  triangle, andere grey circle. The options offer colour sets (colour
+  blindness, red-green weakness) and „only circles“.
+- **Names on tap [E]** (s1n). The legend can be minimized to a very small
+  hint tab at the right edge **[E]** (gv).
+- **Zoom levels [E]** (sg): universe › galaxy › system; a switcher and
+  swiping between galaxies, with the option „nur wischen“ or no swiping;
+  2–3 galaxies, the design must not depend on the number.
+- **The Lage sheet [E]** sits at the bottom everywhere and can be pulled up
+  and down. Pulled down it is one line with the most urgent item and the
+  time left; a tap opens it; no button, but a hint that it can be tapped
+  (s2r). With nothing urgent the line rotates slowly through the events.
+  Pulled up it has the tabs Zeitleiste · Funk · Herold · Berichte (s2m,
+  s12, s13); the timeline runs from the past over „JETZT“ into the future.
+- **Context [E]** (s8): on the phone the sheet is context-sensitive; an
+  overview shows general information, a tap on a thing its own information
+  and actions.
+- **Tab bar [E]** (s17–s19): Karte · Welten · Flotten · Berichte · Menü; the
+  menu (Lexikon, Soziales, Optionen, Admin) opens as the sheet; pulling it
+  down or tapping the map closes it.
+
+### Desktop
+
+| Start                             | Lage sheet pulled up, a system window |
+| --------------------------------- | ------------------------------------- |
+| ![Start](playtest/desk/start.jpg) | ![Lage](playtest/desk/lage.jpg)       |
+
+- **Layout [E]** (d9): left the own worlds, right knowledge (Lexikon), top
+  the menu, bottom information and communication (the Lage sheet), the map
+  in the middle as the main view (d8).
+- **Worlds [E]** (d8): a slim strip on the left with every world, its
+  resources and its state; a click opens the world's surface as a window,
+  with „Direkt zur Welt“ to jump there on the map.
+- **Lexikon [E]** (gv): hidden; a narrow vertical tab „Lexikon“ at the right
+  edge slides it out over the map; a pin docks it beside the map; it stays
+  collapsible.
+- **Menu [E]** (d9): a drop-down under „Menü“ at the top.
+- **The Lage sheet [E]** (d1, d5, d7): centred with a fixed width (about
+  400–440 px), two fixed heights (the one line, and fully up), it scrolls
+  inside; on the desktop it shows the same information everywhere.
+- **Windows [E]** (d1–d5): system, world, research, fleet and report
+  windows over the map, several at once and independent of each other; they
+  can be minimized and pinned; a pinned window is a favourite stored on the
+  server; after a login all pinned windows are minimized, so the galaxy is
+  in view. Where minimized windows sit is open **[V]** (a small row at the
+  top of the map).
+- **Mouse [E]** (d1, d8): click, not hover; the mouse wheel zooms through
+  universe › galaxy › system; dragging a world from a system window onto a
+  system opens a target window; with two system windows open the world can
+  be dropped straight onto a world in the other one (d2).
+- **On the map [E]** (d6, d10): the Börse icon at the top right; the map
+  layer „Gilde“. No chat bubble: the chat is the tab „Funk“ (the desktop
+  mockups d1–d7 still showed one by mistake).
+
+## The views
+
+| Topic         | Decision                                                                                                                                                                                                                                                                                                                 | Phone                                      | Desktop                                           |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------ | ------------------------------------------------- |
+| Own system    | Orbits with the worlds; free positions as dashed rings to pick a colony; the position in the system matters for the choice **[E]** (s1s, s11)                                                                                                                                                                            | ![Own system](playtest/r4/r4-s11-a.jpg)    | ![Own system](playtest/desk/system.jpg)           |
+| Building      | Drag a building onto a field, or tap the building and then the field; every field shows its yield; „Bestätigen“ builds **[E]** (s3, needs #158). Desktop: the surface as a window, the info page as a second window **[E]** (d3)                                                                                         | ![Building](playtest/r1/r1-s3-c.jpg)       | ![Building](playtest/desk/bauen.jpg)              |
+| Info page     | Compact mode: a big sheet with picture, one sentence of effect, costs coloured by whether the resources are there; standard mode: its own page with tabs and the levels; „Schaltet frei“ only there **[E]** (s4)                                                                                                         | ![Info page](playtest/r1/r1-s4-c.jpg)      |                                                   |
+| Research      | A tree of all researches; with a goal only its path is highlighted; a prerequisite needed at different levels appears once per level **[E]** (s5, d4). Desktop: the tree and the goal as two windows                                                                                                                     | ![Research](playtest/r2/r2-s5-b.jpg)       | ![Research](playtest/d4/d4-d4-b.jpg)              |
+| Defense       | One installation large, drag the amount, resource bars and a timeline up to the attack **[E]** (s6)                                                                                                                                                                                                                      | ![Defense](playtest/r2/r2-s6-b.jpg)        |                                                   |
+| Espionage     | From the system view: the world shows the age of its report and sends spy skulls; the report opens in the world's sheet or window and is reachable from the timeline, the report list and the world **[E]** (s7, s8)                                                                                                     | ![Espionage](playtest/r3/r3-s8-a.jpg)      | ![Espionage](playtest/desk/spionage.jpg)          |
+| Fleet         | A tap on a world opens the presets (saved per player); dragging a route on the map opens the same; the ship-by-ship choice stays **[E]** (s9). Desktop: everything in the target window, several fleet windows **[E]** (d5)                                                                                              | ![Fleet](playtest/r3/r3-s9-c.jpg)          | ![Fleet](playtest/desk/raubzug.jpg)               |
+| Battle        | The report is a table; the battle stands in the timeline and one click opens the report **[E]** (s10). Desktop: the report as a window, several at once **[E]** (d7)                                                                                                                                                     | ![Battle](playtest/r3/r3-s10-a.jpg)        | ![Battle](playtest/desk/kampfbericht.jpg)         |
+| Kriegsbericht | The replay comes from the Herold; every battle has one, visible only to attacker and defender; public only when the Herold researched it or a player leaked it („Durchstechen“) **[E]** (s10). The Lage sheet shows only a preview; the whole plays only in a window with full screen **[E]** (d6, after the animations) |                                            | ![Kriegsbericht](playtest/desk/kriegsbericht.jpg) |
+| Herold        | Its own newspaper page and the tab „Herold“ in the Lage sheet with the newest Kriegsbericht and „Durchstechen“; news about the player also in the timeline **[E]** (s13, d6)                                                                                                                                             | ![Herold](playtest/r4/r4-s13-c.jpg)        | ![Herold](playtest/desk/herold.jpg)               |
+| Guild         | The chat is the tab „Funk“ **[E]** (s12); members are always highlighted in their colour on the map, their details only in the layer „Gilde“ **[E]** (d10)                                                                                                                                                               | ![Guild](playtest/r4/r4-s12-b.jpg)         | ![Guild](playtest/d10/d10-d10-c.jpg)              |
+| Börse         | „Tauschen“ in the sheet **[E]** (s14); a map layer with the offers behind the icon at the top right, a list in the menu **[E]** (d6)                                                                                                                                                                                     | ![Börse](playtest/r4/r4-s14-b.jpg)         | ![Börse](playtest/d6/d6-d6-c.jpg)                 |
+| Away and back | „Willkommen zurück“ in the sheet: counts since the last visit and „Jetzt tun“ **[E]** (s15)                                                                                                                                                                                                                              | ![Away and back](playtest/r4/r4-s15-a.jpg) |                                                   |
+| Siege         | The siege opens with its overview (phase, Nachschub, damage, troops); the board behind a button fills the screen; moves can be planned on the phone **[E]** (s16). The planner sits in the sheet on the phone and is a window on the desktop **[E]** (after the animations)                                              | ![Siege](playtest/r5/r5-s16-b.jpg)         | ![Siege](playtest/desk/bodenkampf.jpg)            |
+| Welten        | Phone: one card per world with its picture, what runs and the main hint; inside a world, swiping goes to the next (option: picker, picker and swipe, swipe only) **[E]** (s17). Desktop: the strip on the left (d8)                                                                                                      | ![Welten](playtest/r7/r7-s17-a.jpg)        | ![Welten](playtest/d8/d8-d8-b.jpg)                |
+| Berichte      | A list by time with filters (Kampf, Auspex, Flotte, Lieferung); today's limit per player stays **[E]** (s18). Desktop: a tab of the Lage sheet, the report as a window **[E]** (d7)                                                                                                                                      | ![Berichte](playtest/r7/r7-s18-a.jpg)      | ![Berichte](playtest/d7/d7-d7-b.jpg)              |
+
+Mission names are the catalogue's: Sturmangriff, Auspex-Erkundung,
+Versorgungsflug, Verlegung, Wache stellen, Bergung, Landnahme, Expedition,
+Raketenangriff, Mondbruch, Vermessung.
+
+## The races
+
+The races themselves are #154 (v3). For the interface **[E]**: a race lives
+only in the frames – the borders and large surfaces (top bar, Lage sheet,
+windows, world strip); never over the map and never on the controls;
+motion only in the frames; an option „keine Animationen“ stops it. The
+frames look the same on the desktop and the phone (gv); the layout stays
+the same for every race.
+
+| Race     | Frames                                                                                                                                                                                             | Terms                                                                              | Phone                                          | Desktop                              |
+| -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | ---------------------------------------------- | ------------------------------------ |
+| Imperium | Today's styling with plastic gold strips, golden ornaments (pointed arches) and a small gleam that runs over the gold now and then **[E]** (imperium8, gv)                                         | today's                                                                            | ![Imperium](playtest/final/final-imperium.jpg) | ![Imperium](playtest/desk/start.jpg) |
+| Brut     | Calm, dark purple-brown chitin in lit relief, thin borders, viscous slime drops and strands, ribs hanging from the top bar, small bone spurs on the sheet; reacts to nothing **[E]** (brut3–brut7) | Brutstätten, Nest, Schwärme, Spuren, Witterung (Lage), Jagdgrund (Galaxie) **[V]** | ![Brut](playtest/final/final-brut.gif)         | ![Brut](playtest/desk/brut.jpg)      |
+| Ewige    | Dark bronze double frames with 65° corners, engraved notches and a glowing gem that changes its colour on events **[E]** (ewige3, ewige8)                                                          | Sternkarte, Welten, Flotten, Chronik, Zeitlauf (Lage), Kreis (Galaxie) **[E]**     | ![Ewige](playtest/final/final-ewige.gif)       | ![Ewige](playtest/desk/ewige.jpg)    |
+
+Inspiration only, own shapes (StarCraft II's Zerg and Protoss, research
+notes in `okf/features/ux-playtest.md`).
+
+## What today's game already carries
+
+Analysis of 2026-11-23 against `main` (79ea93c), **[V]**: how much of the
+Imperium design works without new game features. Four groups.
+
+**1. Only the interface changes; the data and the rules exist.**
+
+- The galaxy map with its marks, names on tap and the zoom universe ›
+  galaxy › system: the state already carries every planet with owner,
+  coordinates and activity (`src/server/game/state.ts`, `galaxyOf`); a round
+  has 1–9 galaxies, 2 by default (`src/core/universe.ts`).
+- The groups du, Freunde (`friends.ts`), Gilde (`guilds.ts`) and andere.
+- The Lage line: the overview cards already compute „Achtung“ (attacks on
+  the way, too little energy), „Läuft“ and „Bereit“
+  (`src/client/logic/overview-cards.ts`); the most urgent item comes from
+  there. The timeline: fleets, build and research queues, reports and
+  messages are in the state.
+- The tabs Funk (guild chat, private messages) and Berichte (reports with
+  today's limit per player).
+- Welten with resources and what runs; building in a world window without
+  fields; the compact info page (Lexicanum).
+- The research tree with the path to a goal (the requirements are in
+  `src/core`); defense; espionage with the report at the world.
+- Fleets in the target window with every mission of the catalogue, presets
+  aside (group 2); dragging a world onto a system; a colony on the free
+  rings.
+- The battle report as a table (`BattleReport.svelte`).
+- Guild members in their colour on the map, with their activity
+  (`activity.ts`); „Wache stellen“ (`holding.ts`).
+- „Tauschen“ as today's Marktplatz (#171, exchange with the server) in the
+  sheet and in the menu.
+- Push: a click already opens a view (`src/client/static/push-worker.js`,
+  `/?view=`).
+- The menu, the Lexikon sidebar (Lexicanum), the options page.
+- The Imperium frame (gold strips, ornaments, gleam): styling only.
+
+**2. Small technical additions, no new game rules.**
+
+- Fleet presets saved per player **[E]** (s9): a store on the server.
+- Pinned windows as favourites on the server **[E]** (d5): a store.
+- New options: colour sets, shapes on or off, „keine Animationen“, the
+  swipe options, a docked Lexikon.
+- A push that opens the exact world or report (today: only a view).
+- „Willkommen zurück“: the read marker of the reports exists (`readAt`);
+  the time of the last visit does not.
+- Any replay of a battle: a report stores only the number of rounds
+  (`src/server/game/fight.ts`), not what happened in each round.
+
+**3. Needs a new feature (its own issue); without it the part drops or falls back.**
+
+| Part of the design                                    | Feature                                             | Without it                                         |
+| ----------------------------------------------------- | --------------------------------------------------- | -------------------------------------------------- |
+| Building on fields with yields                        | #158 fields and neighbour bonuses                   | Building in the world window, no fields, no yields |
+| Siege, ground combat, battalions, new research, units | #155                                                | Drops                                              |
+| Herold page, tab „Herold“, Kriegsbericht, leaking     | #382 (with the research „Schweigegelübde“)          | Drops; the tab bar of the sheet loses „Herold“     |
+| Börse offers on the map, delivery by cargo fleet      | #386                                                | Today's Marktplatz                                 |
+| Brut and Ewige frames                                 | #154                                                | Only the Imperium                                  |
+| The group Feinde                                      | no war or diplomacy in the game today               | Open (see below)                                   |
+| What guild members do (who holds, who spies)          | a player sees only fleets coming to the shown place | Only membership and activity                       |
+| Queues through a research; spying on several targets  | #391, #392                                          | Drops                                              |
+
+**4. Existing features without a „Modern“ design yet.** The playtest
+covered the loop, not every page: Highscore, Errungenschaften, private
+messages (inbox, writing), friends, guild management (ranks, profile,
+switch), the round archive and the round report, Endzeit, Expedition, moons
+(Mondzitadelle, Mondbruch), Phalanx, jump gate, Raketenangriff,
+Verbandsangriff, Bergung (only a button so far), demolition, giving up a
+colony, renaming, vacation mode, Vermessung, the playtime limit, the level
+overview, the admin pages, login, passkeys and install, „Problem melden“,
+„Neuigkeiten“.
+
+## Open decisions
+
+- Where minimized pinned windows sit (proposal: a small row at the top of
+  the map).
+- The group Feinde without a war feature.
+- What the interface shows where group 3 drops (the questions of the
+  analysis above).
+- The design of the pages of group 4.
+
+## History
+
+### The four first studies (A–D)
+
+Before the playtest, four studies showed the same core flow on desktop
+(1280 × 720) and phone (390 × 780), each in the spirit of one family of games
+from the research below **[E]**. The owner liked the mobile-first study (C)
+best; the playtest started from there.
 
 | Study                   | File                       | Idea                                                                                                                                                    |
 | ----------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -25,25 +251,34 @@ are examples.
 | C – Mobile Strategie    | `c-mobile-strategie.html`  | Base and thumb: skyline of buildings, two corner buttons, build menu over the base, fleet recipes (Clash of Clans, Rise of Kingdoms)                    |
 | D – Dashboard und Karte | `d-dashboard-karte.html`   | Dashboard of what the others do, star map as the menu, small menu, chat bottom right, tracker at the bottom (owner's idea)                              |
 
-Other files:
+### The playtest
 
-- `screenshots/` – `a1.jpg` … `d5.jpg` (desktop steps) and `a-phone.jpg` …
-  `d-phone.jpg` (phone row of each study)
-- `before/` – today's interface on `main` (desktop and phone), test data,
-  2026-11-23
-- the research behind the studies, with sources and limits: section „Research“ below
-- `modern.css`, `studies.css` – the studies' CSS on top of `/style.css`
-  (classes `m-` and `k-`)
-- `render/` – the Python generator (`python3 render/build.py`, then
-  `prettier --write`)
+One situation at a time with three variants without labels; the owner
+picked, wrote a note and answered a question; rounds on the phone (s1–s19),
+on the desktop (d1–d10), for the races (Brut, Ewige, Imperium) and a check
+of the whole picture (gv). Every pick with the owner's words is in
+`okf/features/ux-playtest.md`.
+
+### Files
+
+- `playtest/` – the playtest page (`index.html`), the queue (`queue/`), the
+  pictures of every round (`r1/` … `r7/`, `d1/` … `d10/`, `race*/`), the
+  whole picture (`final/`), the desktop stills (`desk/`) and the animations
+  (`anim/`)
+- `screenshots/` – the steps of the studies A–D; `before/` – today's
+  interface on `main` (2026-11-23)
+- `modern.css`, `studies.css` – CSS on top of `/style.css` (classes `m-` and
+  `k-`)
+- `render/` – the Python generators (`build.py` for A–D, `playtest_*.py` for
+  the rounds, `anim_desk.py` for the animations)
 
 The HTML files reference `/style.css`, `/fonts/`, `/icons/` and `/planets/`
 absolutely: serve them from a root that holds `src/client/static/` with this
-folder beside it, or look at the screenshots.
+folder beside it, or look at the pictures.
 
-Limits: the research could read only search-result excerpts (see „Research“
-below); no usability test with players was done; the 3D/planet
-pictures are the game's own textures, not new art.
+Limits: no usability test with players beyond the owner; the research could
+read only search-result excerpts; the planet pictures are the game's own
+textures; the Kriegsbericht and the board are sketches.
 
 ## Research
 
