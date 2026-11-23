@@ -36,6 +36,17 @@ the owner as test person.
   situation shows three variants without labels, in a mixed order; the
   emphasis is shown after the pick. Picks are reopened with „Ändern“
   (`done: false`).
+* **[E]** The dashboard („Lage“) is a sheet at the bottom that can be pulled
+  up and down everywhere, so the right information can always be pulled up
+  (owner, 2026-11-23, on the first version of round 1).
+* **[E]** Systems hold up to 15 worlds and most players settle their own
+  system, so the galaxy map cannot show single player worlds well; it shows
+  systems and the routes between players (owner, 2026-11-23). Round 1 tests
+  three ways (s1m) and the zoom into the own system (s1s).
+* **[E]** Claude checks the store for new picks while the owner tests,
+  prepares the next situations ahead, asks follow-up questions on the page
+  („Rückfrage von Claude“, saved as `answer`), and keeps offering choices
+  until it is clear how each view works (owner, 2026-11-23).
 * **[E]** Tracking here and on the branch `claude/ux-modern-study`
   (pull request #389).
 
@@ -76,14 +87,17 @@ Taken from the code (views, missions, reports) and the open ideas:
 
 | Round | Stations | Situations | Status |
 |---|---|---|---|
-| 1 | 1–4 | s1 login map · s2 dashboard · s3 building on fields · s4 info page, shown one by one | published 2026-11-23 (version 2: one at a time), waiting for picks |
+| 1 | 1–4 | s1m galaxy map · s1s own system · s2m content of the Lage sheet · s3 building on fields · s4 info page, one by one | published 2026-11-23 (version 4), waiting for picks |
 | 2 | 5–7 (+ repeat of the round-1 winners) | planned after round 1 | open |
 | 3 | 8–10 | planned | open |
 | 4 | 11–13 | planned | open |
 | 5 | desktop of the chosen layouts | planned | open |
 
-Mixed order of round 1 (variant 1/2/3 → emphasis): s1 C·A·B, s2 B·C·A,
-s3 A·C·B, s4 B·A·C.
+Mixed order of round 1 (variant 1/2/3 → letter): s1m b·c·a (a stars with
+pips, b spiral by system number, c player markers), s1s c·a·b (a orbits,
+b list, c ring), s2m b·c·a (a groups, b timeline, c act now), s3 a·c·b,
+s4 b·a·c (a/b/c = browser, 4X, mobile). Replaced before any pick: s1 and
+s2 of version 1 (galaxy without systems; dashboard not yet a sheet).
 
 ## Results
 

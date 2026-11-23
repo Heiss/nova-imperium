@@ -279,6 +279,9 @@
     z-index: 20;
     padding: calc(env(safe-area-inset-top, 0px) + 16px) 16px 16px;
   }
+  .ask {
+    color: var(--gold-hi);
+  }
   .hist {
     display: grid;
     gap: 8px;
@@ -389,29 +392,58 @@
     {
       id: 'r1',
       title: 'Runde 1 · Ankommen und bauen',
-      stations: [0, 1, 2, 3],
+      stations: [0, 0, 1, 2, 3],
       situations: [
         {
-          id: 's1',
-          title: 'Direkt nach dem Login',
-          text: 'Die Galaxiekarte mit den wichtigsten Infos aus dem Dashboard. Es ist 13:20, du warst seit gestern Abend weg; Nox wird um 14:32 angegriffen, das Psikristall-Lager auf Aurelia ist bald voll.',
-          order: 'cab',
-          desc: {
-            a: 'Galaxie als Sektor-Kacheln; drei Hinweise oben; Leiste der Welten und Menüleiste unten.',
-            b: 'Galaxie als freie Karte; Alarme oben rechts; Übersicht als ausklappbare Seitenleiste; Lagebuch unten.',
-            c: 'Galaxie als freie Karte; eigene Welten groß mit ihrem Zustand; Zeiten oben; große Knöpfe Flotte · Lage · Bauen.',
-          },
-        },
-        {
-          id: 's2',
-          title: 'Das Dashboard',
-          text: 'Du öffnest das Dashboard, um zu sehen, was passiert ist, was läuft und was die anderen tun.',
+          id: 's1m',
+          title: 'Direkt nach dem Login: die Galaxiekarte',
+          text: 'Deine drei Welten liegen alle in System 1:27, so wie die meisten Spieler ihr System besiedeln. Die Karte zeigt deshalb Systeme und die Routen zwischen Spielern; das Dashboard liegt unten als Schieber zum Hochziehen. Nox wird um 14:32 angegriffen, Mira aus deiner Gilde hält Nox, du spionierst Varn aus.',
           order: 'bca',
           desc: {
-            a: 'Karten untereinander: Achtung, Läuft, Seit deinem Besuch, Nachbarn.',
-            b: 'Lagebuch als Blatt über der Karte: Gruppen zum Auf- und Zuklappen, darunter die Welten mit Fortschritt.',
-            c: '„Während du weg warst“ groß, darunter was die anderen tun; große Knöpfe.',
+            a: 'Jedes System ein Stern; ein Punkt je besetzter Position, farbig nach Besitzer; Routen als Bögen zwischen den Systemen.',
+            b: 'Systeme in ihrer Nummernfolge auf einem Spiralarm: nah auf der Karte heißt kurzer Flug; Routen mit der Zahl der Systeme.',
+            c: 'Spieler statt Planeten: eine Marke je Spieler mit der Zahl seiner Welten; Routen zwischen Spielern; ein System als Liste beim Antippen.',
           },
+          emph: {
+            a: 'Darstellung: Sterne mit Punkten je Position',
+            b: 'Darstellung: Spirale nach Systemnummer',
+            c: 'Darstellung: Spieler-Marken',
+          },
+          ask: 'Soll die Karte nach dem Login auf dein eigenes System gezoomt sein oder die ganze Galaxie zeigen?',
+        },
+        {
+          id: 's1s',
+          title: 'In dein System hineinzoomen',
+          text: 'Du tippst auf dein System 1:27. Es hat 15 Positionen; drei gehören dir (Nox, Aurelia, Vesper), auf 14 liegt der Stille Hafen von Leander, der Rest ist frei. Der Lage-Schieber bleibt unten.',
+          order: 'cab',
+          desc: {
+            a: 'Umlaufbahnen von der Sonne aus; Welten mit Bild, Name und Zustand an ihrer Position.',
+            b: 'Liste der 15 Positionen; eigene Welten hervorgehoben, freie Plätze mit „besiedeln“; blättern zu 1:26 und 1:28.',
+            c: 'Ring um die Sonne wie eine Uhr; 15 Plätze, eigene Welten groß mit blauem Rand.',
+          },
+          emph: {
+            a: 'Darstellung: Umlaufbahnen',
+            b: 'Darstellung: Liste',
+            c: 'Darstellung: Ring',
+          },
+          ask: 'Was willst du in der System-Ansicht bei fremden Welten sehen? (z. B. Spieler, Aktivität, Alter deines Spionageberichts, Trümmerfeld, Mond)',
+        },
+        {
+          id: 's2m',
+          title: 'Den Lage-Schieber hochziehen',
+          text: 'Der Schieber mit der Lage ist überall unten und lässt sich hochziehen. Hier geht es nur um seinen Inhalt: Was passiert ist, was läuft, was die anderen tun.',
+          order: 'bca',
+          desc: {
+            a: 'Gruppen zum Auf- und Zuklappen (Angeheftet, Kämpfe, Forschung, die anderen, Befunde) und deine Welten mit Fortschritt.',
+            b: 'Eine Zeitleiste: oben was passiert ist, eine Linie „jetzt“, unten was kommt – Bauten, Flotten, der Angriff.',
+            c: '„Jetzt handeln“ zuerst, mit Knöpfen; darunter knapp was läuft und was die anderen tun.',
+          },
+          emph: {
+            a: 'Inhalt: Gruppen',
+            b: 'Inhalt: Zeitleiste',
+            c: 'Inhalt: Jetzt handeln',
+          },
+          ask: 'Soll der Schieber beim Öffnen des Spiels nur eine Zeile zeigen, halb offen sein oder ganz offen?',
         },
         {
           id: 's3',
@@ -535,7 +567,7 @@
         const n = i + 1;
         const chosen = pick.choice === n;
         const reveal = pick.choice
-          ? `<span class="emph">${esc(EMPH[e])}</span>`
+          ? `<span class="emph">${esc((s.emph || EMPH)[e])}</span>`
           : '';
         return `<div class="opt${chosen ? ' chosen' : ''}">
           <span class="lab">Variante ${n}</span>
@@ -552,6 +584,12 @@
       <div class="note">
         <label for="note-${st.key}">Was gefällt dir an deiner Wahl besonders? Was würdest du ändern?</label>
         <textarea id="note-${st.key}" data-note="${st.key}" placeholder="z. B. „Die Knöpfe unten, aber die Zeiten oben sind mir zu klein.“">${esc(pick.note || '')}</textarea>
+        ${
+          s.ask
+            ? `<label for="ans-${st.key}" class="ask">Rückfrage von Claude: ${esc(s.ask)}</label>
+        <textarea id="ans-${st.key}" data-answer="${st.key}">${esc(pick.answer || '')}</textarea>`
+            : ''
+        }
         <div class="row">
           <button type="button" data-next="${st.key}"${pick.choice ? '' : ' disabled'}>Weiter</button>
           <span class="state" id="st-${st.key}">${pick.choice ? 'Gespeichert' : 'Erst eine Variante wählen'}</span>
@@ -597,7 +635,7 @@
           ? ` · „${esc(p.note.length > 90 ? p.note.slice(0, 90) + '…' : p.note)}“`
           : '';
         return `<li><img src="img/${st.r.id}-${st.s.id}-${p.emphasis}.jpg" alt="" />
-          <div><b>${esc(st.s.title)}</b><br /><span class="dim">Variante ${p.choice} · ${esc(EMPH[p.emphasis])}${note}</span></div>
+          <div><b>${esc(st.s.title)}</b><br /><span class="dim">Variante ${p.choice} · ${esc((st.s.emph || EMPH)[p.emphasis])}${note}</span></div>
           <button type="button" class="ghost" data-undo="${st.key}">Ändern</button></li>`;
       })
       .join('');
@@ -687,7 +725,15 @@
       const key = nx.dataset.next;
       const note = $('#note-' + key);
       clearTimeout(timers['note-' + key]);
-      if (await savePick(key, { note: note ? note.value : '', done: true })) {
+      const ans = $('#ans-' + key);
+      clearTimeout(timers['ans-' + key]);
+      if (
+        await savePick(key, {
+          note: note ? note.value : '',
+          ...(ans ? { answer: ans.value } : {}),
+          done: true,
+        })
+      ) {
         render();
         window.scrollTo(0, 0);
       }
@@ -740,6 +786,13 @@
     }
     clearTimeout(timers[t.id]);
     timers[t.id] = setTimeout(() => savePick(key, { note: t.value }), 900);
+  });
+  document.addEventListener('input', (ev) => {
+    const t = ev.target.closest('[data-answer]');
+    if (!t) return;
+    const key = t.dataset.answer;
+    clearTimeout(timers[t.id]);
+    timers[t.id] = setTimeout(() => savePick(key, { answer: t.value }), 900);
   });
 
   document.addEventListener('submit', async (ev) => {
