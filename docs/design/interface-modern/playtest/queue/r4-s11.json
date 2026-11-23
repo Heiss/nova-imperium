@@ -1,0 +1,30 @@
+{
+  "seq": 190,
+  "kind": "sit",
+  "round": "r4",
+  "roundTitle": "Runde 4 · Kolonie, Gilde, Herold, Börse",
+  "station": 10,
+  "id": "s11",
+  "short": "Neue Kolonie",
+  "title": "Eine neue Kolonie gründen",
+  "text": "Du hast 3 Welten; eine neue Runde erlaubt 6 (je Stufe Kolonialverwaltung 2 mehr, aus dem Code). Auf Aurelia steht eine Kolonistenarche. Wo suchst du den Platz für die Landnahme? Flugzeiten sind Beispiele.",
+  "order": "cab",
+  "variants": {
+    "a": {
+      "img": "/_blob/98e3e6f66cbaa5966bd946489e3c0aee",
+      "desc": "Im eigenen System: freie Positionen als gestrichelte Ringe, antippen öffnet das Blatt mit „Landnahme“.",
+      "emph": "Kolonie: freie Ringe im System"
+    },
+    "b": {
+      "img": "/_blob/eb7663135edb7c515470e512b38540b0",
+      "desc": "Eine Liste „Freie Plätze“ nach Flugzeit, mit der Zahl freier Positionen je System und wer dort schon wohnt.",
+      "emph": "Kolonie: Liste nach Flugzeit"
+    },
+    "c": {
+      "img": "/_blob/cdd0b6423974d30778fc1c938d0f2732",
+      "desc": "Kartenebene „Freie Plätze“: jedes System zeigt die Zahl freier Positionen.",
+      "emph": "Kolonie: Kartenebene"
+    }
+  },
+  "ask": "Woran entscheidest du, wo du eine Kolonie gründest (Nähe, eigenes System, Gilde, Art des Planeten, Felder nach #158 …)?"
+}
