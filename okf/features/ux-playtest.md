@@ -131,8 +131,9 @@ Taken from the code (views, missions, reports) and the open ideas:
 | d1 | desktop: galaxy + Lage in three layouts (a side panel, b sheet as on the phone, c windows; order c·a·b) | done 2026-11-23 16:04 |
 | 3 | 7–9 | s8 espionage + report (b·c·a) · s9 send the fleet (a·c·b) · s10 battle + report (c·a·b) | done 2026-11-23 16:12 |
 | d2 | desktop: windows, drag a world onto a target (a target window, b two system windows, c choice in the sheet; order b·c·a) | done 2026-11-23 16:16 |
-| 4 | 10–11 | s11 new colony (c·a·b) · s12 guild + chat (a·b·c) · s13 Herold in the game (b·c·a) · s14 Börse (c·a·b) | running |
-| 5 | 12, 9 | s15 away and back (b·a·c) · s16 ground combat #155 (a·c·b) | queued |
+| 4 | 10–11 | s11 new colony (c·a·b) · s12 guild + chat (a·b·c) · s13 Herold in the game (b·c·a) · s14 Börse (c·a·b) | done 2026-11-23 16:23 |
+| 5 | 12, 9 | s15 away and back (b·a·c) · s16 ground combat #155 (a·c·b) | running |
+| 6 | repeats | s2r the one Lage line (b·c·a) · sc the colour language (c·a·b) | queued |
 | 5 | more desktop views (building, info page) | planned | open |
 
 Mixed order of round 1 (variant 1/2/3 → letter): s1m b·c·a (a stars with
@@ -169,10 +170,11 @@ s2 of version 1 (galaxy without systems; dashboard not yet a sheet).
 | s11 new colony | variant 2 = a, free positions as dashed rings in the own system | note: „es sollte eine möglichkeit geben, noch andere sy steme anzugeben. aber wenn man wählt, dan über dieselbe karte wie die übersicht bisher.“ · answer (what decides where): „je nach bedarf. da ja auch die position im system wichtig ist, spielt das auch noch rein zu deiner auflistung“ | **[E]** a colony is chosen on the free rings of a system view; other systems are reached over the same galaxy map as everywhere. **[E]** the position in the system matters for the choice, so it belongs into any list of free places. |
 | s12 guild + chat | variant 2 = b, a tab „Funk“ in the Lage sheet | note: „finde ich gut, weils schnell zugreifbar ist und damit den schieber wieder etwas mehr in den fokus rückt.“ · answer (events in the guild chat?): „nur nachrichten. für events könnte man die zeitleiste nutzen mit einem gilden filter.“ | **[E]** the chat is a tab in the Lage sheet (replaces the chat at the bottom right of study D). **[E]** the chat holds only messages; events of members go into the timeline, with a guild filter. |
 | s13 Herold in the game | variant 2 = c, its own newspaper page in the game | note: „finde aber auch variante 3 sehr sinnvoll, um da den herold im schieber schnell verfügbar zu machen. das der neueste kriegsbericht dort direkt zum durchstehcen agneboten wird, finde ich spannend. erspart wieder klciks.“ · answer (Herold news about you in your timeline?): „auf jedenfall. gute idee.“ | **[E]** the Herold has its own newspaper page in the game, and a tab „Herold“ in the Lage sheet that offers the newest Kriegsbericht with „Durchstechen“. **[E]** Herold news about the player also appear in the player's timeline. Belongs into #382. |
+| s14 Börse | variant 3 = b, „Tauschen“ in the sheet | note: „variante 1 finde ich für die übersicht hervorragend geeignet. variante 3 ist dann, wenn man auf einen planeten klickt. durch den filter weiß der user ja dann, was es kostet, was er suchte.“ · answer (count the delivery time in the best rate?): „das ist eine option, die die oberfläche anbieten sollte.“ | **[E]** Börse: a map layer shows the offers at the traders' systems for the overview (c); a tap on a world opens „Tauschen“ in the sheet (b). **[E]** whether the delivery time counts for the best rate is an option the player sets. Belongs into #386. |
 
 ## Open work
 
-* Read s14, s15, s16.
+* Read s15, s16, s2r, sc.
 * The loop is covered once (s1–s16, d1–d2). Next: repeats with variants inside the winners, and desktop views of the new winners.
 * Race follow-up: Brut chitin with organic, slightly disgusting motion; Ewige clockwork with 65° bends; per-race terms; a colour for friends.
 * Build the desktop round of the round-1 winners and append it after round 2.

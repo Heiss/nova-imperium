@@ -1,0 +1,30 @@
+{
+  "seq": 260,
+  "kind": "sit",
+  "round": "r6",
+  "roundTitle": "Runde 6 · Wiederholungen",
+  "station": 0,
+  "id": "sc",
+  "short": "Farbsprache",
+  "title": "Die Farbsprache: du, Freunde, Gilde, Feinde, andere",
+  "text": "Du willst die fünf Gruppen sofort unterscheiden, Freunde mit eigener Farbe. Hier dieselbe Karte in drei Paletten; einige „andere“ sind jetzt Freunde. Rot und Grün können viele Menschen schlecht unterscheiden; die dritte Palette nimmt deshalb Formen dazu.",
+  "order": "cab",
+  "variants": {
+    "a": {
+      "img": "/_blob/ce34ede2814ede5da1ceff4dfa27048b",
+      "desc": "Du blau, Freunde violett, Gilde grün, Feinde rot, andere grau-braun.",
+      "emph": "Farben: Freunde violett"
+    },
+    "b": {
+      "img": "/_blob/c1556b3f37872d3400daa7cc7392a284",
+      "desc": "Du weiß, Freunde türkis, Gilde hellgrün, Feinde rot, andere grau.",
+      "emph": "Farben: du weiß, Freunde türkis"
+    },
+    "c": {
+      "img": "/_blob/502bfbb9c8d394f561d11a9329ecae92",
+      "desc": "Farben wie a, Freunde pink, dazu Formen: Raute Freunde, Quadrat Gilde, Dreieck Feinde.",
+      "emph": "Farben und Formen"
+    }
+  },
+  "ask": "Sollen Formen immer dabei sein, oder als Einstellung für Farbschwäche?"
+}
