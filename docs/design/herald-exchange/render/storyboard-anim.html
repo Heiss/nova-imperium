@@ -1,0 +1,1129 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      body {
+        margin: 0;
+        background: #000;
+      }
+      canvas {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="out" width="1280" height="536"></canvas>
+    <script type="importmap">
+      { "imports": { "three": "./node_modules/three/build/three.module.js" } }
+    </script>
+    <script type="module">
+      import * as THREE from 'three';
+
+      const W = 1280,
+        H = 536;
+
+      // Deterministic random so the stills are reproducible.
+      let seed = 4242;
+      const rnd = () => {
+        seed = (seed * 1664525 + 1013904223) % 4294967296;
+        return seed / 4294967296;
+      };
+      const rr = (a, b) => a + (b - a) * rnd();
+
+      const renderer = new THREE.WebGLRenderer({
+        antialias: true,
+        preserveDrawingBuffer: true,
+      });
+      renderer.setSize(W, H);
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.15;
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+      let scene = new THREE.Scene();
+      // ---------- textures ----------
+      function canvasTex(w, h, draw) {
+        const c = document.createElement('canvas');
+        c.width = w;
+        c.height = h;
+        draw(c.getContext('2d'), w, h);
+        const t = new THREE.CanvasTexture(c);
+        t.colorSpace = THREE.SRGBColorSpace;
+        return t;
+      }
+      const glowTex = (inner, outer) =>
+        canvasTex(128, 128, (g, w, h) => {
+          const gr = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+          gr.addColorStop(0, inner);
+          gr.addColorStop(0.25, outer);
+          gr.addColorStop(1, 'rgba(0,0,0,0)');
+          g.fillStyle = gr;
+          g.fillRect(0, 0, w, h);
+        });
+      const fireTex = glowTex('rgba(255,250,220,1)', 'rgba(255,140,40,0.75)');
+      const blueTex = glowTex('rgba(230,250,255,1)', 'rgba(90,170,255,0.6)');
+      const redTex = glowTex('rgba(255,230,220,1)', 'rgba(255,70,40,0.7)');
+      const smokeTex = glowTex('rgba(80,60,50,0.55)', 'rgba(40,30,25,0.35)');
+
+      // Nebula sky
+      const sky = canvasTex(2048, 1024, (g, w, h) => {
+        g.fillStyle = '#020306';
+        g.fillRect(0, 0, w, h);
+        const blobs = [
+          ['rgba(150,60,30,0.10)', 0.3, 0.45, 520],
+          ['rgba(40,70,140,0.12)', 0.62, 0.4, 600],
+          ['rgba(120,40,90,0.08)', 0.8, 0.62, 420],
+          ['rgba(200,120,50,0.07)', 0.15, 0.62, 380],
+          ['rgba(60,110,160,0.08)', 0.45, 0.25, 500],
+        ];
+        for (const [c, x, y, r] of blobs)
+          for (let i = 0; i < 9; i++) {
+            const cx = (x + rr(-0.06, 0.06)) * w,
+              cy = (y + rr(-0.08, 0.08)) * h,
+              rad = r * rr(0.4, 1);
+            const gr = g.createRadialGradient(cx, cy, 0, cx, cy, rad);
+            gr.addColorStop(0, c);
+            gr.addColorStop(1, 'rgba(0,0,0,0)');
+            g.fillStyle = gr;
+            g.fillRect(0, 0, w, h);
+          }
+        for (let i = 0; i < 5000; i++) {
+          const b = rnd() ** 4;
+          g.fillStyle = `rgba(255,${230 + rr(0, 25)},${200 + rr(0, 55)},${0.2 + b * 0.8})`;
+          const s = b > 0.8 ? 2 : 1;
+          g.fillRect(rnd() * w, rnd() * h, s, s);
+        }
+      });
+      const skyMesh = new THREE.Mesh(
+        new THREE.SphereGeometry(900, 48, 24),
+        new THREE.MeshBasicMaterial({ map: sky, side: THREE.BackSide }),
+      );
+
+      // Planet
+      const planetTex = canvasTex(1024, 512, (g, w, h) => {
+        g.fillStyle = '#5a4630';
+        g.fillRect(0, 0, w, h);
+        for (let i = 0; i < 260; i++) {
+          const y = rnd() * h;
+          g.fillStyle = `rgba(${rr(60, 190)},${rr(50, 130)},${rr(30, 80)},${rr(0.05, 0.25)})`;
+          g.fillRect(0, y, w, rr(2, 26));
+        }
+        for (let i = 0; i < 140; i++) {
+          g.fillStyle = `rgba(${rr(20, 60)},${rr(20, 40)},${rr(10, 30)},0.3)`;
+          g.beginPath();
+          g.ellipse(rnd() * w, rnd() * h, rr(10, 80), rr(5, 30), 0, 0, 7);
+          g.fill();
+        }
+      });
+      function addPlanet(pos, radius) {
+        const p = new THREE.Mesh(
+          new THREE.SphereGeometry(radius, 96, 48),
+          new THREE.MeshStandardMaterial({ map: planetTex, roughness: 0.95 }),
+        );
+        p.position.copy(pos);
+        p.rotation.z = 0.3;
+        scene.add(p);
+        const atmo = new THREE.Mesh(
+          new THREE.SphereGeometry(radius * 1.025, 96, 48),
+          new THREE.MeshBasicMaterial({
+            color: 0xffa860,
+            transparent: true,
+            opacity: 0.1,
+            blending: THREE.AdditiveBlending,
+            side: THREE.BackSide,
+          }),
+        );
+        atmo.position.copy(pos);
+        scene.add(atmo);
+        return p;
+      }
+
+      // ---------- ships ----------
+      const hullMat = new THREE.MeshStandardMaterial({
+        color: 0x5a5048,
+        metalness: 0.75,
+        roughness: 0.45,
+      });
+      const goldMat = new THREE.MeshStandardMaterial({
+        color: 0xb08a3a,
+        metalness: 0.9,
+        roughness: 0.35,
+      });
+      const darkMat = new THREE.MeshStandardMaterial({
+        color: 0x2a2622,
+        metalness: 0.6,
+        roughness: 0.6,
+      });
+      const engineMat = new THREE.MeshBasicMaterial({ color: 0x9fd8ff });
+      const redHull = new THREE.MeshStandardMaterial({
+        color: 0x4a3a36,
+        metalness: 0.7,
+        roughness: 0.5,
+      });
+
+      function sprite(tex, size, pos, opacity = 1) {
+        const s = new THREE.Sprite(
+          new THREE.SpriteMaterial({
+            map: tex,
+            blending: THREE.AdditiveBlending,
+            transparent: true,
+            opacity,
+            depthWrite: false,
+          }),
+        );
+        s.scale.set(size, size, 1);
+        s.position.copy(pos);
+        scene.add(s);
+        return s;
+      }
+
+      // Kathedralschiff: long hull, prow, spires, engine bank. Length about 40 units along +x.
+      function cathedral(mat = hullMat) {
+        const g = new THREE.Group();
+        const hull = new THREE.Mesh(new THREE.BoxGeometry(30, 4.5, 7), mat);
+        g.add(hull);
+        const keel = new THREE.Mesh(new THREE.BoxGeometry(26, 2.5, 4), darkMat);
+        keel.position.set(-1, -3, 0);
+        g.add(keel);
+        const prow = new THREE.Mesh(new THREE.ConeGeometry(3.6, 12, 4), mat);
+        prow.rotation.z = -Math.PI / 2;
+        prow.rotation.x = Math.PI / 4;
+        prow.position.x = 21;
+        g.add(prow);
+        const ram = new THREE.Mesh(new THREE.BoxGeometry(6, 1, 1), goldMat);
+        ram.position.set(25, -1.2, 0);
+        g.add(ram);
+        for (let i = 0; i < 6; i++) {
+          const h = i === 2 ? 13 : rr(4, 8);
+          const sp = new THREE.Mesh(
+            new THREE.ConeGeometry(i === 2 ? 1.6 : 0.9, h, 6),
+            i === 2 ? goldMat : mat,
+          );
+          sp.position.set(-10 + i * 3.6, 2.2 + h / 2, rr(-1.2, 1.2));
+          g.add(sp);
+        }
+        const tower = new THREE.Mesh(new THREE.BoxGeometry(6, 5, 4.5), mat);
+        tower.position.set(-8, 4, 0);
+        g.add(tower);
+        for (const z of [-3.2, 3.2])
+          for (let i = 0; i < 5; i++) {
+            const gun = new THREE.Mesh(
+              new THREE.BoxGeometry(1.6, 1, 1.2),
+              goldMat,
+            );
+            gun.position.set(-6 + i * 4.4, 0.6, z * 1.2);
+            g.add(gun);
+            const barrel = new THREE.Mesh(
+              new THREE.CylinderGeometry(0.15, 0.15, 2.4),
+              darkMat,
+            );
+            barrel.rotation.x = Math.PI / 2;
+            barrel.position.set(
+              -6 + i * 4.4,
+              0.8,
+              z * 1.2 + Math.sign(z) * 1.4,
+            );
+            g.add(barrel);
+          }
+        for (const [y, z] of [
+          [0.8, -2],
+          [0.8, 2],
+          [-1.6, 0],
+          [-1.6, -2.6],
+          [-1.6, 2.6],
+        ]) {
+          const e = new THREE.Mesh(
+            new THREE.CylinderGeometry(1.1, 1.1, 0.6, 16),
+            engineMat,
+          );
+          e.rotation.z = Math.PI / 2;
+          e.position.set(-15.2, y, z);
+          g.add(e);
+        }
+        g.userData.engines = [
+          [-16, 0.8, -2],
+          [-16, 0.8, 2],
+          [-16, -1.6, 0],
+        ];
+        return g;
+      }
+      function frigate(mat = hullMat) {
+        const g = new THREE.Group();
+        const hull = new THREE.Mesh(new THREE.BoxGeometry(9, 1.8, 3), mat);
+        g.add(hull);
+        const prow = new THREE.Mesh(new THREE.ConeGeometry(1.6, 5, 4), mat);
+        prow.rotation.z = -Math.PI / 2;
+        prow.rotation.x = Math.PI / 4;
+        prow.position.x = 7;
+        g.add(prow);
+        const sp = new THREE.Mesh(new THREE.ConeGeometry(0.6, 4, 6), goldMat);
+        sp.position.set(-1, 2.5, 0);
+        g.add(sp);
+        const e = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.8, 0.8, 0.4, 12),
+          engineMat,
+        );
+        e.rotation.z = Math.PI / 2;
+        e.position.x = -4.6;
+        g.add(e);
+        g.userData.engines = [[-5, 0, 0]];
+        return g;
+      }
+      function place(obj, pos, yaw = 0, pitch = 0, roll = 0, s = 1) {
+        obj.position.copy(pos);
+        obj.rotation.set(roll, yaw, pitch);
+        obj.scale.setScalar(s);
+        scene.add(obj);
+        if (obj.userData.engines)
+          for (const e of obj.userData.engines) {
+            const p = new THREE.Vector3(...e)
+              .multiplyScalar(s)
+              .applyEuler(obj.rotation)
+              .add(pos);
+            sprite(blueTex, 5 * s, p, 0.9);
+          }
+        return obj;
+      }
+      function fighters(n, center, spread, dir, color = 0x8a8078, size = 0.5) {
+        const geo = new THREE.ConeGeometry(0.5 * size, 2.2 * size, 3);
+        geo.rotateZ(-Math.PI / 2);
+        const m = new THREE.InstancedMesh(
+          geo,
+          new THREE.MeshStandardMaterial({
+            color,
+            metalness: 0.6,
+            roughness: 0.5,
+          }),
+          n,
+        );
+        const d = new THREE.Object3D();
+        for (let i = 0; i < n; i++) {
+          d.position.set(
+            center.x + rr(-spread.x, spread.x),
+            center.y + rr(-spread.y, spread.y),
+            center.z + rr(-spread.z, spread.z),
+          );
+          d.rotation.set(rr(-0.2, 0.2), dir + rr(-0.15, 0.15), rr(-0.2, 0.2));
+          d.updateMatrix();
+          m.setMatrixAt(i, d.matrix);
+          if (rnd() < 0.6) {
+            const back = new THREE.Vector3(-1.2 * size, 0, 0)
+              .applyEuler(d.rotation)
+              .add(d.position);
+            sprite(blueTex, 0.9 * size + rr(0, 0.6), back, 0.7);
+          }
+        }
+        scene.add(m);
+        return m;
+      }
+
+      // ---------- weapons and effects ----------
+      function beam(a, b, color = 0xff6a3a, width = 0.25, glow = true) {
+        const dir = new THREE.Vector3().subVectors(b, a);
+        const len = dir.length();
+        const core = new THREE.Mesh(
+          new THREE.CylinderGeometry(width * 0.4, width * 0.4, len, 6),
+          new THREE.MeshBasicMaterial({
+            color: 0xffffff,
+            transparent: true,
+            opacity: 0.95,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+          }),
+        );
+        const halo = new THREE.Mesh(
+          new THREE.CylinderGeometry(width * 1.6, width * 1.6, len, 8),
+          new THREE.MeshBasicMaterial({
+            color,
+            transparent: true,
+            opacity: 0.45,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+          }),
+        );
+        for (const m of [core, halo]) {
+          m.position.copy(a).addScaledVector(dir, 0.5);
+          m.quaternion.setFromUnitVectors(
+            new THREE.Vector3(0, 1, 0),
+            dir.clone().normalize(),
+          );
+          scene.add(m);
+        }
+        if (glow)
+          sprite(color === 0x6ab8ff ? blueTex : redTex, width * 22, b, 0.9);
+      }
+      function tracers(from, spreadFrom, to, spreadTo, n, color, len = 6) {
+        for (let i = 0; i < n; i++) {
+          const a = from
+            .clone()
+            .add(
+              new THREE.Vector3(
+                rr(-1, 1) * spreadFrom,
+                rr(-1, 1) * spreadFrom,
+                rr(-1, 1) * spreadFrom,
+              ),
+            );
+          const b = to
+            .clone()
+            .add(
+              new THREE.Vector3(
+                rr(-1, 1) * spreadTo,
+                rr(-1, 1) * spreadTo,
+                rr(-1, 1) * spreadTo,
+              ),
+            );
+          const t = rnd();
+          const p = a.clone().lerp(b, t);
+          const q = a.clone().lerp(b, Math.min(1, t + len / a.distanceTo(b)));
+          beam(p, q, color, 0.08, false);
+        }
+      }
+      function explosion(pos, size, debris = 30) {
+        sprite(smokeTex, size * 2.2, pos, 0.9);
+        for (let i = 0; i < 9; i++)
+          sprite(
+            fireTex,
+            size * rr(0.4, 1.1),
+            pos
+              .clone()
+              .add(
+                new THREE.Vector3(
+                  rr(-1, 1),
+                  rr(-1, 1),
+                  rr(-1, 1),
+                ).multiplyScalar(size * 0.35),
+              ),
+            rr(0.6, 1),
+          );
+        sprite(fireTex, size * 3, pos, 0.35);
+        const light = new THREE.PointLight(0xff9040, size * 60, size * 12);
+        light.position.copy(pos);
+        scene.add(light);
+        for (let i = 0; i < debris; i++) {
+          const c = new THREE.Mesh(
+            new THREE.BoxGeometry(rr(0.2, 1), rr(0.1, 0.5), rr(0.2, 1.2)).scale(
+              size / 10,
+              size / 10,
+              size / 10,
+            ),
+            darkMat,
+          );
+          c.position
+            .copy(pos)
+            .add(
+              new THREE.Vector3(rr(-1, 1), rr(-1, 1), rr(-1, 1))
+                .normalize()
+                .multiplyScalar(size * rr(0.5, 1.6)),
+            );
+          c.rotation.set(rr(0, 6), rr(0, 6), rr(0, 6));
+          scene.add(c);
+          if (rnd() < 0.4) sprite(fireTex, size * 0.12, c.position, 0.9);
+        }
+      }
+      function shieldHit(center, radius, at) {
+        const s = new THREE.Mesh(
+          new THREE.SphereGeometry(radius, 48, 24),
+          new THREE.MeshBasicMaterial({
+            color: 0x5aa8ff,
+            transparent: true,
+            opacity: 0.07,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+          }),
+        );
+        s.position.copy(center);
+        scene.add(s);
+        sprite(blueTex, radius * 0.45, at, 1);
+        sprite(blueTex, radius * 1.0, at, 0.3);
+      }
+
+      function defenseLine(t, broken) {
+        // Massebeschleuniger towers on the surface, under a Schutzdom. `broken` lists the ones destroyed.
+        const towers = [];
+        for (let i = 0; i < 7; i++) {
+          const base = new THREE.Vector3(-60 + i * 22, -2, -40 - (i % 3) * 30);
+          towers.push(base);
+          if (broken.includes(i)) {
+            const stump = new THREE.Mesh(
+              new THREE.BoxGeometry(6, 3, 6),
+              darkMat,
+            );
+            stump.position.copy(base).add(new THREE.Vector3(0, 0.5, 0));
+            stump.rotation.y = 0.4;
+            scene.add(stump);
+            const bar = new THREE.Mesh(
+              new THREE.CylinderGeometry(0.8, 1.1, 14, 10),
+              goldMat,
+            );
+            bar.position.copy(base).add(new THREE.Vector3(-6, 1, 4));
+            bar.rotation.set(1.3, 0.3, 1.2);
+            scene.add(bar);
+            sprite(
+              fireTex,
+              8,
+              base.clone().add(new THREE.Vector3(0, 2, 0)),
+              0.8,
+            );
+            sprite(
+              smokeTex,
+              22,
+              base.clone().add(new THREE.Vector3(2, 10, 0)),
+              0.7,
+            );
+            continue;
+          }
+          const tw = new THREE.Mesh(new THREE.BoxGeometry(6, 10, 6), darkMat);
+          tw.position.copy(base).add(new THREE.Vector3(0, 3, 0));
+          scene.add(tw);
+          const br = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.8, 1.1, 26, 10),
+            goldMat,
+          );
+          br.position.copy(base).add(new THREE.Vector3(4, 14, 0));
+          br.rotation.z = -0.45;
+          scene.add(br);
+        }
+        return towers;
+      }
+      function orbitalStrike(target, n, spread, len = 520) {
+        for (let i = 0; i < n; i++) {
+          const hit = target
+            .clone()
+            .add(
+              new THREE.Vector3(rr(-spread, spread), 0, rr(-spread, spread)),
+            );
+          beam(
+            new THREE.Vector3(hit.x + 160, len, hit.z - 220),
+            hit,
+            0xff6a3a,
+            0.5,
+          );
+        }
+      }
+
+      // ---------- full storyboard animation: eight cuts and a closing card ----------
+      const qs = new URLSearchParams(location.search);
+      const W2 = Number(qs.get('w') || 1280),
+        H2 = Math.round((W2 * 536) / 1280),
+        FPS = Number(qs.get('fps') || 24);
+      renderer.setSize(W2, H2);
+      const out = document.getElementById('out');
+      out.width = W2;
+      out.height = H2;
+      const g = out.getContext('2d');
+      const lights = () => {
+        scene.add(skyMesh);
+        scene.add(new THREE.AmbientLight(0x30343c, 0.6));
+        const sun = new THREE.DirectionalLight(0xfff0d8, 3.2);
+        sun.position.set(-300, 120, 200);
+        scene.add(sun);
+        const rim = new THREE.DirectionalLight(0xff7a30, 1.4);
+        rim.position.set(200, -40, -300);
+        scene.add(rim);
+      };
+      const ease = (x) => (x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x));
+      const noise = (t, k) =>
+        Math.sin(t * 37.1 + k) * 0.6 + Math.sin(t * 61.7 + k * 2.3) * 0.4;
+      const grp = (k) => {
+        seed = 9000 + k * 7919;
+      };
+      let fseed = 1;
+      const fr = () => {
+        fseed = (fseed * 1664525 + 1013904223) % 4294967296;
+        return fseed / 4294967296;
+      };
+      const cam = new THREE.PerspectiveCamera(40, W2 / H2, 0.1, 3000);
+      const V = (x, y, z) => new THREE.Vector3(x, y, z);
+
+      const cuts = [
+        [
+          4.0,
+          (t, T) => {
+            // 1 Anflug
+            grp(1);
+            addPlanet(V(260, -60, -420), 230);
+            const off = V(-90 * (1 - ease(t * 1.5)) ** 2, 0, 0);
+            const o = V(-40, 10, 0).add(off);
+            grp(2);
+            for (let i = 0; i < 7; i++)
+              place(
+                cathedral(),
+                o.clone().add(V(rr(-40, 40), rr(-18, 18), -i * 34 + rr(-6, 6))),
+                0.05,
+                rr(-0.03, 0.03),
+                rr(-0.05, 0.05),
+              );
+            grp(3);
+            for (let i = 0; i < 22; i++)
+              place(
+                frigate(),
+                o.clone().add(V(rr(-70, 70) + 40, rr(-30, 30), rr(-240, 40))),
+                0.05,
+                0,
+                rr(-0.1, 0.1),
+              );
+            grp(4);
+            const streak = 8 + 170 * (1 - ease(t * 1.3));
+            for (let i = 0; i < 40; i++) {
+              const a = V(rr(-140, 60), rr(-40, 50), rr(-300, 60)).add(off);
+              beam(
+                a,
+                a.clone().add(V(-streak * rr(0.4, 1), 0, 0)),
+                0x6ab8ff,
+                rr(0.05, 0.25),
+                false,
+              );
+            }
+            cam.position.set(-150 + 34 * t, 30 - 8 * t, 120 - 24 * t);
+            cam.lookAt(80, -10, -160);
+            cam.fov = 38 - 7 * t;
+            return {
+              shake: 0.2,
+              blur: 0,
+              grade: 'teal',
+              label:
+                '1 · ANFLUG · Weitwinkel, langsame Fahrt · Ton: Stille, dann Grollen',
+            };
+          },
+        ],
+        [
+          3.5,
+          (t, T) => {
+            // 2 Erste Salve
+            grp(1);
+            addPlanet(V(-30, -330, -200), 300);
+            const z0 = -40;
+            grp(2);
+            for (let i = 0; i < 6; i++)
+              place(
+                cathedral(redHull),
+                V(-60 + i * 26, -8 + rr(-4, 4), z0 - i * 16),
+                Math.PI - 0.25,
+                0,
+                0.05,
+              );
+            grp(3);
+            const fired = Math.floor(14 * ease((t - 0.3) / 0.45));
+            for (let i = 0; i < 14; i++) {
+              const from = V(260, rr(-10, 30), 200 + rr(-40, 40)),
+                to = V(-60 + rr(0, 140), rr(-10, 6), z0 - rr(0, 80));
+              if (i < fired && (i + Math.floor(T * 8)) % 3 !== 0)
+                beam(from.clone().lerp(to, 0.55), to, 0xff6a3a, 0.35);
+            }
+            if (t > 0.55) shieldHit(V(-8, -6, z0 - 32), 16, V(4, -2, z0 - 22));
+            grp(4);
+            if (t > 0.4)
+              tracers(
+                V(-20, -4, z0 - 40),
+                40,
+                V(300, 20, 300),
+                60,
+                50,
+                0x6ab8ff,
+                14,
+              );
+            cam.position.set(140, 10, 160);
+            cam.lookAt(-10 + 6 * t, -4, z0 - 40);
+            cam.fov = 30 - 17 * ease((t - 0.06) / 0.12);
+            return {
+              shake: 0.2 + (t > 0.55 ? 0.45 : 0),
+              blur: 0.05,
+              grade: 'orange',
+              label: '2 · ERSTE SALVE · Runde 1 · Tele, Reißzoom, Handkamera',
+            };
+          },
+        ],
+        [
+          3.5,
+          (t, T) => {
+            // 3 Jäger im Flakfeuer
+            grp(1);
+            addPlanet(V(0, -420, -300), 380);
+            const dz = -50 * t;
+            grp(2);
+            fighters(
+              70,
+              V(6, -2, -30 + dz),
+              V(16, 7, 34),
+              Math.PI / 2,
+              0xc8b8a0,
+              2.4,
+            );
+            grp(3);
+            place(cathedral(redHull), V(30, -30, -170), 2.4, 0.1, 0.2, 1.4);
+            fseed = 77 + Math.floor(T * 12);
+            for (let i = 0; i < 26; i++) {
+              const p = V(-60 + fr() * 120, -25 + fr() * 55, -160 + fr() * 140);
+              sprite(fireTex, 2 + fr() * 5, p, 0.5 + fr() * 0.5);
+              sprite(smokeTex, 4 + fr() * 6, p.clone().add(V(1, 1, 0)), 0.5);
+            }
+            grp(4);
+            tracers(V(30, -30, -170), 20, V(0, 0, dz), 40, 120, 0xff9a40, 10);
+            if (t > 0.5) {
+              grp(5);
+              explosion(V(-8, 4, -40 + dz), 2 + 5 * ease((t - 0.5) / 0.3), 12);
+            }
+            cam.position.set(4, 6, 30 + dz);
+            cam.lookAt(10, -12, -150 + dz);
+            cam.fov = 62;
+            cam.rotateZ(0.18 + 0.1 * Math.sin(t * 4));
+            return {
+              shake: 1.0,
+              blur: 0.3,
+              grade: 'orange',
+              label:
+                '3 · JÄGER IM FLAKFEUER · Runde 2 · Mitflug · Ton: laut, direkt',
+            };
+          },
+        ],
+        [
+          3.5,
+          (t, T) => {
+            // 4 Schild bricht
+            grp(1);
+            addPlanet(V(-200, -120, -500), 200);
+            grp(2);
+            place(cathedral(), V(0, 0, 0), -0.6, 0.05, 0.12);
+            const broken = t > 0.62;
+            grp(3);
+            const n = Math.floor(5 * ease(t / 0.5));
+            for (let i = 0; i < 5; i++) {
+              const to = V(10 + rr(-2, 2), 4 + rr(-2, 2), 12 + rr(-2, 2));
+              if (i < n && (i + Math.floor(T * 10)) % 2 === 0)
+                beam(V(200, 40 + i * 6, 120 - i * 20), to, 0xff6a3a, 0.22);
+            }
+            if (!broken && t > 0.15)
+              shieldHit(V(2, 1, 0), 22 + 6 * t, V(10, 4, 12));
+            grp(4);
+            tracers(V(0, 2, 0), 10, V(300, 60, 140), 60, 40, 0x6ab8ff, 16);
+            if (broken) {
+              grp(5);
+              explosion(V(-4, 3.5, 5), 1 + 4 * ease((t - 0.62) / 0.3), 16);
+            }
+            const a = -0.25 + 0.5 * t;
+            cam.position.set(Math.sin(a) * 70, 14, Math.cos(a) * 70);
+            cam.lookAt(-2, 2, 0);
+            cam.fov = 36 - 4 * t;
+            return {
+              shake: broken ? 0.9 : 0.4,
+              blur: 0.15,
+              grade: 'teal',
+              label:
+                '4 · SCHILD BRICHT · Runde 3 · halbnah, Gegenlicht · Ton: Sirren, Stille',
+            };
+          },
+        ],
+        [
+          4.0,
+          (t, T) => {
+            // 5 Verlust, Zeitlupe
+            grp(1);
+            addPlanet(V(160, -160, -480), 260);
+            const p = V(0, 0, -60);
+            grp(2);
+            place(
+              cathedral(redHull),
+              p.clone().add(V(10 + 10 * t, 3 + 3 * t, 0)),
+              Math.PI - 0.3 - 0.15 * t,
+              0.15 + 0.1 * t,
+              0.25 + 0.2 * t,
+            );
+            grp(3);
+            for (let i = 0; i < 4; i++)
+              place(
+                frigate(),
+                V(rr(-90, -40), rr(-10, 20), rr(-160, -40)),
+                0.4,
+                0,
+                0.2,
+              );
+            grp(4);
+            explosion(p, 4 + 22 * ease(t * 1.2), 90);
+            if (t > 0.3) {
+              grp(5);
+              explosion(
+                p.clone().add(V(-14, -4, 4)),
+                12 * ease((t - 0.3) / 0.5),
+                30,
+              );
+            }
+            cam.position.set(-30 + 6 * t, 10, 60 - 10 * t);
+            cam.lookAt(0, 0, -60);
+            cam.fov = 44 - 4 * t;
+            return {
+              shake: 0.1,
+              blur: 0,
+              grade: 'bleach',
+              label:
+                '5 · VERLUST · Runde 4 · Zeitlupe · Ton: fast stumm, dumpfer Nachhall',
+            };
+          },
+        ],
+        [
+          3.5,
+          (t, T) => {
+            // 6 Verteidigung fällt
+            grp(1);
+            addPlanet(V(0, -1000, 0), 1000);
+            const boom = (t - 0.42) / 0.4;
+            grp(2);
+            const towers = defenseLine(0, boom > 0.15 ? [1, 3, 4] : [1, 4]);
+            const dome = new THREE.Mesh(
+              new THREE.SphereGeometry(
+                120,
+                32,
+                16,
+                0,
+                Math.PI * 2,
+                0,
+                Math.PI / 2,
+              ),
+              new THREE.MeshBasicMaterial({
+                color: 0x5aa8ff,
+                transparent: true,
+                opacity:
+                  t < 0.7
+                    ? 0.05 + 0.05 * Math.abs(noise(T, 1))
+                    : 0.02 * (1 - t),
+                blending: THREE.AdditiveBlending,
+                side: THREE.DoubleSide,
+                depthWrite: false,
+              }),
+            );
+            dome.position.set(0, -2, -60);
+            scene.add(dome);
+            if (t > 0.25 && t < 0.8) {
+              const cracks = new THREE.Mesh(
+                new THREE.SphereGeometry(120.5, 14, 7, 0.4, 1.6, 0.2, 1.2),
+                new THREE.MeshBasicMaterial({
+                  color: 0xbfe4ff,
+                  wireframe: true,
+                  transparent: true,
+                  opacity: 0.25 * (1 - Math.abs(t - 0.55) * 2),
+                  blending: THREE.AdditiveBlending,
+                  depthWrite: false,
+                }),
+              );
+              cracks.position.copy(dome.position);
+              scene.add(cracks);
+            }
+            grp(3);
+            for (let i = 0; i < 4; i++)
+              place(
+                cathedral(),
+                V(160 + rr(-60, 60), 330 + rr(-40, 40), -320 + rr(-60, 60)),
+                2.6,
+                -0.4,
+                0.2,
+              );
+            grp(4);
+            if (t > 0.15 && t < 0.7) orbitalStrike(towers[3], 5, 4);
+            if (boom > 0) {
+              grp(5);
+              explosion(
+                towers[3].clone().add(V(0, 8 + 14 * ease(boom), 0)),
+                6 + 16 * ease(boom),
+                Math.floor(60 * ease(boom)),
+              );
+            }
+            if (boom > 0.3)
+              sprite(
+                smokeTex,
+                30 + 40 * ease(boom),
+                towers[3].clone().add(V(4, 20 + 20 * boom, 0)),
+                0.8,
+              );
+            cam.position.set(-34 + 6 * t, 4, 4 - 4 * t);
+            cam.lookAt(8, 20 + 6 * t, -70);
+            cam.fov = 54 - 6 * t;
+            const kick = boom > 0 ? Math.max(0, 2.2 * (1 - boom)) : 0;
+            return {
+              shake: 0.35 + kick,
+              blur: 0.1,
+              grade: 'orange',
+              label:
+                '6 · VERTEIDIGUNG FÄLLT · Runde 4 · Bodenkamera · Ton: dumpfer Schlag',
+            };
+          },
+        ],
+        [
+          3.5,
+          (t, T) => {
+            // 7 Gegenfeuer
+            grp(1);
+            addPlanet(V(0, -1000, 0), 1000);
+            grp(2);
+            const towers = defenseLine(0, [1, 3, 4]);
+            const dome = new THREE.Mesh(
+              new THREE.SphereGeometry(
+                120,
+                32,
+                16,
+                0,
+                Math.PI * 2,
+                0,
+                Math.PI / 2,
+              ),
+              new THREE.MeshBasicMaterial({
+                color: 0x5aa8ff,
+                transparent: true,
+                opacity: 0.02,
+                blending: THREE.AdditiveBlending,
+                side: THREE.DoubleSide,
+                depthWrite: false,
+              }),
+            );
+            dome.position.set(0, -2, -60);
+            scene.add(dome);
+            grp(3);
+            const targets = towers.map(() =>
+              V(260 + rr(-40, 40), 420 + rr(-40, 40), -300 + rr(-80, 80)),
+            );
+            towers.forEach((base, i) => {
+              if ([1, 3, 4].includes(i)) return;
+              const phase = (t * 3 + i * 0.37) % 1;
+              if (phase < 0.35) {
+                const muzzle = base.clone().add(V(10, 26, 0));
+                beam(muzzle, targets[i], 0x6ab8ff, 0.6);
+                sprite(blueTex, 18, muzzle, 1 - phase * 2);
+              }
+            });
+            grp(4);
+            for (let i = 0; i < 9; i++)
+              place(
+                cathedral(),
+                V(200 + rr(-80, 80), 380 + rr(-60, 60), -320 + rr(-80, 80)),
+                2.6,
+                -0.4,
+                0.2,
+              );
+            if (t > 0.5) {
+              grp(5);
+              explosion(V(250, 400, -280), 30 * ease((t - 0.5) / 0.35), 20);
+            }
+            cam.position.set(-70 + 40 * t, 4, 40 - 10 * t);
+            cam.lookAt(80, 160, -220);
+            cam.fov = 50;
+            return {
+              shake: 0.5,
+              blur: 0.1,
+              grade: 'teal',
+              label:
+                '7 · GEGENFEUER · Runde 5 · Untersicht, Fahrt · Ton: tiefe Abschüsse',
+            };
+          },
+        ],
+        [
+          4.0,
+          (t, T) => {
+            // 8 Danach
+            grp(1);
+            addPlanet(V(120, -80, -520), 240);
+            grp(2);
+            for (let i = 0; i < 260; i++) {
+              const c = new THREE.Mesh(
+                new THREE.BoxGeometry(rr(0.3, 4), rr(0.2, 1.4), rr(0.3, 5)),
+                rnd() < 0.3 ? goldMat : darkMat,
+              );
+              const sp = rr(-0.3, 0.3);
+              c.position.set(rr(-120, 120), rr(-30, 30), rr(-260, 40));
+              c.rotation.set(
+                rr(0, 6) + sp * t * 4,
+                rr(0, 6) + sp * t * 3,
+                rr(0, 6),
+              );
+              scene.add(c);
+              if (rnd() < 0.08)
+                sprite(
+                  fireTex,
+                  rr(0.6, 2),
+                  c.position,
+                  0.4 + 0.3 * Math.abs(noise(T + i, 2)),
+                );
+            }
+            grp(3);
+            for (let i = 0; i < 6; i++)
+              sprite(
+                smokeTex,
+                rr(20, 50),
+                V(rr(-120, 120), rr(-20, 20), rr(-260, 0)),
+                0.35,
+              );
+            grp(4);
+            place(
+              cathedral(redHull),
+              V(-20, -6, -40),
+              0.9 + 0.1 * t,
+              0.5,
+              1.1 + 0.15 * t,
+            );
+            for (let i = 0; i < 3; i++)
+              place(
+                cathedral(),
+                V(60 + i * 30 + 40 * t, 20 + i * 4, -200 - i * 20 - 30 * t),
+                0.25,
+                0.05,
+                0,
+              );
+            cam.position.set(-60 + 20 * t, 4, 60 - 30 * t);
+            cam.lookAt(40, 4, -160);
+            cam.fov = 40;
+            return {
+              shake: 0.05,
+              blur: 0,
+              grade: 'cold',
+              label: '8 · DANACH · lange Totale · Ton: Stille, Funkrauschen',
+            };
+          },
+        ],
+        [2.5, null],
+      ];
+      const total = cuts.reduce((s, c) => s + Math.round(c[0] * FPS), 0);
+
+      function grade2(kind, T) {
+        const tint = {
+          teal: ['rgba(20,70,90,0.18)', 'rgba(255,140,60,0.06)'],
+          orange: ['rgba(120,50,10,0.16)', 'rgba(255,160,80,0.08)'],
+          bleach: ['rgba(60,60,60,0.12)', 'rgba(255,220,200,0.10)'],
+          cold: ['rgba(30,50,80,0.25)', 'rgba(120,160,200,0.04)'],
+        }[kind];
+        g.globalCompositeOperation = 'multiply';
+        g.fillStyle =
+          kind === 'orange' ? 'rgba(240,215,190,1)' : 'rgba(200,215,225,1)';
+        g.fillRect(0, 0, W2, H2);
+        g.globalCompositeOperation = 'screen';
+        g.fillStyle = tint[0];
+        g.fillRect(0, 0, W2, H2);
+        g.fillStyle = tint[1];
+        g.fillRect(0, 0, W2, H2);
+        g.globalCompositeOperation = 'source-over';
+        const vg = g.createRadialGradient(
+          W2 / 2,
+          H2 / 2,
+          H2 * 0.35,
+          W2 / 2,
+          H2 / 2,
+          W2 * 0.68,
+        );
+        vg.addColorStop(0, 'rgba(0,0,0,0)');
+        vg.addColorStop(1, 'rgba(0,0,0,0.75)');
+        g.fillStyle = vg;
+        g.fillRect(0, 0, W2, H2);
+        // light film grain
+        fseed = 5 + Math.floor(T * 1000);
+        g.fillStyle = 'rgba(255,255,255,0.035)';
+        for (let i = 0; i < (W2 * H2) / 90; i++)
+          g.fillRect(fr() * W2, fr() * H2, 1, 1);
+      }
+      function label(text) {
+        const s = W2 / 640;
+        g.font = `600 ${Math.round(11 * s)}px Georgia, serif`;
+        g.fillStyle = 'rgba(0,0,0,0.55)';
+        const w = g.measureText(text).width;
+        g.fillRect(10 * s, H2 - 26 * s, w + 14 * s, 18 * s);
+        g.fillStyle = '#f1d27a';
+        g.fillText(text, 17 * s, H2 - 13 * s);
+      }
+      function endCard(t) {
+        const s = W2 / 640;
+        g.fillStyle = '#000';
+        g.fillRect(0, 0, W2, H2);
+        g.globalAlpha = Math.min(1, t * 3);
+        g.textAlign = 'center';
+        g.fillStyle = '#f1d27a';
+        g.font = `700 ${Math.round(20 * s)}px Georgia, serif`;
+        g.fillText('GORGONIS III · NACH RUNDE 6', W2 / 2, 92 * s);
+        g.fillStyle = '#e9dfc8';
+        g.font = `${Math.round(15 * s)}px Georgia, serif`;
+        g.fillText(
+          'Sieg des Angreifers · Verluste: 312 Kathedralschiffe',
+          W2 / 2,
+          124 * s,
+        );
+        g.fillText(
+          'Verteidigung: 3 Massebeschleuniger zerstört · 2 werden wieder aufgebaut',
+          W2 / 2,
+          148 * s,
+        );
+        g.fillText(
+          'Schutzdom gefallen · Trümmerfeld ca. 2,4 Mio.',
+          W2 / 2,
+          172 * s,
+        );
+        g.fillStyle = '#a8997f';
+        g.font = `italic ${Math.round(12 * s)}px Georgia, serif`;
+        g.fillText(
+          'Beispielzahlen · im Spiel aus dem Kampfbericht, nicht aus der Darstellung',
+          W2 / 2,
+          202 * s,
+        );
+        g.textAlign = 'left';
+        g.globalAlpha = 1;
+      }
+      function frameAt(k) {
+        let f = k;
+        for (const [dur, build] of cuts) {
+          const n = Math.round(dur * FPS);
+          if (f >= n) {
+            f -= n;
+            continue;
+          }
+          const t = f / (n - 1),
+            T = k / FPS;
+          if (build === null) {
+            endCard(t);
+            return;
+          }
+          scene = new THREE.Scene();
+          lights();
+          cam.position.set(0, 0, 0);
+          cam.rotation.set(0, 0, 0);
+          cam.up.set(0, 1, 0);
+          const r = build(t, T);
+          cam.updateProjectionMatrix();
+          const base = cam.quaternion.clone(),
+            p0 = cam.position.clone();
+          g.fillStyle = '#000';
+          g.fillRect(0, 0, W2, H2);
+          const N = r.blur > 0 ? 3 : 1;
+          for (let i = 0; i < N; i++) {
+            const j = T + i * 0.012;
+            cam.position
+              .copy(p0)
+              .add(
+                V(
+                  noise(j, 1) * r.shake * 0.6 + (i - 1) * r.blur,
+                  noise(j, 2) * r.shake * 0.5,
+                  0,
+                ),
+              );
+            cam.quaternion.copy(base);
+            cam.rotateZ(noise(j, 3) * r.shake * 0.004);
+            cam.rotateX(noise(j, 4) * r.shake * 0.003);
+            renderer.render(scene, cam);
+            g.globalAlpha = i === 0 ? 1 : 1 / (i + 1);
+            g.drawImage(renderer.domElement, 0, 0);
+          }
+          g.globalAlpha = 1;
+          grade2(r.grade, T);
+          label(r.label);
+          // dispose geometry and materials of this frame
+          scene.traverse((o) => {
+            if (o.geometry) o.geometry.dispose();
+          });
+          return;
+        }
+      }
+      window.total = total;
+      window.renderRange = (a, b) => {
+        const res = [];
+        for (let k = a; k < b && k < total; k++) {
+          frameAt(k);
+          res.push(out.toDataURL('image/jpeg', 0.93));
+        }
+        return res;
+      };
+      document.title = 'ready';
+    </script>
+  </body>
+</html>

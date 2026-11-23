@@ -21,12 +21,15 @@ Files:
   contracts delivered by cargo fleet on both sides, the contract flow and the open points
 - `admin.html` / `.png` – the dialog „Neue Runde“: the four trade modes, the exchange settings,
   the settings of the Herold with the public link
-- `shot-1.jpg` … `shot-8.jpg`, `camera.gif` – the stills and the animation of the storyboard
+- `battle-replay.mp4` (1280 × 536, 24 fps, 32 s) and `battle-replay.gif` (560 px, 10 fps) – the
+  whole storyboard as a film: all eight shots and the closing card
+- `shot-1.jpg` … `shot-8.jpg`, `camera.gif` – the stills and the short animation with three cuts
 
 The stills and the animation are placeholders from a simple Three.js scene
-(`render/scene.html`, `render/anim.html`), not from Godot. To render them again, install
+(`render/scene.html`, `render/anim.html`, `render/storyboard-anim.html`), not from Godot. To render them again, install
 `three@0.170.0` in `render/` and open `scene.html?shot=1` … `8` or `anim.html` (call
-`renderAll()`; the frames are in `window.frames`) through a local server.
+`renderAll()`; the frames are in `window.frames`) or `storyboard-anim.html?w=1280&fps=24` (call
+`renderRange(from, to)`; it returns JPEG data URLs) through a local server.
 
 The HTML files reference `/style.css`, `/fonts/` and `/icons/` absolutely: serve them from a
 root that holds `src/client/static/` with this folder beside it, or look at the PNGs.
