@@ -172,8 +172,8 @@ Imperium design works without new game features. Four groups.
   (`src/client/logic/overview-cards.ts`); the most urgent item comes from
   there. The timeline: fleets, build and research queues, reports and
   messages are in the state.
-- The tabs Funk (guild chat, private messages) and Berichte (reports with
-  today's limit per player).
+- The tabs Funk (the guild chat exists; how private messages appear is
+  open) and Berichte (reports with today's limit per player).
 - Welten with resources and what runs; building in a world window without
   fields; the compact info page (Lexicanum).
 - The research tree with the path to a goal (the requirements are in
