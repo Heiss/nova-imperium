@@ -59,6 +59,10 @@ the owner as test person.
   motion while the layout (map, Lage sheet, buttons) stays the same; they
   enter the playtest after round 1, with the same views per race in three
   versions each, the Brut animated (GIF).
+* **[E]** The game must be fully playable on the phone and on the desktop.
+  The playtest goes mobile-first; afterwards it finds out how an excellent
+  desktop application is derived from the chosen phone views (owner,
+  2026-11-23).
 * **[E]** Tracking here and on the branch `claude/ux-modern-study`
   (pull request #389).
 
@@ -104,7 +108,7 @@ Taken from the code (views, missions, reports) and the open ideas:
 | 2 | 5–7 (+ repeat of the round-1 winners) | s5 research · s6 defense on Nox · s7 espionage (queued on the page) | open |
 | 3 | 8–10 | planned | open |
 | 4 | 11–13 | planned | open |
-| 5 | desktop of the chosen layouts | planned | open |
+| 5 | desktop derived from the chosen phone views ([E] owner) | planned | open |
 
 Mixed order of round 1 (variant 1/2/3 → letter): s1m b·c·a (a stars with
 pips, b spiral by system number, c player markers), s1s c·a·b (a orbits,
