@@ -1,6 +1,6 @@
 # Imperialer Herold and Börse – design study
 
-Design study for two ideas of the owner (2026-11-23, issue #ISSUE), not decided. Everything
+Design study for two ideas of the owner (2026-11-23, issue #382), not decided. Everything
 not marked **[E]** is a proposal **[V]**: names, texts, stages, days, fees and numbers are
 examples, not game values. Interface v2 (`src/client/static/style.css`) plus `study.css`.
 
