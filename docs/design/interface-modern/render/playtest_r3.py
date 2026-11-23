@@ -82,6 +82,69 @@ def vc():
 SITS = {'s8': {'a': va, 'b': vb, 'c': vc}}
 
 
+# ------------------------------------------------------------------ s9 send the fleet (from „Angreifen“ on Varn)
+# Own fleet on Aurelia [1:27:8]: 60 Abfangjäger, 20 Fregatten, 30 Lastbarken.
+# Cargo from the catalog: Abfangjäger 50, Fregatte 800, Lastbarke 25.000;
+# 60·50 + 20·800 + 24·25.000 = 619.000 ≥ loot 600.000. Times are examples.
+SHIPS = [('Abfangjäger', 60, 60), ('Fregatte', 20, 20), ('Lastbarke', 24, 30)]
+
+
+def ship_rows(step=True):
+    out = ''
+    for n, take, have in SHIPS:
+        ctl = (f'<span class="m-stepper"><span>−</span><b>{take}</b><span>+</span></span>' if step else f'<b>{take}</b>')
+        out += (f'<div style="display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: center; padding: 4px 0; font-size: 13.5px">'
+                f'<span>{n}</span><span class="m-dim" style="font-size: 12px">von {have}</span>{ctl}</div>')
+    return out
+
+
+CARGO = '<div class="m-kv"><span>Laderaum</span><b style="color: var(--green)">619 k ≥ Beute 600 k ✓</b><span>Ankunft</span><b>14:05</b><span>zurück</span><b>14:50</b></div>'
+
+
+def s9a():
+    step = lambda n, t, on: (f'<span style="display: inline-flex; gap: 6px; align-items: center; font-size: 12.5px; color: var(--{"gold-hi" if on else "dim"})">'
+                             f'<b style="display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; border: 1px solid currentColor">{n}</b>{t}</span>')
+    body = ('<b style="color: var(--gold-hi)">Angriff auf Varn [1:44:4]</b> <span class="m-dim" style="font-size: 12px">von Aurelia [1:27:8]</span>'
+            '<div style="display: flex; gap: 14px; margin: 8px 0">' + step(1, 'Ziel ✓', False) + step(2, 'Schiffe', True) + step(3, 'Abflug', False) + '</div>'
+            + ship_rows() + '<div class="m-dim" style="font-size: 12px; margin: 4px 0">Lastbarken passend zur Beute vorgeschlagen.</div>' + CARGO
+            + '<span class="m-btn big" style="display: block; margin-top: 8px; text-align: center">Weiter zu Abflug</span>')
+    return phone(system() + header() + pulled(460, body) + tabs())
+
+
+def s9b():
+    from playtest_d1 import galaxy
+    def attack(P):
+        (x0, y0), (xs, ys) = P['1:27'], P['1:44']
+        return (f'<path d="M {x0 + 10:.0f} {y0 + 10:.0f} Q {(x0 + xs) / 2 + 40:.0f} {(y0 + ys) / 2 - 50:.0f} {xs - 6:.0f} {ys - 6:.0f}" stroke="{WAR}" stroke-width="4" fill="none" />'
+                f'<circle cx="{xs:.0f}" cy="{ys:.0f}" r="16" fill="none" stroke="{WAR}" stroke-width="2.5" />'
+                f'<circle cx="{xs - 6:.0f}" cy="{ys - 6:.0f}" r="9" fill="#f1d27a" opacity="0.85" />')
+    m = (f'<div class="k-stars" style="position: absolute; inset: 0"></div><div class="k-abs" style="left: 0; top: 96px">{galaxy(390, 420, tip=False, routes=attack)}</div>'
+         '<div class="k-abs" style="left: 10px; top: 104px; z-index: 2"><span class="k-pill">Ziehe von deiner Welt zum Ziel</span></div>'
+         '<div class="k-abs" style="left: 196px; top: 466px; z-index: 2; background: #17110d; border: 1px solid var(--red); border-radius: 8px; padding: 4px 8px; font-size: 12px">'
+         '<b style="color: var(--red)">Angriff Varn [1:44:4]</b><br />an 14:05 · zurück 14:50</div>')
+    body = ('<b style="color: var(--gold-hi)">Aurelia → Varn</b> <span class="m-dim" style="font-size: 12px">Angriff</span>'
+            '<div class="m-chips" style="margin: 6px 0"><span class="m-chip on">60 Abfangjäger</span><span class="m-chip on">20 Fregatten</span><span class="m-chip on">24 Lastbarken</span><span class="m-chip">+ Schiffe</span></div>'
+            '<div style="font-size: 12.5px; color: var(--green)">Laderaum 619 k ≥ Beute 600 k ✓</div>'
+            '<span class="m-btn big" style="display: block; margin-top: 8px; text-align: center">Losschicken</span>')
+    return phone(m + header() + pulled(200, body) + tabs())
+
+
+def s9c():
+    def card(t, d, on=False):
+        return (f'<div style="border: 1px solid var(--{"gold" if on else "line"}); border-radius: 8px; padding: 8px; margin: 6px 0;{" background: rgb(212 165 55 / 0.08)" if on else ""}">'
+                f'<b style="color: var(--{"gold-hi" if on else "txt"})">{t}</b><div class="m-dim" style="font-size: 12.5px">{d}</div></div>')
+    body = ('<b style="color: var(--gold-hi)">Angriff auf Varn</b> <span class="m-dim" style="font-size: 12px">von Aurelia · Vorlage wählen</span>'
+            + card('Raubzug', 'alle Kampfschiffe + Lastbarken passend zur Beute (24)', True)
+            + card('Alles', 'jedes Schiff auf Aurelia (60 · 20 · 30)')
+            + card('Nur Laderaum', '24 Lastbarken, ohne Schutz')
+            + card('+ Eigene Vorlage', 'aus der jetzigen Auswahl speichern')
+            + CARGO + '<span class="m-btn big" style="display: block; margin-top: 8px; text-align: center">Raubzug losschicken</span>')
+    return phone(system() + header() + pulled(520, body) + tabs())
+
+
+SITS['s9'] = {'a': s9a, 'b': s9b, 'c': s9c}
+
+
 def build_sheet():
     parts = [f'<figure id="r3-{sid}-{e}" style="margin: 0; display: inline-block">{fn()}</figure>' for sid, vs in SITS.items() for e, fn in vs.items()]
     return ('<!doctype html>\n<html lang="de">\n<head>\n<meta charset="utf-8" />\n<title>Playtest r3</title>\n'

@@ -32,14 +32,17 @@ SYSTEMS = {  # name: (fx, fy, occupied positions)
     '1:38': (0.88, 0.46, [(1, OTHER), (7, OTHER)]), '1:40': (0.58, 0.90, []), '1:44': (0.86, 0.82, [(4, WAR), (6, GUILD), (8, OTHER)])}
 
 
-def galaxy(w, h, tip=True):
+def galaxy(w, h, tip=True, routes=True):
     """The pip map [E] on a desktop area of w x h; names appear on tap [E] (here: the hover/tap card on 1:31)."""
     P = {n: (fx * w, fy * h) for n, (fx, fy, _) in SYSTEMS.items()}
     s = [f'<svg width="{w}" height="{h}" viewBox="0 0 {w} {h}">', bg_stars(int(w * h / 2600), w, h, 7)]
     (x1, y1), (x0, y0), (xg, yg), (xs, ys) = P['1:31'], P['1:27'], P['1:26'], P['1:44']
-    s.append(route(x1, y1, x0 + 10, y0 + 6, WAR, 'Angriff 14:32', 0.2, lx=(x1 + x0) / 2 + 10, ly=(y1 + y0) / 2 + 40))
-    s.append(route(xg, yg, x0 - 8, y0 - 10, GUILD, 'Mira hält', -0.25))
-    s.append(route(x0 + 8, y0 + 12, xs, ys, '#f1d27a', 'Spionage 4 min', -0.25, '2 4', lx=x0 + 0.62 * (xs - x0) + 70, ly=y0 + 0.62 * (ys - y0) + 52))
+    if routes is True:
+        s.append(route(x1, y1, x0 + 10, y0 + 6, WAR, 'Angriff 14:32', 0.2, lx=(x1 + x0) / 2 + 10, ly=(y1 + y0) / 2 + 40))
+        s.append(route(xg, yg, x0 - 8, y0 - 10, GUILD, 'Mira hält', -0.25))
+        s.append(route(x0 + 8, y0 + 12, xs, ys, '#f1d27a', 'Spionage 4 min', -0.25, '2 4', lx=x0 + 0.62 * (xs - x0) + 70, ly=y0 + 0.62 * (ys - y0) + 52))
+    if callable(routes):
+        s.append(routes(P))
     for n, (fx, fy, occ) in SYSTEMS.items():
         x, y = P[n]
         big = n == '1:27'
