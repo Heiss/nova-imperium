@@ -528,6 +528,46 @@
       ],
     },
     {
+      id: 'r1b',
+      title: 'Runde 1b · Die Rassen',
+      stations: [0, 0],
+      situations: [
+        {
+          id: 'brut',
+          ext: 'gif',
+          title: 'Die Brut: dieselbe Karte',
+          text: 'Wer die Brut spielt, bekommt eine eigene Oberfläche; der Aufbau bleibt gleich (Karte, Lage-Schieber, Leiste). Die Bilder bewegen sich. Begriffe wie „Nest“ oder „Witterung“ sind nur Beispiele.',
+          order: 'bca',
+          desc: {
+            a: 'Membran: weiche, sich verformende Ränder, pulsierende Adern im Hintergrund, Nester wabern.',
+            b: 'Chitin: harte Panzerplatten in Waben, Nähte glühen im Takt, die Fläche atmet langsam.',
+            c: 'Schwarm: überall krabbelnde Punkte, Ränder aus Gewimmel, Nester wabern.',
+          },
+          emph: { a: 'Brut: Membran', b: 'Brut: Chitin', c: 'Brut: Schwarm' },
+          ask: 'Sollen sich je Rasse auch die Begriffe ändern (z. B. „Nest“ statt „Planet“, „Witterung“ statt „Lage“), oder nur das Aussehen?',
+        },
+        {
+          id: 'ewige',
+          ext: 'gif',
+          title: 'Die Ewigen: dieselbe Karte',
+          text: 'Die Ewigen sind die Maschinen-Rasse: langsam, kühl, präzise. Auch hier bleibt der Aufbau gleich; die Bilder bewegen sich leicht.',
+          order: 'cab',
+          desc: {
+            a: 'Monolith: schwarze Flächen, abgeschnittene Ecken, feines Raster, ein Lichtstreifen wandert über die Karte.',
+            b: 'Uhrwerk: Ringe um dein System drehen sich langsam, Ränder ticken wie ein Zeiger.',
+            c: 'Kristallgitter: Waben-Gitter, ein Lichtpunkt läuft die Kanten entlang, Flächen wie geschliffen.',
+          },
+          emph: {
+            a: 'Ewige: Monolith',
+            b: 'Ewige: Uhrwerk',
+            c: 'Ewige: Kristallgitter',
+          },
+          ask: 'Wie viel Bewegung soll die Oberfläche der Ewigen haben: so ruhig wie hier, mehr, oder gar keine?',
+        },
+      ],
+      questions: [],
+    },
+    {
       id: 'r2',
       title: 'Runde 2 · Forschen, verteidigen, auskundschaften',
       stations: [4, 5, 6],
@@ -614,7 +654,9 @@
       i,
       key: r.id + '-' + s.id,
     })),
-    { kind: 'quest', r, key: r.id + '-quest' },
+    ...(r.questions && r.questions.length
+      ? [{ kind: 'quest', r, key: r.id + '-quest' }]
+      : []),
   ]);
   const state = { picks: {}, answers: {}, db: null, drafts: {} };
   const $ = (sel, el = document) => el.querySelector(sel);
@@ -662,7 +704,7 @@
           : '';
         return `<div class="opt${chosen ? ' chosen' : ''}">
           <span class="lab">Variante ${n}</span>
-          <img src="img/${r.id}-${s.id}-${e}.jpg" alt="Variante ${n}: ${esc(s.desc[e])}" tabindex="0" data-zoom="img/${r.id}-${s.id}-${e}.jpg" />
+          <img src="img/${r.id}-${s.id}-${e}.${s.ext || 'jpg'}" alt="Variante ${n}: ${esc(s.desc[e])}" tabindex="0" data-zoom="img/${r.id}-${s.id}-${e}.${s.ext || 'jpg'}" />
           <span class="desc">${esc(s.desc[e])}</span>${reveal}
           <button type="button" data-pick="${st.key}|${n}|${e}">${chosen ? 'Gewählt ✓' : 'Diese gefällt mir besser'}</button>
         </div>`;
@@ -725,7 +767,7 @@
         const note = p.note
           ? ` · „${esc(p.note.length > 90 ? p.note.slice(0, 90) + '…' : p.note)}“`
           : '';
-        return `<li><img src="img/${st.r.id}-${st.s.id}-${p.emphasis}.jpg" alt="" />
+        return `<li><img src="img/${st.r.id}-${st.s.id}-${p.emphasis}.${st.s.ext || 'jpg'}" alt="" />
           <div><b>${esc(st.s.title)}</b><br /><span class="dim">Variante ${p.choice} · ${esc((st.s.emph || EMPH)[p.emphasis])}${note}</span></div>
           <button type="button" class="ghost" data-undo="${st.key}">Ändern</button></li>`;
       })

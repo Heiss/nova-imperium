@@ -8,7 +8,7 @@ description: Blind three-way picks along the game loop with the owner as test pe
 
 Owner's request (2026-11-23) **[E]**: a small website that shows three
 pictures of the same situation with different emphases; the owner picks the
-one he likes better and writes what he likes about it; a short questionnaire
+one they like better and write what they like about it; a short questionnaire
 per round. We move along the game loop and repeat situations with other
 emphases until it is clear what works. When Claude is sure what the owner
 wants, it rewrites #388 and the design study. Claude acts as UX/UI designer,
@@ -99,8 +99,8 @@ Taken from the code (views, missions, reports) and the open ideas:
 
 | Round | Stations | Situations | Status |
 |---|---|---|---|
-| 1 | 1–4 | s1m galaxy map · s1s own system · s2m content of the Lage sheet · s3 building on fields · s4 info page, one by one | published 2026-11-23 (version 4), waiting for picks |
-| 1b | race skins | Brut and Ewige on the chosen views of round 1, three versions each, Brut animated | after round 1 |
+| 1 | 1–4 | s1m galaxy map · s1s own system · s2m content of the Lage sheet · s3 building on fields · s4 info page · s1n names on the map, one by one | running; s1m, s1s, s2m, s3 done |
+| 1b | race skins | brut · ewige: the galaxy map with the Lage sheet, three versions each, animated (GIF); Brut a membran, b chitin, c schwarm; Ewige a monolith, b uhrwerk, c gitter | built, published with the next „Weiter“ |
 | 2 | 5–7 (+ repeat of the round-1 winners) | s5 research · s6 defense on Nox · s7 espionage (queued on the page) | open |
 | 3 | 8–10 | planned | open |
 | 4 | 11–13 | planned | open |
@@ -109,7 +109,9 @@ Taken from the code (views, missions, reports) and the open ideas:
 Mixed order of round 1 (variant 1/2/3 → letter): s1m b·c·a (a stars with
 pips, b spiral by system number, c player markers), s1s c·a·b (a orbits,
 b list, c ring), s2m b·c·a (a groups, b timeline, c act now), s3 a·c·b,
-s4 b·a·c (a/b/c = browser, 4X, mobile). Replaced before any pick: s1 and
+s4 b·a·c (a/b/c = browser, 4X, mobile), s1n c·a·b (a names always at the
+system, b from the second zoom level, c on tap). Round 1b: brut b·c·a,
+ewige c·a·b. Replaced before any pick: s1 and
 s2 of version 1 (galaxy without systems; dashboard not yet a sheet).
 
 ## Results
@@ -117,10 +119,13 @@ s2 of version 1 (galaxy without systems; dashboard not yet a sheet).
 | Situation | Pick | Owner's words | Consequence |
 |---|---|---|---|
 | s1m galaxy map | variant 3 = a, stars with a pip per occupied position | answer: „galaxie. zoom bei klick auf ein system. das ist einfacher als raus zu zoomen.“ | **[E]** after the login the whole galaxy; a tap on a system zooms into it. **[E]** pip map. A first note (names missing, as in the player markers) was removed again before „Weiter“; s1n asks how names should appear. |
+| s1s own system | variant 2 = a, orbits | answer (which infos a foreign world needs): „spieler und ob dieser aktiv ist ist glaube ich genug“ | **[E]** the system view shows the worlds on their orbits. **[E]** a foreign world shows only its player and whether the player is active. |
+| s2m content of the Lage sheet | variant 1 = b, timeline | answer (what the sheet shows when pulled down): „eine zeile zeigen“ | **[E]** the Lage sheet is a timeline (events by time). **[E]** pulled down, the sheet keeps one line visible. |
+| s3 building on fields (#158) | variant 2 = c, mobile: drag a building onto a field, every field shows its yield, „Bestätigen“ builds | note: „weil es sehr eindeutig erkennbar ist, welches feld ein benefit hat. und entweder zieht man die icons auf ein feld oder per click und target click“ | **[E]** while placing, every field shows clearly what it gains. **[E]** two ways to place: drag the icon onto a field, or tap the building and then tap the target field. |
 
 ## Open work
 
-* Read the picks and answers of round 1; write the result above.
+* Read the remaining picks of round 1 (s4, s1n, questions) and of round 1b.
 * Build round 2 from them (stations 5–7 and a repeat of the winners).
 * At the end: rewrite #388 and the design study; carry the decisions [E]
   into the feature files they concern (#158, #155, #236).
