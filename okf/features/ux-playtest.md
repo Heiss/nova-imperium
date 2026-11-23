@@ -105,7 +105,9 @@ s2 of version 1 (galaxy without systems; dashboard not yet a sheet).
 
 ## Results
 
-None yet.
+| Situation | Pick | Owner's words | Consequence |
+|---|---|---|---|
+| s1m galaxy map | variant 3 = a, stars with a pip per occupied position | answer: „galaxie. zoom bei klick auf ein system. das ist einfacher als raus zu zoomen.“ | **[E]** after the login the whole galaxy; a tap on a system zooms into it. **[E]** pip map. A first note (names missing, as in the player markers) was removed again before „Weiter“; s1n asks how names should appear. |
 
 ## Open work
 
