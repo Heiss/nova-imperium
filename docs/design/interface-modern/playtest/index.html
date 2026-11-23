@@ -392,7 +392,7 @@
     {
       id: 'r1',
       title: 'Runde 1 · Ankommen und bauen',
-      stations: [0, 0, 1, 2, 3],
+      stations: [0, 0, 1, 2, 3, 0],
       situations: [
         {
           id: 's1m',
@@ -465,6 +465,22 @@
             a: 'Eigene Seite mit Reitern; Kosten Zeile für Zeile grün oder rot; „Erinnern, wenn leistbar“.',
             b: 'Fenster mit Stufentabelle, Kosten und Abhängigkeiten; „In Warteschlange“.',
             c: 'Großes Blatt: Bild, ein Satz Wirkung, Kosten als farbige Chips, großer Knopf; wischen zum nächsten Gebäude.',
+          },
+        },
+        {
+          id: 's1n',
+          title: 'Noch einmal die Galaxiekarte: Namen der Spieler',
+          text: 'Du hast die Karte mit einem Punkt je besetzter Position gewählt. Hier dieselbe Karte, dreimal anders mit den Namen der Spieler.',
+          order: 'cab',
+          desc: {
+            a: 'Die Namen stehen immer am System (z. B. „Haus Valcor ×3“, „Mira, Sev“).',
+            b: 'Ohne Namen in der ganzen Galaxie; eine Stufe hineingezoomt steht an jedem Punkt Position und Name.',
+            c: 'Ohne Namen; ein Antippen des Systems zeigt eine kleine Karte mit Positionen und Spielern.',
+          },
+          emph: {
+            a: 'Namen: immer am System',
+            b: 'Namen: ab der zweiten Zoomstufe',
+            c: 'Namen: beim Antippen',
           },
         },
       ],
@@ -600,7 +616,7 @@
     })),
     { kind: 'quest', r, key: r.id + '-quest' },
   ]);
-  const state = { picks: {}, answers: {}, db: null };
+  const state = { picks: {}, answers: {}, db: null, drafts: {} };
   const $ = (sel, el = document) => el.querySelector(sel);
   const esc = (s) =>
     String(s).replace(
@@ -734,6 +750,11 @@
       body = questHtml(cur);
     }
     $('#rounds').innerHTML = body + historyHtml();
+    for (const [id, v] of Object.entries(state.drafts || {})) {
+      const el = document.getElementById(id);
+      if (el && el.tagName === 'TEXTAREA' && !el.value) el.value = v;
+    }
+    state.drafts = {};
     renderLoop();
   }
 
@@ -900,7 +921,23 @@
     }
   });
 
-  render();
+  function drafts() {
+    const out = {};
+    for (const t of document.querySelectorAll('textarea'))
+      if (t.value) out[t.id] = t.value;
+    return { drafts: out, y: window.scrollY };
+  }
+  if (window.claude && window.claude.hot && window.claude.hot.snapshot)
+    window.claude.hot.snapshot(drafts);
+  function start(data) {
+    state.drafts = (data && data.drafts) || {};
+    render();
+    if (data && data.y) window.scrollTo(0, data.y);
+  }
+  if (window.claude && window.claude.hot && window.claude.hot.ready)
+    window.claude.hot.ready(start);
+  else
+    start((window.claude && window.claude.hot && window.claude.hot.data) || {});
 
   (async () => {
     if (!window.claude || !window.claude.use) {
