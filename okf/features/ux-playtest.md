@@ -78,7 +78,9 @@ the owner as test person.
   `order`, `ask`, `station`, `roundTitle`); Claude appends with the
   Artifact data tool, new pictures go to the artifact's asset store
   (`/_blob/<id>`), and `status/claude` (`text`, `updated`) tells the owner
-  what comes next. A copy of the queue is in
+  what comes next. The top of the page lists the queue (count of prepared,
+  done and open steps, each with its short title `short`) instead of the
+  game loop (owner, 2026-11-23). A copy of the queue is in
   `docs/design/interface-modern/playtest/queue/`. The page subscribes to both and draws the open step
   again only when it changes, so typing is never disturbed.
 * **[E]** Tracking here and on the branch `claude/ux-modern-study`

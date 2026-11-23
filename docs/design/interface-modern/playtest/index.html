@@ -360,7 +360,8 @@
       von selbst, ohne dass die Seite neu lädt. Situationen kommen ruhig
       mehrmals, damit wir sicher sind.
     </p>
-    <ol class="loop" id="loop" aria-label="Spielablauf"></ol>
+    <p class="dim" id="qhead"></p>
+    <ol class="loop" id="loop" aria-label="Warteschlange"></ol>
     <div class="banner state" id="conn">Speicher wird verbunden …</div>
     <div class="banner claude" id="claude" role="status" hidden></div>
   </header>
@@ -377,21 +378,6 @@
 </div>
 
 <script>
-  const LOOP = [
-    'Login & Karte',
-    'Lage / Dashboard',
-    'Bauen auf Feldern',
-    'Gebäude-Info',
-    'Forschung',
-    'Werft & Abwehr',
-    'Spionage',
-    'Flotte senden',
-    'Raumschlacht & Bericht',
-    'Bodenkampf / Belagerung',
-    'Trümmer, Beute, Kolonie',
-    'Gilde, Chat, Herold, Börse',
-    'Abwesenheit & Hinweise',
-  ];
   // The steps come from the store (collection `queue`, one document per
   // step, ordered by `seq`); Claude appends new steps there and the page
   // shows them without a reload. `status/claude` carries Claude's note on
@@ -436,17 +422,17 @@
     el.className = 'banner state ' + (cls || '');
   }
 
+  // The queue at the top: every step Claude has prepared, with its short
+  // title (`short` in the step's document), done / now / open.
   function renderLoop() {
-    const done = new Set();
-    const now = new Set();
     const cur = current();
-    for (const st of sits()) {
-      if (isDone(st)) done.add(st.q.station);
-      if (cur === st) now.add(st.q.station);
-    }
-    $('#loop').innerHTML = LOOP.map(
-      (s, i) =>
-        `<li class="${now.has(i) ? 'now' : done.has(i) ? 'done' : ''}">${i + 1} · ${esc(s)}</li>`,
+    const done = STEPS.filter(isDone).length;
+    $('#qhead').textContent = state.ready
+      ? `Warteschlange: ${STEPS.length} vorbereitet · ${done} erledigt · ${STEPS.length - done} offen`
+      : '';
+    $('#loop').innerHTML = STEPS.map(
+      (st, i) =>
+        `<li class="${st === cur ? 'now' : isDone(st) ? 'done' : ''}">${i + 1} · ${esc(st.q.short || st.q.title || 'Fragen')}</li>`,
     ).join('');
   }
 
