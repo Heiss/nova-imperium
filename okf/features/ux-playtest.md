@@ -63,6 +63,15 @@ the owner as test person.
   The playtest goes mobile-first; afterwards it finds out how an excellent
   desktop application is derived from the chosen phone views (owner,
   2026-11-23).
+* **[E]** No reloads (owner, 2026-11-23): the page is a player for a
+  queue in its store and is not republished any more (version 7 is the
+  last). Steps are documents `queue/<round>-<id>` (`seq` orders them;
+  `kind` `sit` or `quest`; `variants.a|b|c` with `img`, `desc`, `emph`;
+  `order`, `ask`, `station`, `roundTitle`); Claude appends with the
+  Artifact data tool, new pictures go to the artifact's asset store
+  (`/_blob/<id>`), and `status/claude` (`text`, `updated`) tells the owner
+  what comes next. The page subscribes to both and draws the open step
+  again only when it changes, so typing is never disturbed.
 * **[E]** Tracking here and on the branch `claude/ux-modern-study`
   (pull request #389).
 
@@ -103,8 +112,8 @@ Taken from the code (views, missions, reports) and the open ideas:
 
 | Round | Stations | Situations | Status |
 |---|---|---|---|
-| 1 | 1–4 | s1m galaxy map · s1s own system · s2m content of the Lage sheet · s3 building on fields · s4 info page · s1n names on the map, one by one | running; s1m, s1s, s2m, s3, s4 done; version 6 (s1n, round 1b) published 2026-11-23 15:36 |
-| 1b | race skins | brut · ewige: the galaxy map with the Lage sheet, three versions each, animated (GIF); Brut a membran, b chitin, c schwarm; Ewige a monolith, b uhrwerk, c gitter | published (version 6) |
+| 1 | 1–4 | s1m galaxy map · s1s own system · s2m content of the Lage sheet · s3 building on fields · s4 info page · s1n names on the map, one by one | done 2026-11-23 15:40 |
+| 1b | race skins | brut · ewige · r1b-quest (Brut sentence, friends colour, who is an enemy): the galaxy map with the Lage sheet, three versions each, animated (GIF); Brut a membran, b chitin, c schwarm; Ewige a monolith, b uhrwerk, c gitter | running; brut done |
 | 2 | 5–7 (+ repeat of the round-1 winners) | s5 research · s6 defense on Nox · s7 espionage (queued on the page) | open |
 | 3 | 8–10 | planned | open |
 | 4 | 11–13 | planned | open |
@@ -127,10 +136,14 @@ s2 of version 1 (galaxy without systems; dashboard not yet a sheet).
 | s2m content of the Lage sheet | variant 1 = b, timeline | answer (what the sheet shows when pulled down): „eine zeile zeigen“ | **[E]** the Lage sheet is a timeline (events by time). **[E]** pulled down, the sheet keeps one line visible. |
 | s3 building on fields (#158) | variant 2 = c, mobile: drag a building onto a field, every field shows its yield, „Bestätigen“ builds | note: „weil es sehr eindeutig erkennbar ist, welches feld ein benefit hat. und entweder zieht man die icons auf ein feld oder per click und target click“ | **[E]** while placing, every field shows clearly what it gains. **[E]** two ways to place: drag the icon onto a field, or tap the building and then tap the target field. |
 | s4 info page of a building (compact mode) | variant 3 = c, mobile: big sheet with picture, one sentence of effect, costs as coloured chips, big button, swipe to the next building | note: „mir gefällt aus variante 1 besonders gut, dass dort steht, was es wann freischaltet. und bei variante zwei kriegt man gute übersichten über die stufen etc. aber wir reden hier ja über den kompaktmodus, da dürfen infos fehlen. bei einem standard modus würde ich variante 2 bevorzugen. bei variante 3 ist auch das gute, das man schnell wieder das schließen kann durch runterwischen.“ | **[E]** compact mode: the info page is a sheet (c) that closes by swiping down; information may be missing there. **[E]** standard mode: the info page is its own page with tabs and an overview of the levels (a, variant 2). **[V]** „what it unlocks and when“ (from b, variant 1) belongs into the standard page; whether the compact sheet shows it too is open. |
+| s1n names on the map | variant 1 = c, names on tap | note: „durch farbe kann man hier sicher gut erklären, was man wo sieht. wichtig ist, dass die farbliche sprache dann aber einheitlich ist und man schnell zwischen fremden spielern, feinden, gilden, freunde und man selbst unterscheiden kann“ | **[E]** names appear on tap. **[E]** one colour language everywhere that tells apart self, friends, guild, enemies and other players. Friends have no colour yet; r1b-quest asks how they look and who counts as an enemy. |
+| r1 questions | – | device: Desktop · visit: 2 bis 10 Minuten · first look: „was ist passiert, was könnte ich jetzt machen und dann abwägen“ · focus: schnell erfassen, was los ist; wenige Klicks; Atmosphäre und Optik; mit dem Daumen bedienbar · missing: „gerne auch desktop ansichten mich abfragen, bisher nur handy.“ | **[E]** the owner plays mostly on the desktop, in visits of 2–10 minutes. **[E]** the first look answers: what happened, what can I do now. **[V]** desktop views move forward: right after round 2, the round-1 winners on the desktop. |
+| r1b Brut | variant 1 = b, chitin | answer (should terms change per race): „ja“ · note: „mit wabern meinte ich so ein organisches ding wie bei starcraft 2. dass das interface dann eben organische“ (sentence ends there) | **[E]** terms change per race. **[E]** Brut leads with chitin; the wobbling the owner means is an organic interface in the spirit of StarCraft II's Zerg (inspiration only, own design). r1b-quest asks how the sentence goes on. |
 
 ## Open work
 
-* Read the remaining picks of round 1 (s1n, questions) and of round 1b.
+* Read the picks of round 1b (ewige, r1b-quest) and round 2.
+* Build the desktop round of the round-1 winners and append it after round 2.
 * Build round 2 from them (stations 5–7 and a repeat of the winners).
 * At the end: rewrite #388 and the design study; carry the decisions [E]
   into the feature files they concern (#158, #155, #236).

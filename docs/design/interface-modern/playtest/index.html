@@ -326,6 +326,9 @@
     top: calc(env(safe-area-inset-top, 0px) + 12px);
     right: max(12px, env(safe-area-inset-right, 0px));
   }
+  .banner.claude {
+    border-color: var(--gold);
+  }
   .banner {
     border: 1px solid var(--line);
     border-radius: 6px;
@@ -353,13 +356,19 @@
     </p>
     <p class="dim">
       Alles wird gespeichert, sobald du wählst oder schreibst; Claude liest es
-      und passt die nächsten Situationen daran an. Situationen kommen ruhig
+      und passt die nächsten Situationen daran an. Neue Situationen erscheinen
+      von selbst, ohne dass die Seite neu lädt. Situationen kommen ruhig
       mehrmals, damit wir sicher sind.
     </p>
     <ol class="loop" id="loop" aria-label="Spielablauf"></ol>
     <div class="banner state" id="conn">Speicher wird verbunden …</div>
+    <div class="banner claude" id="claude" role="status" hidden></div>
   </header>
-  <main id="rounds"></main>
+  <main id="rounds">
+    <p class="dim" id="count"></p>
+    <div id="current"></div>
+    <div id="hist"></div>
+  </main>
 </div>
 
 <div class="lightbox" id="lightbox" hidden>
@@ -383,282 +392,20 @@
     'Gilde, Chat, Herold, Börse',
     'Abwesenheit & Hinweise',
   ];
-  const EMPH = {
-    a: 'Schwerpunkt Browser-Strategie (Travian, Forge of Empires, Grepolis)',
-    b: 'Schwerpunkt 4X / Weltraum (Stellaris, EVE Online)',
-    c: 'Schwerpunkt Mobile Strategie (Clash of Clans, Rise of Kingdoms)',
+  // The steps come from the store (collection `queue`, one document per
+  // step, ordered by `seq`); Claude appends new steps there and the page
+  // shows them without a reload. `status/claude` carries Claude's note on
+  // what comes next.
+  let STEPS = [];
+  const state = {
+    picks: {},
+    answers: {},
+    db: null,
+    drafts: {},
+    queue: [],
+    ready: false,
+    shown: null,
   };
-  const ROUNDS = [
-    {
-      id: 'r1',
-      title: 'Runde 1 · Ankommen und bauen',
-      stations: [0, 0, 1, 2, 3, 0],
-      situations: [
-        {
-          id: 's1m',
-          title: 'Direkt nach dem Login: die Galaxiekarte',
-          text: 'Deine drei Welten liegen alle in System 1:27, so wie die meisten Spieler ihr System besiedeln. Die Karte zeigt deshalb Systeme und die Routen zwischen Spielern; das Dashboard liegt unten als Schieber zum Hochziehen. Nox wird um 14:32 angegriffen, Mira aus deiner Gilde hält Nox, du spionierst Varn aus.',
-          order: 'bca',
-          desc: {
-            a: 'Jedes System ein Stern; ein Punkt je besetzter Position, farbig nach Besitzer; Routen als Bögen zwischen den Systemen.',
-            b: 'Systeme in ihrer Nummernfolge auf einem Spiralarm: nah auf der Karte heißt kurzer Flug; Routen mit der Zahl der Systeme.',
-            c: 'Spieler statt Planeten: eine Marke je Spieler mit der Zahl seiner Welten; Routen zwischen Spielern; ein System als Liste beim Antippen.',
-          },
-          emph: {
-            a: 'Darstellung: Sterne mit Punkten je Position',
-            b: 'Darstellung: Spirale nach Systemnummer',
-            c: 'Darstellung: Spieler-Marken',
-          },
-          ask: 'Soll die Karte nach dem Login auf dein eigenes System gezoomt sein oder die ganze Galaxie zeigen?',
-        },
-        {
-          id: 's1s',
-          title: 'In dein System hineinzoomen',
-          text: 'Du tippst auf dein System 1:27. Es hat 15 Positionen; drei gehören dir (Nox, Aurelia, Vesper), auf 14 liegt der Stille Hafen von Leander, der Rest ist frei. Der Lage-Schieber bleibt unten.',
-          order: 'cab',
-          desc: {
-            a: 'Umlaufbahnen von der Sonne aus; Welten mit Bild, Name und Zustand an ihrer Position.',
-            b: 'Liste der 15 Positionen; eigene Welten hervorgehoben, freie Plätze mit „besiedeln“; blättern zu 1:26 und 1:28.',
-            c: 'Ring um die Sonne wie eine Uhr; 15 Plätze, eigene Welten groß mit blauem Rand.',
-          },
-          emph: {
-            a: 'Darstellung: Umlaufbahnen',
-            b: 'Darstellung: Liste',
-            c: 'Darstellung: Ring',
-          },
-          ask: 'Was willst du in der System-Ansicht bei fremden Welten sehen? (z. B. Spieler, Aktivität, Alter deines Spionageberichts, Trümmerfeld, Mond)',
-        },
-        {
-          id: 's2m',
-          title: 'Den Lage-Schieber hochziehen',
-          text: 'Der Schieber mit der Lage ist überall unten und lässt sich hochziehen. Hier geht es nur um seinen Inhalt: Was passiert ist, was läuft, was die anderen tun.',
-          order: 'bca',
-          desc: {
-            a: 'Gruppen zum Auf- und Zuklappen (Angeheftet, Kämpfe, Forschung, die anderen, Befunde) und deine Welten mit Fortschritt.',
-            b: 'Eine Zeitleiste: oben was passiert ist, eine Linie „jetzt“, unten was kommt – Bauten, Flotten, der Angriff.',
-            c: '„Jetzt handeln“ zuerst, mit Knöpfen; darunter knapp was läuft und was die anderen tun.',
-          },
-          emph: {
-            a: 'Inhalt: Gruppen',
-            b: 'Inhalt: Zeitleiste',
-            c: 'Inhalt: Jetzt handeln',
-          },
-          ask: 'Soll der Schieber beim Öffnen des Spiels nur eine Zeile zeigen, halb offen sein oder ganz offen?',
-        },
-        {
-          id: 's3',
-          title: 'Bauen auf Feldern (#158)',
-          text: 'Du willst auf Aurelia ein Gebäude setzen. Die Oberfläche hat Felder mit Eigenschaften (Erzader, Sonnenhang, Gebirge …). Die Regeln dazu sind noch offen; es geht nur um die Bedienung.',
-          order: 'acb',
-          desc: {
-            a: 'Quadratische Felder; Feld antippen, sehen was dort wie gut läuft, „Hier bauen“.',
-            b: 'Sechseck-Felder mit Ebenen Ertrag und Nachbarn; Vergleichstabelle im Blatt.',
-            c: 'Gebäude aus der Leiste auf ein Feld ziehen; jedes Feld zeigt dabei den Ertrag; erst „Bestätigen“ baut.',
-          },
-        },
-        {
-          id: 's4',
-          title: 'Kompakt-Modus: Infoseite eines Gebäudes',
-          text: 'Im Kompakt-Modus tippst du auf die Servitorenschmiede. Es fehlt Promethium; leistbar wäre sie um 18:39.',
-          order: 'bac',
-          desc: {
-            a: 'Eigene Seite mit Reitern; Kosten Zeile für Zeile grün oder rot; „Erinnern, wenn leistbar“.',
-            b: 'Fenster mit Stufentabelle, Kosten und Abhängigkeiten; „In Warteschlange“.',
-            c: 'Großes Blatt: Bild, ein Satz Wirkung, Kosten als farbige Chips, großer Knopf; wischen zum nächsten Gebäude.',
-          },
-        },
-        {
-          id: 's1n',
-          title: 'Noch einmal die Galaxiekarte: Namen der Spieler',
-          text: 'Du hast die Karte mit einem Punkt je besetzter Position gewählt. Hier dieselbe Karte, dreimal anders mit den Namen der Spieler.',
-          order: 'cab',
-          desc: {
-            a: 'Die Namen stehen immer am System (z. B. „Haus Valcor ×3“, „Mira, Sev“).',
-            b: 'Ohne Namen in der ganzen Galaxie; eine Stufe hineingezoomt steht an jedem Punkt Position und Name.',
-            c: 'Ohne Namen; ein Antippen des Systems zeigt eine kleine Karte mit Positionen und Spielern.',
-          },
-          emph: {
-            a: 'Namen: immer am System',
-            b: 'Namen: ab der zweiten Zoomstufe',
-            c: 'Namen: beim Antippen',
-          },
-        },
-      ],
-      questions: [
-        {
-          id: 'focus',
-          type: 'multi',
-          label: 'Worauf achtest du beim Vergleichen am meisten?',
-          options: [
-            'schnell erfassen, was los ist',
-            'wenige Klicks',
-            'Atmosphäre und Optik',
-            'alles auf einen Blick',
-            'mit dem Daumen bedienbar',
-            'vertraut, wie früher',
-          ],
-        },
-        {
-          id: 'device',
-          type: 'one',
-          label: 'Wo spielst du meistens?',
-          options: ['Handy', 'Desktop', 'beides gleich'],
-        },
-        {
-          id: 'visit',
-          type: 'one',
-          label: 'Wie lange dauert ein typischer Besuch?',
-          options: [
-            'unter 2 Minuten',
-            '2 bis 10 Minuten',
-            'länger als 10 Minuten',
-          ],
-        },
-        {
-          id: 'first',
-          type: 'text',
-          label: 'Was willst du direkt nach dem Login als Erstes wissen?',
-        },
-        {
-          id: 'next',
-          type: 'text',
-          label:
-            'Was soll ich in der nächsten Runde zeigen oder anders machen?',
-        },
-      ],
-    },
-    {
-      id: 'r1b',
-      title: 'Runde 1b · Die Rassen',
-      stations: [0, 0],
-      situations: [
-        {
-          id: 'brut',
-          ext: 'gif',
-          title: 'Die Brut: dieselbe Karte',
-          text: 'Wer die Brut spielt, bekommt eine eigene Oberfläche; der Aufbau bleibt gleich (Karte, Lage-Schieber, Leiste). Die Bilder bewegen sich. Begriffe wie „Nest“ oder „Witterung“ sind nur Beispiele.',
-          order: 'bca',
-          desc: {
-            a: 'Membran: weiche, sich verformende Ränder, pulsierende Adern im Hintergrund, Nester wabern.',
-            b: 'Chitin: harte Panzerplatten in Waben, Nähte glühen im Takt, die Fläche atmet langsam.',
-            c: 'Schwarm: überall krabbelnde Punkte, Ränder aus Gewimmel, Nester wabern.',
-          },
-          emph: { a: 'Brut: Membran', b: 'Brut: Chitin', c: 'Brut: Schwarm' },
-          ask: 'Sollen sich je Rasse auch die Begriffe ändern (z. B. „Nest“ statt „Planet“, „Witterung“ statt „Lage“), oder nur das Aussehen?',
-        },
-        {
-          id: 'ewige',
-          ext: 'gif',
-          title: 'Die Ewigen: dieselbe Karte',
-          text: 'Die Ewigen sind die Maschinen-Rasse: langsam, kühl, präzise. Auch hier bleibt der Aufbau gleich; die Bilder bewegen sich leicht.',
-          order: 'cab',
-          desc: {
-            a: 'Monolith: schwarze Flächen, abgeschnittene Ecken, feines Raster, ein Lichtstreifen wandert über die Karte.',
-            b: 'Uhrwerk: Ringe um dein System drehen sich langsam, Ränder ticken wie ein Zeiger.',
-            c: 'Kristallgitter: Waben-Gitter, ein Lichtpunkt läuft die Kanten entlang, Flächen wie geschliffen.',
-          },
-          emph: {
-            a: 'Ewige: Monolith',
-            b: 'Ewige: Uhrwerk',
-            c: 'Ewige: Kristallgitter',
-          },
-          ask: 'Wie viel Bewegung soll die Oberfläche der Ewigen haben: so ruhig wie hier, mehr, oder gar keine?',
-        },
-      ],
-      questions: [],
-    },
-    {
-      id: 'r2',
-      title: 'Runde 2 · Forschen, verteidigen, auskundschaften',
-      stations: [4, 5, 6],
-      situations: [
-        {
-          id: 's5',
-          title: 'Forschung: Plasma-Lehre ist das Ziel',
-          text: 'Du willst die Plasma-Lehre. Dafür fehlt Ionen-Lehre 5; Warp-Antrieb 5 läuft noch bis 16:32. Kosten aus dem Katalog, Zeiten sind Beispiele.',
-          order: 'cab',
-          desc: {
-            a: 'Kompakt-Raster aller Forschungen; antippen öffnet die Infoseite mit „In die Forschungsschlange“.',
-            b: 'Ein Baum der Voraussetzungen; der Weg zum Ziel ist hervorgehoben.',
-            c: 'Ein Ziel wählen; das Spiel zeigt die Schritte dahin, Kosten, Gesamtzeit, und legt alle in die Schlange.',
-          },
-          emph: {
-            a: 'Ansicht: Raster',
-            b: 'Ansicht: Baum',
-            c: 'Ansicht: Ziel mit Weg',
-          },
-          ask: 'Soll man mehrere Forschungen vormerken können (eine Schlange), auch wenn das Spiel heute nur eine auf einmal forscht?',
-        },
-        {
-          id: 's6',
-          title: 'Abwehr auf Nox vor dem Angriff',
-          text: 'Nox wird um 14:32 angegriffen. Auf Nox liegen 61 k Adamant, 33 k Psikristall, 12 k Promethium. Kosten aus dem Katalog, Bauzeiten sind Beispiele.',
-          order: 'bca',
-          desc: {
-            a: 'Kompakt-Raster der Abwehr; antippen, Menge wählen, sehen ob sie vor dem Angriff fertig wird.',
-            b: 'Eine Anlage groß, die Menge ziehen; Rohstoff-Balken und eine Zeitleiste bis zum Angriff.',
-            c: '„Was schaffst du bis 14:32?“: Vorschläge, die mit den Rohstoffen vor dem Angriff fertig werden.',
-          },
-          emph: {
-            a: 'Ansicht: Raster + Menge',
-            b: 'Ansicht: Menge mit Zeitleiste',
-            c: 'Ansicht: Vorschläge bis zum Termin',
-          },
-          ask: 'Woran entscheidest du, was du gegen einen Angriff baust? (Stärke des Angreifers, Rohstoffe, Zeit, Hilfe der Gilde …)',
-        },
-        {
-          id: 's7',
-          title: 'Spionage',
-          text: 'Du willst wissen, ob sich ein Angriff auf Varn lohnt. Dein letzter Bericht ist 26 Stunden alt; nur eigene Berichte unter 24 Stunden gelten als aktuell (#160).',
-          order: 'acb',
-          desc: {
-            a: 'Aus der System-Ansicht: Varn antippen, im Schieber Alter des Berichts sehen und Spähschädel losschicken.',
-            b: 'Eine Liste deiner Ziele mit Alter des Berichts und geschätzter Beute; mehrere auf einmal ausspionieren.',
-            c: 'Eine Kartenebene „Alter der Berichte“: jede Welt zeigt, wie alt dein Bericht ist; antippen schickt Spähschädel los.',
-          },
-          emph: {
-            a: 'Ansicht: aus dem System',
-            b: 'Ansicht: Zielliste',
-            c: 'Ansicht: Kartenebene',
-          },
-          ask: 'Sollen mehrere Ziele auf einmal ausspioniert werden können, oder ist das zu nah an „Automatisierung“ (#181)?',
-        },
-      ],
-      questions: [
-        {
-          id: 'pace',
-          type: 'one',
-          label: 'Wie fühlt sich das Tempo der Situationen an?',
-          options: [
-            'zu langsam, mehr auf einmal',
-            'genau richtig',
-            'zu schnell',
-          ],
-        },
-        {
-          id: 'next',
-          type: 'text',
-          label: 'Was fehlt dir bisher in den Varianten am meisten?',
-        },
-      ],
-    },
-  ];
-
-  // One step at a time: the situations of every round in order, each round
-  // closed by its questions. The page shows the first step not done yet.
-  const STEPS = ROUNDS.flatMap((r) => [
-    ...r.situations.map((s, i) => ({
-      kind: 'sit',
-      r,
-      s,
-      i,
-      key: r.id + '-' + s.id,
-    })),
-    ...(r.questions && r.questions.length
-      ? [{ kind: 'quest', r, key: r.id + '-quest' }]
-      : []),
-  ]);
-  const state = { picks: {}, answers: {}, db: null, drafts: {} };
   const $ = (sel, el = document) => el.querySelector(sel);
   const esc = (s) =>
     String(s).replace(
@@ -668,7 +415,20 @@
   const isDone = (st) =>
     st.kind === 'sit'
       ? Boolean((state.picks[st.key] || {}).done)
-      : Boolean((state.answers[st.r.id] || {}).updated);
+      : Boolean((state.answers[st.q.round] || {}).updated);
+  const current = () => STEPS.find((st) => !isDone(st));
+  const sits = () => STEPS.filter((st) => st.kind === 'sit');
+
+  function buildSteps() {
+    STEPS = state.queue
+      .slice()
+      .sort((x, y) => (x.seq || 0) - (y.seq || 0))
+      .map((q) => ({
+        kind: q.kind === 'quest' ? 'quest' : 'sit',
+        key: q.key,
+        q,
+      }));
+  }
 
   function setConn(text, cls) {
     const el = $('#conn');
@@ -679,12 +439,10 @@
   function renderLoop() {
     const done = new Set();
     const now = new Set();
-    const cur = STEPS.find((st) => !isDone(st));
-    for (const st of STEPS) {
-      if (st.kind !== 'sit') continue;
-      const station = st.r.stations[st.i];
-      if (isDone(st)) done.add(station);
-      if (cur === st) now.add(station);
+    const cur = current();
+    for (const st of sits()) {
+      if (isDone(st)) done.add(st.q.station);
+      if (cur === st) now.add(st.q.station);
     }
     $('#loop').innerHTML = LOOP.map(
       (s, i) =>
@@ -693,33 +451,34 @@
   }
 
   function sitHtml(st) {
-    const { r, s } = st;
+    const q = st.q;
     const pick = state.picks[st.key] || {};
-    const opts = [...s.order]
+    const opts = [...q.order]
       .map((e, i) => {
         const n = i + 1;
+        const v = q.variants[e];
         const chosen = pick.choice === n;
         const reveal = pick.choice
-          ? `<span class="emph">${esc((s.emph || EMPH)[e])}</span>`
+          ? `<span class="emph">${esc(v.emph)}</span>`
           : '';
         return `<div class="opt${chosen ? ' chosen' : ''}">
           <span class="lab">Variante ${n}</span>
-          <img src="img/${r.id}-${s.id}-${e}.${s.ext || 'jpg'}" alt="Variante ${n}: ${esc(s.desc[e])}" tabindex="0" data-zoom="img/${r.id}-${s.id}-${e}.${s.ext || 'jpg'}" />
-          <span class="desc">${esc(s.desc[e])}</span>${reveal}
+          <img src="${esc(v.img)}" alt="Variante ${n}: ${esc(v.desc)}" tabindex="0" data-zoom="${esc(v.img)}" />
+          <span class="desc">${esc(v.desc)}</span>${reveal}
           <button type="button" data-pick="${st.key}|${n}|${e}">${chosen ? 'Gewählt ✓' : 'Diese gefällt mir besser'}</button>
         </div>`;
       })
       .join('');
     return `<section class="sit" aria-labelledby="h-${st.key}">
-      <div class="sit-head"><span class="no">${esc(r.title.toUpperCase())}</span><h3 id="h-${st.key}">${esc(s.title)}</h3></div>
-      <p>${esc(s.text)}</p>
+      <div class="sit-head"><span class="no">${esc(q.roundTitle.toUpperCase())}</span><h3 id="h-${st.key}">${esc(q.title)}</h3></div>
+      <p>${esc(q.text)}</p>
       <div class="opts">${opts}</div>
       <div class="note">
         <label for="note-${st.key}">Was gefällt dir an deiner Wahl besonders? Was würdest du ändern?</label>
         <textarea id="note-${st.key}" data-note="${st.key}" placeholder="z. B. „Die Knöpfe unten, aber die Zeiten oben sind mir zu klein.“">${esc(pick.note || '')}</textarea>
         ${
-          s.ask
-            ? `<label for="ans-${st.key}" class="ask">Rückfrage von Claude: ${esc(s.ask)}</label>
+          q.ask
+            ? `<label for="ans-${st.key}" class="ask">Rückfrage von Claude: ${esc(q.ask)}</label>
         <textarea id="ans-${st.key}" data-answer="${st.key}">${esc(pick.answer || '')}</textarea>`
             : ''
         }
@@ -732,72 +491,103 @@
   }
 
   function questHtml(st) {
-    const r = st.r;
-    const a = state.answers[r.id] || {};
-    const qs = r.questions
-      .map((q) => {
-        if (q.type === 'text') {
-          return `<fieldset><legend>${esc(q.label)}</legend>
-            <textarea id="q-${r.id}-${q.id}" name="${q.id}">${esc(a[q.id] || '')}</textarea></fieldset>`;
+    const q = st.q;
+    const a = state.answers[q.round] || {};
+    const qs = (q.questions || [])
+      .map((x) => {
+        if (x.type === 'text') {
+          return `<fieldset><legend>${esc(x.label)}</legend>
+            <textarea id="q-${q.round}-${x.id}" name="${x.id}">${esc(a[x.id] || '')}</textarea></fieldset>`;
         }
-        const multi = q.type === 'multi';
-        const have = multi ? a[q.id] || [] : [a[q.id]];
-        const items = q.options
+        const multi = x.type === 'multi';
+        const have = multi ? a[x.id] || [] : [a[x.id]];
+        const items = x.options
           .map(
             (o, i) =>
-              `<label><input type="${multi ? 'checkbox' : 'radio'}" id="q-${r.id}-${q.id}-${i}" name="${q.id}" value="${esc(o)}"${have.includes(o) ? ' checked' : ''} /> ${esc(o)}</label>`,
+              `<label><input type="${multi ? 'checkbox' : 'radio'}" id="q-${q.round}-${x.id}-${i}" name="${x.id}" value="${esc(o)}"${have.includes(o) ? ' checked' : ''} /> ${esc(o)}</label>`,
           )
           .join('');
-        return `<fieldset><legend>${esc(q.label)}</legend><div class="choices">${items}</div></fieldset>`;
+        return `<fieldset><legend>${esc(x.label)}</legend><div class="choices">${items}</div></fieldset>`;
       })
       .join('');
-    return `<form class="quest" data-round="${r.id}">
-      <h3>${esc(r.title)} · kurze Fragen an dich</h3>
+    return `<form class="quest" data-round="${q.round}">
+      <h3>${esc(q.roundTitle)} · kurze Fragen an dich</h3>
       ${qs}
-      <div class="row"><button type="submit">Speichern und weiter</button><span class="state" id="qs-${r.id}"></span></div>
+      <div class="row"><button type="submit">Speichern und weiter</button><span class="state" id="qs-${q.round}"></span></div>
     </form>`;
   }
 
   function historyHtml() {
-    const done = STEPS.filter((st) => st.kind === 'sit' && isDone(st));
+    const done = sits().filter(isDone);
     if (!done.length) return '';
     const items = done
       .map((st) => {
         const p = state.picks[st.key];
+        const v = st.q.variants[p.emphasis] || {};
         const note = p.note
           ? ` · „${esc(p.note.length > 90 ? p.note.slice(0, 90) + '…' : p.note)}“`
           : '';
-        return `<li><img src="img/${st.r.id}-${st.s.id}-${p.emphasis}.${st.s.ext || 'jpg'}" alt="" />
-          <div><b>${esc(st.s.title)}</b><br /><span class="dim">Variante ${p.choice} · ${esc((st.s.emph || EMPH)[p.emphasis])}${note}</span></div>
+        return `<li><img src="${esc(v.img || '')}" alt="" />
+          <div><b>${esc(st.q.title)}</b><br /><span class="dim">Variante ${p.choice} · ${esc(v.emph || '')}${note}</span></div>
           <button type="button" class="ghost" data-undo="${st.key}">Ändern</button></li>`;
       })
       .join('');
     return `<section class="hist" aria-labelledby="h-hist"><h3 id="h-hist">Bisher gewählt</h3><ul>${items}</ul></section>`;
   }
 
-  function render() {
-    const cur = STEPS.find((st) => !isDone(st));
-    const pos = cur
-      ? STEPS.filter((st) => st.kind === 'sit').indexOf(cur) + 1
-      : 0;
-    const total = STEPS.filter((st) => st.kind === 'sit').length;
-    let body;
-    if (!cur) {
-      body = `<section class="sit"><h3>Alles für jetzt erledigt</h3><p>Danke! Sag Claude kurz Bescheid; die nächste Situation kommt auf dieselbe Seite.</p></section>`;
-    } else if (cur.kind === 'sit') {
-      body =
-        `<p class="dim">Situation ${pos} von ${total} bisher vorbereiteten</p>` +
-        sitHtml(cur);
-    } else {
-      body = questHtml(cur);
+  function waitingHtml() {
+    return `<section class="sit wait"><h3>Claude bereitet die nächste Situation vor</h3>
+      <p>Du musst nichts tun. Sobald sie fertig ist, erscheint sie hier von selbst; die Seite lädt dabei nicht neu.</p></section>`;
+  }
+
+  // The current step is drawn again only when it changes (or on `force`),
+  // so new steps arriving in the background never touch what you type.
+  function render(force) {
+    const cur = current();
+    const key = !state.ready ? 'loading' : cur ? cur.key : 'waiting';
+    if (force || key !== state.shown) {
+      let body;
+      if (!state.ready)
+        body = `<section class="sit"><p class="dim">Lade die Situationen …</p></section>`;
+      else if (!cur) body = waitingHtml();
+      else if (cur.kind === 'sit') body = sitHtml(cur);
+      else body = questHtml(cur);
+      $('#current').innerHTML = body;
+      for (const [id, v] of Object.entries(state.drafts || {})) {
+        const el = document.getElementById(id);
+        if (el && el.tagName === 'TEXTAREA' && !el.value) el.value = v;
+      }
+      state.drafts = {};
+      state.shown = key;
     }
-    $('#rounds').innerHTML = body + historyHtml();
-    for (const [id, v] of Object.entries(state.drafts || {})) {
-      const el = document.getElementById(id);
-      if (el && el.tagName === 'TEXTAREA' && !el.value) el.value = v;
-    }
-    state.drafts = {};
+    const all = sits();
+    const pos = cur && cur.kind === 'sit' ? all.indexOf(cur) + 1 : 0;
+    const left = all.filter((st) => !isDone(st)).length;
+    $('#count').textContent = !state.ready
+      ? ''
+      : pos
+        ? `Situation ${pos} von ${all.length} bisher vorbereiteten · noch ${left} offen`
+        : cur
+          ? 'Kurze Fragen zur Runde'
+          : `${all.length} Situationen erledigt`;
+    $('#hist').innerHTML = historyHtml();
     renderLoop();
+  }
+
+  function renderStatus(d) {
+    const el = $('#claude');
+    if (!d || !d.text) {
+      el.hidden = true;
+      return;
+    }
+    const t = d.updated
+      ? new Date(d.updated).toLocaleTimeString('de-DE', {
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+      : '';
+    el.innerHTML = `<b>Claude${t ? ' · ' + esc(t) : ''}:</b> ${esc(d.text)}`;
+    el.hidden = false;
   }
 
   async function save(path, data) {
@@ -835,7 +625,7 @@
 
   function rerenderKeepingScroll() {
     const y = window.scrollY;
-    render();
+    render(true);
     window.scrollTo(0, y);
   }
 
@@ -844,18 +634,16 @@
     if (b) {
       const [key, n, e] = b.dataset.pick.split('|');
       const note = $('#note-' + key);
-      state.picks[key] = {
-        ...(state.picks[key] || {}),
+      const ans = $('#ans-' + key);
+      const data = {
         choice: Number(n),
         emphasis: e,
         note: note ? note.value : '',
+        ...(ans ? { answer: ans.value } : {}),
       };
+      state.picks[key] = { ...(state.picks[key] || {}), ...data };
       rerenderKeepingScroll();
-      savePick(key, {
-        choice: Number(n),
-        emphasis: e,
-        note: note ? note.value : '',
-      });
+      savePick(key, data);
       return;
     }
     const nx = ev.target.closest('[data-next]');
@@ -937,23 +725,27 @@
     const f = ev.target.closest('form.quest');
     if (!f) return;
     ev.preventDefault();
-    const r = ROUNDS.find((x) => x.id === f.dataset.round);
-    const out = { round: r.id, updated: new Date().toISOString() };
-    for (const q of r.questions) {
-      if (q.type === 'multi')
-        out[q.id] = [
-          ...f.querySelectorAll(`input[name="${q.id}"]:checked`),
+    const st0 = STEPS.find(
+      (x) => x.kind === 'quest' && x.q.round === f.dataset.round,
+    );
+    if (!st0) return;
+    const q = st0.q;
+    const out = { round: q.round, updated: new Date().toISOString() };
+    for (const x of q.questions || []) {
+      if (x.type === 'multi')
+        out[x.id] = [
+          ...f.querySelectorAll(`input[name="${x.id}"]:checked`),
         ].map((i) => i.value);
-      else if (q.type === 'one')
-        out[q.id] =
-          (f.querySelector(`input[name="${q.id}"]:checked`) || {}).value || '';
-      else out[q.id] = f.querySelector(`textarea[name="${q.id}"]`).value;
+      else if (x.type === 'one')
+        out[x.id] =
+          (f.querySelector(`input[name="${x.id}"]:checked`) || {}).value || '';
+      else out[x.id] = f.querySelector(`textarea[name="${x.id}"]`).value;
     }
-    const st = $('#qs-' + r.id);
+    const st = $('#qs-' + q.round);
     try {
       st.textContent = 'Speichert …';
-      await save('answers/' + r.id, out);
-      state.answers[r.id] = out;
+      await save('answers/' + q.round, out);
+      state.answers[q.round] = out;
       render();
       window.scrollTo(0, 0);
     } catch (e) {
@@ -973,8 +765,8 @@
     window.claude.hot.snapshot(drafts);
   function start(data) {
     state.drafts = (data && data.drafts) || {};
+    state.y = (data && data.y) || 0;
     render();
-    if (data && data.y) window.scrollTo(0, data.y);
   }
   if (window.claude && window.claude.hot && window.claude.hot.ready)
     window.claude.hot.ready(start);
@@ -1007,24 +799,42 @@
         db.collection('picks').get(),
         db.collection('answers').get(),
       ]);
-      clearTimeout(slow);
       for (const d of p.docs) state.picks[d.id] = { ...d.data() };
       for (const d of a.docs) state.answers[d.id] = { ...d.data() };
-      setConn(
-        'Speicher verbunden. Deine Wahl wird automatisch gespeichert.',
-        'ok',
-      );
-      if (
-        !document.activeElement ||
-        document.activeElement.tagName !== 'TEXTAREA'
-      )
-        render();
     } catch (e) {
       clearTimeout(slow);
       setConn(
         'Speicher nicht erreichbar. Bitte die Seite später neu öffnen.',
         'bad',
       );
+      return;
     }
+    // Live: new steps and Claude's note arrive without a reload.
+    db.collection('queue').onSnapshot(
+      (snap) => {
+        clearTimeout(slow);
+        state.queue = snap.docs.map((d) => ({ key: d.id, ...d.data() }));
+        buildSteps();
+        const first = !state.ready;
+        state.ready = true;
+        setConn(
+          'Speicher verbunden. Deine Wahl wird automatisch gespeichert; neue Situationen erscheinen von selbst.',
+          'ok',
+        );
+        render();
+        if (first && state.y) window.scrollTo(0, state.y);
+      },
+      () => {
+        clearTimeout(slow);
+        setConn(
+          'Die Verbindung für neue Situationen ist abgerissen. Bitte die Seite neu öffnen.',
+          'bad',
+        );
+      },
+    );
+    db.doc('status/claude').onSnapshot(
+      (d) => renderStatus(d.exists ? d.data() : null),
+      () => renderStatus(null),
+    );
   })();
 </script>
