@@ -1,30 +1,30 @@
 {
-  "seq": 430,
+  "ask": "Sollen die Knochen überall gleich sein, oder je nach Fläche verschieden (z. B. Rippen oben, Wirbel am Blatt)?",
+  "id": "brut7",
   "kind": "sit",
+  "order": "bca",
   "round": "r6",
   "roundTitle": "Runde 6 · Wiederholungen",
-  "station": 0,
-  "id": "brut7",
+  "seq": 430,
   "short": "Brut: Knochen",
-  "title": "Die Brut ein siebtes Mal: echte Knochen",
+  "station": 0,
   "text": "Deine Wahl: ruhiges Chitin mit zähem Schleim, genau so; dazu jetzt echt wirkende Knochen für mehr Schmodder. Die Knochen sind beleuchtetes Relief in gedämpftem Elfenbein, teils mit Schleim. Mit der Option „keine Animationen“ steht alles still.",
-  "order": "bca",
+  "title": "Die Brut ein siebtes Mal: echte Knochen",
   "variants": {
     "a": {
-      "img": "/_blob/13aa65cbbb15bb481f801e210f2f3e3f",
       "desc": "Rippen hängen von der oberen Leiste, Schleim tropft und hängt zwischen ihnen.",
-      "emph": "Brut-Knochen: Rippen"
+      "emph": "Brut-Knochen: Rippen",
+      "img": "/_blob/13aa65cbbb15bb481f801e210f2f3e3f"
     },
     "b": {
-      "img": "/_blob/31d974ce6e20d5bff7b4c5d563b72558",
       "desc": "Eine unregelmäßige Wirbelsäule läuft an der Kante von Blatt und Leiste entlang.",
-      "emph": "Brut-Knochen: Wirbel"
+      "emph": "Brut-Knochen: Wirbel",
+      "img": "/_blob/31d974ce6e20d5bff7b4c5d563b72558"
     },
     "c": {
-      "img": "/_blob/6c8127b8f62fba3784c76566b6729e64",
       "desc": "Knochensporne an den Ecken von Blatt und Leiste, Schleim hängt zwischen zwei Spornen.",
-      "emph": "Brut-Knochen: Sporne"
+      "emph": "Brut-Knochen: Sporne",
+      "img": "/_blob/6c8127b8f62fba3784c76566b6729e64"
     }
-  },
-  "ask": "Sollen die Knochen überall gleich sein, oder je nach Fläche verschieden (z. B. Rippen oben, Wirbel am Blatt)?"
+  }
 }

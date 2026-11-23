@@ -1,0 +1,30 @@
+{
+  "ask": "Soll ein Klick auf eine Welt deren Oberfläche als Fenster öffnen, oder zur Welt auf der Karte springen?",
+  "id": "d8",
+  "kind": "sit",
+  "order": "cab",
+  "round": "d8",
+  "roundTitle": "Desktop 5 · Welten, Menü, Gilde",
+  "seq": 460,
+  "short": "Desktop: Welten",
+  "station": 2,
+  "text": "Deine Wahl vom Handy: Karten je Welt mit Bild; in einer Welt zur nächsten wischen. Am Desktop gilt: Fenster über der Karte, das Lage-Blatt mittig mit fester Breite. Die Chat-Blase unten rechts ist weg (der Chat ist der Reiter „Funk“).",
+  "title": "Am Desktop: deine Welten",
+  "variants": {
+    "a": {
+      "desc": "Welten als Fenster mit Karten.",
+      "emph": "Desktop-Welten: Fenster",
+      "img": "/_blob/8bc699032ed336d5f0d8687bd06ceb72"
+    },
+    "b": {
+      "desc": "Eine schmale Leiste links mit allen Welten, immer sichtbar.",
+      "emph": "Desktop-Welten: Leiste links",
+      "img": "/_blob/ea8f055a5530739224bbcc29d43c8dfc"
+    },
+    "c": {
+      "desc": "Klick auf „Welten“ oben: eine Klappe mit großen Karten.",
+      "emph": "Desktop-Welten: Klappe oben",
+      "img": "/_blob/009ba89544a4125773fea12618c8f507"
+    }
+  }
+}

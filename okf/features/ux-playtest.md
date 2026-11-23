@@ -141,6 +141,7 @@ Taken from the code (views, missions, reports) and the open ideas:
 | 6d | Brut after research | brut6 calm colour, real slime (c·a·b) | done 2026-11-23 18:25 |
 | 6e | Brut with bones | brut7 ribs, spine, spurs on brut6 c (b·c·a) | done 2026-11-23 18:38 |
 | 6f | Ewige and Imperium prerendered | ewige8 bronze (a·c·b) · imperium8 today / gold / ornaments (b·c·a) | queued |
+| d8–d10 | desktop | d8 Welten (c·a·b) · d9 Menü (b·c·a) · d10 Gilde (a·c·b); the old chat bubble at the bottom right is gone (s12) | queued |
 | d3 | desktop: building on fields + info page (a three columns, b windows, c as on the phone; order c·a·b) | done 2026-11-23 16:35 |
 | 5 | more desktop views (building, info page) | planned | open |
 
@@ -206,7 +207,8 @@ s2 of version 1 (galaxy without systems; dashboard not yet a sheet).
 * Owner chose (2026-11-23 18:00): Brut once more, more desktop rounds, the rules into the feature issues (#382, #386, #155, #158, #154); not yet the rewrite of #388.
 * Rules handed to the feature issues as comments (2026-11-23): [#382](https://github.com/Heiss/nova-imperium/issues/382#issuecomment-7109729537), [#386](https://github.com/Heiss/nova-imperium/issues/386#issuecomment-7109730732), [#155](https://github.com/Heiss/nova-imperium/issues/155#issuecomment-7109731930), [#158](https://github.com/Heiss/nova-imperium/issues/158#issuecomment-7109733023), [#154](https://github.com/Heiss/nova-imperium/issues/154#issuecomment-7109734744). New idea issues (owner, 2026-11-23): queues through a special research (s5) [#391](https://github.com/Heiss/nova-imperium/issues/391); spying on several targets at once (s7) [#392](https://github.com/Heiss/nova-imperium/issues/392).
 * Owner chose (2026-11-23 18:33): Ewige as prerendered images, the Imperium in the same frames, more desktop views (Welten, Menü, Gilde); not yet the rewrite of #388.
-* Read ewige8, imperium8; build desktop d8 (Welten, Menü, Gilde).
+* Read ewige8, imperium8, d8–d10.
+* Mistake noted (2026-11-23): the desktop mockups d1–d7 still showed a chat bubble at the bottom right although s12 put the chat into the sheet; d8–d10 drop it; the rewrite must not carry it over.
 * Research for brut6 (2026-11-23): [Screen Rant, StarCraft II developer interview](https://screenrant.com/starcraft-2-developer-interview-10th-anniversary/) (Heart of the Swarm UI in a purple tone, flatter than before; console skins of similar size so they do not cover the game); [PC Gamer, Sam Didier](https://pcgamer.com/starcraft-ii-art-of-the-swarm-interview-with-sam-didier) and [GameSpot](https://www.gamespot.com/articles/blizzard-talks-starcraft-ii-art-design/1100-6171176/) (bold colour belongs to the units). No detailed description of the Zerg console itself was found; used as principles only.
 * After the race repeats: sum up and ask the owner whether more repeats are needed or #388 and the study get rewritten.
 * The loop is covered once (s1–s16, d1–d2). Next: repeats with variants inside the winners, and desktop views of the new winners.
