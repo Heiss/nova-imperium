@@ -1,0 +1,806 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Studie – Modern: Imperium</title>
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="modern.css" />
+  </head>
+  <body>
+    <div class="m-page">
+      <p class="m-cap">
+        Studie [V] · Kolonien, Rohstoffe und Energie · Werte sind Beispiele ·
+        Styling bleibt [E]
+      </p>
+      <h2 class="m-h">Heute</h2>
+      <div class="m-before">
+        <figure>
+          <img src="before/desktop-resources.png" alt="Heute auf dem Desktop" />
+          <figcaption>
+            Heute (main, Desktop): Rohstoffe nur je Planet als Zahlentabelle;
+            einen Blick über alle Welten gibt es nicht.
+          </figcaption>
+        </figure>
+        <figure style="display: flex; gap: 12px">
+          <img
+            src="before/phone-resources.png"
+            alt="Heute auf dem Handy"
+            style="width: 180px; flex: none"
+          />
+          <figcaption>
+            Heute (main, Handy 390 px). Aufgenommen am 2026-11-23 mit Testdaten.
+          </figcaption>
+        </figure>
+      </div>
+      <h2 class="m-h">
+        Desktop: alle Welten auf einen Blick, Produktion als Balken
+      </h2>
+      <div class="m-desk tall">
+        <div class="m-top">
+          <div class="m-logo">NOVA IMPERIUM</div>
+          <div class="m-planet">
+            <span
+              class="m-ball"
+              style="background-image: url(/planets/normal-1-surface.svg)"
+            ></span>
+            <div>
+              <b>Aurelia</b> <small>[1:27:8] ▾</small><br /><small
+                ><span class="m-dot warn"></span> Lager fast voll · 3
+                Welten</small
+              >
+            </div>
+          </div>
+          <div class="m-res">
+            <div class="m-r">
+              <img src="/icons/resources/small/metal.svg" alt="" /><b
+                >184.003</b
+              >
+              <div class="m-fill"><i style="width: 71%"></i></div>
+              <small class="">voll in 6 h 10 min</small>
+            </div>
+            <div class="m-r">
+              <img src="/icons/resources/small/crystal.svg" alt="" /><b
+                >92.001</b
+              >
+              <div class="m-fill hot"><i style="width: 88%"></i></div>
+              <small class="hot">voll in 1 h 40 min</small>
+            </div>
+            <div class="m-r">
+              <img src="/icons/resources/small/deuterium.svg" alt="" /><b
+                >41.000</b
+              >
+              <div class="m-fill"><i style="width: 34%"></i></div>
+              <small class="">+1.920 / h</small>
+            </div>
+            <div class="m-r">
+              <img src="/icons/resources/small/energy.svg" alt="" /><b
+                class="down"
+                >−120</b
+              ><small class="hot">Energie fehlt: Minen 94 %</small>
+            </div>
+          </div>
+          <div class="m-tools">
+            <div class="m-bell">
+              <svg
+                viewBox="0 0 24 24"
+                width="18"
+                height="18"
+                aria-hidden="true"
+              >
+                <path d="M6 16V11a6 6 0 0112 0v5l1.5 2h-15z" />
+                <path d="M10 20.5a2 2 0 004 0" /></svg
+              ><i>7</i>
+            </div>
+            <div class="m-mode">
+              <span class="on">Modern</span><span>Classic</span>
+            </div>
+          </div>
+        </div>
+        <div class="m-rail">
+          <div class="m-hub">
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+              <path d="M3 11l9-7 9 7v9h-6v-6H9v6H3z" /></svg
+            >Übersicht
+          </div>
+          <div class="m-hub">
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+              <circle cx="12" cy="12" r="6" />
+              <ellipse cx="12" cy="12" rx="10" ry="3.5" /></svg
+            >Planet
+          </div>
+          <div class="m-hub">
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+              <path d="M3 16l9-11 9 11-9-3z" />
+              <path d="M12 13v7" /></svg
+            >Flotte
+          </div>
+          <div class="m-hub">
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+              <circle cx="6" cy="7" r="2" />
+              <circle cx="17" cy="6" r="2" />
+              <circle cx="12" cy="17" r="2" />
+              <path d="M8 8l3 7M15 7l-2 8" /></svg
+            >Sternenkarte
+          </div>
+          <div class="m-hub">
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+              <rect x="4" y="4" width="16" height="16" rx="2" />
+              <path d="M8 9h8M8 13h8M8 17h5" /></svg
+            >Berichte<span class="m-cnt">7</span>
+          </div>
+          <div class="m-hub on">
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+              <circle cx="6" cy="12" r="3" />
+              <circle cx="18" cy="7" r="2.5" />
+              <circle cx="17" cy="17" r="2.5" />
+              <path d="M9 11l6.5-3M9 13l6 3" /></svg
+            >Imperium
+          </div>
+          <div class="m-sub on">Kolonien</div>
+          <div class="m-sub">Erfolge</div>
+          <div class="m-hub">
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+              <circle cx="9" cy="8" r="3" />
+              <circle cx="17" cy="9" r="2.5" />
+              <path d="M3 20c0-4 3-6 6-6s6 2 6 6M15 14c3 0 6 1.5 6 5" /></svg
+            >Gemeinschaft
+          </div>
+          <div class="m-railsep"></div>
+          <div class="m-hub">
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+              <path d="M4 5h7v15H4zM13 5h7v15h-7z" /></svg
+            >Lexicanum
+          </div>
+          <div class="m-hub">
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+              <circle cx="12" cy="12" r="3" />
+              <path
+                d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"
+              /></svg
+            >Optionen
+          </div>
+        </div>
+        <div class="m-body">
+          <div class="m-main">
+            <div class="m-title">
+              <h1>Kolonien</h1>
+              <span class="m-crumb">Imperium · alle Welten</span>
+              <div class="m-right">
+                <span class="m-chip on">Übersicht</span
+                ><span class="m-chip">Lager</span
+                ><span class="m-chip">Flotten</span
+                ><span class="m-chip">Abwehr</span>
+              </div>
+            </div>
+            <div class="m-card">
+              <table class="m-mini" style="font-size: 14px">
+                <tr>
+                  <th>Welt</th>
+                  <th>Adamant</th>
+                  <th>Psikristall</th>
+                  <th>Promethium</th>
+                  <th>Energie</th>
+                  <th>Bau</th>
+                  <th>Werft</th>
+                  <th>Flotten</th>
+                </tr>
+                <tr>
+                  <td>
+                    <div style="display: flex; gap: 8px; align-items: center">
+                      <span
+                        class="m-ball"
+                        style="
+                          background-image: url(/planets/normal-1-surface.svg);
+                        "
+                      ></span>
+                      <div>
+                        <b>Aurelia</b><br /><span
+                          class="m-dim"
+                          style="font-size: 12px"
+                          >[1:27:8]</span
+                        >
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <div style="display: flex; gap: 4px; align-items: center">
+                      <img
+                        src="/icons/resources/small/metal.svg"
+                        alt=""
+                        style="width: 14px"
+                      /><b class="m-num">184 k</b>
+                    </div>
+                    <div class="m-prog" style="height: 4px; margin: 2px 0">
+                      <i style="width: 71%; background: var(--gold)"></i>
+                    </div>
+                    <span style="font-size: 11.5px; color: var(--dim)"
+                      >voll 6 h</span
+                    >
+                  </td>
+                  <td>
+                    <div style="display: flex; gap: 4px; align-items: center">
+                      <img
+                        src="/icons/resources/small/crystal.svg"
+                        alt=""
+                        style="width: 14px"
+                      /><b class="m-num">92 k</b>
+                    </div>
+                    <div class="m-prog" style="height: 4px; margin: 2px 0">
+                      <i style="width: 88%; background: var(--orange)"></i>
+                    </div>
+                    <span style="font-size: 11.5px; color: var(--orange)"
+                      >voll 1 h 40</span
+                    >
+                  </td>
+                  <td>
+                    <div style="display: flex; gap: 4px; align-items: center">
+                      <img
+                        src="/icons/resources/small/deuterium.svg"
+                        alt=""
+                        style="width: 14px"
+                      /><b class="m-num">41 k</b>
+                    </div>
+                    <div class="m-prog" style="height: 4px; margin: 2px 0">
+                      <i style="width: 34%; background: var(--gold)"></i>
+                    </div>
+                    <span style="font-size: 11.5px; color: var(--dim)"
+                      >+1,9 k/h</span
+                    >
+                  </td>
+                  <td><span class="down">−120</span></td>
+                  <td>
+                    <div style="font-size: 12.5px">
+                      Psikristall-Steinbruch 16
+                    </div>
+                    <div class="m-prog" style="height: 4px">
+                      <i style="width: 64%"></i>
+                    </div>
+                  </td>
+                  <td>
+                    <div style="font-size: 12.5px">12 Fregatten</div>
+                    <div class="m-prog" style="height: 4px">
+                      <i style="width: 40%"></i>
+                    </div>
+                  </td>
+                  <td></td>
+                </tr>
+                <tr>
+                  <td>
+                    <div style="display: flex; gap: 8px; align-items: center">
+                      <span
+                        class="m-ball"
+                        style="
+                          background-image: url(/planets/wasser-0-surface.svg);
+                        "
+                      ></span>
+                      <div>
+                        <b>Nox</b><br /><span
+                          class="m-dim"
+                          style="font-size: 12px"
+                          >[1:31:4]</span
+                        >
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <div style="display: flex; gap: 4px; align-items: center">
+                      <img
+                        src="/icons/resources/small/metal.svg"
+                        alt=""
+                        style="width: 14px"
+                      /><b class="m-num">61 k</b>
+                    </div>
+                    <div class="m-prog" style="height: 4px; margin: 2px 0">
+                      <i style="width: 40%; background: var(--gold)"></i>
+                    </div>
+                    <span style="font-size: 11.5px; color: var(--dim)"
+                      >voll 11 h</span
+                    >
+                  </td>
+                  <td>
+                    <div style="display: flex; gap: 4px; align-items: center">
+                      <img
+                        src="/icons/resources/small/crystal.svg"
+                        alt=""
+                        style="width: 14px"
+                      /><b class="m-num">33 k</b>
+                    </div>
+                    <div class="m-prog" style="height: 4px; margin: 2px 0">
+                      <i style="width: 35%; background: var(--gold)"></i>
+                    </div>
+                    <span style="font-size: 11.5px; color: var(--dim)"
+                      >voll 9 h</span
+                    >
+                  </td>
+                  <td>
+                    <div style="display: flex; gap: 4px; align-items: center">
+                      <img
+                        src="/icons/resources/small/deuterium.svg"
+                        alt=""
+                        style="width: 14px"
+                      /><b class="m-num">12 k</b>
+                    </div>
+                    <div class="m-prog" style="height: 4px; margin: 2px 0">
+                      <i style="width: 20%; background: var(--gold)"></i>
+                    </div>
+                    <span style="font-size: 11.5px; color: var(--dim)"
+                      >+0,8 k/h</span
+                    >
+                  </td>
+                  <td><span class="up">+40</span></td>
+                  <td>
+                    <span class="down" style="font-size: 12.5px">— leer</span>
+                  </td>
+                  <td>
+                    <span class="m-dim" style="font-size: 12.5px">—</span>
+                  </td>
+                  <td><span class="m-tag red">ANGRIFF 14:32</span></td>
+                </tr>
+                <tr>
+                  <td>
+                    <div style="display: flex; gap: 8px; align-items: center">
+                      <span
+                        class="m-ball"
+                        style="
+                          background-image: url(/planets/dschungel-2-surface.svg);
+                        "
+                      ></span>
+                      <div>
+                        <b>Vesper</b><br /><span
+                          class="m-dim"
+                          style="font-size: 12px"
+                          >[1:44:9]</span
+                        >
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <div style="display: flex; gap: 4px; align-items: center">
+                      <img
+                        src="/icons/resources/small/metal.svg"
+                        alt=""
+                        style="width: 14px"
+                      /><b class="m-num">22 k</b>
+                    </div>
+                    <div class="m-prog" style="height: 4px; margin: 2px 0">
+                      <i style="width: 15%; background: var(--gold)"></i>
+                    </div>
+                    <span style="font-size: 11.5px; color: var(--dim)"
+                      >voll 2 Tg</span
+                    >
+                  </td>
+                  <td>
+                    <div style="display: flex; gap: 4px; align-items: center">
+                      <img
+                        src="/icons/resources/small/crystal.svg"
+                        alt=""
+                        style="width: 14px"
+                      /><b class="m-num">9 k</b>
+                    </div>
+                    <div class="m-prog" style="height: 4px; margin: 2px 0">
+                      <i style="width: 12%; background: var(--gold)"></i>
+                    </div>
+                    <span style="font-size: 11.5px; color: var(--dim)"
+                      >voll 2 Tg</span
+                    >
+                  </td>
+                  <td>
+                    <div style="display: flex; gap: 4px; align-items: center">
+                      <img
+                        src="/icons/resources/small/deuterium.svg"
+                        alt=""
+                        style="width: 14px"
+                      /><b class="m-num">3 k</b>
+                    </div>
+                    <div class="m-prog" style="height: 4px; margin: 2px 0">
+                      <i style="width: 9%; background: var(--gold)"></i>
+                    </div>
+                    <span style="font-size: 11.5px; color: var(--dim)"
+                      >+0,4 k/h</span
+                    >
+                  </td>
+                  <td><span class="up">+12</span></td>
+                  <td>
+                    <div style="font-size: 12.5px">Adamant-Tiefbohrung 9</div>
+                    <div class="m-prog" style="height: 4px">
+                      <i style="width: 80%"></i>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="m-dim" style="font-size: 12.5px">—</span>
+                  </td>
+                  <td><span class="m-tag green">TRANSPORT 13:50</span></td>
+                </tr>
+                <tr>
+                  <td><b>Summe</b></td>
+                  <td><b>267 k</b><br /><span class="m-dim">+6,1 k/h</span></td>
+                  <td><b>134 k</b><br /><span class="m-dim">+3,0 k/h</span></td>
+                  <td><b>56 k</b><br /><span class="m-dim">+3,1 k/h</span></td>
+                  <td></td>
+                  <td colspan="3" class="m-dim">
+                    Forschung: Warp-Antrieb 5 (reichsweit) · 3 h 12 min
+                  </td>
+                </tr>
+              </table>
+            </div>
+            <div class="m-two" style="margin-top: 12px">
+              <div class="m-card">
+                <div class="m-ch">
+                  Rohstoffe · Aurelia<span class="m-right"
+                    >Produktion je Stunde</span
+                  >
+                </div>
+                <div class="m-cb">
+                  <div
+                    style="
+                      display: grid;
+                      grid-template-columns: 160px 1fr 70px 60px;
+                      gap: 8px;
+                      align-items: center;
+                      font-size: 13.5px;
+                      margin: 5px 0;
+                    "
+                  >
+                    <span>Adamant-Tiefbohrung 18</span>
+                    <div class="m-prog" style="height: 10px">
+                      <i style="width: 82%; background: var(--m)"></i>
+                    </div>
+                    <b class="m-num">3.410</b
+                    ><span class="m-chip" style="text-align: center"
+                      >100 %</span
+                    >
+                  </div>
+                  <div
+                    style="
+                      display: grid;
+                      grid-template-columns: 160px 1fr 70px 60px;
+                      gap: 8px;
+                      align-items: center;
+                      font-size: 13.5px;
+                      margin: 5px 0;
+                    "
+                  >
+                    <span>Psikristall-Steinbruch 15</span>
+                    <div class="m-prog" style="height: 10px">
+                      <i style="width: 60%; background: var(--c)"></i>
+                    </div>
+                    <b class="m-num">1.690</b
+                    ><span class="m-chip" style="text-align: center"
+                      >100 %</span
+                    >
+                  </div>
+                  <div
+                    style="
+                      display: grid;
+                      grid-template-columns: 160px 1fr 70px 60px;
+                      gap: 8px;
+                      align-items: center;
+                      font-size: 13.5px;
+                      margin: 5px 0;
+                    "
+                  >
+                    <span>Promethium-Raffinerie 12</span>
+                    <div class="m-prog" style="height: 10px">
+                      <i style="width: 44%; background: var(--d)"></i>
+                    </div>
+                    <b class="m-num">1.920</b
+                    ><span class="m-chip" style="text-align: center"
+                      >100 %</span
+                    >
+                  </div>
+                  <div
+                    style="
+                      display: grid;
+                      grid-template-columns: 160px 1fr 70px 60px;
+                      gap: 8px;
+                      align-items: center;
+                      font-size: 13.5px;
+                      margin: 5px 0;
+                    "
+                  >
+                    <span>Fusionssanktum 0</span>
+                    <div class="m-prog" style="height: 10px">
+                      <i style="width: 0%; background: var(--e)"></i>
+                    </div>
+                    <b class="m-num">—</b
+                    ><span class="m-chip" style="text-align: center">0 %</span>
+                  </div>
+                  <div class="m-dim" style="font-size: 12.5px">
+                    Prozent je Erzeuger wie heute einstellbar; die Balken zeigen
+                    den Anteil am Lager pro Tag.
+                  </div>
+                </div>
+              </div>
+              <div class="m-card">
+                <div class="m-ch">
+                  Energie · Aurelia<span class="m-right down">Defizit 120</span>
+                </div>
+                <div class="m-cb">
+                  <div style="font-size: 13px" class="m-dim">Erzeugung</div>
+                  <div
+                    style="
+                      display: flex;
+                      height: 14px;
+                      border-radius: 3px;
+                      overflow: hidden;
+                      margin: 3px 0 8px;
+                    "
+                  >
+                    <i style="width: 78%; background: var(--e)"></i
+                    ><i style="width: 12%; background: #b88a2a"></i>
+                  </div>
+                  <div style="font-size: 13px" class="m-dim">Verbrauch</div>
+                  <div
+                    style="
+                      display: flex;
+                      height: 14px;
+                      border-radius: 3px;
+                      overflow: hidden;
+                      margin: 3px 0 8px;
+                    "
+                  >
+                    <i style="width: 44%; background: var(--m)"></i
+                    ><i style="width: 34%; background: var(--c)"></i
+                    ><i style="width: 22%; background: var(--d)"></i>
+                  </div>
+                  <div class="m-kv">
+                    <span>Sonnenkathedrale 16</span><b>1.240</b
+                    ><span>Sonnenreliquiare 30</span><b>230</b
+                    ><span>Minen brauchen</span><b>1.590</b
+                    ><span>Minen laufen mit</span><b class="down">94 %</b>
+                  </div>
+                  <span class="m-btn">Sonnenkathedrale 17 bauen</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="m-two" style="margin-top: 12px">
+        <div class="m-ann">
+          <ol>
+            <li>
+              <b>Eine Zeile pro Welt</b>: Lager mit „voll in“, Energie, was
+              baut, was die Werft macht, welche Flotte kommt (Travian zentrale
+              Dorfübersicht, OGame Imperiumsansicht, Grepolis Administrator).
+            </li>
+            <li>
+              Die Spiele verkaufen genau diese Ansicht als Premium; das macht
+              ihre Grundoberfläche zur Seitenwand.
+            </li>
+            <li>
+              <b>Produktion und Energie als Balken</b> mit der Folge („Minen 94
+              %“) und dem Knopf, der sie behebt.
+            </li>
+          </ol>
+        </div>
+        <div class="m-ann">
+          <ol start="4">
+            <li class="m-note red" style="list-style: none; margin-left: -18px">
+              <b>Konflikt mit #243:</b> Dort soll eine Forschung
+              („Kogitator-Verbund“) diese Ansicht stufenweise freischalten. Die
+              Recherche spricht dafür, sie allen zu geben. Entscheidung nötig
+              (siehe Issue).
+            </li>
+            <li>
+              Zum Bereich „Imperium“ gehören auch die Erfolge (Achievements);
+              die Rangliste steht bei Gemeinschaft.
+            </li>
+          </ol>
+        </div>
+      </div>
+      <h2 class="m-h">Handy: eine Karte pro Welt</h2>
+      <div class="m-row">
+        <div class="m-phone">
+          <div class="m-ptop">
+            <div class="m-prow">
+              <div class="m-planet">
+                <span
+                  class="m-ball"
+                  style="background-image: url(/planets/normal-1-surface.svg)"
+                ></span>
+                <div><b>Aurelia</b> <small>▾</small></div>
+              </div>
+              <span style="margin-left: auto"></span>
+              <div class="m-bell">
+                <svg
+                  viewBox="0 0 24 24"
+                  width="18"
+                  height="18"
+                  aria-hidden="true"
+                >
+                  <path d="M6 16V11a6 6 0 0112 0v5l1.5 2h-15z" />
+                  <path d="M10 20.5a2 2 0 004 0" /></svg
+                ><i>7</i>
+              </div>
+            </div>
+            <div class="m-pres">
+              <div class="m-r">
+                <img src="/icons/resources/small/metal.svg" alt="" /><b
+                  >184.003</b
+                >
+                <div class="m-fill"><i style="width: 71%"></i></div>
+                <small class="">6 h</small>
+              </div>
+              <div class="m-r">
+                <img src="/icons/resources/small/crystal.svg" alt="" /><b
+                  >92.001</b
+                >
+                <div class="m-fill hot"><i style="width: 88%"></i></div>
+                <small class="hot">1 h 40</small>
+              </div>
+              <div class="m-r">
+                <img src="/icons/resources/small/deuterium.svg" alt="" /><b
+                  >41.000</b
+                >
+                <div class="m-fill"><i style="width: 34%"></i></div>
+                <small class="">+1.920/h</small>
+              </div>
+            </div>
+          </div>
+          <div class="m-pbody">
+            <div
+              style="
+                font: 800 18px var(--head);
+                color: var(--gold);
+                margin-bottom: 6px;
+              "
+            >
+              Kolonien
+            </div>
+            <div class="m-card" style="margin-bottom: 8px">
+              <div class="m-cb" style="font-size: 13.5px">
+                <div style="display: flex; gap: 8px; align-items: center">
+                  <span
+                    class="m-ball"
+                    style="background-image: url(/planets/normal-1-surface.svg)"
+                  ></span
+                  ><b>Aurelia</b><span class="m-dim">[1:27:8]</span
+                  ><span style="margin-left: auto"
+                    ><span class="m-dot warn"></span
+                  ></span>
+                </div>
+                <div
+                  style="
+                    display: grid;
+                    grid-template-columns: repeat(3, 1fr);
+                    gap: 6px;
+                    margin-top: 6px;
+                  "
+                >
+                  <span>184 k<br /><span class="m-dim">6 h</span></span
+                  ><span style="color: var(--orange)">92 k<br />1 h 40</span
+                  ><span>41 k<br /><span class="m-dim">+1,9 k</span></span>
+                </div>
+                <div class="m-dim" style="margin-top: 4px">
+                  Bau: Steinbruch 16 · 22 min
+                </div>
+              </div>
+            </div>
+            <div class="m-card" style="margin-bottom: 8px">
+              <div class="m-cb" style="font-size: 13.5px">
+                <div style="display: flex; gap: 8px; align-items: center">
+                  <span
+                    class="m-ball"
+                    style="background-image: url(/planets/wasser-0-surface.svg)"
+                  ></span
+                  ><b>Nox</b><span class="m-dim">[1:31:4]</span
+                  ><span style="margin-left: auto"
+                    ><span class="m-tag red">14:32</span></span
+                  >
+                </div>
+                <div
+                  style="
+                    display: grid;
+                    grid-template-columns: repeat(3, 1fr);
+                    gap: 6px;
+                    margin-top: 6px;
+                  "
+                >
+                  <span>61 k</span><span>33 k</span><span>12 k</span>
+                </div>
+                <div class="m-dim" style="margin-top: 4px">
+                  <span class="down">Bau: leer</span>
+                </div>
+              </div>
+            </div>
+            <div class="m-card" style="margin-bottom: 8px">
+              <div class="m-cb" style="font-size: 13.5px">
+                <div style="display: flex; gap: 8px; align-items: center">
+                  <span
+                    class="m-ball"
+                    style="
+                      background-image: url(/planets/dschungel-2-surface.svg);
+                    "
+                  ></span
+                  ><b>Vesper</b><span class="m-dim">[1:44:9]</span
+                  ><span style="margin-left: auto"
+                    ><span class="m-dot ok"></span
+                  ></span>
+                </div>
+                <div
+                  style="
+                    display: grid;
+                    grid-template-columns: repeat(3, 1fr);
+                    gap: 6px;
+                    margin-top: 6px;
+                  "
+                >
+                  <span>22 k</span><span>9 k</span><span>3 k</span>
+                </div>
+                <div class="m-dim" style="margin-top: 4px">
+                  Bau: Tiefbohrung 9 · 1 h
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="m-tabbar">
+            <span class=""
+              ><svg
+                viewBox="0 0 24 24"
+                width="22"
+                height="22"
+                aria-hidden="true"
+              >
+                <path d="M3 11l9-7 9 7v9h-6v-6H9v6H3z" /></svg
+              >Übersicht</span
+            ><span class=""
+              ><svg
+                viewBox="0 0 24 24"
+                width="22"
+                height="22"
+                aria-hidden="true"
+              >
+                <path d="M4 20h16M6 20V10l6-5 6 5v10" />
+                <path d="M10 20v-5h4v5" /></svg
+              >Bauen</span
+            ><span class=""
+              ><svg
+                viewBox="0 0 24 24"
+                width="22"
+                height="22"
+                aria-hidden="true"
+              >
+                <path d="M3 16l9-11 9 11-9-3z" />
+                <path d="M12 13v7" /></svg
+              >Flotte</span
+            ><span class=""
+              ><svg
+                viewBox="0 0 24 24"
+                width="22"
+                height="22"
+                aria-hidden="true"
+              >
+                <circle cx="6" cy="7" r="2" />
+                <circle cx="17" cy="6" r="2" />
+                <circle cx="12" cy="17" r="2" />
+                <path d="M8 8l3 7M15 7l-2 8" /></svg
+              >Karte</span
+            ><span class="on"
+              ><svg
+                viewBox="0 0 24 24"
+                width="22"
+                height="22"
+                aria-hidden="true"
+              >
+                <circle cx="5" cy="12" r="1.5" />
+                <circle cx="12" cy="12" r="1.5" />
+                <circle cx="19" cy="12" r="1.5" /></svg
+              >Mehr</span
+            >
+          </div>
+        </div>
+        <div class="m-ann">
+          <ul>
+            <li>Karten statt Spalten; Warnung pro Welt oben rechts.</li>
+            <li>
+              Antippen wechselt die aktive Welt und bleibt auf derselben Seite
+              (#236).
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
