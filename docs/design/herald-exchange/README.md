@@ -10,6 +10,8 @@ Files:
   (1600 × 900, second screen), reachable by a public link per round: price crawl, the battle of
   the day with its replay, breaking news, a correction („Dementi“), exchange prices, research
   firsts, empire movements
+- `herald-v3-component.html` / `.png` – the Herold as a component of the configurable dashboard
+  of Interface v3 (#236): widths 1, 2 and 3, the phone, its settings and its rules
 - `herald-precision.html` / `.png` – the same battle at three stages of the round, the stages of
   the Chronisten, the research „Schweigegelübde“ against them, fake news and the correction
 - `battle-storyboard.html` / `.png` – storyboard of a battle replay with eight shots (camera,
