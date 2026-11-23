@@ -257,6 +257,62 @@ def s14c():
 SITS['s14'] = {'a': s14a, 'b': s14b, 'c': s14c}
 
 
+# ------------------------------------------------------------------ s15 away and back (#192)
+# Push kinds and texts from okf/features/push-settings.md: „Feindkontakt!“
+# (attacked), „Auspex-Aktivität“ (spied), own fleets, „Neue Nachricht im
+# Gilden-Chat“. [E] r1: the first look answers „what happened, what can I do
+# now“. Scenario: away from 22:14 to 07:30; events are examples.
+AWAY = [('03:12', 'Feindkontakt! Nox verteidigt · Sieg', 'green'), ('04:40', 'Auspex-Aktivität bei Aurelia', 'orange'),
+        ('05:40', 'Waffensegnung 11 fertig', 'c'), ('06:58', 'Mira: „Ich halte Nox bis 15:00.“', 'green'), ('07:02', '2 Lastbarken zurück mit Beute', 'gold')]
+
+
+def s15a():
+    from playtest_r1x import pulled as pl
+    from playtest_d1 import galaxy
+    counts = ''.join(f'<span class="m-tag {c}">{t}</span>' for c, t in [('green', '1 SIEG'), ('orange', '1 AUSPEX'), ('blue', '3 BERICHTE'), ('gold', '2 FERTIG')])
+    acts = ''.join(f'<div style="border: 1px solid var(--{c}); border-radius: 8px; padding: 7px 8px; margin: 6px 0; font-size: 13px"><b style="color: var(--{c})">{t}</b>'
+                   f'<div style="display: flex; justify-content: space-between; align-items: center"><span class="m-dim" style="font-size: 12px">{d}</span><span class="m-btn">{b}</span></div></div>'
+                   for c, t, d, b in [('red', 'Nox wird um 14:32 angegriffen', 'Bauplatz auf Nox ist leer', 'Abwehr'), ('orange', 'Psikristall-Lager voll in 1 h 40', 'Reliquiar 1 kostet 1.000 / 500', 'Bauen')])
+    body = ('<b style="color: var(--gold-hi)">Willkommen zurück</b> <span class="m-dim" style="font-size: 12px">· seit gestern 22:14</span>'
+            f'<div style="display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0">{counts}</div>'
+            '<div style="font: 600 11.5px var(--head); letter-spacing: 0.1em; color: var(--gold); margin-top: 6px">JETZT TUN</div>' + acts
+            + '<div class="m-dim" style="font-size: 12px">Hochziehen: alles in der Zeitleiste</div>')
+    m = f'<div class="k-stars" style="position: absolute; inset: 0"></div><div class="k-abs" style="left: 0; top: 96px">{galaxy(390, 544, tip=False)}</div>'
+    return phone(m + header() + pl(380, body) + tabs())
+
+
+def s15b():
+    pushes = [('Nova Imperium', 'Eigene Flotte zurück: 2 Lastbarken mit Beute', 'vor 28 min'), ('Nova Imperium', 'Neue Nachricht im Gilden-Chat · Mira', 'vor 32 min'),
+              ('Nova Imperium', 'Auspex-Aktivität bei Aurelia', 'vor 3 h'), ('Nova Imperium', 'Feindkontakt! Nox verteidigt · Sieg', 'vor 4 h')]
+    cards = ''.join(f'<div style="background: rgb(40 32 26 / 0.92); border-radius: 14px; padding: 9px 11px; margin: 8px 0; font-size: 13px">'
+                    f'<div style="display: flex; justify-content: space-between"><b style="font-size: 12px; color: var(--gold-hi)">◆ {a}</b><span class="m-dim" style="font-size: 11.5px">{t}</span></div>{b}</div>'
+                    for a, b, t in pushes)
+    inner = ('<div style="position: relative; padding: 70px 14px 0; text-align: center"><div style="font: 300 54px var(--body); color: #e9dfc8">07:30</div>'
+             '<div class="m-dim" style="font-size: 13px; margin-bottom: 14px">Montag, 23. November</div><div style="text-align: left">' + cards + '</div>'
+             '<div class="m-dim" style="font-size: 12px; margin-top: 10px">Antippen öffnet das Spiel genau dort: Nox, Gilden-Chat, Bericht.</div></div>')
+    return phone('<div style="position: absolute; inset: 0; background: linear-gradient(180deg, #1a1430, #0b0806)"></div>' + inner)
+
+
+def s15c():
+    from playtest_d1 import SYSTEMS, galaxy
+    w, h = 390, 544
+    P = {n: (fx * w, fy * h) for n, (fx, fy, _) in SYSTEMS.items()}
+    marks = [('1:27', 'Sieg auf Nox · Auspex bei Aurelia', 'green'), ('1:44', 'Leander gründet Kolonie', 'dim'), ('1:31', 'Haus Valcor startet Angriff auf Nox', 'red')]
+    html = ''
+    for n, t, c in marks:
+        x, y = P[n]
+        html += (f'<div class="k-abs" style="left: {x - 22:.0f}px; top: {96 + y - 22:.0f}px; width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--{c}); '
+                 f'box-shadow: 0 0 16px var(--{c}); z-index: 2"></div>'
+                 f'<div class="k-abs" style="left: {min(x + 24, 250):.0f}px; top: {96 + y - 8:.0f}px; z-index: 2; background: #17110d; border: 1px solid var(--{c}); border-radius: 8px; '
+                 f'padding: 2px 7px; font-size: 11.5px; max-width: 140px">{t}</div>')
+    m = (f'<div class="k-stars" style="position: absolute; inset: 0"></div><div class="k-abs" style="left: 0; top: 96px">{galaxy(w, h, tip=False, routes=False)}</div>' + html
+         + '<div class="k-abs" style="left: 10px; top: 104px; z-index: 2"><span class="k-pill">Seit gestern 22:14 · 3 Orte</span></div>')
+    return phone(m + header() + sheet() + tabs())
+
+
+SITS['s15'] = {'a': s15a, 'b': s15b, 'c': s15c}
+
+
 def build_sheet():
     parts = [f'<figure id="r4-{sid}-{e}" style="margin: 0; display: inline-block">{fn()}</figure>' for sid, vs in SITS.items() for e, fn in vs.items()]
     return ('<!doctype html>\n<html lang="de">\n<head>\n<meta charset="utf-8" />\n<title>Playtest r4</title>\n'

@@ -1,0 +1,30 @@
+{
+  "seq": 230,
+  "kind": "sit",
+  "round": "r5",
+  "roundTitle": "Runde 5 · Abwesend und zurück",
+  "station": 12,
+  "id": "s15",
+  "short": "Zurück nach Abwesenheit",
+  "title": "Du kommst nach der Nacht zurück",
+  "text": "Du warst von gestern 22:14 bis 07:30 weg. Die Push-Texte stammen aus dem Spiel (#192: „Feindkontakt!“, „Auspex-Aktivität“, Gilden-Chat, eigene Flotten). Deine Vorgabe aus Runde 1: der erste Blick zeigt, was passiert ist und was du jetzt tun kannst. Ereignisse sind Beispiele.",
+  "order": "bac",
+  "variants": {
+    "a": {
+      "img": "/_blob/dab11c5c09349417201358a84c3be3e0",
+      "desc": "„Willkommen zurück“ im Lage-Blatt: Zähler seit dem letzten Besuch und darunter „Jetzt tun“ mit Knöpfen.",
+      "emph": "Zurück: Zusammenfassung im Blatt"
+    },
+    "b": {
+      "img": "/_blob/d7005d4a87a99dfd17a83371989e9a7b",
+      "desc": "Die Pushes auf dem Sperrbildschirm; antippen öffnet das Spiel genau an der Stelle.",
+      "emph": "Zurück: über die Pushes"
+    },
+    "c": {
+      "img": "/_blob/72d4400b57a3c8c9efe736ad2cc2dbd4",
+      "desc": "Die Galaxie markiert die Orte, an denen seitdem etwas passiert ist, mit einer kurzen Notiz.",
+      "emph": "Zurück: Orte auf der Karte"
+    }
+  },
+  "ask": "Welche Hinweise sollen dich per Push holen, und welche reichen beim nächsten Besuch?"
+}
