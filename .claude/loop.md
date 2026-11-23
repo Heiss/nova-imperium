@@ -23,16 +23,25 @@ interface is German.
      `in progress` (you started it), `in review` (its pull request is
      ready and waits for CI or review), `in discussion` (planned for a
      later release); `feature` and `idea` give the kind.
-2. Before you choose a step, check that the newest release tag has its
-   retrospective `okf/log/*-retro-<version with dashes>.md` (owner,
-   2026-11-23); one that an open pull request adds counts as present [V].
-   If it is missing, write it first, in a pull request: after every
-   release, whichever pull request released it, what cost time and at most
-   five consequences, each an issue, a guard or a rule; a machine check
-   comes before a written rule (owner, 2026-11-22). If it is the one of the
-   release this loop run made ready, stop the loop after writing it;
-   otherwise go on [V]. Then do the first step below that applies, and
-   only that one.
+2. Before you choose a step, check the releases by state (owner,
+   2026-11-23, for the newest tag; the rest is [V]):
+   - If `VERSION` on `main` has no tag yet, a release is being tagged
+     (`tag.yml` tags after the green push run): wait for the tag before
+     anything else. If that push run or the tag workflow failed, the
+     release is not out: treat it as red CI (root cause, fix), tell the
+     owner, and do not plan a release [V].
+   - Every release tag from 26.11.25 on needs its retrospective
+     `okf/log/*-retro-<version with dashes>.md`, on `main` or in an open
+     pull request [V]. Write the missing ones first, oldest first, each in
+     a pull request, whichever pull request released it: what cost time
+     and at most five consequences, each an issue, a guard or a rule; a
+     machine check comes before a written rule (owner, 2026-11-22). Step 1
+     finishes that pull request like any other (CI, review, merge under
+     O4) [V].
+   - Stop the loop once the release this loop run made ready is tagged and
+     its retrospective is merged; a missing retrospective of another
+     release does not stop it [V].
+     Then do the first step below that applies, and only that one.
 3. When a step needs the owner, ask with the question tool inside the
    iteration: the iteration waits for the answer and goes on with it, so
    the loop never waits without a question on screen. A step that needs no
@@ -161,7 +170,9 @@ interface is German.
    you told the owner already: tell them once more, then wait. When the
    loop is about to end (seven days, or the session) before the release is
    merged, tell the owner to start `/loop` again. Once the release pull
-   request from `release/main` is merged, **stop the loop**.
+   request from `release/main` is merged, wait for its tag, write its
+   retrospective and finish that pull request, and only then **stop the
+   loop** (item 2 above) [V].
 3. **Plan the release** when no open issue has the label `ready`,
    `in progress` or `in review` and no release pull request is open. Ask
    the owner what the release should bring:
