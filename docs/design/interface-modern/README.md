@@ -230,10 +230,16 @@ overview, the admin pages, login, passkeys and install, „Problem melden“,
 
 - Where minimized pinned windows sit (proposal: a small row at the top of
   the map).
-- The group Feinde without a war feature.
-- What the interface shows where group 3 drops (the questions of the
-  analysis above).
-- The design of the pages of group 4.
+- The period over which attacks make a player a Feind. **[E]** (owner,
+  2026-11-23): the group comes from today's data – who attacked the player
+  and whom the player attacked.
+
+Decided **[E]** (owner, 2026-11-23): what needs a feature of group 3 is left
+out of a first „Modern“ and comes with its feature (the Lage sheet has three
+tabs without „Herold“, building without fields, „Tauschen“ is today's
+Marktplatz, no siege); the small additions of group 2 belong to the rebuild,
+presets and pins stored on the server; the pages of group 4 get more
+playtest rounds.
 
 ## History
 
