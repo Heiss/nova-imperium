@@ -65,7 +65,11 @@ the owner as test person.
   2026-11-23).
 * **[E]** No reloads (owner, 2026-11-23). Lesson: a note can still be
   saved a few seconds after „Weiter“; read a pick again before acting on it.
-  The mechanism: the page is a player for a
+  Bug found by the owner (2026-11-23): two writes of the same pick could
+  run at once, and a slow early write overwrote „Weiter“ (half note, `done`
+  lost) while the page went on. Fixed: one write at a time per pick, each
+  sends the newest state, „Weiter“ waits for all of them; a warning shows
+  when leaving with unsaved text. The mechanism: the page is a player for a
   queue in its store and is not republished any more (version 7 is the
   last). Steps are documents `queue/<round>-<id>` (`seq` orders them;
   `kind` `sit` or `quest`; `variants.a|b|c` with `img`, `desc`, `emph`;

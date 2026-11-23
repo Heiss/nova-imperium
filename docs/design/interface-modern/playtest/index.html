@@ -595,6 +595,28 @@
     await state.db.doc(path).set(data);
   }
 
+  // One write at a time per pick: a write waits for the one before it and
+  // sends the newest state when it starts, so a slow early write can never
+  // land after (and overwrite) a later one such as „Weiter“.
+  const chain = {};
+  const queued = {};
+  function flush(key) {
+    if (queued[key]) return queued[key];
+    const p = (chain[key] || Promise.resolve())
+      .catch(() => {})
+      .then(() => {
+        queued[key] = null;
+        return save('picks/' + key, { ...state.picks[key] });
+      });
+    queued[key] = p;
+    chain[key] = p;
+    return p;
+  }
+  let inflight = 0;
+  window.addEventListener('beforeunload', (ev) => {
+    if (inflight || Object.values(timers).some(Boolean)) ev.preventDefault();
+  });
+
   async function savePick(key, data, quiet) {
     const st = $('#st-' + key);
     state.picks[key] = {
@@ -603,9 +625,10 @@
       key,
       updated: new Date().toISOString(),
     };
+    inflight++;
     try {
       if (st && !quiet) st.textContent = 'Speichert …';
-      await save('picks/' + key, state.picks[key]);
+      await flush(key);
       if (st) {
         st.textContent = 'Gespeichert';
         st.className = 'state ok';
@@ -620,6 +643,8 @@
         st.className = 'state bad';
       }
       return false;
+    } finally {
+      inflight--;
     }
   }
 
@@ -651,8 +676,12 @@
       const key = nx.dataset.next;
       const note = $('#note-' + key);
       clearTimeout(timers['note-' + key]);
+      timers['note-' + key] = null;
       const ans = $('#ans-' + key);
       clearTimeout(timers['ans-' + key]);
+      timers['ans-' + key] = null;
+      // „Weiter“ goes on only once this write (and every earlier one) is in.
+      nx.disabled = true;
       if (
         await savePick(key, {
           note: note ? note.value : '',
@@ -662,7 +691,7 @@
       ) {
         render();
         window.scrollTo(0, 0);
-      }
+      } else nx.disabled = false;
       return;
     }
     const u = ev.target.closest('[data-undo]');
@@ -711,14 +740,20 @@
       st.className = 'state';
     }
     clearTimeout(timers[t.id]);
-    timers[t.id] = setTimeout(() => savePick(key, { note: t.value }), 900);
+    timers[t.id] = setTimeout(() => {
+      timers[t.id] = null;
+      savePick(key, { note: t.value });
+    }, 900);
   });
   document.addEventListener('input', (ev) => {
     const t = ev.target.closest('[data-answer]');
     if (!t) return;
     const key = t.dataset.answer;
     clearTimeout(timers[t.id]);
-    timers[t.id] = setTimeout(() => savePick(key, { answer: t.value }), 900);
+    timers[t.id] = setTimeout(() => {
+      timers[t.id] = null;
+      savePick(key, { answer: t.value });
+    }, 900);
   });
 
   document.addEventListener('submit', async (ev) => {
