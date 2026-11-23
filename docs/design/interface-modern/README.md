@@ -142,7 +142,7 @@ Raketenangriff, Mondbruch, Vermessung.
 The races themselves are #154 (v3). For the interface **[E]**: a race lives
 only in the frames – the borders and large surfaces (top bar, Lage sheet,
 windows, world strip); never over the map and never on the controls;
-motion only in the frames; an option „keine Animationen“ stops it. The
+motion only in the frames; the option „Animationen“ (it exists today, per device) stops it. The
 frames look the same on the desktop and the phone (gv); the layout stays
 the same for every race.
 
@@ -195,7 +195,7 @@ Imperium design works without new game features. Four groups.
 
 - Fleet presets saved per player **[E]** (s9): a store on the server.
 - Pinned windows as favourites on the server **[E]** (d5): a store.
-- New options: colour sets, shapes on or off, „keine Animationen“, the
+- New options: colour sets, shapes on or off, the
   swipe options, a docked Lexikon.
 - A push that opens the exact world or report (today: only a view).
 - „Willkommen zurück“: the read marker of the reports exists (`readAt`);
@@ -222,7 +222,7 @@ messages (inbox, writing), friends, guild management (ranks, profile,
 switch), the round archive and the round report, Endzeit, Expedition, moons
 (Mondzitadelle, Mondbruch), Phalanx, jump gate, Raketenangriff,
 Verbandsangriff, Bergung (only a button so far), demolition, giving up a
-colony, renaming, vacation mode, Vermessung, the playtime limit, the level
+colony, renaming, vacation mode, Vermessung, „Meine Aktivität & Spielzeit“, the level
 overview, the admin pages, login, passkeys and install, „Problem melden“,
 „Neuigkeiten“.
 

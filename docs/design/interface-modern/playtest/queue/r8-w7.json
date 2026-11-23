@@ -1,0 +1,19 @@
+{
+  "id": "w7",
+  "kind": "sit",
+  "order": "a",
+  "round": "r8",
+  "roundTitle": "Runde 8 · Welt und Konto (Handy)",
+  "seq": 570,
+  "short": "Kolonie aufgeben",
+  "station": 0,
+  "text": "Heute eine Bestätigung mit Passwort. Hier dasselbe als rotes Blatt: was verloren geht, wie lange die Position gesperrt ist (stellt der Admin je Runde ein; 24 h ist ein Beispiel), das Passwort. Ein Vorschlag: wähle ihn, wenn er passt, und schreib Korrekturen in die Notiz.",
+  "title": "Kolonie aufgeben (Vorschlag)",
+  "variants": {
+    "a": {
+      "desc": "Ein rotes Blatt mit Verlusten, Sperre und Passwort.",
+      "emph": "Aufgeben: rotes Blatt",
+      "img": "/_blob/090d1a807b1a4e3b0964a6b2d6bb467c"
+    }
+  }
+}

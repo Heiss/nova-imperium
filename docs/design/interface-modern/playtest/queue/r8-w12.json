@@ -1,0 +1,19 @@
+{
+  "id": "w12",
+  "kind": "sit",
+  "order": "a",
+  "round": "r8",
+  "roundTitle": "Runde 8 · Welt und Konto (Handy)",
+  "seq": 620,
+  "short": "Stufenübersicht",
+  "station": 0,
+  "text": "Heute klappt ein zweites Symbol neben „?“ eine Tabelle auf. Entschieden in s4: die Standard-Seite eines Gebäudes hat Reiter mit den Stufen. Hier der Reiter „Stufen“; Kosten und Energie der Sonnenkathedrale aus dem Katalog. Ein Vorschlag: wähle ihn, wenn er passt, und schreib Korrekturen in die Notiz.",
+  "title": "Stufenübersicht (Vorschlag)",
+  "variants": {
+    "a": {
+      "desc": "Reiter „Stufen“ auf der Standard-Seite.",
+      "emph": "Stufenübersicht: Reiter",
+      "img": "/_blob/6ea5153a4f8be25b13857336f075245e"
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "ask": "Sollen Farbset, Formen und Wischen für alle deine Geräte gelten (wie heute die Optionen) oder je Gerät (wie heute die Animationen)?",
+  "id": "w1",
+  "kind": "sit",
+  "order": "bca",
+  "round": "r8",
+  "roundTitle": "Runde 8 · Welt und Konto (Handy)",
+  "seq": 510,
+  "short": "Optionen",
+  "station": 0,
+  "text": "Heute eine lange Seite mit 13 Kästen (Spiel, Runde, Gerät, Konto, Sonstiges). Neu kommen deine Optionen aus dem Playtest dazu: Farbset, Formen, Wischen; „Animationen“ gibt es schon (gilt je Gerät). Erreichbar über Menü › Optionen.",
+  "title": "Die Seite „Optionen“",
+  "variants": {
+    "a": {
+      "desc": "Eine gruppierte Liste; ein Tipp öffnet die Einstellung.",
+      "emph": "Optionen: Liste mit Unterseiten",
+      "img": "/_blob/0cccf01e34c9c294286dda9078d915be"
+    },
+    "b": {
+      "desc": "Reiter oben (Spiel, Anzeige, Runde, Gerät, Konto), die Einstellungen direkt darunter.",
+      "emph": "Optionen: Reiter",
+      "img": "/_blob/fb45794ce45612d52d25f011d1a14224"
+    },
+    "c": {
+      "desc": "Ein Blatt über der Karte mit Suche und aufklappbaren Gruppen.",
+      "emph": "Optionen: Blatt mit Suche",
+      "img": "/_blob/026d651714df92eb0fb83cb0296f364a"
+    }
+  }
+}

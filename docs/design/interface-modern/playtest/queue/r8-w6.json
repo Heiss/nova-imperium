@@ -1,0 +1,19 @@
+{
+  "id": "w6",
+  "kind": "sit",
+  "order": "a",
+  "round": "r8",
+  "roundTitle": "Runde 8 · Welt und Konto (Handy)",
+  "seq": 560,
+  "short": "Urlaubsmodus",
+  "station": 0,
+  "text": "Heute ein Text und ein Knopf in den Optionen. Hier die Voraussetzungen als Liste, was noch fehlt in Rot, und wann es frei wird. Die Mindestdauer stellt der Admin je Runde ein (48 h ist ein Beispiel). Ein Vorschlag: wähle ihn, wenn er passt, und schreib Korrekturen in die Notiz.",
+  "title": "Urlaubsmodus (Vorschlag)",
+  "variants": {
+    "a": {
+      "desc": "Voraussetzungen als Liste, der Knopf erst frei, wenn alles passt.",
+      "emph": "Urlaubsmodus: Liste",
+      "img": "/_blob/a79fcce2559b120ee4f5b4ec63b42708"
+    }
+  }
+}

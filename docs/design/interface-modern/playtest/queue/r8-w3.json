@@ -1,0 +1,30 @@
+{
+  "ask": "Soll die Registrierung mit Einladung dieselbe Form bekommen, und soll man dort die Galaxie auf der Karte wählen statt in einem Feld?",
+  "id": "w3",
+  "kind": "sit",
+  "order": "acb",
+  "round": "r8",
+  "roundTitle": "Runde 8 · Welt und Konto (Handy)",
+  "seq": 530,
+  "short": "Login",
+  "station": 0,
+  "text": "Heute: Name, Passwort, „Gerät speichern“, „Passwort vergessen?“, „Mit Passkey anmelden“ und ein Code per E-Mail. Registrieren geht nur mit Einladung.",
+  "title": "Anmelden",
+  "variants": {
+    "a": {
+      "desc": "Ein Formular wie heute, der Passkey als zweiter Knopf.",
+      "emph": "Login: Formular",
+      "img": "/_blob/386ecfe8f3fa90c1ed677c68b5bf478e"
+    },
+    "b": {
+      "desc": "Passkey zuerst; Name und Passwort oder ein Code per E-Mail darunter.",
+      "emph": "Login: Passkey zuerst",
+      "img": "/_blob/6fd50902bfec6711690bd8c40ccb1b01"
+    },
+    "c": {
+      "desc": "Schritt für Schritt: erst der Name, dann die Art der Anmeldung.",
+      "emph": "Login: Schritte",
+      "img": "/_blob/327e184d8f709436666f0c372ba923ea"
+    }
+  }
+}

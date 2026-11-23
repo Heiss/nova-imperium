@@ -1,0 +1,30 @@
+{
+  "ask": "Soll der Hauptplanet zur Welt wandern (wie hier) oder in den Optionen bleiben?",
+  "id": "w2",
+  "kind": "sit",
+  "order": "cab",
+  "round": "r8",
+  "roundTitle": "Runde 8 · Welt und Konto (Handy)",
+  "seq": 520,
+  "short": "Welt verwalten",
+  "station": 0,
+  "text": "Heute stehen „Umbenennen“ und „Kolonie aufgeben“ in der Übersicht, der Hauptplanet in den Optionen. Hier liegen alle drei an der Welt selbst.",
+  "title": "Eine Welt verwalten: umbenennen, Hauptplanet, aufgeben",
+  "variants": {
+    "a": {
+      "desc": "Der Knopf ⋯ an der Welt öffnet ein Blatt mit den Aktionen.",
+      "emph": "Verwalten: Blatt über ⋯",
+      "img": "/_blob/683db32ba594f55abbdd01f5c458d06a"
+    },
+    "b": {
+      "desc": "Die Welt hat einen eigenen Reiter „Verwalten“ neben Oberfläche und Infos.",
+      "emph": "Verwalten: eigener Reiter",
+      "img": "/_blob/18d207a15722cf37df57a62f633b30d1"
+    },
+    "c": {
+      "desc": "Lange auf die Welt drücken öffnet ein Menü.",
+      "emph": "Verwalten: lange drücken",
+      "img": "/_blob/49d20e7d3752c06ffbd02a7be71cbc16"
+    }
+  }
+}
