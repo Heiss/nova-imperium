@@ -90,6 +90,63 @@ def s11c():
 SITS = {'s11': {'a': s11a, 'b': s11b, 'c': s11c}}
 
 
+# ------------------------------------------------------------------ s12 guild and chat
+# The owner's idea for the dashboard study: messages as a chat at the bottom
+# right (#388, study D). Names other than Mira are examples.
+MSGS = [('Mira', '14:02', 'Ich halte Nox mit 40 Abfangjägern bis 15:00.'), ('Thalor', '14:05', 'Valcor hat 3 Welten in 1:31, Bericht kommt.'),
+        ('du', '14:06', 'Danke! Abwehr auf Nox läuft.')]
+
+
+def bubble(who, t, txt):
+    me = who == 'du'
+    return (f'<div style="display: flex; justify-content: {"flex-end" if me else "flex-start"}; margin: 5px 0">'
+            f'<div style="max-width: 78%; background: {"rgb(111 184 255 / 0.15)" if me else "#211812"}; border: 1px solid {OWN if me else GUILD}; border-radius: 10px; padding: 5px 8px; font-size: 13px">'
+            f'<b style="color: {OWN if me else GUILD}; font-size: 12px">{who}</b> <span class="m-dim" style="font-size: 11px">{t}</span><br />{txt}</div></div>')
+
+
+def chat_tabs(on):
+    return ('<div class="m-chips" style="margin: 4px 0 6px">' + ''.join(f'<span class="m-chip{" on" if t == on else ""}">{t}</span>' for t in ['Gilde', 'Direkt', 'Allgemein']) + '</div>')
+
+
+def s12a():
+    from playtest_d1 import galaxy
+    m = f'<div class="k-stars" style="position: absolute; inset: 0"></div><div class="k-abs" style="left: 0; top: 96px; opacity: 0.45">{galaxy(390, 544, tip=False)}</div>'
+    panel = ('<div class="k-abs" style="left: 10px; right: 10px; top: 200px; height: 360px; z-index: 4; background: #17110d; border: 1px solid var(--gold); border-radius: 12px; '
+             'padding: 8px 10px; box-shadow: 0 10px 30px rgb(0 0 0 / 0.7)"><div style="display: flex; align-items: center"><b style="color: var(--gold-hi)">Chat</b>'
+             '<span class="m-dim" style="margin-left: auto">✕</span></div>' + chat_tabs('Gilde') + ''.join(bubble(*m_) for m_ in MSGS)
+             + '<div style="position: absolute; left: 10px; right: 10px; bottom: 8px; border: 1px solid var(--line); border-radius: 18px; padding: 6px 12px; font-size: 13px" class="m-dim">Nachricht an die Gilde …</div></div>'
+             '<div class="k-abs" style="right: 14px; top: 572px; z-index: 5; width: 48px; height: 48px; border-radius: 50%; background: #17110d; border: 2px solid var(--gold); '
+             'display: grid; place-items: center; font-size: 20px">💬</div>')
+    return phone(m + panel + header() + sheet() + tabs())
+
+
+def s12b():
+    from playtest_r1x import pulled as pl
+    body = ('<div class="m-chips" style="margin: 0 0 6px"><span class="m-chip">Zeitleiste</span><span class="m-chip on">Funk · 2 neu</span></div>'
+            + chat_tabs('Gilde') + ''.join(bubble(*m_) for m_ in MSGS)
+            + '<div style="border: 1px solid var(--line); border-radius: 18px; padding: 6px 12px; font-size: 13px; margin-top: 8px" class="m-dim">Nachricht an die Gilde …</div>')
+    from playtest_d1 import galaxy
+    m = f'<div class="k-stars" style="position: absolute; inset: 0"></div><div class="k-abs" style="left: 0; top: 96px">{galaxy(390, 544, tip=False)}</div>'
+    return phone(m + header() + pl(420, body) + tabs())
+
+
+def s12c():
+    members = [('Mira', '1:26', 'online', 'hält Nox bis 15:00'), ('Thalor', '1:44', 'vor 5 min', 'spioniert 1:31'), ('du', '1:27', 'online', ''),
+               ]
+    rows = ''.join(f'<div style="display: grid; grid-template-columns: 10px 1fr auto; gap: 8px; align-items: center; padding: 5px 0; border-bottom: 1px solid var(--line); font-size: 13px">'
+                   f'<span style="width: 8px; height: 8px; border-radius: 50%; background: var(--{"green" if st == "online" else "dim"})"></span>'
+                   f'<div><b style="color: {OWN if n == "du" else GUILD}">{n}</b> <span class="m-dim" style="font-size: 12px">{c} · {st}</span><br /><span style="font-size: 12px">{d}</span></div>'
+                   f'<span class="m-dim" style="font-size: 12px">{"" if n == "du" else "✉"}</span></div>' for n, c, st, d in members)
+    inner = ('<div style="position: relative; padding: 100px 10px 0"><div style="display: flex; gap: 8px; align-items: baseline">'
+             '<b style="font: 800 17px var(--head); color: var(--gold)">Gilde</b><span class="m-dim" style="font-size: 12.5px">3 Mitglieder · Krieg mit Haus Valcor</span></div>'
+             + rows + '<div style="font: 600 11.5px var(--head); letter-spacing: 0.1em; color: var(--gold); margin: 10px 0 2px">GILDEN-CHAT</div>'
+             + ''.join(bubble(*m_) for m_ in MSGS[:2]) + '</div>')
+    return phone('<div class="k-stars" style="position: absolute; inset: 0"></div>' + inner + header() + sheet() + tabs())
+
+
+SITS['s12'] = {'a': s12a, 'b': s12b, 'c': s12c}
+
+
 def build_sheet():
     parts = [f'<figure id="r4-{sid}-{e}" style="margin: 0; display: inline-block">{fn()}</figure>' for sid, vs in SITS.items() for e, fn in vs.items()]
     return ('<!doctype html>\n<html lang="de">\n<head>\n<meta charset="utf-8" />\n<title>Playtest r4</title>\n'
