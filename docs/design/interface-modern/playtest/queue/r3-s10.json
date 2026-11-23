@@ -1,0 +1,30 @@
+{
+  "seq": 170,
+  "kind": "sit",
+  "round": "r3",
+  "roundTitle": "Runde 3 · Spionage, Bericht, Flotte",
+  "station": 8,
+  "id": "s10",
+  "short": "Schlacht + Bericht",
+  "title": "Nach der Schlacht um Varn",
+  "text": "Deine Flotte hat Varn nach 4 von höchstens 6 Runden besiegt. Aus dem Code: 30 % des Adamant und Psikristall der zerstörten Schiffe werden Trümmer (≈ 82 k / 28 k), 70 % der zerstörten Abwehr werden wieder aufgebaut, die Beute ist die Hälfte. Der Verlauf ist ein Beispiel.",
+  "order": "cab",
+  "variants": {
+    "a": {
+      "img": "/_blob/6904ae870548a31b2ecec81529951422",
+      "desc": "Bericht im Blatt: Tabelle beider Seiten vorher → nachher, Beute, Trümmer, Knöpfe „Trümmer bergen“ und „Wiederholung“.",
+      "emph": "Schlacht: Bericht als Tabelle"
+    },
+    "b": {
+      "img": "/_blob/14967845acf402513273d80b6b984d0f",
+      "desc": "Wiederholung zuerst: eine kleine Draufsicht der Schlacht mit Runden zum Durchspulen, darunter das Ergebnis.",
+      "emph": "Schlacht: Wiederholung zuerst"
+    },
+    "c": {
+      "img": "/_blob/c645482a2d153be3d251f3813e69b1d5",
+      "desc": "In der Lage-Zeitleiste: die Schlacht als aufgeklappter Eintrag; die Runden zum Wischen.",
+      "emph": "Schlacht: Eintrag in der Zeitleiste"
+    }
+  },
+  "ask": "Die 3D-Wiederholung des Herolds (#382) ist öffentlich und verzögert. Willst du im Spiel zusätzlich sofort eine eigene, schlichte Wiederholung, oder reicht der Bericht?"
+}

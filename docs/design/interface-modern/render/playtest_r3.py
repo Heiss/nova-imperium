@@ -145,6 +145,84 @@ def s9c():
 SITS['s9'] = {'a': s9a, 'b': s9b, 'c': s9c}
 
 
+# ------------------------------------------------------------------ s10 space battle and report
+# Attack 60 Abfangjäger, 20 Fregatten, 24 Lastbarken on Varn (24 Abfangjäger,
+# 6 Fregatten, 40 Raketenbatterien, 12 Lichtlanzen). Example outcome: victory
+# after 4 of at most 6 rounds (MAX_ROUNDS). Own losses 14 Abfangjäger,
+# 2 Fregatten. Debris 30 % (DEBRIS_SHARE) of the destroyed ships' Adamant and
+# Psikristall, no Promethium: ships lost 274 k / 94 k → ≈ 82 k / 28 k;
+# Bergungsbarke 20.000 cargo → 6. Defense: 70 % rebuilt (REBUILD_SHARE) →
+# 28 Raketenbatterien, 8 Lichtlanzen.
+SIDES = [('Abfangjäger', '60 → 46', '24 → 0'), ('Fregatte', '20 → 18', '6 → 0'), ('Lastbarke', '24 → 24', '–'),
+         ('Raketenbatterie', '–', '40 → 0 (28 wieder auf)'), ('Lichtlanze', '–', '12 → 0 (8 wieder auf)')]
+
+
+def sides_table():
+    rows = ''.join(f'<span>{n}</span><b>{a}</b><b style="color: var(--red)">{d}</b>' for n, a, d in SIDES)
+    return ('<div style="display: grid; grid-template-columns: 1fr auto auto; gap: 3px 10px; font-size: 12.5px; margin: 6px 0">'
+            '<span class="m-dim">Einheit</span><span class="m-dim">du</span><span class="m-dim">Varn</span>' + rows + '</div>')
+
+
+def result_head():
+    return ('<b style="color: var(--green)">Sieg über Varn</b> <span class="m-dim" style="font-size: 12px">· 4 von 6 Runden · 14:05</span>')
+
+
+def loot_debris(btn=True):
+    out = ('<div class="m-kv"><span>Beute</span><b style="color: var(--green)">600 k (320 k / 190 k / 90 k)</b>'
+           '<span>Trümmerfeld 1:44:4</span><b>≈ 82 k / 28 k</b><span>zum Bergen</span><b>6 Bergungsbarken</b></div>')
+    if btn:
+        out += ('<div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; margin-top: 8px; font-size: 13px">'
+                '<span class="m-btn" style="text-align: center; padding: 10px 4px">Trümmer bergen</span>'
+                '<span class="m-btn" style="text-align: center; padding: 10px 4px; background: none; color: var(--gold-hi); border: 1px solid var(--gold)">▶ Wiederholung</span></div>')
+    return out
+
+
+def s10a():
+    body = result_head() + sides_table() + loot_debris()
+    return phone(system() + header() + pulled(470, body) + tabs())
+
+
+def s10b():
+    import random
+    rnd = random.Random(3)
+    w, h = 370, 250
+    svg = [f'<svg width="{w}" height="{h}" viewBox="0 0 {w} {h}" style="background: #0b0806; border: 1px solid var(--line); border-radius: 8px">']
+    own = [(rnd.uniform(20, 120), rnd.uniform(20, 230)) for _ in range(26)]
+    foe = [(rnd.uniform(240, 350), rnd.uniform(20, 230)) for _ in range(14)]
+    for i in range(10):
+        (x1, y1), (x2, y2) = own[i], foe[i]
+        svg.append(f'<line x1="{x1:.0f}" y1="{y1:.0f}" x2="{x2:.0f}" y2="{y2:.0f}" stroke="#f1d27a" stroke-width="1" opacity="0.5" />')
+    svg += [f'<path d="M {x:.0f} {y - 4:.0f} L {x + 7:.0f} {y:.0f} L {x:.0f} {y + 4:.0f} Z" fill="#6fb8ff" />' for x, y in own]
+    svg += [f'<path d="M {x:.0f} {y - 4:.0f} L {x - 7:.0f} {y:.0f} L {x:.0f} {y + 4:.0f} Z" fill="{WAR}" />' for x, y in foe]
+    svg += [f'<circle cx="{x:.0f}" cy="{y:.0f}" r="{r}" fill="#f0a050" opacity="0.6" />' for x, y, r in [(300, 80, 9), (270, 170, 7), (320, 200, 6)]]
+    svg.append('</svg>')
+    scrub = ('<div style="display: flex; gap: 6px; align-items: center; margin: 8px 0; font-size: 12.5px">▶ '
+             + ''.join(f'<span style="flex: 1; height: 6px; border-radius: 3px; background: var(--{"gold" if i <= 2 else "line"})"></span>' for i in range(1, 5))
+             + '<span class="m-dim">Runde 2 von 4</span></div>')
+    inner = ('<div style="position: relative; padding: 100px 10px 0"><div style="margin-bottom: 6px">' + result_head() + '</div>' + ''.join(svg) + scrub
+             + '<div style="font-size: 12.5px">Runde 2: 9 Abfangjäger und 4 Raketenbatterien von Varn zerstört.</div>' + loot_debris() + '</div>')
+    return phone('<div class="k-stars" style="position: absolute; inset: 0"></div>' + inner + header() + sheet() + tabs())
+
+
+def s10c():
+    def row(t, txt, c='dim', past=True):
+        return (f'<div style="position: relative; display: grid; grid-template-columns: 44px 1fr; gap: 6px; font-size: 13px; margin: 5px 0;{" opacity: 0.8" if past else ""}">'
+                f'<span style="position: absolute; left: -17px; top: 5px; width: 9px; height: 9px; border-radius: 50%; background: var(--{c})"></span>'
+                f'<b class="m-num" style="color: var(--{"dim" if past else "txt"})">{t}</b><span>{txt}</span></div>')
+    card = ('<div style="border: 1px solid var(--green); border-radius: 8px; padding: 8px; margin: 4px 0 8px">' + result_head()
+            + '<div style="font-size: 12.5px; margin: 4px 0">Verluste: du 14 Abfangjäger, 2 Fregatten · Varn alles</div>' + loot_debris()
+            + '<div class="m-dim" style="font-size: 12px; margin-top: 6px">Wischen: Runde 1 · 2 · 3 · 4</div></div>')
+    body = ('<b style="color: var(--gold-hi)">Lage · Zeitleiste</b>'
+            '<div style="margin: 6px 0 0 20px; border-left: 2px solid var(--line); padding-left: 10px">'
+            + row('13:24', 'Bericht Varn') + row('13:26', 'Flotte nach Varn gestartet')
+            + row('14:05', '<b style="color: var(--green)">Schlacht um Varn</b> · aufgeklappt', 'green') + card
+            + row('14:32', '<b style="color: var(--red)">Angriff Haus Valcor auf Nox</b>', 'red', False) + row('14:50', 'Flotte zurück mit Beute', 'gold', False) + '</div>')
+    return phone(system() + header() + pulled(560, body) + tabs())
+
+
+SITS['s10'] = {'a': s10a, 'b': s10b, 'c': s10c}
+
+
 def build_sheet():
     parts = [f'<figure id="r3-{sid}-{e}" style="margin: 0; display: inline-block">{fn()}</figure>' for sid, vs in SITS.items() for e, fn in vs.items()]
     return ('<!doctype html>\n<html lang="de">\n<head>\n<meta charset="utf-8" />\n<title>Playtest r3</title>\n'
