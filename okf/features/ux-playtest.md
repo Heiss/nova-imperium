@@ -135,7 +135,7 @@ Taken from the code (views, missions, reports) and the open ideas:
 | 5 | 12, 9 | s15 away and back (b·a·c) · s16 ground combat #155 (a·c·b) | done 2026-11-23 16:29 |
 | 6 | repeats | s2r the one Lage line (b·c·a) · sc the colour language (c·a·b) · sg several galaxies (a·c·b) · brut2 (c·a·b) · ewige2 (b·c·a) | running |
 | 7 | tabs not tested yet | s17 Welten (b·c·a) · s18 Berichte (c·a·b) · s19 Menü (a·b·c) | done 2026-11-23 16:45 |
-| 6b | races, third time | brut3 organic borders (b·c·a) · ewige3 technical frames (c·a·b), map unchanged | queued |
+| 6b | races, third time | brut3 organic borders (b·c·a) · ewige3 technical frames (c·a·b), map unchanged | done 2026-11-23 17:56 |
 | d3 | desktop: building on fields + info page (a three columns, b windows, c as on the phone; order c·a·b) | done 2026-11-23 16:35 |
 | 5 | more desktop views (building, info page) | planned | open |
 
@@ -185,11 +185,12 @@ s2 of version 1 (galaxy without systems; dashboard not yet a sheet).
 | s17 tab Welten | variant 3 = a, cards per world with picture, what runs, progress, main hint | note: „ein wechsel zwischen den welten ist hiermit sehr leicht möglich und man bekommt einen eindruuck zum planeten durch das bild. das wischen zwischen den planeten wäre noch hilfreich, wenn man in einem view ist und dann zu einem anderen planeten wechseln möchte. aber auch hier wie die galaxienauswahl: man sollte wählen können ob man eine asuwal hat oder mit wischen oder nur wischen.“ | **[E]** Welten: one card per world with its picture. **[E]** inside a world's view, swiping goes to the next world; as for galaxies, an option: picker, picker and swipe, or swipe only. |
 | s18 tab Berichte | variant 2 = a, a list by time with filters (Kampf, Auspex, Flotte, Lieferung) | answer (delete or pin?): „grenze je spieler, wenn sie erreicht wird, verschwinden sie automatisch.“ | **[E]** Berichte: a list by time with filters; a tap opens the report in its world's sheet. **[E]** reports keep today's limit per player; past it the oldest disappear on their own. |
 | s19 tab Menü | variant 1 = a, the menu as a sheet from below | note: „füllt den schieber wieder, ist ein wiederkehrendes element. und das runter ziehen schließt das menü, genauso wie der klick auf die karte.“ · answer (Admin in the same menu?): „darf da ruhig mit drin stehen.“ | **[E]** the menu (Lexikon, Soziales, Optionen, Admin) opens as the sheet; pulling it down or tapping the map closes it. **[E]** „Admin“ stands in the same menu for admins. |
+| brut3 Brut, only the borders | variant 3 = a, chitin thorns on the edges of bar, sheet and tabs, veins along the edge | note: „dürfte durch organisch sein. also so richtig mit erkennbaren adern von zergähnlichen wesen. ruhig ein wenig mehr schmodder.“ · answer (buttons and pills too?): „nur ränder und große flächen“ | **[E]** Brut: chitin thorns on the edges of the large surfaces (top bar, sheet, tab bar) with veins; it may be more organic: clearly visible veins of creature-like beings, „ein wenig mehr Schmodder“ (goo). **[E]** only borders and large surfaces, not buttons or pills. |
+| ewige3 Ewige, only the frames | variant 2 = a, bronze double frames with 65° corners and a glowing gem | answer (terms Sternkarte, Chronik, Zeitlauf, Kreis?): „passt so“ | **[E]** Ewige: bronze double frames with 65° corners and a glowing gem in the middle of the edges. **[E]** terms: Sternkarte, Welten, Flotten, Chronik, Zeitlauf (for Lage), Kreis (for galaxy). |
 
 ## Open work
 
-* Read brut3, ewige3.
-* Then sum up and ask the owner how to go on (more repeats, or rewrite #388 and the study).
+* Ask the owner how to go on (Brut once more with more goo, more repeats, or rewrite #388 and the study).
 * After the race repeats: sum up and ask the owner whether more repeats are needed or #388 and the study get rewritten.
 * The loop is covered once (s1–s16, d1–d2). Next: repeats with variants inside the winners, and desktop views of the new winners.
 * Race follow-up: Brut chitin with organic, slightly disgusting motion; Ewige clockwork with 65° bends; per-race terms; a colour for friends.
