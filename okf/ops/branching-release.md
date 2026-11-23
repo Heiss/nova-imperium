@@ -202,7 +202,10 @@ and one CI run (26.11.24; #347 for 26.11.25).
   consequence for the date each time (owner, 2026-11-22). **[V]** The scope
   closes when the collecting pull request is opened (the owner decided the
   rule, not the moment). Reason: the scope of 26.11.25 grew from four items
-  to twelve.
+  to twelve. **[U]** How the loop knows whether an issue was in the scope
+  when it closed, and how an „Ausnahme“ is recorded, is open (O24 in
+  [Open points](/open-points.md)); until it is decided the rule is text and
+  the coordinating session watches it (owner, 2026-11-23).
 * **[E]** 26.11.25 was released from its collecting pull request, without a
   release pull request and a candidate image, by the owner's exception of
   2026-11-22 ([log](/log/2026-11-22-release-in-collect.md)); the rule for

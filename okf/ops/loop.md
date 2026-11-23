@@ -87,11 +87,23 @@ tasks).
   rule; a machine check comes before a written rule (owner, 2026-11-22).
   Every lesson gets one consequence: a rule in the OKF where it is about
   behaviour, an issue where something has to be built (owner, 2026-11-22,
-  #351). The loop writes it after the merge of the release pull request
-  of `release/main`, before it stops. The first one is
+  #351). The first one is
   [the retrospective of 26.11.25](/log/2026-11-22-retro-26-11-25.md);
-  **[V]** it exceeds the limit of five, as its consequences were decided
-  by the owner one by one before the limit was written.
+  it exceeds the limit of five, as its consequences were decided by the
+  owner one by one before the limit was written; the limit holds from the
+  next retrospective on (owner, 2026-11-23).
+* **[E]** The missing retrospective is found by state, not by event (owner,
+  2026-11-23): at the start of every iteration, before a step is chosen,
+  the loop checks whether the newest release tag has its retrospective
+  `okf/log/*-retro-<version with dashes>.md`; if it is missing, the loop
+  writes it first, in a pull request, whichever pull request released it.
+  Reason (CodeRabbit on #380): a release merged while the loop waits
+  leaves no open release pull request, and a hotfix or a collecting pull
+  request releases without one. **[V]** A retrospective that an open pull
+  request already adds counts as present, so it is not written twice.
+  **[V]** The stop rule stays (owner, 2026-11-13, #149): when the missing
+  retrospective is the one of the release this loop run made ready, the
+  loop stops after writing it; otherwise it goes on with the steps.
 * **[E]** The release pull request of `main` is a draft with the cheap run
   after every rebuild; its CI Gate is red on purpose (owner, 2026-11-13 and
   2026-11-14, #147, [Branching and release](/ops/branching-release.md)).

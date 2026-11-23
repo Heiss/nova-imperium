@@ -23,7 +23,16 @@ interface is German.
      `in progress` (you started it), `in review` (its pull request is
      ready and waits for CI or review), `in discussion` (planned for a
      later release); `feature` and `idea` give the kind.
-2. Do the first step below that applies, and only that one.
+2. Before you choose a step, check that the newest release tag has its
+   retrospective `okf/log/*-retro-<version with dashes>.md` (owner,
+   2026-11-23); one that an open pull request adds counts as present [V].
+   If it is missing, write it first, in a pull request: after every
+   release, whichever pull request released it, what cost time and at most
+   five consequences, each an issue, a guard or a rule; a machine check
+   comes before a written rule (owner, 2026-11-22). If it is the one of the
+   release this loop run made ready, stop the loop after writing it;
+   otherwise go on [V]. Then do the first step below that applies, and
+   only that one.
 3. When a step needs the owner, ask with the question tool inside the
    iteration: the iteration waits for the answer and goes on with it, so
    the loop never waits without a question on screen. A step that needs no
@@ -152,15 +161,7 @@ interface is German.
    you told the owner already: tell them once more, then wait. When the
    loop is about to end (seven days, or the session) before the release is
    merged, tell the owner to start `/loop` again. Once the release pull
-   request from `release/main` is merged, write the retrospective, then
-   **stop the loop**. After every release, whichever pull request released
-   it (the release pull request of `release/main`, a hotfix release pull
-   request, or a collecting pull request by the owner's exception), a short
-   retrospective as a log entry `okf/log/<date>-retro-<version>.md`, the
-   full version written with dashes (`2026-11-22-retro-26-11-25.md`), in a
-   pull request: what cost time, and at most five consequences, each an
-   issue, a guard or a rule; a machine check comes before a written rule
-   (owner, 2026-11-22).
+   request from `release/main` is merged, **stop the loop**.
 3. **Plan the release** when no open issue has the label `ready`,
    `in progress` or `in review` and no release pull request is open. Ask
    the owner what the release should bring:
@@ -174,7 +175,9 @@ interface is German.
    - The scope of a release closes: what comes later goes to the next
      release unless the owner says „Ausnahme“ for it; name the consequence
      for the date each time (owner, 2026-11-22). It closes when the
-     collecting pull request is opened [V].
+     collecting pull request is opened [V]. How you know whether an issue
+     was in the scope, and how an „Ausnahme“ is recorded, is open [U]
+     (O24); until then the coordinating session watches it.
 4. **Clarify the next open issue** with the label `ready` (infrastructure first,
    then the lowest number) while it has no comment that starts with
    `Geklärt`. Do not start while anything is unclear. Red-team your

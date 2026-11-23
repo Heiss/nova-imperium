@@ -19,6 +19,7 @@ their result.
 | O3 | Ranges of the universe settings | Proposals in [Admin](/features/admin.md) (speed 1 to 100, galaxies up to 9, …). Confirm or change. |
 | O16 | „Angriff auf“ in the attack event of the guild chat (#169) | The owner's text of 2026-11-15, „⚔ Angriff auf [1:27:11] (Vex → Lea), Ankunft 20:15“, is built as given; the grimdark naming of #94 replaced the classic „Angriff auf …“ by „Feindkontakt! …“, so the naming test allows it in `core/guild-chat.ts` only. 1. keep the owner's text (built); 2. „⚔ Sturmangriff auf [1:27:11] (Vex → Lea), Ankunft 20:15“, the mission's name; 3. „⚔ Feindkontakt bei [1:27:11] (Vex → Lea), Ankunft 20:15“, the word of the battle report. Recommended: 1 or 2. |
 | O17 | Name of a deleted attacker in an attack event (#169) | The owner decided „ehemaliges Mitglied“ for a deleted name; the attacker is no member. 1. „Unbekannt“, as the fleet arrival names a player it does not know (built [V]); 2. „ehemaliges Mitglied“ for every deleted name; 3. „gelöschter Spieler“. Recommended: 1. |
+| O24 | Scope of a release (CodeRabbit on #380) | The scope of a release closes, with „Ausnahme“ by the owner ([Branching and release](/ops/branching-release.md)), but step 5 of the loop builds every `ready` issue with a `Geklärt` comment and has no machine check of the scope. Open [U]: how the loop knows whether an issue was in the scope when it closed, and how an „Ausnahme“ is recorded. Until then the rule is text and the coordinating session watches it (owner, 2026-11-23). |
 
 # B. Tasks of the owner
 
