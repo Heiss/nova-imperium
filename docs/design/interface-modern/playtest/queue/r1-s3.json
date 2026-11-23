@@ -1,0 +1,28 @@
+{
+  "id": "s3",
+  "kind": "sit",
+  "order": "acb",
+  "round": "r1",
+  "roundTitle": "Runde 1 · Ankommen und bauen",
+  "seq": 40,
+  "station": 2,
+  "text": "Du willst auf Aurelia ein Gebäude setzen. Die Oberfläche hat Felder mit Eigenschaften (Erzader, Sonnenhang, Gebirge …). Die Regeln dazu sind noch offen; es geht nur um die Bedienung.",
+  "title": "Bauen auf Feldern (#158)",
+  "variants": {
+    "a": {
+      "desc": "Quadratische Felder; Feld antippen, sehen was dort wie gut läuft, „Hier bauen“.",
+      "emph": "Schwerpunkt Browser-Strategie (Travian, Forge of Empires, Grepolis)",
+      "img": "img/r1-s3-a.jpg"
+    },
+    "b": {
+      "desc": "Sechseck-Felder mit Ebenen Ertrag und Nachbarn; Vergleichstabelle im Blatt.",
+      "emph": "Schwerpunkt 4X / Weltraum (Stellaris, EVE Online)",
+      "img": "img/r1-s3-b.jpg"
+    },
+    "c": {
+      "desc": "Gebäude aus der Leiste auf ein Feld ziehen; jedes Feld zeigt dabei den Ertrag; erst „Bestätigen“ baut.",
+      "emph": "Schwerpunkt Mobile Strategie (Clash of Clans, Rise of Kingdoms)",
+      "img": "img/r1-s3-c.jpg"
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "ask": "Sollen mehrere Ziele auf einmal ausspioniert werden können, oder ist das zu nah an „Automatisierung“ (#181)?",
+  "id": "s7",
+  "kind": "sit",
+  "order": "acb",
+  "round": "r2",
+  "roundTitle": "Runde 2 · Forschen, verteidigen, auskundschaften",
+  "seq": 120,
+  "station": 6,
+  "text": "Du willst wissen, ob sich ein Angriff auf Varn lohnt. Dein letzter Bericht ist 26 Stunden alt; nur eigene Berichte unter 24 Stunden gelten als aktuell (#160).",
+  "title": "Spionage",
+  "variants": {
+    "a": {
+      "desc": "Aus der System-Ansicht: Varn antippen, im Schieber Alter des Berichts sehen und Spähschädel losschicken.",
+      "emph": "Ansicht: aus dem System",
+      "img": "img/r2-s7-a.jpg"
+    },
+    "b": {
+      "desc": "Eine Liste deiner Ziele mit Alter des Berichts und geschätzter Beute; mehrere auf einmal ausspionieren.",
+      "emph": "Ansicht: Zielliste",
+      "img": "img/r2-s7-b.jpg"
+    },
+    "c": {
+      "desc": "Eine Kartenebene „Alter der Berichte“: jede Welt zeigt, wie alt dein Bericht ist; antippen schickt Spähschädel los.",
+      "emph": "Ansicht: Kartenebene",
+      "img": "img/r2-s7-c.jpg"
+    }
+  }
+}

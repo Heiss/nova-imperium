@@ -1,0 +1,29 @@
+{
+  "ask": "Sollen sich je Rasse auch die Begriffe ändern (z. B. „Nest“ statt „Planet“, „Witterung“ statt „Lage“), oder nur das Aussehen?",
+  "id": "brut",
+  "kind": "sit",
+  "order": "bca",
+  "round": "r1b",
+  "roundTitle": "Runde 1b · Die Rassen",
+  "seq": 80,
+  "station": 0,
+  "text": "Wer die Brut spielt, bekommt eine eigene Oberfläche; der Aufbau bleibt gleich (Karte, Lage-Schieber, Leiste). Die Bilder bewegen sich. Begriffe wie „Nest“ oder „Witterung“ sind nur Beispiele.",
+  "title": "Die Brut: dieselbe Karte",
+  "variants": {
+    "a": {
+      "desc": "Membran: weiche, sich verformende Ränder, pulsierende Adern im Hintergrund, Nester wabern.",
+      "emph": "Brut: Membran",
+      "img": "img/r1b-brut-a.gif"
+    },
+    "b": {
+      "desc": "Chitin: harte Panzerplatten in Waben, Nähte glühen im Takt, die Fläche atmet langsam.",
+      "emph": "Brut: Chitin",
+      "img": "img/r1b-brut-b.gif"
+    },
+    "c": {
+      "desc": "Schwarm: überall krabbelnde Punkte, Ränder aus Gewimmel, Nester wabern.",
+      "emph": "Brut: Schwarm",
+      "img": "img/r1b-brut-c.gif"
+    }
+  }
+}

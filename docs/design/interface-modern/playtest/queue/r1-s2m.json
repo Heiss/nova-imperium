@@ -1,0 +1,29 @@
+{
+  "ask": "Soll der Schieber beim Öffnen des Spiels nur eine Zeile zeigen, halb offen sein oder ganz offen?",
+  "id": "s2m",
+  "kind": "sit",
+  "order": "bca",
+  "round": "r1",
+  "roundTitle": "Runde 1 · Ankommen und bauen",
+  "seq": 30,
+  "station": 1,
+  "text": "Der Schieber mit der Lage ist überall unten und lässt sich hochziehen. Hier geht es nur um seinen Inhalt: Was passiert ist, was läuft, was die anderen tun.",
+  "title": "Den Lage-Schieber hochziehen",
+  "variants": {
+    "a": {
+      "desc": "Gruppen zum Auf- und Zuklappen (Angeheftet, Kämpfe, Forschung, die anderen, Befunde) und deine Welten mit Fortschritt.",
+      "emph": "Inhalt: Gruppen",
+      "img": "img/r1-s2m-a.jpg"
+    },
+    "b": {
+      "desc": "Eine Zeitleiste: oben was passiert ist, eine Linie „jetzt“, unten was kommt – Bauten, Flotten, der Angriff.",
+      "emph": "Inhalt: Zeitleiste",
+      "img": "img/r1-s2m-b.jpg"
+    },
+    "c": {
+      "desc": "„Jetzt handeln“ zuerst, mit Knöpfen; darunter knapp was läuft und was die anderen tun.",
+      "emph": "Inhalt: Jetzt handeln",
+      "img": "img/r1-s2m-c.jpg"
+    }
+  }
+}
