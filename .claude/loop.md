@@ -40,7 +40,8 @@ interface is German.
      O4) [V].
    - Stop the loop once the release this loop run made ready is tagged and
      its retrospective is merged; a missing retrospective of another
-     release does not stop it [V].
+     release does not stop it [V]. Open details: O25 in
+     `okf/open-points.md`.
      Then do the first step below that applies, and only that one.
 3. When a step needs the owner, ask with the question tool inside the
    iteration: the iteration waits for the answer and goes on with it, so

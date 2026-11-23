@@ -121,6 +121,7 @@ tasks).
     the release this loop run made ready is tagged and its retrospective
     is merged; a missing retrospective of another release does not stop
     it.
+  * open details: O25 in [Open points](/open-points.md).
 * **[E]** The release pull request of `main` is a draft with the cheap run
   after every rebuild; its CI Gate is red on purpose (owner, 2026-11-13 and
   2026-11-14, #147, [Branching and release](/ops/branching-release.md)).
