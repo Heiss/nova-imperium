@@ -162,6 +162,9 @@ describe('choosing the main planet', () => {
     expect(() => choose(ctx, undefined)).toThrow(MAIN_ERROR.unknown);
     expect(() => choose(ctx, 'p1_1_5')).toThrow(MAIN_ERROR.same);
     expect(anna(ctx)).toMatchObject({ mainPlanet: null, mainSwitched: null });
+    // A player without any planet has no main planet to compare with.
+    addUser(ctx, 'Cleo');
+    expect(() => choose(ctx, 'p1_1_5', 'u_Cleo')).toThrow(MAIN_ERROR.unknown);
     expect(MAIN_ERROR).toEqual({
       unknown: 'Das ist keiner deiner Planeten.',
       moon: 'Ein Mond kann nicht Hauptplanet sein.',
