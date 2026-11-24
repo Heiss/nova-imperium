@@ -371,8 +371,13 @@ describe('whether a view is offered (#373)', () => {
       expect(readFileSync(file, 'utf8'), file).not.toMatch(
         /'(admin|guilds|achievements)'/,
       );
-    expect(readFileSync('src/client/views/mount.ts', 'utf8')).toContain(
-      'Object.hasOwn(MOUNT, view) && offered(view, v.s.round, v.s.me.admin)',
+    const mount = readFileSync('src/client/views/mount.ts', 'utf8');
+    // The mount asks the one rule, after checking the view is its own.
+    expect(mount).toContain(
+      'const own = Object.hasOwn(MOUNT, view) ? MOUNT[view] : undefined;',
+    );
+    expect(mount).toContain(
+      "typeof own === 'function' && offered(view, v.s.round, v.s.me.admin);",
     );
   });
 });
