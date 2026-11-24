@@ -1,6 +1,6 @@
 ---
 title: Git workflow
-description: Branches, the pull request flow from draft to squash merge, changelog fragments, the release pull request, CalVer tags, release candidates, hotfixes and Renovate – with diagrams.
+description: Branches, the pull request flow from draft to squash merge, changelog fragments, the release pull request, CalVer tags, the image next, hotfixes and Renovate – with diagrams.
 ---
 
 Nova Imperium uses GitHub Flow: `main` is always deliverable, work happens
@@ -18,7 +18,7 @@ trigger each other.
 flowchart TD
   work["claude/… and other work branches"] -->|"pull request, squash merge"| main
   renovate["renovate/…"] -->|"pull request, patch updates and security fixes up to minor merge themselves"| main
-  main -->|"rebuilt after every push"| relmain["release/main"]
+  main -->|"created on the owner's word, rebuilt after every push while open"| relmain["release/main"]
   relmain -->|"release pull request, merged by the owner"| main
   tag(["release tag, e.g. 26.11.22"]) -->|"created from the tag"| hotfix["hotfix/…"]
   hotfix -->|"rebuilt after every push"| relhot["release/hotfix/…"]
@@ -26,16 +26,16 @@ flowchart TD
   hotfix -->|"merged back after its release"| main
 ```
 
-| Branch                  | Created by                                                                  | Purpose                                                                                                                                                                           |
-| ----------------------- | --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `main`                  | –                                                                           | Always deliverable. Changes only through pull requests; „CI Gate“ is its required check. Every push runs the full CI and rebuilds the release pull request.                       |
-| `claude/…`              | the assistant                                                               | One branch per issue, one pull request each; up to four of its own pull requests are open at a time; it takes `main` in only before its merge ([Release loop](/okf/ops/loop.md)). |
-| `release/main`          | workflow „Release pull request“ (`release-pr.yml`, `scripts/release-pr.sh`) | Rebuilt from `main` and force-pushed after every push to `main`; head of the release pull request. Never edited by hand.                                                          |
-| `release/hotfix/<name>` | the same workflow, for a hotfix branch                                      | Head of the release pull request into `hotfix/<name>`.                                                                                                                            |
-| `hotfix/<name>`         | the owner, from the last release tag                                        | A fix of the last release without the unreleased work of `main`. Protected like `main` (ruleset „hotfix“).                                                                        |
-| `hotfix/sec-<id>`       | the release App, workflow „Security hotfix“                                 | An automatic security hotfix of the release `stable` names.                                                                                                                       |
-| `sec-fix/<id>`          | workflow „Security hotfix“                                                  | The pull request with the fixed versions into `hotfix/sec-<id>`; merges itself when the CI Gate is green.                                                                         |
-| `renovate/…`            | Renovate                                                                    | Dependency and image updates.                                                                                                                                                     |
+| Branch                  | Created by                                                                  | Purpose                                                                                                                                                                                                                      |
+| ----------------------- | --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `main`                  | –                                                                           | Always deliverable. Changes only through pull requests; „CI Gate“ is its required check. Every push runs the full CI and rebuilds an open release pull request.                                                              |
+| `claude/…`              | the assistant                                                               | One branch per issue, one pull request each; up to four of its own pull requests are open at a time; it takes `main` in only before its merge ([Release loop](/okf/ops/loop.md)).                                            |
+| `release/main`          | workflow „Release pull request“ (`release-pr.yml`, `scripts/release-pr.sh`) | Built from `main` when the workflow is started by hand on the owner's word, then rebuilt and force-pushed after every push to `main` while its pull request is open; head of the release pull request. Never edited by hand. |
+| `release/hotfix/<name>` | the same workflow, for a hotfix branch                                      | Head of the release pull request into `hotfix/<name>`.                                                                                                                                                                       |
+| `hotfix/<name>`         | the owner, from the last release tag                                        | A fix of the last release without the unreleased work of `main`. Protected like `main` (ruleset „hotfix“).                                                                                                                   |
+| `hotfix/sec-<id>`       | the release App, workflow „Security hotfix“                                 | An automatic security hotfix of the release `stable` names.                                                                                                                                                                  |
+| `sec-fix/<id>`          | workflow „Security hotfix“                                                  | The pull request with the fixed versions into `hotfix/sec-<id>`; merges itself when the CI Gate is green.                                                                                                                    |
+| `renovate/…`            | Renovate                                                                    | Dependency and image updates.                                                                                                                                                                                                |
 
 ## The pull request flow
 
@@ -88,9 +88,11 @@ Details and an example: [Contributing](contributing.md#changelog-fragments-and-t
 
 ## The release pull request
 
-After every push to `main` (and to `hotfix/**`), the workflow „Release pull
-request“ runs `scripts/release-pr.sh` with the token of the release App –
-a pull request opened with `GITHUB_TOKEN` would start no CI:
+The release pull request of `main` is created only on the owner's word: the
+release loop asks, and on yes starts the workflow „Release pull request“ on
+`main` by hand (`workflow_dispatch`). It runs `scripts/release-pr.sh` with
+the token of the release App – a pull request opened with `GITHUB_TOKEN`
+would start no CI:
 
 1. When nothing was merged since the last release tag, it closes an open
    release pull request and stops. When the push itself was the merge of a
@@ -98,56 +100,61 @@ a pull request opened with `GITHUB_TOKEN` would start no CI:
 2. It rebuilds `release/main` from `main` as one commit „Release
    <version>“: the fragments become a German section of `CHANGELOG.md`
    (new before changed before fixed), `VERSION` holds the next version, the
-   fragments are removed (`scripts/changelog.ts release`).
+   fragments are removed (`scripts/changelog.ts release`). It changes
+   nothing else.
 3. It opens or updates the pull request „Release <version>“ with the
    changelog section, the pull requests since the last tag and a checklist
-   for the owner. The pull request is a draft from before the push until
-   the version is confirmed free, so a failed run never leaves a duplicate
-   version mergeable.
-4. The release pull request of `main` stays a draft (#147): its CI runs
-   only the cheap checks (secrets and dependencies, migrations, workflow
-   lint, CodeQL, changelog fragments), and its CI Gate fails on purpose.
-   A release pull request of a hotfix branch is marked ready at once.
-5. It stays a draft while a released hotfix is not merged back into `main`:
-   releasing `main` then would drop the fix from `stable`. Its body carries
-   a marker, and „Release ready“ refuses „Ready for review“: it sets the
-   pull request back to draft and comments why.
+   for the owner. The pull request is created as a draft and marked ready
+   by the same run once its version is confirmed free, so a failed run never
+   leaves a duplicate version mergeable.
+4. It stays a draft while another release branch holds its version, or
+   while a released hotfix is not merged back into `main`: releasing
+   `main` then would drop the fix from `stable`. In that case its body
+   carries the marker `<!-- release-pr: unmerged-hotfix -->` with a note.
 
-Marking the release pull request of `main` „Ready for review“ starts its
-full run, with every check: the complete mutation run, the
-Docker image with Trivy blocking High and Critical, the Compose stack, the
-upgrade test and the smoke test ([CI and checks](ci.md)). The workflow
-„Release ready“ (`release-ready.yml`) does that: it adds and removes the
-label `voller-lauf` with the release App's token, and `ci.yml` runs on
-those label events. The next rebuild sets the pull request back to draft.
-The release loop marks it ready when the release is due; the owner checks
-the texts and merges it; that is the release. There is no merge freeze
-(#149): every merge into `main` while it waits, a security update or any
-other, rebuilds it and sets it back to draft, so the owner never merges on
-an old full run. The release loop keeps running until the owner has merged
-it, marks it ready again after each rebuild and tells the owner once the
-new full run and candidate image are green.
+A push to `main` rebuilds an open release pull request within minutes and
+creates none. A push to `hotfix/**` builds the release pull request of that
+hotfix branch at once.
+
+The release pull request changes only `VERSION`, `CHANGELOG.md` and
+`changes/`; „Detect changes“ refuses any other file. It runs no expensive
+job – no unit tests, E2E, mutation, image or website – and relies on the
+results of `main`: its CI Gate requires the cheap checks (secrets and
+dependencies, migrations, workflow lint, CodeQL) and „Changelog
+fragments“, and refuses an expensive job ([CI and checks](ci.md)). The
+release loop checks its texts, waits for its green CI Gate and tells the
+owner; the owner merges it; that is the release. There is no merge freeze
+(#149): every merge into `main` while it waits rebuilds it, and the loop
+checks it again and tells the owner again.
+
+The push run of the release merge takes over the proofs of the commit
+before it: it changes only the metadata files against its first parent, so
+`scripts/already-tested.ts` gives it the proofs of that parent's green push
+run. `tag.yml` then tags it, and `release.yml` publishes it.
+
+Open points, marked [U] in
+[Branching and release](/okf/ops/branching-release.md): what blocks a High
+hole in a release of `main` now that its release pull request builds no
+image, and what of this flow is verified only after the merge of #387.
 
 ```mermaid
 sequenceDiagram
+  participant O as Owner
+  participant L as Release loop
   participant M as main
   participant RP as release-pr.yml
   participant RB as release/main
   participant CI as ci.yml
-  participant RC as rc-image.yml
-  participant O as Owner
   participant T as tag.yml
   participant R as release.yml
-  M->>RP: push (a merged pull request)
-  RP->>RB: rebuild: CHANGELOG.md, VERSION, fragments removed
-  RP->>RB: pull request „Release 26.11.23“ (draft)
-  RB->>CI: pull request run: cheap checks, CI Gate red on purpose
-  O->>RB: „Ready for review“ (the release loop)
-  RB->>CI: label voller-lauf (release-ready.yml): every check
-  CI->>RC: green
-  RC-->>RC: image 26.11.23-rc.N, moves „next“
+  O->>L: release now
+  L->>RP: workflow_dispatch on main
+  RP->>RB: build: CHANGELOG.md, VERSION, fragments removed
+  RP->>RB: pull request „Release 26.11.23“ (draft, marked ready)
+  RB->>CI: pull request run: cheap checks and changelog fragments only
+  M->>RP: push (a merged pull request): rebuild the open one
   O->>M: squash merge of the release pull request
-  M->>CI: push run
+  M->>CI: push run: proofs of the commit before it
   CI->>T: green, and the commit changed VERSION
   T-->>M: tag 26.11.23
   M->>R: tag push
@@ -174,21 +181,16 @@ next-version`).
   image of the newest release tag, whichever run gets there, so a re-run of
   an older release never moves them back.
 
-## Release candidates
+## The image `next`
 
-Every green CI run of a release pull request publishes a candidate image
-for staging (`rc-image.yml`); for `main`, only its full run is green:
-
-- `ghcr.io/heiss/nova-imperium:<version>-rc.<N>`, where N counts the merges
-  on the base branch since the last release, so `rc.3` holds three merged
-  pull requests;
-- `next`, moved to it only while that run is still the head of the release
-  branch.
-
-In the candidate, `VERSION` holds `<version>-rc.<N>`: the game treats it as
-a development build and sends no update message. `latest` and `stable`
-only ever name releases. Candidate numbers are not Git tags. Do not run a
-candidate on the production world: its migrations are not released yet
+After every green CI push run on `main`, `next-image.yml` builds the image
+`ghcr.io/heiss/nova-imperium:next` for linux/amd64 and linux/arm64 and moves
+`next` to it only while that run is still the head of `main`. Its `VERSION`
+holds the short commit, and the image carries the OCI label
+`org.opencontainers.image.revision`; the game shows no version for it.
+`latest` and `stable` only ever name releases. `next` is for a test server
+with `NOVA_VERSION=next`; do not run it on the production world: its
+migrations are not released yet
 ([Operations](/docs/operations.md#updates)).
 
 ## Hotfixes
@@ -210,7 +212,9 @@ flowchart TD
 - Release tags are annotated, so the hotfix branch points at the commit of
   the tag (`<tag>^{commit}`).
 - Pull requests into `hotfix/**` and pushes to it run every check, Trivy
-  blocking High and Critical.
+  blocking High and Critical. The release pull request of a hotfix branch
+  follows the same rules as that of `main`: metadata only, no expensive
+  job; the change of the hotfix comes in its fix pull request.
 - After the hotfix release, `tag.yml` runs the workflow „Release pull
   request“ for `main`, so the next release of `main` takes a newer version
   and becomes `stable` again. The version of the merged-back hotfix is not

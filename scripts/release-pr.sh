@@ -43,9 +43,11 @@ if [ -n "$last" ]; then range="$last..HEAD"; else range=HEAD; fi
 open=$(gh pr list --head "$branch" --base "$base" --state open \
   --json number --jq '.[0].number // empty')
 
-# A push to main rebuilds the open release pull request only: a new one is
-# created on the owner's word (workflow_dispatch, #387).
-if [ "${EVENT:-}" = push ] && [ "$base" = main ] && [ -z "$open" ]; then
+# A push to main, and tag.yml after a hotfix release (REBUILD_ONLY), rebuild
+# the open release pull request only: a new one is created on the owner's
+# word (workflow_dispatch, #387).
+if { [ "${EVENT:-}" = push ] || [ "${REBUILD_ONLY:-false}" = true ]; } &&
+  [ "$base" = main ] && [ -z "$open" ]; then
   printf 'No release pull request is open: the loop starts one on the owner'"'"'s word.\n'
   exit 0
 fi

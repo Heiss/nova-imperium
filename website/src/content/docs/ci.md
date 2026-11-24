@@ -4,37 +4,42 @@ description: Every job of the CI with what it checks and when it runs, how the C
 ---
 
 The CI is `.github/workflows/ci.yml`. It runs on every pull request (opened,
-updated, reopened, labeled, unlabeled) and on every push to `main` and
-`hotfix/**`. Pushes run the full suite; a pull request runs what its changes
-need. One job, **CI Gate**, collects the results and is the only required
-check of `main`. The rules behind it are in
+updated, reopened, labeled, unlabeled), on every push to `main` and
+`hotfix/**`, and every night on `main`. Pushes run the full suite, except a
+job proven on the same content (see below); a pull request runs what its
+changes need; a release pull request runs only the cheap checks. One job,
+**CI Gate**, collects the results and is the only required check of `main`. The rules behind it are in
 [Test strategy](/okf/ops/testing.md) and
 [Branching and release](/okf/ops/branching-release.md).
 
 ## The jobs
 
-| Job                                          | What it checks                                                                                                                                                                                                                                                                                                                         | When it runs                                                                  |
-| -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| Detect changes                               | Decides from the changed files whether the code checks, the Docker image and the website run (see below).                                                                                                                                                                                                                              | Always.                                                                       |
-| Changelog fragments                          | Every fragment in `changes/` is well-formed; a pull request that changes `src/client`, `src/core`, `src/features`, `src/server/game` or `src/server/http` brings one, unless it has the label `kein-changelog` (`scripts/changelog.ts check`).                                                                                         | Pull requests.                                                                |
-| Lint, types, unit tests with coverage, build | ESLint with `--max-warnings 0`, knip, jscpd, dependency-cruiser, Prettier, `svelte-check`, Vitest with coverage (blocks below 90 % lines and 85 % branches), `vite build`.                                                                                                                                                             | When the code changes.                                                        |
-| E2E tests (browser)                          | Playwright in Chromium against the real server: the game flows on desktop and phone size, accessibility with axe; the report is kept 7 days when it fails.                                                                                                                                                                             | When the code changes.                                                        |
-| Mutation plan                                | Splits the files Stryker mutates into 12 shards (`SHARDS` in `scripts/mutation-shards.ts`) by their estimated run time, every file on its shard of the last plan; a file without a weight costs as much as the mean file with one (`scripts/mutation-shards.ts plan`); the plan and the shard numbers are the job's outputs.           | Push, release or hotfix pull request, or a changed mutation configuration.    |
-| Mutation tests (shard N of 12)               | Stryker on the files of one shard (matrix 1 to 12 from the plan, `fail-fast: false`), incremental with the shard's own cache, complete (`--force`) in a release pull request; uploads the shard's report.                                                                                                                              | Push, release or hotfix pull request, or a changed mutation configuration.    |
-| Mutation tests                               | Merges the shard reports and checks them as one run: every shard ran once with exactly its files, the total score is at least 80 % (`stryker.config.json`), no file is below its floor (`mutation-floors.txt`, `scripts/mutation-gate.ts`); keeps the merged report as the artifact `mutation-report`.                                 | Push, release or hotfix pull request, or a changed mutation configuration.    |
-| Mutation tests (changed files)               | In a pull request that is no release pull request and goes into no hotfix branch: Stryker on the changed files of the `mutate` globs and the source of each changed test file (`scripts/mutation-partial.ts`), in one job, without any cache; every file at or above its floor, no total score (`scripts/mutation-gate.ts --partial`). | When the pull request changes such a file and not the mutation configuration. |
-| Docker image and Compose stack               | `compose.yaml` is valid and requires `NOVA_PUBLIC_URL`; the last release writes data, the image built from the `Dockerfile` starts on the same volume and the data survive (`docker/upgrade.sh`); Trivy; no compiler, package manager or tests in the image; a wrong setting stops the start; the smoke test (`docker/smoke.sh`).      | When **image** is true (see below).                                           |
-| Secrets and dependencies                     | gitleaks over the whole history (exceptions in `.gitleaksignore`); `pnpm audit --prod --audit-level high`.                                                                                                                                                                                                                             | Always.                                                                       |
-| Migrations append-only                       | No released migration was moved, removed or changed, compared with the base of the pull request, the previous tip of the branch, or for a new hotfix branch the release tag it starts from (`.github/scripts/migrations-gate.mjs`).                                                                                                    | Always.                                                                       |
-| Workflow lint                                | actionlint (syntax, expressions, shell) and zizmor (security, for example unpinned actions or persisted credentials) over `.github/workflows`.                                                                                                                                                                                         | Always.                                                                       |
-| CodeQL                                       | `security-extended` queries over JavaScript and TypeScript; a finding of security severity 7.0 or more, or of level „error“, fails (`.github/scripts/codeql-gate.mjs`).                                                                                                                                                                | Always: the ruleset of `main` waits for a CodeQL result of the exact commit.  |
-| Documentation website                        | Prettier over `website/`, the entries of the update log in `okf/log/` (`scripts/okf-log.ts check`), its tests (`pnpm test`, `node:test`), then the build of this site from `website/`, `okf/` and `docs/`; every internal link and anchor must resolve.                                                                                | When the website or its sources change.                                       |
-| CI Gate                                      | Evaluates every job above (next section).                                                                                                                                                                                                                                                                                              | Always, also when a job failed or was skipped.                                |
+| Job                                          | What it checks                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | When it runs                                                                  |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Detect changes                               | Decides from the changed files whether the code checks, the Docker image and the website run (see below).                                                                                                                                                                                                                                                                                                                                                                             | Always.                                                                       |
+| Changelog fragments                          | Every fragment in `changes/` is well-formed; a pull request that changes `src/client`, `src/core`, `src/features`, `src/server/game` or `src/server/http` brings one, unless it has the label `kein-changelog` (`scripts/changelog.ts check`).                                                                                                                                                                                                                                        | Pull requests.                                                                |
+| Lint, types, unit tests with coverage, build | ESLint with `--max-warnings 0`, knip, jscpd, dependency-cruiser, Prettier, `svelte-check`, Vitest with coverage (blocks below 90 % lines and 85 % branches), `vite build`.                                                                                                                                                                                                                                                                                                            | When the code changes.                                                        |
+| E2E tests (part N)                           | Playwright in Chromium against the real server, split into 3 parts (matrix 1 to 3, `fail-fast: false`): each part starts its own servers with their own data and runs its share of the spec files (`scripts/e2e-shards.ts` with the plan `e2e/shards.json`, balanced by measured times; a new spec goes to the part its name hashes to). The game flows on desktop and phone size, accessibility with axe; a failed part keeps its report as `playwright-report-part-<N>` for 7 days. | When the code changes.                                                        |
+| E2E tests (browser)                          | Every part succeeded; the CI Gate and the proofs of a push see this one job.                                                                                                                                                                                                                                                                                                                                                                                                          | When the code changes, also when a part failed.                               |
+| Mutation plan                                | Splits the files Stryker mutates into 12 shards (`SHARDS` in `scripts/mutation-shards.ts`) by their estimated run time, every file on its shard of the last plan; a file without a weight costs as much as the mean file with one (`scripts/mutation-shards.ts plan`); the plan and the shard numbers are the job's outputs.                                                                                                                                                          | Push, release or hotfix pull request, or a changed mutation configuration.    |
+| Mutation tests (shard N of 12)               | Stryker on the files of one shard (matrix 1 to 12 from the plan, `fail-fast: false`), incremental with the shard's own cache; uploads the shard's report.                                                                                                                                                                                                                                                                                                                             | Push, release or hotfix pull request, or a changed mutation configuration.    |
+| Mutation tests                               | Merges the shard reports and checks them as one run: every shard ran once with exactly its files, the total score is at least 80 % (`stryker.config.json`), no file is below its floor (`mutation-floors.txt`, `scripts/mutation-gate.ts`); keeps the merged report as the artifact `mutation-report`.                                                                                                                                                                                | Push, release or hotfix pull request, or a changed mutation configuration.    |
+| Mutation tests (changed files)               | In a pull request that is no release pull request and goes into no hotfix branch: Stryker on the changed files of the `mutate` globs and the source of each changed test file (`scripts/mutation-partial.ts`), in one job, without any cache; every file at or above its floor, no total score (`scripts/mutation-gate.ts --partial`).                                                                                                                                                | When the pull request changes such a file and not the mutation configuration. |
+| Docker image and Compose stack               | `compose.yaml` is valid and requires `NOVA_PUBLIC_URL`; the last release writes data, the image built from the `Dockerfile` starts on the same volume and the data survive (`docker/upgrade.sh`); Trivy; no compiler, package manager or tests in the image; a wrong setting stops the start; the smoke test (`docker/smoke.sh`).                                                                                                                                                     | When **image** is true (see below).                                           |
+| Secrets and dependencies                     | gitleaks over the whole history (exceptions in `.gitleaksignore`); `pnpm audit --prod --audit-level high`.                                                                                                                                                                                                                                                                                                                                                                            | Always.                                                                       |
+| Migrations append-only                       | No released migration was moved, removed or changed, compared with the base of the pull request, the previous tip of the branch, or for a new hotfix branch the release tag it starts from (`.github/scripts/migrations-gate.mjs`).                                                                                                                                                                                                                                                   | Always.                                                                       |
+| Workflow lint                                | actionlint (syntax, expressions, shell) and zizmor (security, for example unpinned actions or persisted credentials) over `.github/workflows`.                                                                                                                                                                                                                                                                                                                                        | Always.                                                                       |
+| CodeQL                                       | `security-extended` queries over JavaScript and TypeScript; a finding of security severity 7.0 or more, or of level „error“, fails (`.github/scripts/codeql-gate.mjs`).                                                                                                                                                                                                                                                                                                               | Always: the ruleset of `main` waits for a CodeQL result of the exact commit.  |
+| Documentation website                        | Prettier over `website/`, the entries of the update log in `okf/log/` (`scripts/okf-log.ts check`), its tests (`pnpm test`, `node:test`), then the build of this site from `website/`, `okf/` and `docs/`; every internal link and anchor must resolve.                                                                                                                                                                                                                               | When the website or its sources change.                                       |
+| CI Gate                                      | Evaluates every job above (next section).                                                                                                                                                                                                                                                                                                                                                                                                                                             | Always, also when a job failed or was skipped.                                |
 
 ## How „Detect changes“ decides
 
-A push to `main` or `hotfix/**` sets everything to true. A pull request
-compares its changes with its base:
+A push to `main` or `hotfix/**` sets everything to true; a job that already
+succeeded on the same content is skipped with its proof (next section). The
+nightly run sets everything to true except the mutation jobs, which
+`mutation.yml` runs the same night. A pull request compares its changes with
+its base:
 
 - **code** is true when a file outside `okf/`, `docs/`, `changes/` and
   `website/` changes, except Markdown files at the top level. A pull request
@@ -45,19 +50,17 @@ compares its changes with its base:
   `pnpm-lock.yaml`, `.node-version`, the database code (`src/server/db/`),
   the server start (`main.ts`, `server.ts`, `config.ts`, `cli.ts`,
   `maintenance.ts` in `src/server/`) and `ci.yml` itself. Game code alone
-  does not build the image in its pull request; every push to `main` and
-  the full run of the release pull request do.
+  does not build the image in its pull request; every push to `main`
+  (unless proven on the same content) and the nightly run do.
 - **site** is true when `website/`, `okf/`, `docs/`, `scripts/okf-log.ts`,
   `ci.yml` or `pages.yml` change.
-- A **release pull request** (head `release/…`) and every pull request
-  **into `hotfix/…`** set all three: they lead straight to a release.
-- The **release pull request of `main`** is a draft after every rebuild.
-  While the event that starts the run says `draft: true`, it sets every
-  output to false: the cheap run, with only the jobs that run for every
-  change and „Changelog fragments“. Marking it „Ready for review“ starts
-  the full run: the workflow „Release ready“ (`release-ready.yml`) adds
-  and removes the label `voller-lauf` with the release App's token, and
-  those two events carry `draft: false` (#147).
+- Every pull request **into `hotfix/…`** sets all three: it leads straight
+  to a release.
+- A **release pull request** (head `release/main` or `release/hotfix/*`)
+  may change only `VERSION`, `CHANGELOG.md` and `changes/`; any other file
+  fails „Detect changes“. It sets every output to false: no unit tests,
+  E2E, mutation, image or website, only the jobs that run for every change
+  and „Changelog fragments“. It relies on the results of its base (#387).
 
 ## How the CI Gate decides
 
@@ -66,36 +69,50 @@ The gate runs with `if: always()` and fails unless:
 1. „Detect changes“, „Secrets and dependencies“, „Migrations append-only“,
    „Workflow lint“ and „CodeQL“ succeeded – for every change,
    documentation included;
-2. on a push, all three outputs are true – pushes always run the full suite;
+2. on a push, all outputs are true – pushes run the full suite, and a job
+   is skipped only with its proof (next section); in the nightly run, all
+   are true except the mutation jobs, which must not run;
 3. on a pull request, „Changelog fragments“ succeeded;
 4. when **code** is true: the lint/unit job and the E2E tests succeeded;
    when it is false, they may be skipped („Documentation-only change“);
    the mutation jobs follow the output **mutation**: `true` (a push, a
-   release pull request, a pull request into a hotfix branch, or a change of
+   pull request into a hotfix branch, or a change of
    the mutation configuration, `mutation-standard.json` included,
    or the test tool chain): „Mutation plan“, every
    shard of „Mutation tests (shard N of 12)“ and the gate „Mutation tests“
    succeeded; `partial` (every other pull request that changes a mutated file
    or the source of a test): „Mutation tests (changed files)“ succeeded and
-   the shards were skipped; `false` (nothing to mutate) and `reuse` (the head
+   the shards were skipped; `false` (nothing to mutate, a release pull request, the nightly run) and `reuse` (the head
    only merged `main`) as before;
 5. when **image** is true: „Docker image and Compose stack“ succeeded;
 6. when **site** is true: „Documentation website“ succeeded;
-7. on the draft release pull request of `main`, never: after the checks
-   above it fails on purpose („the full run starts with Ready for review“),
-   so the draft is not green without the full run and no candidate image
-   follows it;
-8. on every other release pull request, **code**, **image** and **site**
-   are true, and the mutation jobs ran (in the release pull request of a
-   hotfix branch they follow its changes since the release tag).
+7. on a release pull request, every output is false: it refuses an
+   expensive job.
 
 A missing or invalid output of „Detect changes“ fails the gate. A skipped job
 counts only where the gate expects the skip.
 
+## Proofs of a push
+
+A push to `main` or `hotfix/**` skips an expensive job (the lint/unit job,
+the E2E tests, the mutation run, the image with the Compose stack, the
+website) that already succeeded on the same content
+(`scripts/already-tested.ts`); the CI Gate names the run and the job of
+each proof. Every other case, and every error of the lookup, runs
+everything.
+
+- **Merge of a pull request** (#342): the pushed commit merged one pull
+  request whose green CI run tested a head with the identical Git tree; each
+  job that succeeded there is proven.
+- **Merge of a release pull request** (#387): a push that changes only
+  `VERSION`, `CHANGELOG.md` and `changes/` against its first parent takes
+  over the proofs of that parent's green push run: every job that succeeded
+  there, or was skipped there with its own proof.
+
 ## Mutation tests
 
 Mutation runs are split into 12 parallel jobs (6 until 2026-11-20): pushes to `main` and
-`hotfix/**` (incremental), the full run of the release pull request, a pull
+`hotfix/**` (incremental), a pull
 request into a hotfix branch, a pull request that changes the mutation
 configuration or the test tool chain, and the nightly run (complete). Every
 other pull request mutates only the files it changes, in one job (see
@@ -115,8 +132,7 @@ flowchart LR
   `mutate` globs of `stryker.config.json` and weighs each by the test time
   of its mutants in the weights of the last run (cache `stryker-state-…`,
   with the plan that ran). Without one, in the merged report of the last
-  **complete** run (cache `stryker-weights-…`, saved by the nightly run and
-  by a release pull request), else in the last merged report
+  **complete** run (cache `stryker-weights-…`, saved by the nightly run), else in the last merged report
   (`stryker-report-…`). A file the weights do not know (new since that
   run) weighs as much as the mean file that has a weight, because no cheap
   property of a file predicts its time better (see „Test strategy“); only
@@ -147,8 +163,7 @@ flowchart LR
   (`scripts/mutation-shards.ts config <n>`: only its files, no break
   threshold) and keeps its own incremental result in the cache
   `stryker-shard<N>-<ref>-<sha>`, restored from the same shard on the same
-  branch, else on `main`; unchanged code keeps its cached result. A release
-  pull request runs every mutant (`--force`). The first run after a file
+  branch, else on `main`; unchanged code keeps its cached result. The first run after a file
   moves to another shard tests it again there.
 - **Static mutants.** Before the incremental run,
   `scripts/mutation-shards.ts drop-static` removes the cached results of
@@ -179,7 +194,7 @@ flowchart LR
   is slower than the shards for a large set (11 files took 9 minutes, 33 more
   than 60).
 - **Complete runs.** Every night (`mutation.yml`, 02:23 UTC, 12 shards
-  like the CI) and in a release pull request. When the nightly gate fails
+  like the CI). When the nightly gate fails
   on `main`, the run opens the issue „Mutation floor missed on main“ with the
   files below their floor, or updates the open one. Stryker's incremental mode
   notices only changes in mutated files and tests, not in helpers or
@@ -203,11 +218,15 @@ scripts/mutation-floors.ts <report.json>` raises them to the measured
 Trivy scans the image built in „Docker image and Compose stack“, holes with a
 fix only, and `scripts/trivy-gate.ts` decides:
 
-| Run                                                                      | Blocks on                                                                                                                                                                                                      |
-| ------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Release pull request, pull request into `hotfix/**`, push to `hotfix/**` | Every High and Critical hole.                                                                                                                                                                                  |
-| Push to `main`                                                           | Every Critical hole.                                                                                                                                                                                           |
-| Any other pull request                                                   | Only the Critical holes it brings in: the image of the base branch is built and scanned too, and its holes are left out, so two Renovate pull requests that each fix one of two holes do not block each other. |
+| Run                                                | Blocks on                                                                                                                                                                                                      |
+| -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Pull request into `hotfix/**`, push to `hotfix/**` | Every High and Critical hole.                                                                                                                                                                                  |
+| Push to `main`, the nightly run                    | Every Critical hole.                                                                                                                                                                                           |
+| Any other pull request                             | Only the Critical holes it brings in: the image of the base branch is built and scanned too, and its holes are left out, so two Renovate pull requests that each fix one of two holes do not block each other. |
+
+A release pull request builds no image, so it runs no Trivy. What blocks a
+High hole in a release of `main` is an open point
+([Branching and release](/okf/ops/branching-release.md)).
 
 The published release is scanned again every hour by the workflow
 „Security hotfix“ ([Automation](automation.md#security-hotfix)).
@@ -230,8 +249,13 @@ The published release is scanned again every hour by the workflow
 
 | Workflow                                                    | When                  | What                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | ----------------------------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| CI (nightly), `ci.yml`                                      | 01:07 UTC             | The scheduled run on `main`: the unit suite, the E2E suite, the image with the Compose stack and the upgrade test, and the website; no mutation jobs, `mutation.yml` runs them the same night.                                                                                                                                                                                                                                                                                             |
 | Mutation tests (nightly), `mutation.yml`                    | 02:23 UTC, or by hand | The complete Stryker run on `main` in 12 shards with the same plan and gate as the CI; it saves the merged report (`stryker-weights-…`) and the plan with the weights of every mutant (`stryker-state-…`) for the next plans and keeps it as the artifact `mutation-report` for 30 days. When the gate fails on `main`, it opens or updates the issue „Mutation floor missed on main“ with the files below their floor. „Run workflow“ on another branch runs the same complete run there. |
 | Migration upgrade tests (nightly), `migrations-nightly.yml` | 03:41 UTC, or by hand | The property-based upgrade test of every migration with a random seed and 1000 generated databases each; pull requests run 100 with a fixed seed. A failure prints the seed: `MIGRATION_SEED=<seed> pnpm vitest run src/server/db/migrations.property.test.ts`.                                                                                                                                                                                                                            |
+
+The release loop looks at the nightly failures first and fixes them through
+a pull request into `main` before other work
+([Release loop](/okf/ops/loop.md)).
 
 ## CodeRabbit
 

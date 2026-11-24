@@ -93,6 +93,7 @@ function hotfix(repo: Repo): void {
 function release(
   repo: Repo,
   event = 'workflow_dispatch',
+  rebuildOnly = 'false',
 ): { calls: string[]; body: string; out: string } {
   repo.git('push', '-q', 'origin', '--all');
   repo.git('push', '-q', 'origin', '--tags');
@@ -106,6 +107,7 @@ function release(
       ...GIT_ENV,
       BASE: 'main',
       EVENT: event,
+      REBUILD_ONLY: rebuildOnly,
       GH_CALLS: calls,
     },
     encoding: 'utf8',
@@ -184,5 +186,16 @@ describe('release-pr.sh for main', () => {
     const { calls, out } = release(repo, 'push');
     expect(calls.filter((c) => c.startsWith('pr create'))).toEqual([]);
     expect(out).toContain('No release pull request is open');
+  });
+
+  it('creates none when tag.yml only rebuilds after a hotfix release (#387)', () => {
+    const repo = repository('rebuild');
+    commit(repo, 'changes/neu.md', 'Neue Funktion (#1)');
+    const { calls, out } = release(repo, 'workflow_dispatch', 'true');
+    expect(calls.filter((c) => c.startsWith('pr create'))).toEqual([]);
+    expect(out).toContain('No release pull request is open');
+    expect(readFileSync('.github/workflows/tag.yml', 'utf8')).toContain(
+      'gh workflow run release-pr.yml --ref main -f rebuild=true',
+    );
   });
 });

@@ -11,6 +11,13 @@ on:
   push:
     branches: [main, 'hotfix/**']
   workflow_dispatch:
+    inputs:
+      # tag.yml after a hotfix release: rebuild an open release pull request
+      # of main so it takes a newer version, but create none (#387).
+      rebuild:
+        description: Only rebuild an open release pull request, create none
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -52,5 +59,6 @@ jobs:
         env:
           BASE: ${{ github.ref_name }}
           EVENT: ${{ github.event_name }}
+          REBUILD_ONLY: ${{ inputs.rebuild || false }}
           GH_TOKEN: ${{ steps.app.outputs.token }}
         run: sh scripts/release-pr.sh

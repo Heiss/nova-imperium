@@ -45,7 +45,10 @@ bullets they replace below are marked.
 * **[E]** A release pull request is created only when the owner says so:
   the loop starts the workflow „Release pull request“ by hand
   (`workflow_dispatch`). While it is open, a push to `main` rebuilds it; a
-  push finds none open and creates none (owner, 2026-11-23).
+  push finds none open and creates none (owner, 2026-11-23). **[V]** `tag.yml`
+  starts the workflow on `main` after a hotfix release with the input
+  `rebuild=true`: it rebuilds an open release pull request of `main`, so it
+  takes a newer version, and creates none.
 * **[E]** The push run of a release merge takes over the results of the
   commit before it (owner, 2026-11-24, 77a): `scripts/already-tested.ts`
   gives a push that changes only the metadata files against its first

@@ -89,8 +89,8 @@ jobs:
           git config user.email 'nova-imperium-release@users.noreply.github.com'
           sh scripts/release.sh
 
-      # A hotfix took the next version: the release pull request of main is
-      # rebuilt now, so it takes a newer one and its release becomes stable
+      # A hotfix took the next version: an open release pull request of main
+      # is rebuilt now (none is created, #387), so it takes a newer one and its release becomes stable
       # (release.yml points stable at the newest tag). A security hotfix
       # also opens its pull request back into main; the owner merges it
       # (owner, 2026-11-12).
@@ -108,7 +108,7 @@ jobs:
             echo "This run tagged nothing: no follow-up."
             exit 0
           fi
-          gh workflow run release-pr.yml --ref main
+          gh workflow run release-pr.yml --ref main -f rebuild=true
           case "$BRANCH" in
             hotfix/sec-*)
               open=$(GH_TOKEN="$APP_TOKEN" gh pr list --head "$BRANCH" --base main --state open --json number --jq '.[0].number // empty')
