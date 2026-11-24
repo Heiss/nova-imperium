@@ -41,3 +41,20 @@ description: 'The contract tests per component, the rows of the resources page, 
   row). The state module `src/client/logic/state.svelte.ts` lies in the
   measured `src/client/logic/` and is mutated like the other logic; Stryker
   instruments it without breaking the runes (measured 2026-11-14).
+
+* **[E]** No keyed list of a view gets the same key twice (#369, owner,
+  2026-11-22 and 2026-11-24): Svelte throws `each_key_duplicate` and the
+  view stops drawing, as the fleet page did on the live server (#362).
+  **[V]** A server render in Vitest does not throw on a duplicate key and
+  the project has no DOM test environment, so the check reads the sources:
+  `src/client/views/keyed-lists.test.ts` lists every `{#each … (key)}` of
+  `src/client` by component and key with the reason the key cannot repeat
+  (the loop index, a constant or a registry, one source with a unique key,
+  or more than one source with the unit test that proves the keys unique).
+  A new list fails until it is judged, a list without a key fails, and a
+  judged list that is gone fails. The audit of 2026-11-24 judged 136 lists:
+  62 constant, 33 one source, 33 index, 6 merged with a dedupe, and 2 that
+  could repeat, the cards „Achtung“ and „Bereit“ of the overview on a phone,
+  keyed by their text (two attacks of one player from one place; a planet
+  named like its moon). They are keyed by the fleet, the place or the kind
+  of the line now, with a unit test each.
