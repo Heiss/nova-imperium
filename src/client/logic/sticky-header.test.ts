@@ -2,44 +2,92 @@ import { describe, expect, it } from 'vitest';
 import { headerLengths, keepHeaderInView, stacked } from './sticky-header.ts';
 
 describe('header lengths (#193)', () => {
-  it('hides the logo line when the resources are below it', () => {
-    // Measured at 1,100 px: logo 12 to 58, resources from 68.
+  it('hides the space above the planet choice when the resources are below the logo (#348)', () => {
+    // Logo 12 to 58, the planet choice from 24, resources from 68: the
+    // header keeps 12 px above the planet choice, as above the logo.
     expect(
-      headerLengths({ height: 128, logoBottom: 58, resourcesTop: 68 }),
-    ).toEqual({ '--head-h': '128px', '--head-hide': '58px' });
+      headerLengths({
+        height: 128,
+        logoTop: 12,
+        logoBottom: 58,
+        pinfoTop: 24,
+        resourcesTop: 68,
+      }),
+    ).toEqual({ '--head-h': '128px', '--head-hide': '12px' });
   });
-  it('hides the logo line when the resources follow without a gap', () => {
+  it('hides the logo line when the planet choice has a line of its own below it (#348)', () => {
     expect(
-      headerLengths({ height: 100, logoBottom: 50, resourcesTop: 50 }),
-    ).toEqual({ '--head-h': '100px', '--head-hide': '50px' });
+      headerLengths({
+        height: 160,
+        logoTop: 12,
+        logoBottom: 58,
+        pinfoTop: 68,
+        resourcesTop: 100,
+      }),
+    ).toEqual({ '--head-h': '160px', '--head-hide': '56px' });
+  });
+  it('hides the space above the planet choice when the resources follow without a gap', () => {
+    expect(
+      headerLengths({
+        height: 100,
+        logoTop: 12,
+        logoBottom: 50,
+        pinfoTop: 20,
+        resourcesTop: 50,
+      }),
+    ).toEqual({ '--head-h': '100px', '--head-hide': '8px' });
+  });
+  it('hides nothing when the planet choice stands higher than the logo', () => {
+    expect(
+      headerLengths({
+        height: 128,
+        logoTop: 12,
+        logoBottom: 58,
+        pinfoTop: 10,
+        resourcesTop: 68,
+      }),
+    ).toEqual({ '--head-h': '128px', '--head-hide': '0px' });
   });
   it('rounds to whole pixels', () => {
     expect(
-      headerLengths({ height: 127.6, logoBottom: 58.4, resourcesTop: 68.2 }),
-    ).toEqual({ '--head-h': '128px', '--head-hide': '58px' });
+      headerLengths({
+        height: 127.6,
+        logoTop: 12.2,
+        logoBottom: 58.4,
+        pinfoTop: 24.6,
+        resourcesTop: 68.2,
+      }),
+    ).toEqual({ '--head-h': '128px', '--head-hide': '12px' });
   });
   it('hides nothing when the logo stands beside the resources', () => {
     // Measured at 1,280 px: one line, logo 13 to 59, resources from 12.
+    const line = { logoTop: 13, pinfoTop: 25 };
     expect(
-      headerLengths({ height: 72, logoBottom: 59, resourcesTop: 12 }),
+      headerLengths({ height: 72, logoBottom: 59, resourcesTop: 12, ...line }),
     ).toEqual({ '--head-h': '72px', '--head-hide': '0px' });
     expect(
-      headerLengths({ height: 72, logoBottom: 50.5, resourcesTop: 50 }),
+      headerLengths({
+        height: 72,
+        logoBottom: 50.5,
+        resourcesTop: 50,
+        ...line,
+      }),
     ).toEqual({ '--head-h': '72px', '--head-hide': '0px' });
   });
 });
 
 describe('a header with the logo on a line of its own (#193)', () => {
   it('is stacked only when the resources start below the logo', () => {
-    expect(stacked({ height: 128, logoBottom: 58, resourcesTop: 68 })).toBe(
-      true,
-    );
-    expect(stacked({ height: 100, logoBottom: 50, resourcesTop: 50 })).toBe(
-      true,
-    );
-    expect(stacked({ height: 72, logoBottom: 59, resourcesTop: 12 })).toBe(
-      false,
-    );
+    const at = { logoTop: 12, pinfoTop: 24 };
+    expect(
+      stacked({ height: 128, logoBottom: 58, resourcesTop: 68, ...at }),
+    ).toBe(true);
+    expect(
+      stacked({ height: 100, logoBottom: 50, resourcesTop: 50, ...at }),
+    ).toBe(true);
+    expect(
+      stacked({ height: 72, logoBottom: 59, resourcesTop: 12, ...at }),
+    ).toBe(false);
   });
 });
 
@@ -48,7 +96,7 @@ describe('keeping the header in view (#193)', () => {
   function page(
     top: number,
     height: number,
-    [logoTop, logoHigh, firstBarTop] = [12, 46, 68],
+    [logoTop, logoHigh, firstBarTop, pinfoTop] = [12, 46, 68, 24],
   ) {
     let barTop = firstBarTop;
     const box = (t: number, h: number) => ({ top: t, height: h });
@@ -67,6 +115,7 @@ describe('keeping the header in view (#193)', () => {
         getBoundingClientRect: () => box(top, height),
       },
       logo: part('logo', () => logoTop, logoHigh),
+      pinfo: part('pinfo', () => pinfoTop, 20),
       resources: part('resources', () => barTop, 47),
       setProperty: (name, value) => props.set(name, value),
       observe: (target, measure) => watchers.push([target.name, measure]),
@@ -98,7 +147,7 @@ describe('keeping the header in view (#193)', () => {
     const p = page(-30, 128);
     expect(Object.fromEntries(p.props)).toEqual({
       '--head-h': '128px',
-      '--head-hide': '58px',
+      '--head-hide': '12px',
     });
   });
 
@@ -108,7 +157,7 @@ describe('keeping the header in view (#193)', () => {
     p.grow(30);
     p.watchers[0]![1]();
     expect(p.props.get('--head-h')).toBe('158px');
-    expect(p.props.get('--head-hide')).toBe('58px');
+    expect(p.props.get('--head-hide')).toBe('12px');
     p.grow(10);
     p.watchers[1]![1]();
     expect(p.props.get('--head-h')).toBe('168px');
@@ -116,20 +165,20 @@ describe('keeping the header in view (#193)', () => {
 
   it('marks a one-line header, and a stacked one not', () => {
     // At 1,280 px: one line of 72 px, the logo from 13, the bar from 12.
-    const one = page(0, 72, [13, 46, 12]);
+    const one = page(0, 72, [13, 46, 12, 25]);
     expect(one.classes.get('head-line')).toBe(true);
     expect(one.props.get('--head-hide')).toBe('0px');
     expect(page(0, 128).classes.get('head-line')).toBe(false);
   });
 
   it('keeps the mark right when the header wraps or unwraps', () => {
-    const p = page(0, 72, [13, 46, 12]);
+    const p = page(0, 72, [13, 46, 12, 25]);
     expect(p.classes.get('head-line')).toBe(true);
     // The line breaks: the bar moves below the logo.
     p.moveBar(68, 128);
     p.watchers[0]![1]();
     expect(p.classes.get('head-line')).toBe(false);
-    expect(p.props.get('--head-hide')).toBe('59px');
+    expect(p.props.get('--head-hide')).toBe('12px');
     p.moveBar(12, 72);
     p.watchers[1]![1]();
     expect(p.classes.get('head-line')).toBe(true);

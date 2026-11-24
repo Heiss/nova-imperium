@@ -121,6 +121,19 @@ generated: { by: claude-code/web, at: 2026-11-10T19:00:00Z }
   scrolls.
 * **[E]** D2: while scrolled the header gets slimmer: the logo line hides,
   the resources stay (owner, 2026-11-14).
+* **[E]** The planet choice stays in view (owner, 2026-11-21, #348; it
+  changes D2 for a header of two lines): while scrolled only the logo goes;
+  the planet choice („Aktiver Planet“, `#planet_select`), „Kommandant …“ and
+  „Logout“ (`#pinfo`) stay as a line above the resources. A one-line header
+  and the phone stay as they were. **[V]** (the look was not decided, #348
+  [U]) The logo keeps its place, unseen while scrolled (`visibility:
+  hidden`), so nothing moves and the page does not jump; `--head-hide`
+  ends where the header keeps above `#pinfo` as much space as above the
+  logo at the top (`pinfoTop - logoTop`), so `#pinfo` keeps its place
+  beside the unseen logo. E2E: `e2e/sticky-header.spec.ts` at 1,100 px
+  (logo hidden, planet choice, „Kommandant …“ and „Logout“ in view above
+  the resources, the planet changed while scrolled, the menu below the
+  header, the focus clear of it); it fails without the change.
 * **[E]** D1, changed (owner, 2026-11-14): the phone stays as it is (its
   header is already sticky); the observation in Firefox on Android is taken
   as a short glitch, with no reproduction and no Firefox test project.
@@ -135,8 +148,9 @@ generated: { by: claude-code/web, at: 2026-11-10T19:00:00Z }
   `src/client/logic/sticky-header.ts` measures them (when the client
   starts and whenever the header or the resource bar changes size) and
   sets `--head-h` and `--head-hide`. When the logo has a line of its own
-  above the resources, everything down to the bottom of the logo goes
-  above the screen (measured at 1,100 px: 128 px full, 72 px scrolled).
+  above the resources, everything down to the bottom of the logo went
+  above the screen (measured at 1,100 px: 128 px full, 72 px scrolled);
+  since #348 only the space above `#pinfo` goes (see above).
 * **[E]** One-line header (owner, 2026-11-17): on a header that fits one line
   (full width, short name; the logo stands beside the resources, measured at
   1,280 px with a short player name: 72 px) the logo becomes **smaller**

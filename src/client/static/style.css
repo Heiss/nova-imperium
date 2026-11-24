@@ -203,8 +203,8 @@ main {
 }
 /* Sticky header (#193): on the desktop the header with the resources and
    the side menu stay in view while the page scrolls. The header sticks with
-   its logo line above the screen, so it is slimmer while scrolled and full
-   at the top; the menu sticks below the rest of it and scrolls on its own
+   the space above #pinfo above the screen and the logo unseen (#348), so it
+   is slimmer while scrolled and full at the top; the menu sticks below the rest of it and scrolls on its own
    when it is taller than the screen. --head-h (the full height) and
    --head-hide (the logo line) come from logic/sticky-header.ts. The menu no
    longer reaches down the page, so #app paints its column. The phone keeps
@@ -235,6 +235,13 @@ html {
   }
   html.head-line.scrolled .logo small {
     font-size: 11px;
+  }
+  /* A header of two lines: while scrolled only the logo goes, the planet
+     choice, „Kommandant …“ and „Logout“ stay above the resources (owner,
+     2026-11-21, #348). The logo keeps its place unseen, so nothing moves;
+     --head-hide ends just above #pinfo [V]. */
+  html.scrolled:not(.head-line) header .logo {
+    visibility: hidden;
   }
   nav#menu {
     position: sticky;

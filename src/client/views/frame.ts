@@ -87,6 +87,7 @@ function watchHeader(): void {
   keepHeaderInView({
     header: document.querySelector('header')!,
     logo: document.querySelector<HTMLElement>('header .logo')!,
+    pinfo: document.getElementById('pinfo')!,
     resources: document.getElementById('resbar')!,
     setProperty: (name, value) =>
       document.documentElement.style.setProperty(name, value),
