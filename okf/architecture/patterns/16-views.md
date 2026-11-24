@@ -1,7 +1,7 @@
 ---
 type: Architecture
 title: '16. Svelte views register themselves'
-description: 'A view exports clientViews (key, mount or html, anew or fresh, menu entry, glyph, tab, offered) from its own module; mount.ts, index.ts and the navigation name no view (#317, #352, #373).'
+description: 'A view exports clientViews (key, mount or html, anew or fresh, menu entry, glyph, tab, offered) from its own module; mount.ts, index.ts and the navigation name no view (#317, #352, #373); the boxes of „Optionen“ register themselves the same way (#378).'
 ---
 
 # 16. Svelte views register themselves (#317)
@@ -61,6 +61,36 @@ description: 'A view exports clientViews (key, mount or html, anew or fresh, men
   addresses of today, dropped cases too, and passed before and after the
   change; `registry.test.ts` checks that the address, the routing and the
   start name no parameter.
+* **[E]** The boxes of „Optionen“ register themselves (#378; owner,
+  2026-11-24: the option boxes only). **[V]** A module in
+  `src/client/views/options/` exports `optionBoxes`, a list of `OptionBox`
+  (`options/contract.ts`, declared with `optionBox()`): `key`, `order` (the
+  boxes of today stand at 10 to 140, see `OptionBox` in `contract.ts`),
+  `section` (the section of the phone switch, #189), `component` (the
+  Svelte component that draws the box with its `data-sec`), `data` (its part
+  of the page at the view state, moved out of `optionsPage()`) and `shown`
+  (default: always; „Benachrichtigungen“ only with push kinds). `data` and
+  `shown` with their part types are pure logic in
+  `src/client/logic/options/<box>.ts` (no Svelte, nothing of the views; they
+  read `OptionsState` of `logic/options/state.ts`), so they stay under
+  mutation testing as `logic/options.ts` was; the module in `views/options/`
+  only declares the box. The list is
+  the git-ignored `options/boxes.gen.ts` (`OPTION_BOXES`);
+  `assembleBoxes()` of `options/assemble.ts` puts the modules together in
+  their order and throws when a key or an order number exists twice, naming
+  both files; `options/boxes.ts` derives the page (`OptionsPage`,
+  `optionsPage()`, still exported by `logic/options.ts`) from the parts of
+  all boxes. `Options.svelte` keeps the switch and draws the boxes in their
+  order; it names no box, nor does `logic/options.ts`. The guard is
+  `src/client/views/options/boxes.test.ts` (key, order, section, members;
+  no key, order or field of the page twice; the clash messages; the
+  generated list, in `src/test/gen-option-boxes.test.ts`). The markup stays the same up to the white space between
+  the boxes and within a line of text (`options.test.ts`,
+  `options-reference.test.ts`). The census of the keyed lists
+  (`keyed-lists.test.ts`, #369) moved the loops of the choices, the main
+  planet and the push kinds to their box components with the same verdicts
+  and judges the new loop of the boxes by the guard (coordinator,
+  2026-11-24, [V]).
 * **[V]** A view mounted anew on every render loses the selection and the
   caret of a field the player is editing: the field is a new element, and
   `render.ts` gives the focus back by id only (#352; a selected number typed

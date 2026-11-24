@@ -48,6 +48,12 @@
 // which only views/mount.ts and views/index.ts import, so a view registers
 // itself (key, mount function, menu entry) and no shared list names it.
 //
+// The boxes of „Optionen“ (#378): every file of src/client/views/options that
+// exports `optionBoxes` is listed in src/client/views/options/boxes.gen.ts
+// (`OPTION_BOXES`), which only views/options/boxes.ts imports, so a feature
+// adds its box (key, order, section, component, data) in its own files and
+// neither Options.svelte nor logic/options.ts names it.
+//
 // The round reset (#317): every file of src/server that exports `roundReset`
 // (what a new round empties and what it keeps) is listed in
 // src/server/round-reset.gen.ts (`ROUND_RESETS`), which only
@@ -108,6 +114,11 @@ export const VIEWS_DIR = 'src/client/views';
 export const CLIENT_VIEWS_FILE = 'views.gen.ts';
 /** The fixed name under which a file exports its views. */
 const VIEWS_EXPORT = /^export const clientViews\b/m;
+/** Where the boxes of „Optionen“ are (#378), and the list of them. */
+export const OPTION_BOXES_DIR = 'src/client/views/options';
+export const OPTION_BOXES_FILE = 'boxes.gen.ts';
+/** The fixed name under which a file exports its boxes of „Optionen“. */
+const OPTION_BOXES_EXPORT = /^export const optionBoxes\b/m;
 /** The list of the round resets (#317) is in the server folder, next to the server features. */
 export const ROUND_RESET_FILE = 'round-reset.gen.ts';
 /** The fixed name under which a file exports what a new round empties or keeps. */
@@ -419,6 +430,22 @@ export function generateClientViews(dir: string): boolean {
   );
 }
 
+/** The files of the folder of the boxes of „Optionen“ that export `optionBoxes` (#378). */
+export const scanOptionBoxes = (dir: string): string[] =>
+  scanExporting(dir, OPTION_BOXES_EXPORT);
+
+/** The source of the list of the boxes of „Optionen“ (#378). */
+export const renderOptionBoxes = (files: string[]): string =>
+  renderFeatureList(files, 'optionBoxes', 'OPTION_BOXES');
+
+/** Writes the list of the boxes of „Optionen“ when it changed; true if it did. */
+export function generateOptionBoxes(dir: string): boolean {
+  return write(
+    join(dir, OPTION_BOXES_FILE),
+    renderOptionBoxes(scanOptionBoxes(dir)),
+  );
+}
+
 /** The files of the server folder that export `roundReset` (#317). */
 export const scanRoundResets = (dir: string): string[] =>
   scanExporting(dir, ROUND_RESET_EXPORT);
@@ -499,6 +526,7 @@ if (import.meta.main)
     generateRepositories(REPOS_DIR);
     generateRoundResets(SERVER_DIR);
     generateClientViews(VIEWS_DIR);
+    generateOptionBoxes(OPTION_BOXES_DIR);
     generateActionInputs(ACTIONS_DIR);
     generateStateShapes(ACTIONS_DIR);
     return 0;

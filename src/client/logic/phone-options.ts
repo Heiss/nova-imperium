@@ -6,8 +6,8 @@
 // owner decided only that the page is in sections. Spiel: the choices and the
 // main planet; Runde: vacation mode, play time, round archive; Konto:
 // password, passkeys, delete; Gerät: display, install, notifications; Hilfe:
-// the problem report and the link to the rules (Options.svelte gives each box
-// its section).
+// the problem report and the link to the rules (each box of views/options/
+// declares its section, #378).
 
 /** A section of the page. */
 export type OptionsSection = 'game' | 'round' | 'account' | 'device' | 'other';

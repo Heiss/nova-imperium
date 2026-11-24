@@ -79,6 +79,9 @@ const LISTS: Record<string, Record<string, Verdict>> = {
     'row.key': constant('object keys of the catalog'),
   },
   'ChatLog.svelte': { 'line.id': source('guild_chat primary key') },
+  'ChoicesBox.svelte': {
+    'choice.value': constant('EXPLAIN_MODES and LEVEL_MODES'),
+  },
   'Cost.svelte': {
     'x.key': constant('the three resources and energy, each once'),
   },
@@ -154,6 +157,7 @@ const LISTS: Record<string, Record<string, Verdict>> = {
     'hit.id': constant('one document per article'),
   },
   'LexicanumText.svelte': { i: index },
+  'MainPlanetBox.svelte': { 'option.id': source('planets primary key') },
   'Market.svelte': { r: constant('the traded resources') },
   'MarketPreview.svelte': { i: index },
   'Menu.svelte': { i: index },
@@ -170,9 +174,9 @@ const LISTS: Record<string, Record<string, Verdict>> = {
   },
   'Options.svelte': {
     's.key': constant('OPTION_SECTIONS'),
-    'choice.value': constant('EXPLAIN_MODES and LEVEL_MODES'),
-    'option.id': source('planets primary key'),
-    'kind.topic': constant('PUSH_TOPICS'),
+    'box.key': constant(
+      'option box keys, each once (assembleBoxes, src/client/views/options/boxes.test.ts)',
+    ),
   },
   'Overview.svelte': {
     'fleet.id': source('fleet ids, one filter'),
@@ -205,6 +209,7 @@ const LISTS: Record<string, Record<string, Verdict>> = {
     x: constant('the shares 100 to 0'),
     'row.key': constant('one entry folder per key'),
   },
+  'PushBox.svelte': { 'kind.topic': constant('PUSH_TOPICS') },
   'Requirements.svelte': {
     '`${n.kind}:${n.key}`': merged(
       'the transitive requirements, held in a Map by the same key',
@@ -292,6 +297,10 @@ const LOOPS: Record<string, string[]> = {
     'row.lines as line, i (i)',
   ],
   'ChatLog.svelte': ['log.lines as line (line.id)'],
+  'ChoicesBox.svelte': [
+    'page.explain as choice (choice.value)',
+    'page.levels as choice (choice.value)',
+  ],
   'Cost.svelte': ['parts as x (x.key)'],
   'Fleet.svelte': [
     'page.unions.unions as union (union.id)',
@@ -370,6 +379,7 @@ const LOOPS: Record<string, string[]> = {
     'group.hits as hit (hit.id)',
   ],
   'LexicanumText.svelte': ['parts as part, i (i)'],
+  'MainPlanetBox.svelte': ['page.main.options as option (option.id)'],
   'Market.svelte': ['TRADED as r (r)', 'targets(shown.give) as r (r)'],
   'MarketPreview.svelte': ['p.lines as line, i (i)'],
   'Menu.svelte': ['nav.menu as item, i (i)'],
@@ -384,13 +394,7 @@ const LOOPS: Record<string, string[]> = {
     'version.groups as group (group.label)',
     'group.items as item, i (i)',
   ],
-  'Options.svelte': [
-    'OPTION_SECTIONS as s (s.key)',
-    'page.explain as choice (choice.value)',
-    'page.levels as choice (choice.value)',
-    'page.main.options as option (option.id)',
-    'page.pushKinds as kind (kind.topic)',
-  ],
+  'Options.svelte': ['OPTION_SECTIONS as s (s.key)', 'BOXES as box (box.key)'],
   'Overview.svelte': [
     'page.held as fleet (fleet.id)',
     'page.activities as row (row.label)',
@@ -411,6 +415,7 @@ const LOOPS: Record<string, string[]> = {
     'COLUMNS as column (column)',
     'table.rows as row (row.key)',
   ],
+  'PushBox.svelte': ['page.pushKinds as kind (kind.topic)'],
   'Requirements.svelte': ['needs as { n, st, energy } (`${n.kind}:${n.key}`)'],
   'ResourceBar.svelte': ['bar.cells as cell (cell.icon)'],
   'RoundArchive.svelte': [

@@ -14,7 +14,7 @@ interface Owned<T> {
 }
 
 /** Everything of one kind, each key once; with a key twice both files are named. */
-function collect<T>(
+export function collect<T>(
   kind: string,
   entries: readonly (readonly [string, string, T])[],
 ): Map<string, Owned<T>> {
