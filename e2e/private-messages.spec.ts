@@ -38,16 +38,42 @@ async function openTab(page: Page, tab: string): Promise<void> {
   await page.getByRole('tab', { name: tab }).click();
 }
 
-/** Writes in „Neue Nachricht“ of „Posteingang“. */
+/**
+ * Writes in the dialog „Neue Nachricht“ of „Posteingang“ (#349): opens it
+ * unless it is still open from a refused message.
+ */
 async function compose(page: Page, to: string, text: string): Promise<void> {
   await rested(page);
-  await openTab(page, 'Posteingang');
   const form = page.locator('#pm-compose');
-  if (!(await form.isVisible()))
+  if (!(await form.isVisible())) {
+    await openTab(page, 'Posteingang');
     await page.getByRole('button', { name: 'Neue Nachricht' }).click();
+  }
   await page.locator('#pm-to').fill(to);
   await page.locator('#pm-text').fill(text);
-  await page.getByRole('button', { name: 'Senden', exact: true }).click();
+  await form.getByRole('button', { name: 'Senden', exact: true }).click();
+  sentAt.set(page, Date.now());
+}
+
+/** A refusal of a message: inside the dialog „Neue Nachricht“, with the server's words (#349). */
+const refusalIn = (page: Page): Locator =>
+  page.locator('#pm-compose').getByRole('alert');
+
+/** Opens the dialog „Antworten“ below the open conversation (#349). */
+async function openReply(page: Page): Promise<void> {
+  await thread(page).getByRole('button', { name: 'Antworten' }).click();
+  await expect(page.locator('#pm-reply')).toBeVisible();
+}
+
+/** Replies in the open conversation through the dialog „Antworten“. */
+async function reply(page: Page, text: string): Promise<void> {
+  await rested(page);
+  await openReply(page);
+  await page.locator('#pm-reply-text').fill(text);
+  await page
+    .locator('#pm-reply')
+    .getByRole('button', { name: 'Antworten', exact: true })
+    .click();
   sentAt.set(page, Date.now());
 }
 
@@ -150,13 +176,14 @@ async function exchangeFlow(
   await expect(inboxTab(other)).toHaveText('Posteingang');
   expect(await violations(other)).toEqual([]);
 
-  // Bert replies; Anna sees it with the number on the tab.
-  await rested(other);
-  await other.locator('#pm-reply-text').fill('Antwort von Bert');
-  await other.getByRole('button', { name: 'Antworten', exact: true }).click();
-  sentAt.set(other, Date.now());
+  // Bert replies; Anna sees it with the number on the tab. The sent reply
+  // leaves no draft: the dialog opens again with an empty text (#349).
+  await reply(other, 'Antwort von Bert');
   await expect(thread(other)).toContainText('Antwort von Bert');
+  await expect(other.locator('#pm-reply')).toBeHidden();
+  await openReply(other);
   await expect(other.locator('#pm-reply-text')).toHaveValue('');
+  await other.getByRole('button', { name: 'Abbrechen' }).click();
   await page.reload();
   await nav(page, 'messages');
   await expect(inboxTab(page)).toHaveText('Posteingang (1)');
@@ -179,15 +206,16 @@ async function exchangeFlow(
   // Anna keeps the conversation open with a draft in the reply field; Bert
   // writes once more: it comes into her conversation with the next refresh,
   // unasked, the draft stays, and the preview in the list shows it.
+  await openReply(page);
   await page.locator('#pm-reply-text').fill('Mein Entwurf');
-  await rested(other);
-  await other.locator('#pm-reply-text').fill('Zweite Antwort');
-  await other.getByRole('button', { name: 'Antworten', exact: true }).click();
-  sentAt.set(other, Date.now());
+  await reply(other, 'Zweite Antwort');
   await expect(thread(page)).toContainText('Zweite Antwort', {
     timeout: 10000,
   });
   await expect(page.locator('#pm-reply-text')).toHaveValue('Mein Entwurf');
+  await expect(page.locator('#pm-reply .pm-quote')).toContainText(
+    'Zweite Antwort',
+  );
   await expect(page.locator('.pm-list')).toContainText('Zweite Antwort');
 
   // The page is no wider than the screen, on a phone too.
@@ -222,11 +250,11 @@ test('the refusals: oneself, an unknown name, the length and the rate limit', as
   const { problems } = watch(page);
   const { anna, bert, other, context } = await newPlayers(page, browser);
   await compose(page, anna, 'Hallo ich');
-  await expect(lastToast(page)).toContainText(
+  await expect(refusalIn(page)).toContainText(
     'Du kannst dir nicht selbst schreiben.',
   );
   await compose(page, uniqueName('Niemand'), 'Hallo');
-  await expect(lastToast(page)).toContainText('Spieler nicht gefunden.');
+  await expect(refusalIn(page)).toContainText('Spieler nicht gefunden.');
   // The field stops at 1,000 characters; the server refuses more all the same.
   await expect(page.locator('#pm-text')).toHaveAttribute('maxlength', '1000');
   await rested(page);
@@ -285,8 +313,8 @@ test('the block list and „nur Freunde“ refuse with one neutral text', async 
   await expect(lastToast(other)).toContainText('Spieler blockiert.');
   await expect(other.locator('#pm-settings')).toContainText(anna);
   await compose(page, bert, 'Hallo');
-  await expect(lastToast(page)).toContainText(REFUSED);
-  await expect(lastToast(page)).not.toContainText(/blockiert|Freund/);
+  await expect(refusalIn(page)).toContainText(REFUSED);
+  await expect(refusalIn(page)).not.toContainText(/blockiert|Freund/);
   // The blocker may still write to the blocked player.
   await compose(other, anna, 'Ich darf');
   await page.reload();
@@ -306,7 +334,7 @@ test('the block list and „nur Freunde“ refuse with one neutral text', async 
   await other.locator('#pm-friends-only').check();
   await expect(lastToast(other)).toContainText('Gespeichert.');
   await compose(page, bert, 'Noch einmal');
-  await expect(lastToast(page)).toContainText(REFUSED);
+  await expect(refusalIn(page)).toContainText(REFUSED);
   expect(
     await refusal(page, {
       type: 'sendPrivateMessage',

@@ -1,7 +1,7 @@
 ---
 type: feature
 title: Private messages
-description: Conversations between two players in „Nachrichten“ with an inbox of previews, a conversation that loads when it is opened, the tab „Gesendet“, replies, read marks, deleting from one's own view, a block list, the switch „only friends may write to me“, a push without the text, „Melden“ to the admin, kept until the round ends, the last 500 messages per conversation (issue #226).
+description: Conversations between two players in „Nachrichten“ with an inbox of previews, a conversation that loads when it is opened, the tab „Gesendet“, replies, read marks, deleting from one's own view, a block list, the switch „only friends may write to me“, a push without the text, „Melden“ to the admin, kept until the round ends, the last 500 messages per conversation (issue #226); a dialog for writing with a quick choice of the recipient and drafts (#349).
 ---
 
 # Private messages
@@ -70,6 +70,70 @@ of 2026-11-21 and the answers to the open points of the same day (owner,
   message text, e-mail addresses, passwords, codes and tokens are never
   stored there; the journal keeps the length of a text only (the allow-list
   `src/server/game/journal-input.ts`), a push never carries the text.
+
+# The dialog of a message (#349)
+
+Issue #349, variant C of the design study for writing a message (a dialog);
+the owner chose it and answered its open questions on 2026-11-21/22.
+
+* **[E]** „Neue Nachricht“ and „Antworten“ (a button below the open
+  conversation) open a dialog; the one-row form is gone (owner, 2026-11-21/22,
+  #349, decision 1).
+* **[E]** Enter in the text field makes a new line; Ctrl+Enter (Cmd+Enter on
+  a Mac) sends, in addition to the button (owner, 2026-11-22, #349,
+  decision 2).
+* **[E]** „Abbrechen“ or Escape with text typed: the text stays as a draft
+  and is there again at the next opening, until the page is reloaded.
+  Nothing is asked (owner, 2026-11-22, #349, decision 3).
+* **[E]** The quick choice under „Empfänger“: the players the inbox already
+  has a conversation with, at most five, newest first, and in addition the
+  player's friends (owner, 2026-11-22, #349, decision 4).
+* **[E]** The texts „Zuletzt geschrieben:“ (before the quick-pick buttons),
+  „An {Name}“ (the recipient in the dialog „Antworten“) and „Letzte Nachricht
+  von {Name}“ (the heading of the quoted last message received in the dialog
+  „Antworten“) (owner, 2026-11-22, #349, decision 5).
+* **[V]** The count „n / 1000“ below the text field (1000 is `MAX_PM_TEXT`;
+  no words); the text field is eight lines high; „Empfänger“ keeps the list
+  of every other player (the datalist); on a phone (up to 760 px) the dialog
+  fills the screen; on the lock screen of the vacation mode „Antworten“ opens
+  the same dialog (#349).
+* **[V]** Drafts (#349): one for „Neue Nachricht“ (recipient and text) and
+  one per conversation for a reply; a sent message clears its draft; a
+  reload clears all, they live in the memory of the page only (no storage).
+  A logout clears them too, so the next account on the page does not see
+  them (the builder's reading of „until the page is reloaded“).
+* **[V]** The friends in the quick choice (#349): every friend not already
+  among the five, in the order of the buddy list, under their own label
+  „Freunde:“. A deleted account and a blocked player are not offered.
+* **[V]** Reused texts (#349): „Neue Nachricht“, „Empfänger“, „Nachricht“,
+  „Senden“, „Antworten“ of `PM_LABELS` and „Abbrechen“ of the game's dialogs;
+  the title of the dialog is „Neue Nachricht“ or „Antworten“.
+* **[V]** Built as the study recommends (#349): a native `<dialog>` opened
+  with `showModal()` (focus trap, Escape, backdrop), `aria-labelledby` its
+  title; the focus goes to the first empty field (the recipient, or the text
+  of a reply), and „Abbrechen“ and Escape return it to the button that opened
+  the dialog; the quick-pick buttons point at their label with
+  `aria-describedby` and show the chosen one with `aria-pressed`. The form is
+  in the page only while the dialog is open and starts from the draft; the
+  component keeps the draft on every key, so it stays over the poll, a
+  switch of the tab of „Nachrichten“, „Abbrechen“ and Escape. The server is
+  unchanged: no new rule, no new route.
+* **[U]** The server takes control characters out of every text (`clean` of
+  `src/server/game/context.ts`), the line break included: a message typed on
+  two lines arrives as one line without a space between them. Keeping the
+  line breaks needs a change of the server, which #349 does not make.
+* **[V]** A refusal while the dialog is open shows inside the dialog
+  (coordinator, 2026-11-24, #349): a line with `role="alert"` above the
+  buttons with the server's refusal text unchanged („Spieler nicht
+  gefunden.“, „Dieser Spieler nimmt keine Nachrichten von dir an.“ and the
+  others above), no new words; the note of the game, which would lie below
+  the backdrop of the modal dialog, is not shown for it. The dialog stays
+  open with the draft; the line goes when the player changes the recipient
+  or the text and when the dialog is opened again. The way: the action is
+  sent with `actOwn` of the client context (`own` of
+  `src/client/logic/act.ts`), which hands a refusal to the caller instead of
+  a note; every other action keeps the note. A refusal shown this way has no
+  „Problem melden“ (#126), which only the note offers.
 
 # Proposals as built
 
@@ -248,8 +312,11 @@ of 2026-11-21 and the answers to the open points of the same day (owner,
 * Repository `src/server/db/repos/private-messages.ts` (`ctx.privateMessages`).
 * Client: the feature `src/client/features/private-messages.ts` (the event
   `pm:act` of the components), `src/client/logic/private-messages.ts`, the
-  components `MessagesTabs`, `PmInbox`, `PmThread`, `PmCompose`, `PmSettings`,
-  `PmSent` and, for the admin, `AdminReports` in `src/client/views/`. Each form
+  components `MessagesTabs`, `PmInbox`, `PmThread`, `PmDialog` (the dialog of
+  a message, #349), `PmCompose` (its form), `PmSettings`, `PmSent` and, for
+  the admin, `AdminReports` in `src/client/views/`; the quick choice, the
+  drafts, the count and the key that sends in `src/client/logic/pm-compose.ts`
+  (#349). Each form
   keeps its fields in its component; the view „Nachrichten“ is mounted once
   and follows the state, so the open tab, the open conversation and what is
   typed stay over the refresh of the state.
@@ -264,6 +331,15 @@ of 2026-11-21 and the answers to the open points of the same day (owner,
   `src/client/{logic,features,views}/private-messages.test.ts`, the admin tab in
   `admin-panels*.test.ts`, the mark in `navigation.test.ts`.
 * `e2e/private-messages.spec.ts`, desktop and phone.
+* #349: `src/client/logic/pm-compose.test.ts` (decisions 2 to 5: the key that
+  sends, the drafts, the quick choice, the texts), `the dialog of a message`
+  in `src/client/views/private-messages.test.ts`, and
+  `e2e/pm-compose.spec.ts` on desktop and phone (the quick choice, the
+  drafts over Escape, „Abbrechen“, the tab and the poll, Ctrl+Enter and
+  Cmd+Enter, the reply, the size on a phone, axe on both dialogs, a refusal
+  inside the dialog that is not inert); the refusal handed to the dialog in
+  `src/client/logic/act.test.ts`, `src/client/logic/private-messages.test.ts`
+  and `src/client/features/private-messages.test.ts`.
 * Q27, Q32, Q33: `paging (Q27, …)`, `the open conversation (Q32, …)` and
   `„Gesendet“ (Q33, …)` in `src/server/game/private-messages.test.ts` (the
   preview only in the state, the newest 50 of a conversation by the action, the

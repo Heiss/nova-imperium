@@ -6,6 +6,7 @@
   // open conversation and what is typed stay over the poll of the state.
   import type { Readable } from 'svelte/store';
   import { messagesPage } from '../logic/messages.ts';
+  import { quickChoice } from '../logic/pm-compose.ts';
   import {
     MESSAGE_TABS,
     privatePage,
@@ -28,6 +29,7 @@
   // Outside the lock screen the state is the whole view state.
   const reports = $derived(lock ? null : messagesPage($viewState as V));
   const mail = $derived(privatePage($viewState));
+  const quick = $derived(quickChoice($viewState.s));
 
   // `lock` is fixed for the life of the view: it is set when the view is mounted.
   // svelte-ignore state_referenced_locally
@@ -96,7 +98,7 @@
   aria-labelledby="messages-tab-inbox"
   hidden={tab !== 'inbox'}
 >
-  <PmInbox page={mail} {lock} />
+  <PmInbox page={mail} {quick} {lock} />
 </section>
 <!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
 <section

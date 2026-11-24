@@ -34,6 +34,12 @@ export interface ClientCtx {
     type: K,
     ...data: ActionArgs<K>
   ) => Promise<boolean>;
+  /** Sends an action; a refusal goes to `refused` with the server's words, not to a note (#349). */
+  actOwn: <K extends ActionName>(
+    refused: (message: string) => void,
+    type: K,
+    ...data: ActionArgs<K>
+  ) => Promise<boolean>;
   /** Shows the HTML or the component in the dialog; the empty string closes it. */
   modal: (content: string | Dialog) => void;
   /** Shows a view with its address and renders it. */

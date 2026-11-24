@@ -69,6 +69,10 @@ export const actHere: ClientCtx['actHere'] = async (type, ...data) =>
 export const quiet: ClientCtx['quiet'] = async (type, ...data) =>
   (await sync.quiet(type, ...data)) !== 'failed';
 
+/** An action whose refusal the caller shows itself (the dialog of a message, #349); whether it went through. */
+export const actOwn: ClientCtx['actOwn'] = async (refused, type, ...data) =>
+  (await sync.own(refused, type, ...data)) !== 'failed';
+
 /** Loads the state of the shown place again. */
 export async function refresh(): Promise<void> {
   const before = placeOf(client.game);

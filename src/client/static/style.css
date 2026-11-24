@@ -1508,6 +1508,93 @@ dialog.sheet::backdrop {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* The dialog of a message (#349, variant C of the design study): wider than
+   the dialogs of today; on a phone it fills the screen. */
+.pm-dialog {
+  width: min(560px, calc(100vw - 32px));
+  max-width: 560px;
+  max-height: calc(100dvh - 32px);
+  padding: 16px;
+  color: var(--txt);
+  background: var(--box);
+  border: 1px solid var(--gold);
+  border-radius: 6px;
+}
+.pm-dialog::backdrop {
+  background: rgb(0 0 0 / 0.6);
+}
+.pm-dialog h3 {
+  margin-top: 0;
+}
+.pm-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 10px;
+}
+.pm-field input {
+  max-width: 260px;
+}
+.pm-field textarea {
+  width: 100%;
+  resize: vertical;
+  line-height: 1.35;
+}
+.pm-count {
+  align-self: flex-end;
+  font-size: 13px;
+}
+.pm-quick,
+.pm-to {
+  margin: 8px 0 0;
+}
+.pm-quote {
+  margin: 10px 0 0;
+  padding: 6px 10px;
+  border-left: 3px solid var(--line);
+  background: var(--box-2);
+}
+/* A refusal of the server inside the dialog, as the error note looks. */
+.pm-refusal {
+  margin: 10px 0 0;
+  padding: 6px 10px;
+  border: 1px solid var(--red);
+  border-radius: 4px;
+  background: #3a1410;
+}
+.pm-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+@media (max-width: 760px) {
+  .pm-dialog {
+    width: 100%;
+    max-width: none;
+    height: 100dvh;
+    max-height: none;
+    margin: 0;
+    padding: calc(12px + env(safe-area-inset-top)) 16px 16px;
+    border: 0;
+    border-radius: 0;
+  }
+  .pm-dialog[open] {
+    display: flex;
+    flex-direction: column;
+  }
+  .pm-dialog .pm-form {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+  }
+  .pm-dialog .pm-body {
+    flex: 1;
+  }
+  .pm-dialog textarea {
+    flex: 1;
+  }
+}
 
 /* The Lexicanum (#285): the page, the side panel and the shared article
    (layout of the design study #287). */

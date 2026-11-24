@@ -137,8 +137,16 @@ async function expectMessages(page: Page, writer: string): Promise<void> {
   await expect(page.locator('#pm-thread')).toHaveCount(0);
   await page.getByRole('button', { name: new RegExp(`^${writer}`) }).click();
   await expect(page.locator('#pm-thread')).toContainText('Hallo in den Urlaub');
+  // „Antworten“ opens the same dialog as outside the lock screen (#349).
+  await page
+    .locator('#pm-thread')
+    .getByRole('button', { name: 'Antworten' })
+    .click();
   await page.locator('#pm-reply-text').fill('Antwort aus dem Urlaub');
-  await page.getByRole('button', { name: 'Antworten', exact: true }).click();
+  await page
+    .locator('#pm-reply')
+    .getByRole('button', { name: 'Antworten', exact: true })
+    .click();
   await expect(page.locator('#pm-thread')).toContainText(
     'Antwort aus dem Urlaub',
   );

@@ -32,6 +32,11 @@ function setup(answer: () => Promise<Record<string, unknown>>) {
   return {
     act: sync.send as unknown as Send,
     quiet: sync.quiet as unknown as Send,
+    own: sync.own as unknown as (
+      refused: (message: string) => void,
+      type: ActionName,
+      data?: object,
+    ) => ReturnType<Sync['own']>,
     refresh: sync.refresh,
     api,
     apply,
@@ -288,6 +293,43 @@ describe('act', () => {
     }));
     expect(await t.quiet('seeGuildChat', { id: 1 })).toBe('done');
     expect(t.toast).toHaveBeenCalledWith('Gesehen.');
+  });
+
+  it('hands the refusal of an own action to its caller with the words of the server, not to a note (#349)', async () => {
+    const t = setup(async () => {
+      throw new Error('Spieler nicht gefunden.');
+    });
+    const refused = vi.fn();
+    expect(
+      await t.own(refused, 'sendPrivateMessage', { name: 'X', text: 'y' }),
+    ).toBe('failed');
+    expect(refused).toHaveBeenCalledExactlyOnceWith('Spieler nicht gefunden.');
+    expect(t.toast).not.toHaveBeenCalled();
+    expect(t.apply).not.toHaveBeenCalled();
+  });
+
+  it('sends an own action like any other and shows its message when it went through (#349)', async () => {
+    const t = setup(async () => ({
+      state: state('u1', 'p1'),
+      msg: 'Gesendet.',
+    }));
+    const refused = vi.fn();
+    expect(
+      await t.own(refused, 'sendPrivateMessage', { name: 'X', text: 'y' }),
+    ).toBe('done');
+    expect(t.api).toHaveBeenCalledWith('/api/action', {
+      type: 'sendPrivateMessage',
+      planet: 'p1',
+      name: 'X',
+      text: 'y',
+    });
+    expect(t.toast).toHaveBeenCalledWith('Gesendet.');
+    expect(refused).not.toHaveBeenCalled();
+    await t.own(refused, 'seeGuildChat');
+    expect(t.api).toHaveBeenLastCalledWith('/api/action', {
+      type: 'seeGuildChat',
+      planet: 'p1',
+    });
   });
 
   it('sends a quiet action like any other, with the planet and its data', async () => {

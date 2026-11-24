@@ -59,6 +59,16 @@ export interface Sync {
     ...data: ActionArgs<K>
   ) => Promise<ActResult>;
   /**
+   * Sends an action whose refusal the caller shows itself, with the words of
+   * the server: the dialog of a message shows it inside the dialog (#349).
+   * A message of an action that went through is a note as always.
+   */
+  own: <K extends ActionName>(
+    refused: (message: string) => void,
+    type: K,
+    ...data: ActionArgs<K>
+  ) => Promise<ActResult>;
+  /**
    * Starts a refresh and answers whether its state may still be applied:
    * only for the newest refresh, and only when no action was on its way or
    * started since it began, so a refresh never undoes the answer of an
@@ -73,6 +83,22 @@ const dataOf = (j: Record<string, unknown>): Record<string, unknown> | null =>
   typeof j.data === 'object'
     ? (j.data as Record<string, unknown> | null)
     : null;
+
+/**
+ * What an answer brings: on the planet still shown its data (only for the
+ * newest action of its type) and its state; its message anyway.
+ */
+function takeAnswer(
+  deps: ActDeps,
+  j: Record<string, unknown>,
+  here: boolean,
+  newest: boolean,
+): void {
+  const extra = dataOf(j);
+  if (here && extra && newest) deps.answer?.(extra);
+  if (here) deps.apply(j.state as GameState);
+  if (j.msg) deps.toast(String(j.msg));
+}
 
 export function createAct(deps: ActDeps): Sync {
   // A new token per started action and per started refresh: only identity
@@ -100,11 +126,7 @@ export function createAct(deps: ActDeps): Sync {
         ...data,
       });
       const here = samePlace(deps.state(), before);
-      const extra = dataOf(j);
-      if (here && extra && lastOfType.get(type) === ticket)
-        deps.answer?.(extra);
-      if (here) deps.apply(j.state as GameState);
-      if (j.msg) deps.toast(String(j.msg));
+      takeAnswer(deps, j, here, lastOfType.get(type) === ticket);
       return here ? 'done' : 'stale';
     } catch (e) {
       refused(e as Error);
@@ -124,5 +146,7 @@ export function createAct(deps: ActDeps): Sync {
     run(type, data ?? {}, (error) => deps.toast(error.message, error));
   const quiet: Sync['quiet'] = (type, ...[data]) =>
     run(type, data ?? {}, () => {});
-  return { send, quiet, refresh };
+  const own: Sync['own'] = (refused, type, ...[data]) =>
+    run(type, data ?? {}, (error) => refused(error.message));
+  return { send, quiet, own, refresh };
 }

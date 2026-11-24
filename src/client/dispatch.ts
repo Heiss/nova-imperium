@@ -15,7 +15,7 @@ import { modal } from './modal.ts';
 import { render } from './render.ts';
 import { go } from './routing.ts';
 import { signedOut } from './session.ts';
-import { act, actHere, apply, quiet } from './sync.ts';
+import { act, actHere, actOwn, apply, quiet } from './sync.ts';
 import { toast } from './toast.ts';
 
 const setInput = (sel: string, v: string | number): void => {
@@ -28,6 +28,7 @@ const ctx: ClientCtx = {
   act,
   actHere,
   quiet,
+  actOwn,
   modal,
   go,
   render,

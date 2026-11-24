@@ -189,7 +189,13 @@ const LISTS: Record<string, Record<string, Verdict>> = {
       'src/client/logic/overview-cards.test.ts',
     ),
   },
-  'PmCompose.svelte': { name: source('users.name unique') },
+  'PmCompose.svelte': {
+    name: source('users.name unique'),
+    who: source('one conversation per other account, the first five'),
+    friend: source(
+      'friends.list, one row per friend; users.name unique; quickChoice leaves out the recent',
+    ),
+  },
   'PmInbox.svelte': { 'row.key': source('one preview per other account') },
   'PmSent.svelte': {
     'row.id': merged(
@@ -404,7 +410,11 @@ const LOOPS: Record<string, string[]> = {
     'cards.attention as item (item.key)',
     'cards.ready as item (item.key)',
   ],
-  'PmCompose.svelte': ['names as name (name)'],
+  'PmCompose.svelte': [
+    'names as name (name)',
+    'quick.recent as who (who)',
+    'quick.friends as friend (friend)',
+  ],
   'PmInbox.svelte': ['page.inbox as row (row.key)'],
   'PmSent.svelte': ['list.rows as row (row.id)'],
   'PmSettings.svelte': ['blocked as who (who)'],
