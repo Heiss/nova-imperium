@@ -1,0 +1,19 @@
+{
+  "id": "fix",
+  "kind": "sit",
+  "order": "a",
+  "round": "d11b",
+  "roundTitle": "Nachtrag zu d11 · Registrierung und Fenster",
+  "seq": 790,
+  "short": "Fenster-Verzierung",
+  "station": 0,
+  "text": "Deine Notiz zu d14: „die Verzierung an den Menüs ist kaputt“. Die goldenen Spitzbögen saßen in der Titelleiste und stachen in Titel und Knöpfe. Jetzt sitzen sie auf der Oberkante des Fensters, mit einem kleinen Bogen in der Mitte, wie beim Lage-Blatt. Die Animationen und Standbilder rendere ich damit neu. Ein Vorschlag: wähle ihn, wenn er passt, und schreib Korrekturen in die Notiz.",
+  "title": "Die Verzierung der Fenster, korrigiert (Vorschlag)",
+  "variants": {
+    "a": {
+      "desc": "Die Spitzbögen auf der Oberkante, Titel und Knöpfe frei.",
+      "emph": "Fenster: Verzierung auf der Oberkante",
+      "img": "/_blob/a11747e5fc5f88ba50c6baa44375373d"
+    }
+  }
+}

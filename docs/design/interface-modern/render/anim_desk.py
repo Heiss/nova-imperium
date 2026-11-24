@@ -200,13 +200,15 @@ def deco_imperium(kind, w, h, t, phase=0.0):
     s = [r8.metal_defs(t, '#fff4d8', 0.8, 0.08)]
     s.append(f'<g filter="url(#shade)" fill="{gold}">' + ''.join(p.replace(' />', ' filter="url(#metal)" />') for p in shapes) + '</g>')
     if kind in ('sheet', 'window'):  # pointed arches at the corners and in the middle
-        y = 3 if kind == 'sheet' else TB - 1
-        hh = 1.0 if kind == 'sheet' else 0.75
+        # on a window the arches sit on its upper edge, outside the title bar, so they never cover the title or the buttons (owner, d14)
+        y = 3 if kind == 'sheet' else 1
+        hh = 1.0 if kind == 'sheet' else 0.7
         for x, f in [(10, 1), (w - 10, -1)]:
             s.append(f'<g filter="url(#shade)"><path d="M {x} {y} q {f * 2} {-22 * hh:.1f} {f * 18 * hh:.1f} {-28 * hh:.1f} q {-f * 6} {10 * hh:.1f} {-f * 4} {26 * hh:.1f} Z" fill="{orn}" filter="url(#metal)" />'
                      f'<circle cx="{x + f * 14 * hh:.1f}" cy="{y - 16 * hh:.1f}" r="{3 * hh:.1f}" fill="#d4a537" /></g>')
-        if kind == 'sheet':
-            s.append(f'<g filter="url(#shade)"><path d="M {w / 2 - 22} {y - 2} q 22 -20 44 0 Z" fill="{orn}" filter="url(#metal)" /><circle cx="{w / 2}" cy="{y - 10}" r="3.5" fill="#f1d27a" /></g>')
+        m = 1.0 if kind == 'sheet' else 0.7
+        s.append(f'<g filter="url(#shade)"><path d="M {w / 2 - 22 * m:.1f} {y - 2} q {22 * m:.1f} {-20 * m:.1f} {44 * m:.1f} 0 Z" fill="{orn}" filter="url(#metal)" />'
+                 f'<circle cx="{w / 2}" cy="{y - 10 * m:.1f}" r="{3.5 * m:.1f}" fill="#f1d27a" /></g>')
     pos = gleam(t, w if kind != 'vbar' else h, phase)
     if pos is not None:
         tr = f' transform="rotate(90) translate(0 {-2})"' if kind == 'vbar' else ''

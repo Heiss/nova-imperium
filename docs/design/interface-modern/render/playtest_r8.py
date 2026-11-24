@@ -357,7 +357,7 @@ def galaxies_pick(w=346, h=190, chosen=1):
     from playtest_r1m import bg_stars
     from playtest_r6 import spiral
     s = [f'<svg width="{w}" height="{h}" viewBox="0 0 {w} {h}">', bg_stars(60, w, h, 5), spiral(90, 95, 62, 1), spiral(255, 95, 62, 2)]
-    for i, (x, n, d) in enumerate([(90, 'Galaxie 1', '8 Spieler'), (255, 'Galaxie 2', '4 Spieler')], 1):
+    for i, (x, n, d) in enumerate([(90, 'Galaxie 1', ''), (255, 'Galaxie 2', '')], 1):  # owner, d13: no round facts before the login
         if i == chosen:
             s.append(f'<ellipse cx="{x}" cy="95" rx="76" ry="58" fill="none" stroke="#f1d27a" stroke-width="2" />')
         s.append(f'<text x="{x}" y="172" text-anchor="middle" fill="{"#f1d27a" if i == chosen else "#e9dfc8"}" font-size="13" font-family="Georgia" font-weight="700">{n}</text>'
@@ -368,10 +368,11 @@ def galaxies_pick(w=346, h=190, chosen=1):
 
 def w13_body():
     return ('<div style="font-size: 13px; margin-bottom: 6px">Deine Einladung gilt noch 6 Tage.</div>'
-            + field('Name', 'Leander') + field('E-Mail', '<span class="m-dim">aus der Einladung</span>') + field('Passwort', 'x', pw=True) + field('Name deines Planeten', 'Heimatwelt')
+            + field('Name', 'Leander') + field('E-Mail', '<span class="m-dim">aus der Einladung</span>') + field('Name deines Planeten', 'Heimatwelt')
             + '<div class="m-dim" style="font-size: 12px; margin: 8px 0 4px">Wähle deine Galaxie: tippe sie an.</div>'
             + f'<div style="border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: #0b0806; position: relative">{galaxies_pick()}</div>'
-            + btn('Imperium gründen') + '<div class="m-dim" style="font-size: 12px; text-align: center; margin-top: 6px">Danach kannst du einen Passkey anlegen.</div>')
+            + btn('Imperium gründen mit Passkey') + '<div class="m-dim" style="font-size: 12px; text-align: center; margin: 4px 0 2px">Fingerabdruck, Gesicht oder Geräte-PIN</div>'
+            + btn('Imperium gründen mit Passwort', 'ghost'))  # owner, w13: a passkey right at the registration
 
 
 def w13():

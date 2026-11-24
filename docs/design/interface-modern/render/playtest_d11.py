@@ -122,7 +122,7 @@ def login_col():
 
 def logo(size=28):
     return (f'<div style="text-align: center; margin-bottom: 14px"><b style="font: 800 {size}px var(--head); color: var(--gold); letter-spacing: 0.08em">NOVA IMPERIUM</b>'
-            '<div class="m-dim" style="font-size: 13px">Runde 4 · Tag 9</div></div>')
+            '</div>')  # owner, d13: no round facts before the login
 
 
 def gal_bg(op=0.4):
@@ -220,8 +220,15 @@ def d22():
     return frame(win(150, 64, 520, 470, 'Sonnenkathedrale', r8.w12_body()))
 
 
+def d23():
+    """The registration on the desktop: the phone content (w13) in the centred card of d13 a [E]."""
+    card = (f'<div class="k-abs" style="left: {(DW - 440) // 2}px; top: 30px; width: 440px; z-index: 5; background: rgb(23 17 13 / 0.94); border: 1px solid var(--gold); '
+            f'border-radius: 14px; padding: 16px 24px">{logo(24)}{r8.w13_body()}</div>')
+    return gal_bg() + card
+
+
 SITS = {'d11': {'a': d11a, 'b': d11b, 'c': d11c}, 'd12': {'a': d12a, 'b': d12b, 'c': d12c}, 'd13': {'a': d13a, 'b': d13b, 'c': d13c}, 'd14': {'a': d14a, 'b': d14b, 'c': d14c},
-        'd15': {'a': d15}, 'd16': {'a': d16}, 'd17': {'a': d17}, 'd18': {'a': d18}, 'd19': {'a': d19}, 'd20': {'a': d20}, 'd21': {'a': d21}, 'd22': {'a': d22}}
+        'd15': {'a': d15}, 'd16': {'a': d16}, 'd17': {'a': d17}, 'd18': {'a': d18}, 'd19': {'a': d19}, 'd20': {'a': d20}, 'd21': {'a': d21}, 'd22': {'a': d22}, 'd23': {'a': d23}}
 
 
 def build_sheet():
