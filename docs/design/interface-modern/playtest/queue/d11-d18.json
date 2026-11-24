@@ -1,0 +1,19 @@
+{
+  "id": "d18",
+  "kind": "sit",
+  "order": "a",
+  "round": "d11",
+  "roundTitle": "Runde d11 · Welt und Konto (Desktop)",
+  "seq": 720,
+  "short": "Spielzeit (Desktop)",
+  "station": 0,
+  "text": "Am Handy abgenickt; am Desktop derselbe Inhalt als Fenster über der Karte. Ein Fenster aus Menü › Optionen. Ein Vorschlag: wähle ihn, wenn er passt, und schreib Korrekturen in die Notiz.",
+  "title": "Spielzeit am Desktop (Vorschlag)",
+  "variants": {
+    "a": {
+      "desc": "Ein Fenster aus Menü › Optionen.",
+      "emph": "Spielzeit: Fenster",
+      "img": "/_blob/69e792397a889f4e64023fe4c5b2f0c8"
+    }
+  }
+}

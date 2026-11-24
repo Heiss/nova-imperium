@@ -1,0 +1,19 @@
+{
+  "id": "d15",
+  "kind": "sit",
+  "order": "a",
+  "round": "d11",
+  "roundTitle": "Runde d11 · Welt und Konto (Desktop)",
+  "seq": 690,
+  "short": "Zurückbauen (Desktop)",
+  "station": 0,
+  "text": "Am Handy abgenickt; am Desktop derselbe Inhalt als Fenster über der Karte. Im Info-Fenster des Gebäudes. Ein Vorschlag: wähle ihn, wenn er passt, und schreib Korrekturen in die Notiz.",
+  "title": "Zurückbauen am Desktop (Vorschlag)",
+  "variants": {
+    "a": {
+      "desc": "Im Info-Fenster des Gebäudes.",
+      "emph": "Zurückbauen: Info-Fenster",
+      "img": "/_blob/2dc83c73a530e7db08d16c34b565c1ef"
+    }
+  }
+}

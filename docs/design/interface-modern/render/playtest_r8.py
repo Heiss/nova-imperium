@@ -224,7 +224,7 @@ def de(n):
     return f'{n:,}'.replace(',', '.')
 
 
-def w5():
+def w5_body():
     body = ('<div style="display: flex; gap: 10px; align-items: center"><div class="k-tile ok" style="width: 54px; height: 54px"><img src="' + I + 'buildings/metal_mine.svg" alt="" /></div>'
             '<div><b style="font: 700 16px var(--head); color: var(--gold-hi)">Adamant-Tiefbohrung 18</b><br /><span class="m-dim" style="font-size: 12.5px">Fördert Adamant.</span></div></div>'
             + btn('Ausbauen auf 19') + '<div style="text-align: center; font-size: 13px; color: var(--gold-hi); margin-top: 10px">Zurückbauen auf 17 …</div>'
@@ -232,20 +232,28 @@ def w5():
             '<b style="color: var(--red)">Zurückbauen: 18 → 17</b><div class="m-kv" style="margin-top: 6px"><span>Erstattung</span><b>50 % der Kosten von Stufe 18</b>'
             '<span>Dauer</span><b>die Hälfte der Bauzeit</b><span>Felder</span><b>gibt 1 Feld frei</b></div>' + btn('Zurückbauen', 'red') + '</div>'
             '<div class="m-dim" style="font-size: 11.5px; margin-top: 6px">Erstattung und Dauer stellt der Admin je Runde ein (−100 % bis +100 %).</div>')
-    return phone(dim_map() + header() + pulled(470, body) + tabs_on(1))
+    return body
 
 
-def w6():
+def w5():
+    return phone(dim_map() + header() + pulled(470, w5_body()) + tabs_on(1))
+
+
+def w6_body():
     checks = ''.join(f'<div style="display: flex; gap: 8px; font-size: 13px; padding: 4px 0"><b style="color: var(--{"green" if ok else "red"})">{"✓" if ok else "✗"}</b><span>{t}</span></div>'
                      for ok, t in [(True, 'Keine eigenen Flotten unterwegs'), (False, 'Aurelia baut: Psikristall-Steinbruch 16 · 22 min'), (True, 'Keine Forschung läuft'), (True, 'Die Schiffsschmiede ist frei')])
     body = ('<div style="border: 1px solid var(--line); border-radius: 10px; padding: 12px; background: #140f0b; font-size: 13px; line-height: 1.5">'
             'Im Urlaubsmodus steht die Produktion still, und alle deine Planeten und Monde sind geschützt. Er dauert mindestens <b>48 h</b>.</div>'
             + group('VORAUSSETZUNGEN', f'<div style="padding: 6px 12px">{checks}</div>') + btn('Urlaubsmodus aktivieren', 'dis')
             + '<div class="m-dim" style="font-size: 12px; text-align: center; margin-top: 6px">Frei in 22 min, wenn Aurelia fertig ist</div>')
-    return phone(page('Urlaubsmodus', 'Optionen › Runde', body) + header() + sheet() + tabs_on(4))
+    return body
 
 
-def w7():
+def w6():
+    return phone(page('Urlaubsmodus', 'Optionen › Runde', w6_body()) + header() + sheet() + tabs_on(4))
+
+
+def w7_body():
     loss = ''.join(f'<li style="margin: 2px 0">{t}</li>' for t in ['alle Gebäude und die Verteidigung', 'die Schiffe vor Ort', 'die Rohstoffe im Lager', 'der Mond mit allem darauf'])
     body = (f'<div style="display: flex; gap: 10px; align-items: center">{ball("normal", 1, 48)}<div><b style="font: 700 16px var(--head); color: var(--red)">Kolonie aufgeben</b><br />'
             '<span style="font-size: 13px">Aurelia [1:27:8]</span></div></div>'
@@ -253,10 +261,14 @@ def w7():
             '<div style="font-size: 13px">Die Position 1:27:8 ist danach <b>24 Stunden</b> gesperrt.</div>'
             '<div style="font-size: 13px; color: var(--red); font-weight: 700; margin: 8px 0">Das kann nicht rückgängig gemacht werden.</div>'
             + field('Passwort zur Bestätigung', 'x', pw=True) + btn('Kolonie aufgeben', 'red') + btn('Abbrechen', 'ghost'))
-    return phone(dim_map() + header() + pulled(520, body) + tabs_on(1))
+    return body
 
 
-def w8():
+def w7():
+    return phone(dim_map() + header() + pulled(520, w7_body()) + tabs_on(1))
+
+
+def w8_body():
     days = [('Mo', 52, 40), ('Di', 75, 61), ('Mi', 20, 12), ('Do', 0, 0), ('Fr', 95, 88), ('Sa', 64, 47), ('heute', 72, 55)]
     bars = ''.join(f'<div style="flex: 1; text-align: center; font-size: 11px"><div style="height: 110px; display: flex; align-items: flex-end; justify-content: center">'
                    f'<i style="width: 22px; height: {h}%; background: var(--{"gold" if d == "heute" else "line"}); border-radius: 4px 4px 0 0"></i></div>'
@@ -266,7 +278,11 @@ def w8():
     body = (f'<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px">{kpi}</div>'
             + group('GESCHÄTZTE AKTIVE SPIELZEIT · SPIELAKTIONEN', f'<div style="display: flex; padding: 10px 6px">{bars}</div>')
             + '<div class="m-dim" style="font-size: 12px; margin-top: 8px">Alle Angaben sind Schätzungen (UTC); während der Runde siehst nur du sie. Zuletzt aktiv: gerade eben.</div>')
-    return phone(page('Meine Aktivität &amp; Spielzeit', 'Optionen › Runde', body) + header() + sheet() + tabs_on(4))
+    return body
+
+
+def w8():
+    return phone(page('Meine Aktivität &amp; Spielzeit', 'Optionen › Runde', w8_body()) + header() + sheet() + tabs_on(4))
 
 
 PUSH = [('BAU', ['Gebäude fertig', 'Forschung abgeschlossen', 'Auftrag der Schiffsschmiede abgeschlossen']),
@@ -274,34 +290,47 @@ PUSH = [('BAU', ['Gebäude fertig', 'Forschung abgeschlossen', 'Auftrag der Schi
         ('GILDE UND NACHRICHTEN', ['Gildenereignisse', 'Nachrichten im Gilden-Chat', 'Persönliche Nachrichten']), ('SERVER', ['Servernachrichten', 'Neue Version'])]
 
 
-def w9():
+def w9_body():
     top = ('<div style="border: 1px solid var(--gold); border-radius: 10px; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; background: #140f0b">'
            '<div><b>Auf diesem Gerät</b><div class="m-dim" style="font-size: 12px">Browser-Benachrichtigungen an</div></div>' + sw(True) + '</div>'
            '<div style="border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin-top: 8px; display: flex; justify-content: space-between; align-items: center">'
            '<div><b>App installieren</b><div class="m-dim" style="font-size: 12px">auf den Startbildschirm</div></div><span class="m-btn">Installieren</span></div>')
     groups = ''.join(group(t, ''.join(row(x, right=sw(x not in ('Neue Version', 'Gildenereignisse'))) for x in xs[:3])) for t, xs in PUSH[:2])
-    return phone(page('Benachrichtigungen', 'Optionen › Gerät', f'<div style="height: 520px; overflow: hidden">{top}{groups}</div>') + header() + sheet() + tabs_on(4))
+    body = f'{top}{groups}'
+    return body
 
 
-def w10():
+def w9():
+    return phone(page('Benachrichtigungen', 'Optionen › Gerät', f'<div style="height: 520px; overflow: hidden">{w9_body()}</div>') + header() + sheet() + tabs_on(4))
+
+
+def w10_body():
     body = ('<b style="font: 700 16px var(--head); color: var(--gold-hi)">Problem melden</b>'
             '<div class="m-dim" style="font-size: 12px; margin: 4px 0 8px">Wird mitgeschickt: Seite „Flotten“, Gerät Handy, Version 26.11.25, 13:20</div>'
             '<div class="m-dim" style="font-size: 12px; margin-bottom: 3px">Was ist passiert?</div>'
             '<div style="border: 1px solid var(--gold); border-radius: 8px; padding: 9px 10px; height: 120px; font-size: 14px; background: #0f0b08">Beim Losschicken springt die Zeitleiste nach oben.</div>'
             + btn('Senden') + '<div class="m-dim" style="font-size: 12px; text-align: center; margin-top: 6px">Der Admin sieht die Meldung im Reiter „Fehler“.</div>')
-    return phone(dim_map() + header() + pulled(380, body) + tabs_on(4))
+    return body
 
 
-def w11():
+def w10():
+    return phone(dim_map() + header() + pulled(380, w10_body()) + tabs_on(4))
+
+
+def w11_body():
     keys = ''.join(row(t, d, more=False, right=f'<span class="m-dim" style="font-size: 12px">{d}</span><span style="color: var(--red); margin-left: 8px">✕</span>') for t, d in [('Laptop', 'seit 12.11.'), ('Handy', 'seit 20.11.')])
     body = (group('PASSKEYS', keys + row('Passkey hinzufügen', '', col='gold-hi'))
             + group('PASSWORT', '<div style="padding: 4px 12px 10px">' + field('Bisheriges Passwort', 'x', True) + field('Neues Passwort') + field('Neues Passwort wiederholen') + btn('Passwort ändern', 'ghost') + '</div>')
             + '<div style="border: 1px solid var(--red); border-radius: 10px; padding: 10px 12px; margin-top: 12px; display: flex; justify-content: space-between; align-items: center">'
             '<b style="color: var(--red)">Account löschen</b><span style="color: var(--red)">›</span></div>')
-    return phone(page('Konto', 'Optionen › Konto', f'<div style="height: 520px; overflow: hidden">{body}</div>') + header() + sheet() + tabs_on(4))
+    return body
 
 
-def w12():
+def w11():
+    return phone(page('Konto', 'Optionen › Konto', f'<div style="height: 520px; overflow: hidden">{w11_body()}</div>') + header() + sheet() + tabs_on(4))
+
+
+def w12_body():
     tabs = ''.join(f'<span style="padding: 6px 10px; border-bottom: 2px solid var(--{"gold" if t == "Stufen" else "line"}); color: var(--{"gold-hi" if t == "Stufen" else "dim"})">{t}</span>'
                    for t in ['Übersicht', 'Stufen', 'Schaltet frei'])
     rows = ''
@@ -316,11 +345,44 @@ def w12():
             '<div><b style="font: 700 16px var(--head); color: var(--gold-hi)">Sonnenkathedrale 18</b><br /><span class="m-dim" style="font-size: 12.5px">Liefert Energie für die Minen.</span></div></div>'
             f'<div style="display: flex; font-size: 13px; margin-bottom: 8px">{tabs}</div>{table}'
             '<div class="m-dim" style="font-size: 12px; margin-top: 6px">Energie bei 100 %; die Bauzeit-Spalte wie heute.</div>')
-    return phone(page('', '', body) + header() + sheet() + tabs_on(1))
+    return body
+
+
+def w12():
+    return phone(page('', '', w12_body()) + header() + sheet() + tabs_on(1))
+
+
+# ------------------------------------------------------------------ w13 registration (owner, w3: the galaxy is chosen on the map)
+def galaxies_pick(w=346, h=190, chosen=1):
+    from playtest_r1m import bg_stars
+    from playtest_r6 import spiral
+    s = [f'<svg width="{w}" height="{h}" viewBox="0 0 {w} {h}">', bg_stars(60, w, h, 5), spiral(90, 95, 62, 1), spiral(255, 95, 62, 2)]
+    for i, (x, n, d) in enumerate([(90, 'Galaxie 1', '8 Spieler'), (255, 'Galaxie 2', '4 Spieler')], 1):
+        if i == chosen:
+            s.append(f'<ellipse cx="{x}" cy="95" rx="76" ry="58" fill="none" stroke="#f1d27a" stroke-width="2" />')
+        s.append(f'<text x="{x}" y="172" text-anchor="middle" fill="{"#f1d27a" if i == chosen else "#e9dfc8"}" font-size="13" font-family="Georgia" font-weight="700">{n}</text>'
+                 f'<text x="{x}" y="186" text-anchor="middle" fill="#a8997f" font-size="11" font-family="Georgia">{d}</text>')
+    s.append('</svg>')
+    return ''.join(s)
+
+
+def w13_body():
+    return ('<div style="font-size: 13px; margin-bottom: 6px">Deine Einladung gilt noch 6 Tage.</div>'
+            + field('Name', 'Leander') + field('E-Mail', '<span class="m-dim">aus der Einladung</span>') + field('Passwort', 'x', pw=True) + field('Name deines Planeten', 'Heimatwelt')
+            + '<div class="m-dim" style="font-size: 12px; margin: 8px 0 4px">Wähle deine Galaxie: tippe sie an.</div>'
+            + f'<div style="border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: #0b0806; position: relative">{galaxies_pick()}</div>'
+            + btn('Imperium gründen') + '<div class="m-dim" style="font-size: 12px; text-align: center; margin-top: 6px">Danach kannst du einen Passkey anlegen.</div>')
+
+
+def w13():
+    from playtest_d1 import galaxy
+    bg = stars() + f'<div class="k-abs" style="left: 0; top: 0; opacity: 0.25">{galaxy(390, 780, tip=False, routes=False)}</div>'
+    return phone(bg + '<div style="position: relative; padding: 46px 22px 0"><div style="text-align: center; margin-bottom: 8px"><b style="font: 800 20px var(--head); color: var(--gold); letter-spacing: 0.08em">NOVA IMPERIUM</b></div>'
+                 + w13_body() + '</div>')
 
 
 SITS = {'w1': {'a': w1a, 'b': w1b, 'c': w1c}, 'w2': {'a': w2a, 'b': w2b, 'c': w2c}, 'w3': {'a': w3a, 'b': w3b, 'c': w3c}, 'w4': {'a': w4a, 'b': w4b, 'c': w4c},
-        'w5': {'a': w5}, 'w6': {'a': w6}, 'w7': {'a': w7}, 'w8': {'a': w8}, 'w9': {'a': w9}, 'w10': {'a': w10}, 'w11': {'a': w11}, 'w12': {'a': w12}}
+        'w5': {'a': w5}, 'w6': {'a': w6}, 'w7': {'a': w7}, 'w8': {'a': w8}, 'w9': {'a': w9}, 'w10': {'a': w10}, 'w11': {'a': w11}, 'w12': {'a': w12}, 'w13': {'a': w13}}
 
 
 def build_sheet():

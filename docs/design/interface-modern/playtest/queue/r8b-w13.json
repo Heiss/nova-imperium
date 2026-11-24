@@ -1,0 +1,20 @@
+{
+  "ask": "Soll man bei der Registrierung gleich einen Passkey anlegen können? Das wäre eine kleine neue Funktion ohne Spielregel.",
+  "id": "w13",
+  "kind": "sit",
+  "order": "a",
+  "round": "r8b",
+  "roundTitle": "Nachtrag zu Runde 8 · Registrierung (Handy)",
+  "seq": 640,
+  "short": "Registrierung",
+  "station": 0,
+  "text": "Deine Antwort in Runde 8: die Galaxie wird auf der Karte gewählt. Die Felder wie heute (Name, E-Mail aus der Einladung, Passwort, Name des Planeten); einen Passkey legt man heute erst danach an. Die Zahlen sind Beispiele. Ein Vorschlag: wähle ihn, wenn er passt, und schreib Korrekturen in die Notiz.",
+  "title": "Registrierung mit Einladung (Vorschlag)",
+  "variants": {
+    "a": {
+      "desc": "Die Felder wie heute, die Galaxie auf einer kleinen Karte zum Antippen.",
+      "emph": "Registrierung: Galaxie auf der Karte",
+      "img": "/_blob/a62c7820bb2d5f88900261d317d70de3"
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "id": "d14",
+  "kind": "sit",
+  "order": "acb",
+  "round": "d11",
+  "roundTitle": "Runde d11 · Welt und Konto (Desktop)",
+  "seq": 680,
+  "short": "Admin (Desktop)",
+  "station": 0,
+  "text": "Am Handy gewählt: eine Übersicht mit Kacheln und Zählern; Admin-Ereignisse nicht in der Lage-Zeile. Am Desktop …",
+  "title": "Der Admin-Bereich am Desktop",
+  "variants": {
+    "a": {
+      "desc": "… die Kacheln als Fenster; eine Kachel öffnet ihren Bereich als zweites Fenster.",
+      "emph": "Admin: Fenster",
+      "img": "/_blob/af73e9f3703efcfce5ac9b03a4542d59"
+    },
+    "b": {
+      "desc": "… eine eigene Seite statt der Karte: Kacheln links, der Bereich rechts.",
+      "emph": "Admin: eigene Seite",
+      "img": "/_blob/0c62b30f775f9d2739589754f9595462"
+    },
+    "c": {
+      "desc": "… die Kacheln im Menü unter „Admin“; der Bereich öffnet als Fenster.",
+      "emph": "Admin: im Menü",
+      "img": "/_blob/cefaa20cd935e9f4ce6981a6f454b831"
+    }
+  }
+}

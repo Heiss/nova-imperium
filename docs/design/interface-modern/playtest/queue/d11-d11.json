@@ -1,0 +1,30 @@
+{
+  "ask": "Soll eine geänderte Option sofort gelten oder erst mit „Speichern“ wie heute?",
+  "id": "d11",
+  "kind": "sit",
+  "order": "cab",
+  "round": "d11",
+  "roundTitle": "Runde d11 · Welt und Konto (Desktop)",
+  "seq": 650,
+  "short": "Optionen (Desktop)",
+  "station": 0,
+  "text": "Am Handy gewählt: eine Liste, ein Tipp öffnet die Einstellung; Farbset, Formen und Wischen gelten für dein Konto, „Animationen“ je Gerät. Am Desktop öffnet „Menü ▾ › Optionen“ …",
+  "title": "Optionen am Desktop",
+  "variants": {
+    "a": {
+      "desc": "… ein Fenster mit der Liste links und der Einstellung rechts.",
+      "emph": "Optionen: ein Fenster, zwei Spalten",
+      "img": "/_blob/e28fb9c5be04e9209cfffe44c6febec9"
+    },
+    "b": {
+      "desc": "… die Liste als Fenster, die Einstellung als zweites Fenster daneben.",
+      "emph": "Optionen: zwei Fenster",
+      "img": "/_blob/81b960e3da517286ecd1edf33f4bfb40"
+    },
+    "c": {
+      "desc": "… eine Leiste von rechts wie das Lexikon, mit „‹ Optionen“ zurück zur Liste.",
+      "emph": "Optionen: rechte Leiste",
+      "img": "/_blob/e0994c944ed40af044a517a34a8870cb"
+    }
+  }
+}

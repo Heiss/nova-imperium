@@ -1,0 +1,30 @@
+{
+  "ask": "Soll das Menü überall gleich sein, wo eine Welt erscheint (Leiste, Karte, Systemfenster)?",
+  "id": "d12",
+  "kind": "sit",
+  "order": "bca",
+  "round": "d11",
+  "roundTitle": "Runde d11 · Welt und Konto (Desktop)",
+  "seq": 660,
+  "short": "Welt verwalten (Desktop)",
+  "station": 0,
+  "text": "Am Handy gewählt: ⋯ an der Welt öffnet Umbenennen, Als Hauptplanet festlegen und Kolonie aufgeben; der Hauptplanet wandert zur Welt. Am Desktop …",
+  "title": "Eine Welt verwalten am Desktop",
+  "variants": {
+    "a": {
+      "desc": "… öffnet ⋯ an der Welt in der linken Leiste ein kleines Menü.",
+      "emph": "Verwalten: ⋯ in der Welten-Leiste",
+      "img": "/_blob/094fd5ad3bb47b132a0f548c9cfc43dd"
+    },
+    "b": {
+      "desc": "… öffnet ⋯ in der Titelleiste des Weltfensters das Menü.",
+      "emph": "Verwalten: ⋯ im Weltfenster",
+      "img": "/_blob/5580369d1ad39804fc43cf07acfce9fa"
+    },
+    "c": {
+      "desc": "… öffnet ein Rechtsklick auf die Welt (Leiste, Karte, Systemfenster) dasselbe Menü.",
+      "emph": "Verwalten: Rechtsklick",
+      "img": "/_blob/38f3ef79c128882e2879ac262a457a9b"
+    }
+  }
+}
