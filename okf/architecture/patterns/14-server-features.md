@@ -14,15 +14,29 @@ description: 'A server module exports its actions and its part of the state as s
 * **[V]** Contract (main agent's proposal, the owner decided only that the
   pattern comes): a server module that adds actions or a part of the state
   exports under the fixed name `serverFeature`, `export const serverFeature =
-  { actions, guildActions, adminActions, state } satisfies ServerFeature;`,
-  all four members optional. `ServerFeature` and `StatePart` are in
+  { actions, adminActions, state, enabled, off } satisfies ServerFeature;`,
+  all members optional (`off` is required with `enabled`). `ServerFeature` and `StatePart` are in
   `src/server/game/feature.ts`. The module lives next to the server code of
   the feature (`src/server/game/<feature>.ts`, as the round settings live in
   `src/core`), not in a new folder.
-  * `actions` maps an action name to its `Action`; `guildActions` the same for
-    the actions that are refused while guilds are off in the round (#191);
-    `adminActions` the same for the actions of the admin, which are audited as
-    `admin.write` and not as `game`. A name is in exactly one of the three.
+  * `actions` maps an action name to its `Action`; `adminActions` the same
+    for the actions of the admin, which are audited as `admin.write` and not
+    as `game`. A name is in exactly one of the two.
+  * **[E]** A feature says whether it is on in the round (#374; owner,
+    2026-11-22, #351: a refactor of the v3 foundation without a change of
+    behaviour). **[V]** `enabled(round)` with its refusal `off`: while it is
+    off, `runAction` refuses each of its actions with `off` and every key of
+    its `state` part is null (`assembleState` wraps its `build`). Guilds,
+    their ranks and their chat (`guilds`, `guild-ranks`, `guild-chat`) say
+    `enabled: (round) => round.guilds, off: GUILDS_OFF` instead of the former
+    group `guildActions` (#191); the marketplace keeps its own switch in its
+    own code. `GUILD_ACTIONS` of `dispatch.ts` is read from the switches (the
+    actions refused with `GUILDS_OFF`). The admin's guild chat
+    (`adminGuildChat`, an HTTP route, not an action) keeps `requireGuilds`,
+    and the Schnellwahl leaves the guild targets out by `round.guilds`
+    (#292): neither refuses an action or leaves out a state part. The group
+    cases of `registry.test.ts` became cases of the switch, at least as
+    strict (coordinator, 2026-11-24, [V]).
   * `state` is one `StatePart`: `order` (a number, the next free ten above the
     highest; it fixes the place of the keys in the JSON object, so every
     snapshot stays), `keys` (the keys it adds, so a key defined twice is
@@ -41,15 +55,14 @@ description: 'A server module exports its actions and its part of the state as s
   contain it. Knip takes it as an entry; Vitest coverage and Stryker leave it
   out.
 * **[V]** `dispatch.ts` and `state.ts` keep their frame: the general gates of
-  `runAction` (vacation, guilds, admin audit category, achievements) and the
+  `runAction` (vacation, the switch of a feature, admin audit category, achievements) and the
   actions and state keys of the core game. The functions of
-  `src/server/game/assemble.ts` build `ACTIONS`, `GUILD_ACTIONS` and
-  `ADMIN_ACTIONS` from the frame and the list and the ordered parts of the
+  `src/server/game/assemble.ts` build `ACTIONS`, the switches of the actions
+  and `ADMIN_ACTIONS` from the frame and the list and the ordered parts of the
   state; a name, a key or an order number that exists twice stops the start
   with both files named. The guard test `src/server/game/registry.test.ts`
   checks the rules for every listed module.
-* **[V]** Built: these modules register `actions`, `guildActions` or
-  `adminActions` (`demolition`, `endzeit`, `admin`, `phalanx`, `missiles`,
+* **[V]** Built: these modules register `actions` or `adminActions` (`demolition`, `endzeit`, `admin`, `phalanx`, `missiles`,
   `jump-gate`, `main-planet`, `vacation`, `abandon`, `market`,
   `fleet-actions`, `push-options`, `friends`, `achievements`, `guilds`,
   `guild-ranks`, `guild-chat`) and these a part of the state (`main-planet`
@@ -90,7 +103,7 @@ description: 'A server module exports its actions and its part of the state as s
   the browser's form is a subtype of it.
 * **[V]** The server side: a handler is declared `Handler<'name'>`
   (`src/server/game/actions.ts`), so its `d` is the input of the map, and the
-  members `actions`, `guildActions`, `adminActions` of `ServerFeature` are
+  members `actions` and `adminActions` of `ServerFeature` are
   `Handlers`, a mapped type over the names of the map: a name the map does not
   know, or a handler of another action, is a compile error. The table of
   `dispatch.ts` erases the type in `assembleActions` (one cast, there). The

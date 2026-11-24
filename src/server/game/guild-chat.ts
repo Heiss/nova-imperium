@@ -27,7 +27,7 @@ import {
   refuse,
   type Actor,
 } from './guild-ranks.ts';
-import { requireGuilds } from './round.ts';
+import { GUILDS_OFF, requireGuilds } from './round.ts';
 import type { ServerFeature } from './feature.ts';
 
 /** The refusals of `sendGuildChat` (#169), by the codes of `sendChatError` (#214). */
@@ -196,5 +196,7 @@ export function adminGuildChat(ctx: Ctx, id: string) {
 }
 
 export const serverFeature = {
-  guildActions: { sendGuildChat, deleteGuildChat, seeGuildChat },
+  enabled: (round) => round.guilds,
+  off: GUILDS_OFF,
+  actions: { sendGuildChat, deleteGuildChat, seeGuildChat },
 } satisfies ServerFeature;

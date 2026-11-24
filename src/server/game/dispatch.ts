@@ -15,14 +15,14 @@ import {
   journalAction,
   journalRefusal,
 } from './journal.ts';
-import { requireGuilds } from './round.ts';
+import { GUILDS_OFF, roundRules } from './round.ts';
 import { vacationRefuses } from '../../core/vacation.ts';
 import { VACATION_REFUSED } from './vacation.ts';
 
 /**
  * The actions of the core game: the queues of a planet, its name and shares,
  * the display options and the reports. Every other action is registered by
- * its module as `serverFeature`, with its group (guild, admin), and added
+ * its module as `serverFeature`, with its group (admin) and its switch, and added
  * here by `assembleActions` (#326, okf/architecture/patterns.md, section 14).
  */
 const FRAME = {
@@ -44,8 +44,13 @@ const tables = assembleActions(FRAME, SERVER_FEATURES);
 
 export const ACTIONS: Record<string, A.Action> = tables.actions;
 
-/** The guild actions: refused while guilds are off in the round (#191). */
-export const GUILD_ACTIONS: ReadonlySet<string> = tables.guild;
+/** The switches of the actions of features that can be off in a round (#374). */
+const GATES = tables.gates;
+
+/** The guild actions: those refused while guilds are off in the round (#191), read from the switches. */
+export const GUILD_ACTIONS: ReadonlySet<string> = new Set(
+  Object.keys(GATES).filter((type) => GATES[type]!.off === GUILDS_OFF),
+);
 
 /** The actions of the admin: audited as `admin.write`, not as `game`. */
 export const ADMIN_ACTIONS: ReadonlySet<string> = tables.admin;
@@ -84,7 +89,9 @@ function run(
   // Nothing but the end, the push settings and the private messages during
   // the vacation mode (#223; the messages since Q25, Q28, #226).
   if (vacationRefuses(type, u.vacation)) fail(VACATION_REFUSED);
-  if (GUILD_ACTIONS.has(type)) requireGuilds(ctx);
+  // An action of a feature that is off in the round (#191, #374).
+  const gate = GATES[type];
+  if (gate && !gate.enabled(roundRules(ctx))) fail(gate.off);
   const result = fn(ctx, u, d, event);
   recordAchievementAction(ctx, uid, type);
   journalAction(ctx, u, type, d);

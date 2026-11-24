@@ -3,16 +3,23 @@
 // its own module (`serverFeature`), and each feature tests its own behaviour in
 // its own test. The functions that put the tables together are tested here too.
 import { describe, expect, it } from 'vitest';
+import { ROUND_SETTINGS } from '../../core/round.ts';
 import { SERVER_FEATURES } from '../features.gen.ts';
 import { addPlanet, addUser, testCtx } from '../test-helpers.ts';
 import { assembleActions, assembleState, type Listed } from './assemble.ts';
-import { ACTIONS, ADMIN_ACTIONS, GUILD_ACTIONS } from './dispatch.ts';
+import {
+  ACTIONS,
+  ADMIN_ACTIONS,
+  GUILD_ACTIONS,
+  runAction,
+} from './dispatch.ts';
 import type { ServerFeature, StatePart } from './feature.ts';
+import { GUILDS_OFF, roundRules } from './round.ts';
 import { STATE_PARTS, stateFor } from './state.ts';
 
 const features: Listed = SERVER_FEATURES;
-const GROUPS = ['actions', 'guildActions', 'adminActions'] as const;
-const MEMBERS = [...GROUPS, 'state'];
+const GROUPS = ['actions', 'adminActions'] as const;
+const MEMBERS = [...GROUPS, 'state', 'enabled', 'off'];
 const PLAIN = /^[a-z][a-zA-Z0-9]*$/;
 
 /** The action names of one group of every feature. */
@@ -52,17 +59,54 @@ describe('the list of the server features', () => {
     expect(() => assembleActions({}, features)).not.toThrow();
   });
 
-  it('puts every action into the table of dispatch.ts, in its group', () => {
-    for (const type of namesOf('actions')) {
-      expect(Object.hasOwn(ACTIONS, type), type).toBe(true);
-      expect(GUILD_ACTIONS.has(type) || ADMIN_ACTIONS.has(type), type).toBe(
-        false,
-      );
-    }
-    expect([...GUILD_ACTIONS].sort()).toEqual(namesOf('guildActions').sort());
+  it('puts every action into the table of dispatch.ts, in its group, behind the switch of its feature (#374)', () => {
+    const { gates } = assembleActions({}, features);
+    for (const [name, feature] of features)
+      for (const type of Object.keys(feature.actions ?? {})) {
+        expect(Object.hasOwn(ACTIONS, type), type).toBe(true);
+        expect(ADMIN_ACTIONS.has(type), type).toBe(false);
+        expect(gates[type]?.off, `${name}: ${type}`).toBe(
+          feature.enabled ? feature.off : undefined,
+        );
+      }
     expect([...ADMIN_ACTIONS].sort()).toEqual(namesOf('adminActions').sort());
-    for (const type of [...GUILD_ACTIONS, ...ADMIN_ACTIONS])
+    for (const type of ADMIN_ACTIONS)
       expect(Object.hasOwn(ACTIONS, type), type).toBe(true);
+    // The guild actions are exactly those behind the switch of guilds.
+    const guild = Object.keys(gates).filter(
+      (t) => gates[t]!.off === GUILDS_OFF,
+    );
+    expect(guild.length).toBeGreaterThan(0);
+    expect([...GUILD_ACTIONS].sort()).toEqual(guild.sort());
+  });
+
+  it('refuses every action of a feature that is off with its refusal, and leaves every key of its part null (#374)', () => {
+    const switched = features.filter(([, f]) => f.enabled);
+    expect(switched.length).toBeGreaterThan(0);
+    /** A world with Anna where the setting <key> of the round is 0. */
+    const world = (key?: string) => {
+      const ctx = testCtx();
+      const anna = addUser(ctx, 'Anna');
+      addPlanet(ctx, anna.id);
+      if (key) ctx.admin.putSettings([[key, 0]]);
+      return { ctx, anna };
+    };
+    for (const [name, feature] of switched) {
+      expect(feature.enabled!(roundRules(world().ctx)), name).toBe(true);
+      // Some setting of the round turns it off.
+      const key = ROUND_SETTINGS.map((setting) => setting.key).find(
+        (k) => !feature.enabled!(roundRules(world(k).ctx)),
+      );
+      expect(key, name).toBeDefined();
+      const { ctx, anna } = world(key);
+      for (const type of Object.keys(feature.actions ?? {}))
+        expect(() => runAction(ctx, anna.id, { type }), type).toThrow(
+          feature.off!,
+        );
+      const state = stateFor(ctx, anna);
+      for (const key of feature.state?.keys ?? [])
+        expect(state[key], `${name}: ${key}`).toBeNull();
+    }
   });
 
   it('gives every part a number, plain keys and a build function', () => {
@@ -121,8 +165,10 @@ describe('the table of the actions', () => {
   const feature = (f: ServerFeature): Listed[number] => ['game/one', f];
 
   it('holds the frame and the actions of every module, each in its group', () => {
-    const { actions, guild, admin } = assembleActions({ build: a }, [
-      feature({ actions: { send: b }, guildActions: { createGuild: c } }),
+    const on = () => true;
+    const { actions, gates, admin } = assembleActions({ build: a }, [
+      feature({ actions: { send: b } }),
+      ['game/two', { actions: { createGuild: c }, enabled: on, off: 'Aus.' }],
       ['push-options', { adminActions: { settings: a }, actions: { pct: c } }],
       ['game/empty', {}],
     ]);
@@ -136,7 +182,7 @@ describe('the table of the actions', () => {
     expect(actions.build).toBe(a);
     expect(actions.send).toBe(b);
     expect(actions.createGuild).toBe(c);
-    expect([...guild]).toEqual(['createGuild']);
+    expect(gates).toEqual({ createGuild: { enabled: on, off: 'Aus.' } });
     expect([...admin]).toEqual(['settings']);
   });
 
@@ -151,10 +197,18 @@ describe('the table of the actions', () => {
     );
   });
 
+  it('throws when a feature has a switch but no refusal (#374)', () => {
+    expect(() =>
+      assembleActions({}, [
+        feature({ actions: { send: a }, enabled: () => true }),
+      ]),
+    ).toThrow('src/server/game/one.ts has enabled but no refusal (off).');
+  });
+
   it('throws when a name is in two groups of one module, or in the frame', () => {
     expect(() =>
       assembleActions({}, [
-        feature({ actions: { send: a }, guildActions: { send: b } }),
+        feature({ actions: { send: a }, adminActions: { send: b } }),
       ]),
     ).toThrow(
       'action "send" is defined in src/server/game/one.ts and in src/server/game/one.ts.',
@@ -183,6 +237,21 @@ describe('the parts of the state', () => {
         (p) => p.keys,
       ),
     ).toEqual([['round'], ['homePlanet', 'mainPlanet'], ['cfg']]);
+  });
+
+  it('leaves every key of a feature that is off null, and builds it while on (#374)', () => {
+    const built = { ...part(20, 'a', 'b'), build: () => ({ a: 1, b: 2 }) };
+    const [only] = assembleState(
+      [],
+      [['game/one', { state: built, enabled: (r) => r.guilds, off: 'Aus.' }]],
+    );
+    const view = (guilds: boolean) =>
+      ({ round: { guilds } }) as unknown as Parameters<StatePart['build']>[2];
+    const ctx = testCtx();
+    const u = addUser(ctx, 'Anna');
+    expect(only!.build(ctx, u, view(true))).toEqual({ a: 1, b: 2 });
+    expect(only!.build(ctx, u, view(false))).toEqual({ a: null, b: null });
+    expect(only!.keys).toEqual(['a', 'b']);
   });
 
   it('throws when a key or a number exists twice, naming both files', () => {
