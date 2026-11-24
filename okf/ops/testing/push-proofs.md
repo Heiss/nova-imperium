@@ -41,9 +41,7 @@ description: 'When a push to main or a hotfix branch skips a job that succeeded 
   detection) run on every push.
 * **[V]** It fails closed: no pull request (a direct push), two of them, one
   not merged or into another branch, no green run, a run of a fork or of
-  another workflow, a red, cancelled or running run, the cheap run of the
-  draft release pull request (its gate fails on purpose, #147), a different
-  tree, an answer of another shape and every error of the API prove nothing,
+  another workflow, a red, cancelled or running run, a different tree, an answer of another shape and every error of the API prove nothing,
   and so does a failure of the step itself (it writes no proof then, and only
   the five proof lines reach the outputs). Each job is proven on its own.
 * **[V]** The job „Detect changes“ gets `actions: read` and
@@ -66,9 +64,20 @@ description: 'When a push to main or a hotfix branch skips a job that succeeded 
   (the full green run, the partial mutation run, a failed or missing job,
   the newest run per job, a different tree, no pull request, two of them,
   the wrong branch or repository, a fork, another workflow or event, a red,
-  cancelled or running run, the cheap draft run, API errors and answers of
+  cancelled or running run, API errors and answers of
   another shape, the command). The workflow cannot run before a push: the
   cases of the gate were run locally from the script of the gate, and
   actionlint with shellcheck and zizmor pass. The first live use is the push
   after the merge of the collecting pull request of 26.11.24; watch it before
   the release pull request is merged.
+
+* **[E]** The push of a release merge takes over the results of the commit
+  before it (#387, owner, 2026-11-24, 77a): when the pushed commit changes
+  only `VERSION`, `CHANGELOG.md` and `changes/` against its first parent
+  (the `compare` API, at most 300 files), every job without a proof of the
+  pull request takes the proof of the newest green push run of that parent
+  on the branch: the job succeeded there, or that run skipped it with its
+  own proof (a green push run skips a job only so). An error of that lookup
+  keeps the proofs of the pull request and proves nothing more. Tests in
+  `src/test/already-tested.test.ts`; `src/test/release-metadata.test.ts`
+  lists every file that names a metadata file.

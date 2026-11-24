@@ -104,17 +104,16 @@ Keep `.env` and `secrets/` in your own backup as well; they are not in Git.
 
 ## Releases
 
-A release is the merge of the release pull request „Release <version>“. The
-workflow „Release pull request“ keeps it up to date after every push to
-`main`: it bundles the German changelog fragments in `changes/` into
+A release is the merge of the release pull request „Release <version>“. It
+is created when the owner says so (the workflow „Release pull request“ is
+started by hand) and kept up to date after every push to `main` while it is
+open: it bundles the German changelog fragments in `changes/` into
 `CHANGELOG.md`, sets the next version in `VERSION` and lists the pull
-requests since the last release. It stays a draft with only the cheap
-checks, and its CI Gate is red on purpose; „Ready for review“ starts the full
-run with every check (complete mutation run, image, Trivy, Compose stack,
-upgrade test) and then the candidate image. Merge it when enough is in it and
-its full run is green; after the CI push run, `tag.yml` tags the commit with
-the version in `VERSION`, and the tag publishes the image and a GitHub
-release with the changelog section as notes. Tags use `YY.M.MICRO` in
+requests since the last release. It changes nothing else and runs no
+expensive check: it relies on the results of `main`. After the merge and its
+CI push run, `tag.yml` tags the commit with the version in `VERSION`, and the
+tag publishes the image and a GitHub release with the changelog section as
+notes. Tags use `YY.M.MICRO` in
 Europe/Berlin, starting at 0 each month. Details and the flow diagram:
 `okf/ops/branching-release.md`.
 

@@ -12,32 +12,28 @@ name: CI
 # the run and the job of each proof. Pull requests run what their changes
 # need: documentation only skips the code checks; the Docker
 # image, Trivy and the Compose stack with the upgrade test run when the image
-# can change, and always in a release pull request (owner, 2026-11-12). The
+# can change (owner, 2026-11-12); a release pull request runs none (#387). The
 # mutation tests run when a pull request changes what Stryker mutates, a test,
 # the mutation configuration or the test tool chain (#146), and take over the
 # green result of the previous head when the newest head only merged main
-# (#167). A pull request that is no release pull request and goes into no
-# hotfix branch mutates only the files it changes and the sources of the
-# tests it changes, in one job (#309); the complete run in 12 shards stays for
-# the release pull requests, the pushes (unless proven on the identical tree,
-# #342), the nightly run and a change of the mutation configuration or the
+# (#167). A pull request that goes into no hotfix branch mutates only the
+# files it changes and the sources of the tests it changes, in one job (#309);
+# the complete run in 12 shards stays for the pushes (unless proven on the
+# identical tree, #342), the nightly run and a change of the mutation
+# configuration or the
 # test tool chain; a change of the floors alone
 # in mutation-floors.txt adds those files to the partial run, and a set of
 # more than 12 files (PARTIAL_LIMIT) runs the complete run too.
-# The release pull request of main is a draft after every rebuild: its run
-# is the cheap one (the checks that run for every change and the changelog
-# check), and its CI Gate fails on purpose, so neither a merge nor a
-# candidate image (rc-image.yml) follows it. Marking it "Ready for review"
-# starts the full run: release-ready.yml adds and removes the label
-# "voller-lauf", and those events carry draft false (owner, 2026-11-13 and
-# 2026-11-14, #147). A release pull request of a hotfix branch runs fully.
+# A release pull request (head release/*, of main or of a hotfix branch)
+# changes only VERSION, CHANGELOG.md and changes/: "Detect changes" refuses
+# any other file, and it runs no expensive job; it relies on the results of
+# its base (owner, 2026-11-23 and 2026-11-24, #387).
 # The documentation website is built when its sources change (#144).
 # Only the gate job "CI Gate" is the required check of main.
 on:
   pull_request:
     # labeled/unlabeled: the label "kein-changelog" changes the fragment
-    # check; the label "voller-lauf" starts the full run of the release pull
-    # request of main (release-ready.yml, #147).
+    # check.
     types: [opened, synchronize, reopened, labeled, unlabeled]
   push:
     branches: [main, 'hotfix/**']
@@ -116,7 +112,6 @@ jobs:
           PR_HEAD_REF: ${{ github.head_ref }}
           PR_BASE_REF: ${{ github.base_ref }}
           PR_HEAD: ${{ github.event.pull_request.head.sha }}
-          PR_DRAFT: ${{ github.event.pull_request.draft }}
           HEAD_SHA: ${{ github.sha }}
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -129,28 +124,32 @@ jobs:
             } >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          # The draft release pull request of main runs the cheap checks
-          # only; its CI Gate fails on purpose. The draft state comes from
-          # the event that started this run: a rebuild sets it to draft
-          # before its push (scripts/release-pr.sh), the labels of
-          # release-ready.yml come after "Ready for review" (#147).
-          if [ "$PR_HEAD_REF" = release/main ] && [ "$PR_BASE_REF" = main ] && [ "$PR_DRAFT" = true ]; then
-            echo "Draft release pull request of main: the cheap run. \"Ready for review\" starts the full run."
-            {
-              echo "code=false"
-              echo "image=false"
-              echo "mutation=false"
-              echo "site=false"
-            } >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
           files=$(git diff --name-only "$PR_BASE" "$HEAD_SHA")
+          # A release pull request (of main or of a hotfix branch) changes
+          # only the metadata files and runs no expensive job; any other
+          # file fails it (owner, 2026-11-23 and 2026-11-24, #387).
+          case "$PR_HEAD_REF" in
+            release/*)
+              other=$(grep -Ev '^(VERSION|CHANGELOG\.md|changes/.*)$' <<< "$files" || true)
+              if [ -n "$other" ]; then
+                echo "::error::A release pull request changes only VERSION, CHANGELOG.md and changes/, not: $(tr '\n' ' ' <<< "$other")"
+                exit 1
+              fi
+              echo "Release pull request: metadata only, no expensive job (#387)."
+              {
+                echo "code=false"
+                echo "image=false"
+                echo "mutation=false"
+                echo "site=false"
+              } >> "$GITHUB_OUTPUT"
+              exit 0
+              ;;
+          esac
           code=false
           image=false
           site=false
-          # A release pull request and every pull request into a hotfix
-          # branch run everything: they lead straight to a release.
-          case "$PR_HEAD_REF" in release/*) code=true; image=true; site=true ;; esac
+          # Every pull request into a hotfix branch runs everything: it leads
+          # straight to a release.
           case "$PR_BASE_REF" in hotfix/*) code=true; image=true; site=true ;; esac
           while IFS= read -r file; do
             # The website (website/) is documentation: it has its own job.
@@ -176,10 +175,7 @@ jobs:
           # globs of stryker.config.json, a test file, the mutation
           # configuration or the versions of Stryker, Vitest or TypeScript in
           # the lockfile (scripts/mutation-changes.ts, owner, 2026-11-13,
-          # #146). The release pull request of a hotfix branch changes only
-          # CHANGELOG.md, VERSION and changes/: it compares with the release
-          # tag the hotfix branch starts from. The release pull request of
-          # main runs them in its full run (#147).
+          # #146). A release pull request ran no mutation job above (#387).
           # Every other pull request, one into a hotfix branch excepted, runs
           # them for the changed files only (output "partial", scripts/
           # mutation-partial.ts, owner, 2026-11-18, #309): the files of the
@@ -193,26 +189,14 @@ jobs:
           # PARTIAL_LIMIT (12) files; no such file means no mutation job
           # ("false").
           mutation_files=
-          case "$PR_HEAD_REF" in
-            release/hotfix/*)
-              # Without a release tag below it the check fails, as the
-              # migration check does (owner, 2026-11-13, #146).
-              from=$(git describe --tags --abbrev=0 --match '[0-9]*.[0-9]*.[0-9]*' "$PR_BASE") ||
-                { echo "::error::A hotfix branch starts at a release tag."; exit 1; }
-              mutation=$(node scripts/mutation-changes.ts "$from" "$HEAD_SHA")
-              ;;
-            release/*) mutation=true ;;
+          case "$PR_BASE_REF" in
+            hotfix/*) mutation=$(node scripts/mutation-changes.ts "$PR_BASE" "$HEAD_SHA") ;;
             *)
-              case "$PR_BASE_REF" in
-                hotfix/*) mutation=$(node scripts/mutation-changes.ts "$PR_BASE" "$HEAD_SHA") ;;
-                *)
-                  partial=$(node scripts/mutation-partial.ts plan "$PR_BASE" "$HEAD_SHA")
-                  case "$partial" in
-                    true) mutation=true ;;
-                    '[]') mutation=false ;;
-                    *) mutation=partial; mutation_files=$partial ;;
-                  esac
-                  ;;
+              partial=$(node scripts/mutation-partial.ts plan "$PR_BASE" "$HEAD_SHA")
+              case "$partial" in
+                true) mutation=true ;;
+                '[]') mutation=false ;;
+                *) mutation=partial; mutation_files=$partial ;;
               esac
               ;;
           esac
@@ -222,10 +206,7 @@ jobs:
           # $HEAD_SHA is the merge commit the CI tests, $PR_HEAD the head
           # commit of the branch, on which the check runs are.
           if [ "$mutation" = true ] && [ "$PR_BASE_REF" = main ]; then
-            case "$PR_HEAD_REF" in
-              release/*) ;;
-              *) mutation=$(node scripts/mutation-reuse.ts decide "$PR_BASE" "$HEAD_SHA" "$PR_HEAD") ;;
-            esac
+            mutation=$(node scripts/mutation-reuse.ts decide "$PR_BASE" "$HEAD_SHA" "$PR_HEAD")
           fi
           {
             echo "code=$code"
@@ -330,8 +311,8 @@ jobs:
   # #146), and skips them when it takes over the result of the head before
   # (#167); a push to main or hotfix/** always runs them. They run in a pull
   # request only when the output is "true": a change of the mutation
-  # configuration or the test tool chain, a release pull request, a pull
-  # request into a hotfix branch; every other pull request that changes
+  # configuration or the test tool chain, a pull request into a hotfix
+  # branch; every other pull request that changes
   # something they test runs "Mutation tests (changed files)" below (#309).
   mutation-plan:
     name: Mutation plan
@@ -364,8 +345,8 @@ jobs:
           restore-keys: |
             stryker-state-${{ github.ref }}-
             stryker-state-refs/heads/main-
-      # Without a state the weights come from the last complete run (nightly
-      # or release pull request): an incremental report reuses old results,
+      # Without a state the weights come from the last complete run (the
+      # nightly run): an incremental report reuses old results,
       # whose times did not match the run (#131). Without one, the last
       # merged report.
       - name: Merged report of the last complete run (the weights)
@@ -399,8 +380,8 @@ jobs:
 
   # Each shard keeps its own incremental result: unchanged code keeps its
   # cached result on pull requests and on main, except the static mutants,
-  # which always run again (#201). A release pull request and
-  # the nightly run (mutation.yml) test every mutant. A shard runs without
+  # which always run again (#201). The nightly run (mutation.yml) tests
+  # every mutant. A shard runs without
   # Stryker's break threshold; the gate below checks the merged report.
   mutation-shard:
     name: Mutation tests (shard ${{ matrix.shard }} of ${{ strategy.job-total }})
@@ -442,14 +423,9 @@ jobs:
       # mutants always run again; every other result stays (owner,
       # 2026-11-14, #201).
       - name: Static mutants run again
-        if: ${{ !startsWith(github.head_ref, 'release/') }}
         run: node scripts/mutation-shards.ts drop-static
       - name: Incremental run
-        if: ${{ !startsWith(github.head_ref, 'release/') }}
         run: pnpm test:mutation reports/stryker-shard.config.json
-      - name: Complete run (release pull request)
-        if: startsWith(github.head_ref, 'release/')
-        run: pnpm test:mutation reports/stryker-shard.config.json --force
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: mutation-shard-${{ matrix.shard }}
@@ -516,14 +492,6 @@ jobs:
           path: reports/mutation/mutation.json
           overwrite: true
           retention-days: 30
-      # A release pull request tests every mutant: its report is a complete
-      # one and serves as the weights too.
-      - name: Keep a complete report as the weights of the next plans
-        if: always() && steps.merge.outcome == 'success' && startsWith(github.head_ref, 'release/')
-        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: reports/mutation/mutation.json
-          key: stryker-weights-${{ github.ref }}-${{ github.sha }}
 
   # The mutation tests of a pull request for the files it changes (owner,
   # 2026-11-18, #309; output mutation "partial"): the changed files of the
@@ -536,8 +504,7 @@ jobs:
   # results of the shards. The gate step checks every file of the run
   # against its floor and no total score (scripts/mutation-gate.ts
   # --partial). What the pull request does not change is tested by the
-  # complete runs: the push to main, the nightly run, the release pull
-  # request.
+  # complete runs: the push to main and the nightly run.
   mutation-partial:
     name: Mutation tests (changed files)
     needs: changes
@@ -615,8 +582,10 @@ jobs:
       - name: Data of the last release survive the upgrade
         run: docker/upgrade.sh after
       # Trivy gate (owner, 2026-11-12), holes with a fix only. What goes out
-      # as a release (a release pull request, a pull request into or a push
-      # to hotfix/**) blocks on every High and Critical hole. Every other
+      # as a release from a hotfix branch (a pull request into or a push to
+      # hotfix/**) blocks on every High and Critical hole; a release pull
+      # request builds no image since #387 (the open point of the strict
+      # scan of a release of main: okf/ops/branching-release.md). Every other
       # run blocks on Critical; a pull request only on the Critical holes
       # it brings in: the image of its base branch is scanned too, so two
       # Renovate pull requests that each fix one of two holes do not block
@@ -632,7 +601,6 @@ jobs:
           severity=CRITICAL
           mode=new
           [ "$EVENT" = pull_request ] || mode=all
-          case "$HEAD_REF" in release/*) severity=HIGH,CRITICAL; mode=all ;; esac
           case "$BASE_REF" in hotfix/*) severity=HIGH,CRITICAL; mode=all ;; esac
           case "$REF" in refs/heads/hotfix/*) severity=HIGH,CRITICAL; mode=all ;; esac
           echo "severity=$severity" >> "$GITHUB_OUTPUT"
@@ -902,7 +870,6 @@ jobs:
           PR_HEAD: ${{ github.event.pull_request.head.sha }}
           HEAD_REF: ${{ github.head_ref }}
           BASE_REF: ${{ github.base_ref }}
-          PR_DRAFT: ${{ github.event.pull_request.draft }}
           GH_TOKEN: ${{ github.token }}
         run: |
           require_success() {
@@ -946,31 +913,18 @@ jobs:
             require_success "Changelog fragments" "$FRAGMENTS"
           fi
 
-          # The draft release pull request of main: the cheap checks above
-          # passed, and the gate fails on purpose, so the draft is never
-          # green without the full run and rc-image.yml publishes no
-          # candidate from it (owner, 2026-11-14, #147).
-          if [ "$EVENT" = "pull_request" ] && [ "$HEAD_REF" = release/main ] && [ "$BASE_REF" = main ] && [ "$PR_DRAFT" = true ]; then
-            echo "::error::Draft release pull request of main: the cheap checks passed. The full run starts with \"Ready for review\"."
-            exit 1
-          fi
-          # Every other release pull request runs every check; the one of a
-          # hotfix branch runs the mutation jobs by its changes since the
-          # release tag (#146).
+          # A release pull request changes only the metadata files ("Detect
+          # changes" refused any other) and runs no expensive job: it relies
+          # on the results of its base (owner, 2026-11-23 and 2026-11-24,
+          # #387).
           if [ "$EVENT" = "pull_request" ]; then
             case "$HEAD_REF" in
               release/*)
-                if [ "$CODE" != "true" ] || [ "$IMAGE" != "true" ] || [ "$SITE_SOURCES" != "true" ]; then
-                  echo "::error::A release pull request must run every check."
+                if [ "$CODE" != "false" ] || [ "$IMAGE" != "false" ] || [ "$MUTATED" != "false" ] || [ "$SITE_SOURCES" != "false" ]; then
+                  echo "::error::A release pull request runs no expensive job (detection: code=$CODE image=$IMAGE mutation=$MUTATED site=$SITE_SOURCES)."
                   exit 1
                 fi
-                case "$HEAD_REF:$MUTATED" in
-                  release/hotfix/*:false | *:true) ;;
-                  *)
-                    echo "::error::A release pull request must run the mutation jobs (result of the detection: $MUTATED)."
-                    exit 1
-                    ;;
-                esac
+                echo "Release pull request: metadata only (#387)."
                 ;;
             esac
           fi
@@ -998,7 +952,7 @@ jobs:
               ;;
             partial)
               case "$EVENT:$HEAD_REF:$BASE_REF" in
-                pull_request:release/*:* | *:*:hotfix/* | push:*)
+                *:*:hotfix/* | push:*)
                   echo "::error::The complete mutation run is required here, not the one for the changed files."
                   exit 1
                   ;;
@@ -1024,7 +978,7 @@ jobs:
 
           case "$IMAGE" in
             true) require_success_or_proof "Docker image and Compose stack" "$COMPOSE" "$PROOF_COMPOSE" ;;
-            false) echo "No Docker, dependency or start-up file changed: the image is built on main (unless proven on the identical tree) and in the release pull request." ;;
+            false) echo "No Docker, dependency or start-up file changed: the image is built on main (unless proven on the identical tree) and every night." ;;
             *) echo "::error::Missing or invalid image detection output: $IMAGE"; exit 1 ;;
           esac
 

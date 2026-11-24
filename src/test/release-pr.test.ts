@@ -1,6 +1,7 @@
-// scripts/release-pr.sh in a throwaway repository with a stub gh (#147): the
-// release pull request of main stays a draft, and its body carries the marker
-// of release-ready.yml exactly while a released hotfix is not merged back.
+// scripts/release-pr.sh in a throwaway repository with a stub gh (#147,
+// #387): the release pull request of main is created on the owner's word
+// only, is ready unless a released hotfix is not merged back (then it stays a
+// draft and its body carries the marker), and names no candidate image.
 import { execFileSync } from 'node:child_process';
 import {
   chmodSync,
@@ -88,67 +89,100 @@ function hotfix(repo: Repo): void {
   repo.git('switch', '-q', 'main');
 }
 
-/** Runs the script for BASE=main; the gh calls and the body it wrote. */
-function release(repo: Repo): { calls: string[]; body: string } {
+/** Runs the script for BASE=main on <event>; the gh calls, the body it wrote and its output. */
+function release(
+  repo: Repo,
+  event = 'workflow_dispatch',
+): { calls: string[]; body: string; out: string } {
   repo.git('push', '-q', 'origin', '--all');
   repo.git('push', '-q', 'origin', '--tags');
   repo.git('fetch', '-q', 'origin');
   const calls = join(repo.dir, '..', `${repo.dir.split('/').pop()}.calls`);
-  execFileSync('sh', ['scripts/release-pr.sh'], {
+  const out = execFileSync('sh', ['scripts/release-pr.sh'], {
     cwd: repo.dir,
     env: {
       PATH: `${bin}:${process.env.PATH}`,
       HOME: root,
       ...GIT_ENV,
       BASE: 'main',
+      EVENT: event,
       GH_CALLS: calls,
     },
     encoding: 'utf8',
     stdio: 'pipe',
   });
+  const read = (file: string): string => {
+    try {
+      return readFileSync(file, 'utf8');
+    } catch {
+      return '';
+    }
+  };
   return {
-    calls: readFileSync(calls, 'utf8').trim().split('\n'),
-    body: readFileSync(join(repo.dir, 'release-body.md'), 'utf8'),
+    calls: read(calls).trim().split('\n'),
+    body: read(join(repo.dir, 'release-body.md')),
+    out,
   };
 }
 
-const draftOnly = (calls: string[]) => {
+/** Whether the release pull request was created as a draft and then marked ready, or left a draft. */
+const created = (calls: string[]) => {
   expect(calls.some((c) => c.startsWith('pr create --draft --base main'))).toBe(
     true,
   );
-  expect(calls.filter((c) => /^pr ready(?! --undo)/.test(c))).toEqual([]);
   expect(calls.filter((c) => c.startsWith('pr merge'))).toEqual([]);
 };
+const ready = (calls: string[]) =>
+  calls.filter((c) => /^pr ready(?! --undo)/.test(c));
+const undone = (calls: string[]) =>
+  calls.filter((c) => c.startsWith('pr ready --undo'));
 
 describe('release-pr.sh for main', () => {
-  it('keeps the pull request a draft and writes no marker without a hotfix', () => {
+  it('marks the pull request ready and writes no marker without a hotfix (#387: no draft)', () => {
     const repo = repository('plain');
     commit(repo, 'changes/neu.md', 'Neue Funktion (#1)');
     const { calls, body } = release(repo);
-    draftOnly(calls);
-    expect(body).toContain('**Draft until the release is made ready.**');
+    created(calls);
+    expect(ready(calls)).toHaveLength(1);
+    expect(undone(calls)).toEqual([]);
+    expect(body).not.toContain('Draft');
+    expect(body).not.toContain('-rc.');
+    expect(body).toContain(
+      'changes only `VERSION`, `CHANGELOG.md` and `changes/`',
+    );
     expect(body).not.toContain(MARKER);
   });
 
-  it('writes the marker while a released hotfix is not merged back', () => {
+  it('keeps it a draft and writes the marker while a released hotfix is not merged back', () => {
     const repo = repository('unmerged');
     hotfix(repo);
     commit(repo, 'changes/neu.md', 'Neue Funktion (#1)');
     const { calls, body } = release(repo);
-    draftOnly(calls);
+    created(calls);
+    expect(ready(calls)).toEqual([]);
+    expect(undone(calls)).toHaveLength(1);
     expect(body).toContain(
       `\n${MARKER}\n**Draft:** merge the released hotfix branch(es) hotfix/x back into \`main\` first`,
     );
     expect(body.split(MARKER)).toHaveLength(2);
   });
 
-  it('writes no marker once the hotfix is merged back', () => {
+  it('writes no marker and marks it ready once the hotfix is merged back', () => {
     const repo = repository('merged');
     hotfix(repo);
     commit(repo, 'changes/neu.md', 'Neue Funktion (#1)');
     repo.git('merge', '-q', '--no-edit', 'hotfix/x');
     const { calls, body } = release(repo);
-    draftOnly(calls);
+    created(calls);
+    expect(ready(calls)).toHaveLength(1);
     expect(body).not.toContain(MARKER);
+  });
+
+  it('creates none on a push to main: only the owner’s word starts one (#387)', () => {
+    const repo = repository('push');
+    commit(repo, 'changes/neu.md', 'Neue Funktion (#1)');
+    const { calls, out } = release(repo, 'push');
+    expect(calls.filter((c) => c.startsWith('pr create'))).toEqual([]);
+    expect(out).toContain('No release pull request is open');
   });
 });

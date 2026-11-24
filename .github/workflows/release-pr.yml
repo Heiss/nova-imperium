@@ -1,8 +1,11 @@
 name: Release pull request
 
-# Keeps one pull request "Release <version>" open per branch to release (owner,
+# The pull request "Release <version>" of a branch to release (owner,
 # 2026-11-12): it bundles the fragments in changes/ into CHANGELOG.md and sets
-# VERSION. Merging it is the release button. See scripts/release-pr.sh and
+# VERSION, and changes nothing else. Merging it is the release button. The
+# one of main is created only on the owner's word, when the loop starts this
+# workflow by hand; a push to main rebuilds it while it is open (owner,
+# 2026-11-23, #387). See scripts/release-pr.sh and
 # okf/ops/branching-release.md.
 on:
   push:
@@ -48,5 +51,6 @@ jobs:
       - name: Build or close the release pull request
         env:
           BASE: ${{ github.ref_name }}
+          EVENT: ${{ github.event_name }}
           GH_TOKEN: ${{ steps.app.outputs.token }}
         run: sh scripts/release-pr.sh

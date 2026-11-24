@@ -1,15 +1,17 @@
 #!/bin/sh
 # Builds the release pull request "Release <version>" from the branch BASE
 # (main, or hotfix/<name>), or closes it when nothing is left to release
-# (owner, 2026-11-12). Called by .github/workflows/release-pr.yml after every
-# push to BASE. The branch release/<BASE> is rebuilt from BASE each time:
-# the fragments in changes/ become a section of CHANGELOG.md, VERSION holds
-# the next CalVer version. Merging the pull request is the release.
-# The release pull request of main stays a draft after every rebuild: its CI
-# runs the cheap checks only; marking it "Ready for review" starts the full
-# run (.github/workflows/release-ready.yml, owner, 2026-11-13 and
-# 2026-11-14, #147). A release pull request of a hotfix branch is marked
-# ready here and runs fully at once.
+# (owner, 2026-11-12). Called by .github/workflows/release-pr.yml. The
+# release pull request of main is created only on the owner's word: the loop
+# starts the workflow by hand (EVENT workflow_dispatch); a push to main only
+# rebuilds the one that is open (owner, 2026-11-23, #387). A hotfix branch
+# exists to be released, so a push to it builds its release pull request as
+# before [V]. The branch release/<BASE> is rebuilt from BASE each time: the
+# fragments in changes/ become a section of CHANGELOG.md, VERSION holds the
+# next CalVer version. The pull request changes nothing else, its CI runs no
+# expensive job, and merging it is the release (#387). It is no draft, except
+# while a released hotfix is not merged back or another release branch holds
+# its version: a draft cannot be merged [V].
 set -eu
 
 fail() {
@@ -40,6 +42,13 @@ last=$(git describe --tags --abbrev=0 --match '[0-9]*.[0-9]*.[0-9]*' HEAD 2> /de
 if [ -n "$last" ]; then range="$last..HEAD"; else range=HEAD; fi
 open=$(gh pr list --head "$branch" --base "$base" --state open \
   --json number --jq '.[0].number // empty')
+
+# A push to main rebuilds the open release pull request only: a new one is
+# created on the owner's word (workflow_dispatch, #387).
+if [ "${EVENT:-}" = push ] && [ "$base" = main ] && [ -z "$open" ]; then
+  printf 'No release pull request is open: the loop starts one on the owner'"'"'s word.\n'
+  exit 0
+fi
 
 if [ -z "$(git rev-list "$range")" ]; then
   if [ -n "$open" ]; then
@@ -72,16 +81,12 @@ taken_by() {
 }
 other=$(taken_by)
 [ -z "$other" ] || fail "$other holds $version too: run this workflow again."
-# A draft cannot be merged: the release pull request is a draft from before
-# the push until the check after it passed, so a failed or cancelled run
-# never leaves a duplicate version mergeable.
-if [ -n "$open" ]; then gh pr ready --undo "$open"; fi
 git push --quiet --force origin "HEAD:refs/heads/$branch"
 other=$(taken_by)
 
 # A released hotfix that is not merged back yet: releasing main now would
-# drop its fix from stable (owner, 2026-11-12). The pull request stays a
-# draft until the hotfix branch is merged into main.
+# drop its fix from stable (owner, 2026-11-12). The pull request is a draft
+# until the hotfix branch is merged into main [V].
 unmerged=
 if [ "$base" = main ]; then
   for ref in $(git for-each-ref --format='%(refname:short)' refs/remotes/origin/hotfix/); do
@@ -93,8 +98,7 @@ if [ "$base" = main ]; then
   done
 fi
 
-# Written into the body while a released hotfix is not merged back; the
-# workflow „Release ready“ (.github/workflows/release-ready.yml) looks for it.
+# Written into the body while a released hotfix is not merged back.
 unmerged_marker='<!-- release-pr: unmerged-hotfix -->'
 
 # Squash merges end their subject with the pull request number.
@@ -110,21 +114,12 @@ pulls=$(git log --format='- %s' "$range" | grep -E '\(#[0-9]+\)$' || true)
   printf '## Pull requests since %s\n\n%s\n\n' "${last:-the start}" "${pulls:-- (direct commits only)}"
   printf '## Before the merge\n\n'
   printf -- '- [ ] Texts checked: German, match their pull requests, one entry per feature, nothing internal or secret\n'
-  if [ "$base" = main ]; then
-    printf -- '- [ ] Marked „Ready for review“, and its full run green: CI Gate with complete mutation run, image, Trivy, upgrade test, smoke test\n'
-    printf -- '- [ ] Candidate image `%s-rc.<N>` published\n' "$version"
-  else
-    printf -- '- [ ] CI Gate green: complete mutation run, image, Trivy, upgrade test, smoke test\n'
-  fi
+  printf -- '- [ ] CI Gate green: this pull request changes only `VERSION`, `CHANGELOG.md` and `changes/` and runs no expensive job; it relies on the results of `%s`\n' "$base"
   printf -- '- [ ] The issues of this release are closed or moved to the next one\n\n'
-  printf '_Rebuilt automatically after every push to `%s`; do not edit this branch._\n' "$base"
-  if [ "$base" = main ]; then
-    printf '\n**Draft until the release is made ready.** After every rebuild this pull request is a draft: its CI runs only the cheap checks, and its CI Gate fails on purpose. „Ready for review“ starts the full run and, when it is green, the candidate image; the next rebuild sets it back to draft.\n'
-  fi
+  printf '_Rebuilt automatically after every push to `%s` while it is open; do not edit this branch._\n' "$base"
   if [ -n "$unmerged" ]; then
-    # The marker makes release-ready.yml refuse „Ready for review“ (#147).
     printf '\n%s\n' "$unmerged_marker"
-    printf '**Draft:** merge the released hotfix branch(es)%s back into `main` first; this release would drop their fixes from `stable`. „Ready for review“ is refused until then.\n' "$unmerged"
+    printf '**Draft:** merge the released hotfix branch(es)%s back into `main` first; this release would drop their fixes from `stable`. The next rebuild after that merge marks it ready.\n' "$unmerged"
   fi
 } > release-body.md
 
@@ -136,17 +131,16 @@ else
   open=$(gh pr list --head "$branch" --base "$base" --state open \
     --json number --jq '.[0].number // empty')
 fi
+# Created as a draft, so it is never mergeable before the checks below; it
+# stays one while another release branch holds its version or a released
+# hotfix is not merged back, and is ready otherwise [V].
 if [ -n "$other" ]; then
+  gh pr ready --undo "$open"
   fail "$other holds $version too: the release pull request stays a draft; run this workflow again."
 fi
 if [ -n "$unmerged" ]; then
+  gh pr ready --undo "$open"
   printf 'Released hotfix not in %s yet:%s. The release pull request stays a draft.\n' "$base" "$unmerged"
-  exit 0
-fi
-# The release pull request of main stays a draft until the release is made
-# ready (#147); a hotfix release runs fully at once.
-if [ "$base" = main ]; then
-  printf 'Release pull request for %s is up to date; it stays a draft until it is marked ready.\n' "$version"
   exit 0
 fi
 gh pr ready "$open"

@@ -26,6 +26,60 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 
 ![Release flow](release-flow.svg)
 
+### Metadata only, created on the owner's word (#387, owner, 2026-11-23 and 2026-11-24)
+
+These rules replace the draft, the cheap and the full run, „Ready for
+review“, `release-ready.yml` and the label `voller-lauf` of #147; the
+bullets they replace below are marked.
+
+* **[E]** The release pull request changes only the metadata files
+  `VERSION`, `CHANGELOG.md` and `changes/`; „Detect changes“ of `ci.yml`
+  refuses any other file. It runs no expensive job (no unit tests, E2E,
+  mutation, image or website) and relies on the results of `main`; the CI
+  Gate requires the cheap checks and the changelog check, and refuses an
+  expensive job (owner, 2026-11-23).
+* **[E]** Its merge is the release: the CalVer tag is set after the green
+  push run (`tag.yml`, `scripts/release.sh`). A release needs no green
+  complete run of its own state: it may hold merges no nightly run has seen
+  yet (owner, 2026-11-23, 65c).
+* **[E]** A release pull request is created only when the owner says so:
+  the loop starts the workflow „Release pull request“ by hand
+  (`workflow_dispatch`). While it is open, a push to `main` rebuilds it; a
+  push finds none open and creates none (owner, 2026-11-23).
+* **[E]** The push run of a release merge takes over the results of the
+  commit before it (owner, 2026-11-24, 77a): `scripts/already-tested.ts`
+  gives a push that changes only the metadata files against its first
+  parent the proofs of the green push run of that parent, for every job
+  that succeeded there or that run skipped with its own proof. The guard
+  `src/test/release-metadata.test.ts` lists every file that names a
+  metadata file; a new reader fails it until it is listed.
+* **[E]** A hotfix release pull request follows the same rules: metadata
+  only, no expensive job; the change of a hotfix (as a rule its
+  dependencies) comes in its fix pull request with its own CI (owner,
+  2026-11-24, 77a). **[V]** A push to a hotfix branch still builds its
+  release pull request at once (a hotfix branch exists to be released, and a
+  security hotfix releases itself, `security-hotfix.yml`).
+* **[V]** No draft, `release-ready.yml` and the label `voller-lauf` are gone
+  (taken as recommended, 2026-11-24). The release pull request is created
+  as a draft and marked ready by the same run once its version is free and
+  no released hotfix waits; it stays a draft while another release branch
+  holds its version or a released hotfix is not merged back into `main`
+  (the marker in its body), so a draft still cannot be merged then. Before,
+  „Release ready“ refused „Ready for review“ in that case (#147).
+* **[U]** The strict Trivy scan of a release of `main`: the release pull
+  request built the image and blocked on every High and Critical hole; it
+  builds none now, the push run of its merge takes the image job over from
+  the commit before, and `release.yml` scans nothing. What blocks a High
+  hole in a release of `main` is open (a fix pull request into `main`
+  blocks only on the Critical holes it brings in).
+* **[U]** Verified only after the merge of #387, because a pull request
+  cannot run it: that `workflow_dispatch` of `release-pr.yml` with the
+  release App creates the release pull request; that a push to `main`
+  rebuilds an open one and creates none; that its CI is the metadata-only
+  run; that the push run of its merge takes over the proofs of the commit
+  before (the API answers of `commits/{sha}`, `compare` and the push runs
+  of the parent are read only there).
+
 * **[E]** A release is a decision, not every merge: `main` collects merged pull
   requests without a tag; the owner releases by merging the release pull
   request „Release <version>“. Before, every green push to `main` was tagged
@@ -69,7 +123,7 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   pull requests since the last tag and a checklist; with nothing new since
   the last tag it closes it. It uses the release App's token, because a pull
   request opened with `GITHUB_TOKEN` starts no CI.
-* **[E]** The release pull request runs every check in its full run:
+* **[E, replaced by #387 on 2026-11-23]** The release pull request runs every check in its full run:
   complete mutation run
   (in 12 parallel shards, merged by a gate job, see
   [Test strategy](/ops/testing.md), #131; the one of a hotfix branch only
@@ -77,7 +131,7 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   Docker image, Trivy, Compose stack, upgrade test with the data of the last
   release, smoke test, and later the SBOM (issue #83). The texts are checked
   by Claude and CodeRabbit (`.coderabbit.yaml`, `changes/**`, `CHANGELOG.md`).
-* **[E]** The release pull request of `main` runs the expensive checks and
+* **[E, replaced by #387 on 2026-11-23]** The release pull request of `main` runs the expensive checks and
   gets its candidate image on request only (owner, 2026-11-13 and
   2026-11-14, #147): every push to `main` rebuilds it and cancelled its
   running CI (four of five runs on 2026-11-13). It stays a draft: every
@@ -85,7 +139,7 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   with the release App's token, which has „Pull requests: Read and
   write“), and the workflow no longer marks it ready. A draft cannot be
   merged.
-* **[E]** The cheap run: on the draft, the CI runs only the checks that run
+* **[E, replaced by #387 on 2026-11-23]** The cheap run: on the draft, the CI runs only the checks that run
   for every change (secrets and dependencies, migrations, workflow lint,
   CodeQL) and the changelog check; no unit tests, E2E, mutation, image,
   Trivy, Compose stack or upgrade test. „Detect changes“ decides it from
@@ -95,7 +149,7 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   never green on its head commit without a full run, and `rc-image.yml`
   publishes no candidate from it. The draft shows a red CI Gate; the loop
   and the owner read the single jobs.
-* **[E]** The full run: marking the release pull request „Ready for review“
+* **[E, replaced by #387 on 2026-11-23]** The full run: marking the release pull request „Ready for review“
   starts it. `ci.yml` does not listen to `ready_for_review`, because then
   every pull request would get a run there, and a job skipped by a
   condition counts as a success, even as the required check: a skipped CI
@@ -107,11 +161,11 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   start no workflow; those of the App do. The workflow runs only for the
   head `release/main` of this repository into `main`; every other pull
   request, hotfix release pull requests included, is unchanged.
-* **[E]** In every other release pull request (head `release/…`) the CI
+* **[E, replaced by #387 on 2026-11-23]** In every other release pull request (head `release/…`) the CI
   Gate requires the code checks, the image and the website; the mutation
   jobs too, except in the release pull request of a hotfix branch, where
   they follow #146.
-* **[E]** „Release ready“ runs on `pull_request_target` (owner,
+* **[E, replaced by #387 on 2026-11-23]** „Release ready“ runs on `pull_request_target` (owner,
   2026-11-14): the workflow of
   `main` runs with `GITHUB_REF` main, so the environment `release` hands out
   the App key; a `pull_request` run has `refs/pull/N/merge` and would not
@@ -119,7 +173,7 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   checked against the ref the run executes on). It checks out nothing and
   only labels the pull request. It creates the label `voller-lauf` when it
   is missing.
-* **[E]** „Ready for review“ is refused while a released hotfix is not
+* **[E, replaced by #387 on 2026-11-23]** „Ready for review“ is refused while a released hotfix is not
   merged back into `main` (owner, 2026-11-14, #147): `scripts/release-pr.sh`
   then writes the marker `<!-- release-pr: unmerged-hotfix -->` into the
   body with its note. „Release ready“ reads the current body; with the
@@ -137,7 +191,7 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   waits for the full run and the candidate image and then tells the owner;
   the draft state and that message are the only notice, no comment on the
   pull request and no issue ([Release loop](/ops/loop.md)).
-* **[U]** Checked only on the first release pull request after the merge:
+* **[U, replaced by #387 on 2026-11-23]** Checked only on the first release pull request after the merge:
   that the App may create the label and comment with „Pull requests:
   write“ (GitHub's documentation names „Issues“ or „Pull requests“ write
   for labels and issue comments; else create the label by hand), that the `labeled` and `unlabeled` runs carry
@@ -493,7 +547,7 @@ and one CI run (26.11.24; #347 for 26.11.25).
   (owner, 2026-11-12). `release-pr.yml` uses it after every push to `main`,
   because it rebuilds the release pull request each time.
 * Install the Renovate app for the repository.
-* Label `voller-lauf` (#147): `release-ready.yml` creates it on first use;
+* (Gone with #387, 2026-11-23: `release-ready.yml` is removed; the label can be deleted.) Label `voller-lauf` (#147): `release-ready.yml` creates it on first use;
   if the App may not, create it by hand. It is added and removed at once
   and is never left on a pull request.
 * Security hotfix (2026-11-12): Dependabot alerts on (done), Dependabot

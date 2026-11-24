@@ -18,7 +18,7 @@ interface is German.
      Dashboard“ (major and 0.x minor updates get no pull request before
      the owner's tick there);
    - the open release pull request (`Release <version>`, branch
-     `release/main`) with its CI and its release candidate image;
+     `release/main`) with its CI;
    - the open issues by their labels: `ready` (in the next release),
      `in progress` (you started it), `in review` (its pull request is
      ready and waits for CI or review), `in discussion` (planned for a
@@ -123,57 +123,46 @@ interface is German.
    Dependabot alerts that have no Renovate security pull request; a small
    bug or cleanup issue (`bug`, `ready`, `Geklärt`) may be the next issue
    of a free subagent before the next feature.
-2. **Make the release ready** when no open issue has the label `ready`,
-   `in progress` or `in review` and the release pull request is open.
-   First merge Renovate's ordinary pull requests with a patch or minor
-   update of a version from 1.0 on (owner, 2026-11-16): one at a time,
-   each under O4 on a head that is up to date with `main`; ask for the
-   rebase of the next one as in step 1 and wait for its CI. A red one
-   stays open and
-   you name it in the message to the owner below. Major updates and minor
-   updates below 1.0 wait for the owner: each gets one issue (find it, or
-   open it with its entry in the Dependency Dashboard or its pull
-   request's number, its breaking changes and, if it has a pull request,
-   its CI, without a status label). Then go on with the release pull
-   request. Before it is made ready, ask the owner for the export of the
-   error log of the live server since the last release (the download of
-   the admin tab „Fehler“) and read it; an error of the game gets an issue
-   first, and no player name or id goes to GitHub (owner, 2026-11-22).
-   The release pull request is a draft after
-   every rebuild: its cheap run checks only secrets, dependencies,
-   migrations, workflows, CodeQL and the changelog, and its CI Gate is red
-   on purpose (#147). Check its texts (German, matching their pull
-   requests, one entry per feature, nothing internal, every new or
-   changed admin setting or action named in the entry of its feature, with
-   what the admin can now do) and its cheap jobs;
-   then mark it „Ready for review“, which starts the full run. Do not mark
-   it ready while its body says that a released hotfix is not merged back
-   (the workflow „Release ready“ refuses it and sets it back to draft), or
-   while the last run of the workflow „Release pull request“ failed, or
-   while its run for the current `main` commit has not completed
-   successfully: a rebuild that is still running pushes a new head after
-   you marked the pull request ready.
-   Wait until the CI Gate of the full run is green (complete mutation run,
-   image, Trivy, upgrade test) and the candidate image `<version>-rc.<N>`
-   is published; a push to `main` meanwhile sets it back to draft, so mark
-   it ready again. Then tell the owner in
-   German: version, what is in it, the staging image (`NOVA_VERSION=next`),
-   and that merging the release pull request releases it.
-   **Keep the loop running** until the owner has merged the release pull
-   request (#149). There is no merge freeze: every merge into `main`
-   (Renovate's security pull requests too) rebuilds it and sets it back to
-   draft, and its last full run no longer counts. Then make it ready
-   again as above (texts, cheap jobs, „Ready for review“, full run,
-   candidate image) and tell the owner again, saying that `main` moved and
-   the release pull request was rebuilt. That message is the only notice:
-   no comment on the release pull request, no issue. While it stays ready
-   and green, only wait. After a restart of `/loop` you cannot know whether
-   you told the owner already: tell them once more, then wait. When the
-   loop is about to end (seven days, or the session) before the release is
-   merged, tell the owner to start `/loop` again. Once the release pull
-   request from `release/main` is merged, wait for its tag, write its
-   retrospective and finish that pull request, and only then **stop the
-   loop** (item 2 above) [V].
+2. **Release** when no open issue has the label `ready`, `in progress` or
+   `in review`. First merge Renovate's ordinary pull requests with a patch
+   or minor update of a version from 1.0 on (owner, 2026-11-16): one at a
+   time, each under O4 on a head that is up to date with `main`; ask for
+   the rebase of the next one as in step 1 and wait for its CI. A red one
+   stays open and you name it in the message to the owner below. Major
+   updates and minor updates below 1.0 wait for the owner: each gets one
+   issue (find it, or open it with its entry in the Dependency Dashboard or
+   its pull request's number, its breaking changes and, if it has a pull
+   request, its CI, without a status label). Ask the owner for the export
+   of the error log of the live server since the last release (the
+   download of the admin tab „Fehler“) and read it; an error of the game
+   gets an issue first, and no player name or id goes to GitHub (owner,
+   2026-11-22).
+   A release pull request is created only on the owner's word (#387): when
+   none is open, ask the owner whether to release now; on yes start the
+   workflow „Release pull request“ on `main` by hand (`workflow_dispatch`),
+   otherwise go on with step 3. The release pull request changes only
+   `VERSION`, `CHANGELOG.md` and `changes/`, its CI runs no expensive job
+   and relies on the results of `main`. Check its texts (German, matching
+   their pull requests, one entry per feature, nothing internal, every new
+   or changed admin setting or action named in the entry of its feature,
+   with what the admin can now do) and wait for its green CI Gate and for
+   the run of „Release pull request“ of the current `main` commit. It is a
+   draft only while another release branch holds its version or its body
+   says that a released hotfix is not merged back [V]: then the owner
+   cannot merge it; say why. Then tell the owner in German: version, what
+   is in it, and that merging the release pull request releases it.
+   **Keep the loop running** until the owner has merged it (#149). Every
+   merge into `main` (Renovate's security pull requests too) rebuilds it
+   in minutes: check its texts and its CI again and tell the owner again,
+   saying that `main` moved. That message is the only notice: no comment
+   on the release pull request, no issue. While it stays green, only wait.
+   After a restart of `/loop` you cannot know whether you told the owner
+   already: tell them once more, then wait. When the loop is about to end
+   (seven days, or the session) before the release is merged, tell the
+   owner to start `/loop` again. Once the release pull request from
+   `release/main` is merged, wait for its tag, write its retrospective and
+   finish that pull request, and only then **stop the loop** (item 2
+   above) [V].
 3. **Plan the release** when no open issue has the label `ready`,
    `in progress` or `in review` and no release pull request is open. Ask
    the owner what the release should bring:
