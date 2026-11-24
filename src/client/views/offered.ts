@@ -12,4 +12,9 @@ export const offered = (
   view: string,
   round: RoundRules,
   admin: boolean,
-): boolean => OFFERED.get(view)?.(round, admin) ?? true;
+): boolean => {
+  // An explicit check before the call: the name comes from the address
+  // (CodeQL js/unvalidated-dynamic-method-call on #395).
+  const rule = OFFERED.get(view);
+  return typeof rule === 'function' ? rule(round, admin) : true;
+};

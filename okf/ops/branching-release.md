@@ -440,8 +440,9 @@ and one CI run (26.11.24; #347 for 26.11.25).
   mutation run; the Docker image with the Compose stack; the documentation
   website) is skipped exactly when the same job succeeded in a green CI run
   of that head (event `pull_request`, this repository, workflow „CI“); a job
-  that did not run there, or ran only in part (the mutation run of the
-  changed files, #309), runs on the push. Every other case runs everything:
+  that did not run there runs on the push (the mutation jobs are proven by
+  the pull request's complete run or by its run of the changed files, #309,
+  see below). Every other case runs everything:
   no pull request, two of them, a different tree, a direct push, a red or
   missing run, an error of the lookup (the rule fails closed). The CI Gate
   of a push requires for every job its own success or the named proof and
