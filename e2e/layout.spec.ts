@@ -69,19 +69,23 @@ test.describe('playing', () => {
       const style = getComputedStyle(el);
       const box = el.getBoundingClientRect();
       const group = el.parentElement!.getBoundingClientRect();
+      const width = parseFloat(style.outlineWidth);
+      // The outer edge of the ring: the border box grown by offset and width.
+      const grow = parseFloat(style.outlineOffset) + width;
+      const tolerance = 0.5;
       return {
         style: style.outlineStyle,
-        width: parseFloat(style.outlineWidth),
-        offset: parseFloat(style.outlineOffset),
-        // The ring lies inside the switch, which clips what is outside.
+        width,
+        // The whole ring lies inside the switch, which clips what is outside.
         inside:
-          box.left - parseFloat(style.outlineOffset) >= group.left - 0.5 &&
-          box.right + parseFloat(style.outlineOffset) <= group.right + 0.5,
+          box.left - grow >= group.left - tolerance &&
+          box.right + grow <= group.right + tolerance &&
+          box.top - grow >= group.top - tolerance &&
+          box.bottom + grow <= group.bottom + tolerance,
       };
     });
     expect(ring.style).not.toBe('none');
     expect(ring.width).toBeGreaterThan(0);
-    expect(ring.offset).toBeLessThanOrEqual(0);
     expect(ring.inside).toBe(true);
   });
 });

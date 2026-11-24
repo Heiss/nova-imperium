@@ -442,9 +442,12 @@ and one CI run (26.11.24; #347 for 26.11.25).
   of that head (event `pull_request`, this repository, workflow „CI“); a job
   that did not run there runs on the push (the mutation jobs are proven by
   the pull request's complete run or by its run of the changed files, #309,
-  see below). Every other case runs everything:
-  no pull request, two of them, a different tree, a direct push, a red or
-  missing run, an error of the lookup (the rule fails closed). The CI Gate
+  see below). A push that changes only the metadata files takes over the
+  green push run of its parent instead (77a). Every other case runs
+  everything: no pull request, two of them, a different tree, a direct
+  push, a red or missing run, an error of the lookup (the rule fails
+  closed). The one list of the proofs is
+  [Proofs of a push run](/ops/testing/push-proofs.md). The CI Gate
   of a push requires for every job its own success or the named proof and
   prints it. `tag.yml` is unchanged: it still needs a green CI push run of
   the tagged commit, which after a release merge now takes minutes. The
