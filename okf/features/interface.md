@@ -319,17 +319,28 @@ Up to 760 px only; the desktop stays as it is (D6).
 * **[E]** „Hilfe & Optionen“ in sections (proposal of the issue, kept by the
   owner as [V], 2026-11-14). The page is called „Optionen“ since the rules
   moved to the Lexicanum (#288), so no section is called „Hilfe“.
-* **[V]** Up to 760 px a switch of five buttons („Spiel“, „Runde“, „Konto“,
-  „Gerät“, „Weiteres“; `div.seg.phone-only`, `aria-pressed`) shows one section
+* **[E]** The switch is on every width (owner, 2026-11-22, #356; it replaces
+  D6 of #189 for this page). Since then the desktop shows one section at a
+  time too, with the same pattern as a phone (`div.seg.opt-seg`, a group of
+  buttons with `aria-pressed`, reached by the keyboard and named for a
+  screen reader as before); the switch looks like the switches of a phone.
+  **[U]** The names and the grouping of the sections stay the proposal [V]
+  of #189, and whether the chosen section is kept over a reload or in the
+  address, or which section a link from elsewhere opens, is open; today the
+  section lives for the session and a reload starts with „Spiel“. No link
+  of the game opens a box of „Optionen“ directly; the E2E flows choose the
+  section first on every width (`optionsSection` in `e2e/helpers.ts`).
+* **[V]** A switch of five buttons („Spiel“, „Runde“, „Konto“,
+  „Gerät“, „Weiteres“; `aria-pressed`) shows one section
   of the page; „Spiel“ is the first. Spiel: the box „Optionen“ and
   „Hauptplanet“; Runde: „Urlaubsmodus“, „Meine Aktivität & Spielzeit“ and
   „Rundenarchiv“; Konto: „Passwort ändern“, „Passkeys“ and „Account löschen“;
   Gerät: „Darstellung“, „App installieren“, „Benachrichtigungen“ and
   „Browser-Benachrichtigungen“; Weiteres: „Problem melden“ and the line with
-  the link „Dieses Universum“. Above 760 px every box shows as before.
+  the link „Dieses Universum“. Above 760 px every box showed until #356.
 * **[V]** How: `Box.svelte` takes an optional `section` and writes
   `data-sec`; the boxes stand in one `div.opt[data-section]`; the CSS hides
-  the boxes of the other sections on a phone (`logic/phone-options.ts`, the
+  the boxes of the other sections (on every width since #356) (`logic/phone-options.ts`, the
   section lives in `logic/phone-options.svelte.ts` for the session; a reload
   starts with „Spiel“). Every id, `data-act` and form stays in the page
   whichever section is shown, so a feature that fills `#own-activity` or

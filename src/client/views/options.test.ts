@@ -78,10 +78,10 @@ describe('the sections of „Optionen“', () => {
     expect([...used].sort()).toEqual(OPTION_SECTIONS.map((s) => s.key).sort());
   });
 
-  it('are a switch above the boxes, a phone-only group of five buttons', () => {
+  it('are a switch above the boxes, a group of five buttons on every width (#356)', () => {
     const html = page();
     expect(html).toContain(
-      '<div aria-label="Bereich" class="seg phone-only" role="group"><button aria-pressed="true" class="on" type="button">Spiel</button><button aria-pressed="false" type="button">Runde</button>',
+      '<div aria-label="Bereich" class="seg opt-seg" role="group"><button aria-pressed="true" class="on" type="button">Spiel</button><button aria-pressed="false" type="button">Runde</button>',
     );
     expect(html.indexOf('aria-label="Bereich"')).toBeLessThan(
       html.indexOf('<div class="box"'),

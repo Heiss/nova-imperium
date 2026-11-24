@@ -5,8 +5,8 @@
   // views/options/ (`optionBoxes`, #378); this component draws them in their
   // order and names none. The ids, the `data-act`s and the forms of the boxes
   // are those that features/ and main.ts read. On a phone (#189) a switch of
-  // five sections shows some of the boxes (`data-sec`); the desktop shows
-  // them all as before. The fields keep what the player typed or chose in
+  // five sections shows some of the boxes (`data-sec`); since #356 on every
+  // width (owner, 2026-11-22: it replaces D6 of #189 for this page). The fields keep what the player typed or chose in
   // logic/options-form.svelte.ts (#332).
   import type { OptionsPage } from '../logic/options.ts';
   import { OPTION_SECTIONS } from '../logic/phone-options.ts';
@@ -17,7 +17,7 @@
 </script>
 
 <h2>Optionen</h2>
-<div class="seg phone-only" role="group" aria-label="Bereich">
+<div class="seg opt-seg" role="group" aria-label="Bereich">
   {#each OPTION_SECTIONS as s (s.key)}
     <button
       type="button"

@@ -9,6 +9,7 @@ import {
   register,
   uniqueName,
   watch,
+  optionsSection,
 } from './helpers.ts';
 
 test('login stays near the header @phone', async ({ page }) => {
@@ -76,6 +77,7 @@ test.describe('accounts', () => {
     const name = uniqueName('Passkey');
     await register(page, name);
     await nav(page, 'help');
+    await optionsSection(page, 'Konto');
     await page
       .getByLabel('Passwort für neuen Passkey')
       .fill('ein-sicheres-testpasswort');
@@ -94,6 +96,7 @@ test.describe('accounts', () => {
         ?.expires,
     ).toBeGreaterThan(0);
     await nav(page, 'help');
+    await optionsSection(page, 'Konto');
     await page
       .getByRole('button', { name: 'Gespeicherte Passkeys anzeigen' })
       .click();
@@ -107,6 +110,7 @@ test.describe('accounts', () => {
   }) => {
     await register(page, uniqueName('Loeschen'));
     await nav(page, 'help');
+    await optionsSection(page, 'Konto');
     await page
       .getByRole('button', { name: 'Account löschen', exact: true })
       .click();
@@ -129,6 +133,7 @@ test.describe('accounts', () => {
     const name = uniqueName('Passwort');
     await register(page, name);
     await nav(page, 'help');
+    await optionsSection(page, 'Konto');
     const form = page.locator('#passwordform');
     await form
       .getByLabel('Bisheriges Passwort')
