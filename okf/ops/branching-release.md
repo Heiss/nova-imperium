@@ -69,12 +69,14 @@ bullets they replace below are marked.
   holds its version or a released hotfix is not merged back into `main`
   (the marker in its body), so a draft still cannot be merged then. Before,
   „Release ready“ refused „Ready for review“ in that case (#147).
-* **[U]** The strict Trivy scan of a release of `main`: the release pull
-  request built the image and blocked on every High and Critical hole; it
-  builds none now, the push run of its merge takes the image job over from
-  the commit before, and `release.yml` scans nothing. What blocks a High
-  hole in a release of `main` is open (a fix pull request into `main`
-  blocks only on the Critical holes it brings in).
+* **[E]** The strict Trivy scan of a release (owner, 2026-11-24, 79a):
+  `release.yml` scans the freshly built release image `<version>` with
+  Trivy (High and Critical holes that have a fix, the same severity the
+  release pull request used before #387) in its job „Trivy of the release
+  image“ before the job „latest and stable“ moves the aliases. A finding
+  stops the aliases (they stay on the previous release), the run fails
+  visibly, and the loop tells the owner. The tag and the `<version>` image
+  stay as they are.
 * **[E]** No more release candidates: no `<version>-rc.<N>` images,
   `rc-image.yml` is gone (#387 part 2, owner, 2026-11-23; this replaces the
   decision on release candidates of 2026-11-12). The moving image tag `next`
@@ -240,8 +242,11 @@ bullets they replace below are marked.
   be asked for with `@coderabbitai review`.
   `release.yml` publishes the image as `<version>`; its serialized job
   „latest and stable“ then points both aliases at the image of the newest
-  release tag, whichever run gets there (a re-run of an older release or a
-  hotfix of an older line never moves them back),
+  release tag, only in that release's own run after its scan passed (79a;
+  that only the own run moves them is [V], 2026-11-24: a run of an older
+  release would otherwise move them onto a newer image whose scan failed),
+  so a re-run of an older release or a hotfix of an older line never moves
+  them back,
   and a GitHub release whose notes are the section of `CHANGELOG.md`,
   followed by GitHub's list of pull requests.
 * **[E, replaced by #387 on 2026-11-23]** Release candidates (owner, 2026-11-12): every green CI run of a

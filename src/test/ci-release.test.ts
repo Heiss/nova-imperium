@@ -817,3 +817,42 @@ describe('the image „next“ (#387, owner, 2026-11-23)', () => {
     ]);
   });
 });
+
+describe('the scan of the release image (owner, 2026-11-24, 79a)', () => {
+  const RELEASE = readFileSync('.github/workflows/release.yml', 'utf8');
+  const job = (name: string): string => {
+    const start = RELEASE.indexOf(`\n  ${name}:\n`);
+    const next = RELEASE.slice(start + 1).search(/\n {2}[a-z-]+:\n/);
+    return next < 0
+      ? RELEASE.slice(start)
+      : RELEASE.slice(start, start + 1 + next);
+  };
+
+  it('scans the published image of the run for High and Critical holes with a fix', () => {
+    const scan = job('scan');
+    expect(scan).toContain('    needs: image\n');
+    expect(scan).toContain("if: needs.image.outputs.publish == 'true'");
+    expect(scan).toContain('--severity HIGH,CRITICAL --ignore-unfixed');
+    expect(scan).toContain('"$IMAGE:$TAG"');
+    expect(scan).toContain('node scripts/trivy-gate.ts trivy-image.json\n');
+    expect(job('image')).toContain('tag: ${{ steps.v.outputs.tag }}');
+  });
+
+  it('lets the aliases move only after the scan passed', () => {
+    const aliases = job('aliases');
+    expect(aliases).toContain('    needs: [image, scan]\n');
+    // No always() or failure(): a failed scan skips the aliases.
+    expect(aliases).not.toMatch(/always\(\)|failure\(\)|!cancelled\(\)/);
+  });
+
+  it('move the aliases only to the image the run scanned, never to a newer one whose scan failed', () => {
+    const aliases = job('aliases');
+    expect(aliases).toContain('TAG: ${{ needs.image.outputs.tag }}');
+    expect(aliases).toMatch(
+      /if \[ "\$newest" != "\$TAG" \]; then\n[^\n]*\n {12}exit 0\n {10}fi\n/,
+    );
+    expect(aliases.indexOf('"$newest" != "$TAG"')).toBeLessThan(
+      aliases.indexOf('imagetools create'),
+    );
+  });
+});

@@ -144,7 +144,7 @@
   <rect class="box pub" x="24" y="696" width="320" height="68" rx="8"/>
   <text class="head" x="36" y="716">release.yml</text>
   <text class="small" x="36" y="736">image &lt;version&gt; (amd64 + arm64), GitHub release</text>
-  <text class="small" x="36" y="752">latest + stable: newest release on main's line [V]</text>
+  <text class="small" x="36" y="752">Trivy High+, then latest + stable (newest) [E]</text>
 
   <rect class="box pub" x="370" y="696" width="250" height="68" rx="8"/>
   <text class="head" x="382" y="716">Operator rolls out</text>

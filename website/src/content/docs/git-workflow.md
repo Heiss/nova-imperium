@@ -177,9 +177,14 @@ next-version`).
   commit, builds the image for linux/amd64 and linux/arm64 and pushes
   `ghcr.io/heiss/nova-imperium:<version>`; the GitHub release has the
   German section of `CHANGELOG.md` as notes, followed by GitHub's list of
-  pull requests. Its job „latest and stable“ points both aliases at the
-  image of the newest release tag, whichever run gets there, so a re-run of
-  an older release never moves them back.
+  pull requests. The job „Trivy of the release image“ then scans the
+  image for High and Critical holes that have a fix; a finding fails the
+  run and leaves both aliases on the previous release, while the tag and
+  the `<version>` image stay. Only after a clean scan does the job „latest
+  and stable“ point both aliases at the
+  image of the newest release tag, and only in that release's own run, so a
+  re-run of an older release never moves them back, nor onto a newer image
+  whose scan failed.
 
 ## The image `next`
 
