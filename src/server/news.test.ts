@@ -26,6 +26,11 @@ const newer = section('26.11.1', '12.11.2026', [
 const changelog = `# Neuigkeiten\n\n${newer}\n${older}`;
 
 describe('changelog for players', () => {
+  it('takes the short commit of the image „next“ for no version (#387)', () => {
+    for (const commit of ['6323f77', '1234567', 'a8e179d55ac9'])
+      expect(versionNumber(commit), commit).toBeNull();
+  });
+
   it('orders versions as numbers and refuses anything but CalVer', () => {
     expect(versionNumber('26.11.19')).toBe(2_611_019);
     expect(versionNumber('26.12.0')).toBeGreaterThan(

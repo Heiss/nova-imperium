@@ -165,11 +165,13 @@ docker compose up -d
 ```
 
 Tags: `26.11.0` for every release, `latest` and `stable` for the newest
-release, `26.11.20-rc.3` for a release candidate and `next` for the newest
-candidate. A candidate is published for every green CI run of the open
-release pull request; it shows what the next release brings, for example
-on a staging instance with `NOVA_VERSION=next`. Do not run a candidate on the
-production world: its database migrations are not released yet.
+release, and `next` for the newest state of `main`: it is built after every
+green CI run of a push to `main` and shows what the next release brings, for
+example on a test server with `NOVA_VERSION=next`. Its `VERSION` holds the
+short commit, so the game shows no version and sends no update message, and
+the image names the commit in its label `org.opencontainers.image.revision`.
+Do not run `next` on the production world: its database migrations are not
+released yet.
 
 A rollback is the previous tag. Database migrations run at the start and are
 not undone by an older image (an older image refuses a newer database instead

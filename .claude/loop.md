@@ -17,6 +17,8 @@ interface is German.
      and the updates under „Pending Approval“ in the issue „Dependency
      Dashboard“ (major and 0.x minor updates get no pull request before
      the owner's tick there);
+   - the nightly runs on `main` (`ci.yml` scheduled, `mutation.yml`,
+     `migrations-nightly.yml`) and their results;
    - the open release pull request (`Release <version>`, branch
      `release/main`) with its CI;
    - the open issues by their labels: `ready` (in the next release),
@@ -59,7 +61,14 @@ interface is German.
 
 ## Steps, in this order
 
-1. **Finish your open pull requests.** Red CI: find the root cause and fix
+1. **Nightly failures first** (owner, 2026-11-23, #387): a failed nightly
+   run on `main` (the unit suite, the E2E suite, the image with the Compose
+   stack and the upgrade test, the complete mutation run, the migration
+   property tests) becomes a pull request into `main` that fixes its root
+   cause, before any other work; it goes through step 1 like every other.
+   When a failure cannot be traced to one merge, tell the owner (open
+   [U]). Then:
+   **Finish your open pull requests.** Red CI: find the root cause and fix
    it. Review findings: fix what is real, answer every thread, resolve.
    Merge `main` into a branch only when (a) it is the next one to merge
    (CI green on its head, every finding answered), (b) GitHub reports a

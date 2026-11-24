@@ -74,6 +74,14 @@ tasks).
   **stops** once the owner has merged it, not when it has told the owner
   (owner, 2026-11-13, #149; replaces „tells the owner and stops“); since
   2026-11-23 only after its tag and its merged retrospective [V] (below).
+* **[E]** Nightly failures first (owner, 2026-11-23, #387): every night a
+  complete run on `main` (`ci.yml` on its schedule: the unit suite, the E2E
+  suite, the image with the Compose stack and the upgrade test;
+  `mutation.yml`: the complete mutation run; `migrations-nightly.yml`: the
+  migration property tests). The loop first looks at the nightly results
+  and fixes a failure through a pull request into `main` before it starts
+  other work. **[U]** What the loop does when a nightly failure cannot be
+  traced to one merge (open on #387); until then it tells the owner.
 * **[E]** The release after #387 (owner, 2026-11-23 and 2026-11-24): the
   step „Release“ comes when no open issue has `ready`, `in progress` or
   `in review`. A release pull request is created only on the owner's word:

@@ -20,8 +20,8 @@ const READERS: Record<string, string> = {
   '.github/workflows/release.yml':
     'the image and the notes of a tag, after the release',
   '.github/workflows/tag.yml': 'tags a commit that changed VERSION',
-  '.github/workflows/rc-image.yml':
-    'writes the candidate number into VERSION of the candidate image',
+  '.github/workflows/next-image.yml':
+    'writes the short commit into VERSION of the image „next“',
   Dockerfile: 'copies CHANGELOG.md and VERSION into the image',
   'e2e/news-maintenance.spec.ts':
     '„Neuigkeiten“ against CHANGELOG.md (runs every night)',

@@ -84,6 +84,17 @@ describe('Detect changes', () => {
     return { ...result, written: readFileSync(output, 'utf8') };
   };
 
+  it('runs everything but the mutation jobs at night (#387 part 3)', () => {
+    const { code, written } = run({
+      EVENT: 'schedule',
+      PR_BASE: '',
+      PR_HEAD_REF: '',
+      PR_BASE_REF: '',
+    });
+    expect(code).toBe(0);
+    expect(written).toBe('code=true\nimage=true\nmutation=false\nsite=true\n');
+  });
+
   it('runs everything on a push', () => {
     const { written } = run({
       EVENT: 'push',
@@ -527,6 +538,43 @@ describe('CI Gate', () => {
     }
   });
 
+  it('requires every job but the mutation jobs in the nightly run (#387 part 3)', () => {
+    const night = {
+      EVENT: 'schedule',
+      HEAD_REF: '',
+      BASE_REF: '',
+      FRAGMENTS: 'skipped',
+      MUTATED: 'false',
+      MUTATION_PLAN: 'skipped',
+      MUTATION_SHARDS: 'skipped',
+      MUTATION: 'skipped',
+    };
+    expect(evaluate(night).code).toBe(0);
+    for (const env of [
+      { CODE: 'false', CHECK: 'skipped', E2E: 'skipped' },
+      { IMAGE: 'false', COMPOSE: 'skipped' },
+      { SITE_SOURCES: 'false', SITE: 'skipped' },
+      { MUTATED: 'true' },
+    ]) {
+      const { code, out } = evaluate({ ...night, ...env });
+      expect(code).toBe(1);
+      expect(out).toContain('::error::The nightly run runs the unit suite');
+    }
+    for (const [job, name] of [
+      ['CHECK', 'Lint, types, unit tests and build'],
+      ['E2E', 'E2E tests'],
+      ['COMPOSE', 'Docker image and Compose stack'],
+    ] as const) {
+      const { code, out } = evaluate({ ...night, [job]: 'failure' });
+      expect(code).toBe(1);
+      expect(out).toContain(`::error::${name} must succeed (result: failure)`);
+    }
+    // A proof counts only on a push.
+    expect(
+      evaluate({ ...night, CHECK: 'skipped', PROOF_CHECK: 'x' }).code,
+    ).toBe(1);
+  });
+
   it('keeps the full suite on a push', () => {
     const push = {
       EVENT: 'push',
@@ -547,6 +595,10 @@ describe('the events of ci.yml', () => {
     expect(CI).not.toContain('ready_for_review');
     expect(CI).not.toContain('voller-lauf');
     expect(CI).not.toContain('PR_DRAFT');
+  });
+
+  it('run every night on main (#387 part 3)', () => {
+    expect(CI).toMatch(/\n  schedule:\n    - cron: '\d+ \d+ \* \* \*'\n/);
   });
 });
 
@@ -664,5 +716,71 @@ describe('Nightly mutation run: the permission of the issue step (#309)', () => 
       "if: always() && steps.gate.outcome == 'failure' && github.ref == 'refs/heads/main'",
     );
     expect(job).toContain('        id: gate\n');
+  });
+});
+
+describe('the image „next“ (#387, owner, 2026-11-23)', () => {
+  const NEXT = readFileSync('.github/workflows/next-image.yml', 'utf8');
+  const version = script('- name: Version and image name', NEXT);
+
+  it('writes the short commit into VERSION and names the image of the owner in lower case', () => {
+    const repo = join(dir, 'next');
+    rmSync(repo, { recursive: true, force: true });
+    mkdirSync(repo, { recursive: true });
+    const git = (...args: string[]): string =>
+      execFileSync('git', args, {
+        cwd: repo,
+        encoding: 'utf8',
+        env: {
+          PATH: process.env.PATH,
+          GIT_CONFIG_GLOBAL: '/dev/null',
+          GIT_CONFIG_SYSTEM: '/dev/null',
+          GIT_AUTHOR_NAME: 'x',
+          GIT_AUTHOR_EMAIL: 'x@example.org',
+          GIT_COMMITTER_NAME: 'x',
+          GIT_COMMITTER_EMAIL: 'x@example.org',
+        },
+      }).trim();
+    git('init', '-q', '-b', 'main');
+    writeFileSync(join(repo, 'VERSION'), '26.11.25\n');
+    git('add', '-A');
+    git('commit', '-q', '-m', 'c');
+    const sha = git('rev-parse', 'HEAD');
+    const output = join(dir, 'next-output');
+    rmSync(output, { force: true });
+    const { code } = bash(
+      version,
+      {
+        SHA: sha,
+        GITHUB_REPOSITORY_OWNER: 'Heiss',
+        GITHUB_OUTPUT: output,
+      },
+      repo,
+    );
+    expect(code).toBe(0);
+    expect(readFileSync(join(repo, 'VERSION'), 'utf8')).toBe(
+      `${git('rev-parse', '--short', sha)}\n`,
+    );
+    expect(readFileSync(output, 'utf8')).toBe(
+      'image=ghcr.io/heiss/nova-imperium\n',
+    );
+  });
+
+  it('runs after a green push run on main only, for amd64 and arm64, with the revision label, and moves only „next“', () => {
+    expect(NEXT).toContain("github.event.workflow_run.conclusion == 'success'");
+    expect(NEXT).toContain("github.event.workflow_run.event == 'push'");
+    expect(NEXT).toContain("github.event.workflow_run.head_branch == 'main'");
+    expect(NEXT).toContain(
+      'github.event.workflow_run.head_repository.full_name == github.repository',
+    );
+    expect(NEXT).toContain('platforms: linux/amd64,linux/arm64');
+    expect(NEXT).toContain(
+      'labels: org.opencontainers.image.revision=${{ github.event.workflow_run.head_sha }}',
+    );
+    expect(NEXT).toContain('tags: ${{ steps.v.outputs.image }}:next');
+    // The one tag it pushes; no candidate number, no latest or stable.
+    expect(NEXT.match(/^\s+tags:.*$/gm)).toEqual([
+      '          tags: ${{ steps.v.outputs.image }}:next',
+    ]);
   });
 });

@@ -37,6 +37,15 @@ on:
     types: [opened, synchronize, reopened, labeled, unlabeled]
   push:
     branches: [main, 'hotfix/**']
+  # The complete run every night on main (owner, 2026-11-23 and 2026-11-24,
+  # #387 part 3): the unit suite, the E2E suite and the image with the
+  # Compose stack and the upgrade test; the complete mutation run is
+  # mutation.yml and the migration property tests migrations-nightly.yml
+  # that same night, so this run skips the mutation jobs. The release loop
+  # looks at these runs first and fixes a failure through a pull request
+  # into main before any other work.
+  schedule:
+    - cron: '7 1 * * *'
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event_name == 'push' && github.run_id || github.ref }}
@@ -115,6 +124,17 @@ jobs:
           HEAD_SHA: ${{ github.sha }}
           GH_TOKEN: ${{ github.token }}
         run: |
+          # The nightly run: everything but the mutation jobs, which
+          # mutation.yml runs complete the same night (#387).
+          if [ "$EVENT" = "schedule" ]; then
+            {
+              echo "code=true"
+              echo "image=true"
+              echo "mutation=false"
+              echo "site=true"
+            } >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           if [ "$EVENT" = "push" ] || [ -z "$PR_BASE" ]; then
             {
               echo "code=true"
@@ -907,6 +927,11 @@ jobs:
 
           if [ "$EVENT" = "push" ] && { [ "$CODE" != "true" ] || [ "$IMAGE" != "true" ] || [ "$MUTATED" != "true" ] || [ "$SITE_SOURCES" != "true" ]; }; then
             echo "::error::Pushes to main and hotfix/* must run the full suite; a job is skipped only with its proof (#342)."
+            exit 1
+          fi
+          # The nightly run runs every job but the mutation jobs (#387).
+          if [ "$EVENT" = "schedule" ] && { [ "$CODE" != "true" ] || [ "$IMAGE" != "true" ] || [ "$MUTATED" != "false" ] || [ "$SITE_SOURCES" != "true" ]; }; then
+            echo "::error::The nightly run runs the unit suite, the E2E suite, the image and the website; the mutation jobs are mutation.yml (#387)."
             exit 1
           fi
           if [ "$EVENT" = "pull_request" ]; then

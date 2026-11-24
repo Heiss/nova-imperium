@@ -2,7 +2,7 @@ name: Release
 
 # A tag like 26.11.0 (CalVer YY.M.MICRO, no "v") builds and publishes the image
 # as 26.11.0; the job "aliases" points latest and stable at the newest
-# release (release candidates: rc-image.yml, „next“),
+# release (the newest state of main: next-image.yml, „next“),
 # but only when CI already passed on main or hotfix/* for the tagged commit.
 # Tags come from merged release pull requests (tag.yml); the release notes are
 # the German section of CHANGELOG.md.

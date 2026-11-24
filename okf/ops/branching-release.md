@@ -72,9 +72,30 @@ bullets they replace below are marked.
   the commit before, and `release.yml` scans nothing. What blocks a High
   hole in a release of `main` is open (a fix pull request into `main`
   blocks only on the Critical holes it brings in).
+* **[E]** No more release candidates: no `<version>-rc.<N>` images,
+  `rc-image.yml` is gone (#387 part 2, owner, 2026-11-23; this replaces the
+  decision on release candidates of 2026-11-12). The moving image tag `next`
+  always holds the newest state of `main`: `next-image.yml` builds it after
+  every green CI push run on `main`, for `linux/amd64` and `linux/arm64`.
+  Its `VERSION` holds the short commit and the image carries the OCI label
+  `org.opencontainers.image.revision`; the game shows no version for it
+  (`src/server/news.ts` keeps only a CalVer version). A late run of an
+  older push does not move `next` back. `docs/operations.md` names `next`
+  for a test server [V].
+* **[E]** Every night a complete test run on `main` (#387 part 3, owner,
+  2026-11-23; its contents accepted 2026-11-24, 77a): `ci.yml` runs on a
+  schedule with the unit suite, the E2E suite, the image with the Compose
+  stack and the upgrade test, and the website, without the mutation jobs;
+  `mutation.yml` runs the complete mutation run (floors) and
+  `migrations-nightly.yml` the migration property tests the same night
+  [V: the three workflows together, rather than one workflow]. The loop
+  looks at them first ([Release loop](/ops/loop.md)).
 * **[U]** Verified only after the merge of #387, because a pull request
-  cannot run it: that `workflow_dispatch` of `release-pr.yml` with the
-  release App creates the release pull request; that a push to `main`
+  cannot run it: that the scheduled run of `ci.yml` starts on `main` and its
+  gate accepts it; that `workflow_dispatch` of `release-pr.yml` with the
+  release App creates the release pull request; that `next-image.yml`
+  pushes `next` to GHCR after a green push run of `main`, for both
+  platforms, with the label of the commit; that a push to `main`
   rebuilds an open one and creates none; that its CI is the metadata-only
   run; that the push run of its merge takes over the proofs of the commit
   before (the API answers of `commits/{sha}`, `compare` and the push runs
@@ -220,7 +241,7 @@ bullets they replace below are marked.
   hotfix of an older line never moves them back),
   and a GitHub release whose notes are the section of `CHANGELOG.md`,
   followed by GitHub's list of pull requests.
-* **[E]** Release candidates (owner, 2026-11-12): every green CI run of a
+* **[E, replaced by #387 on 2026-11-23]** Release candidates (owner, 2026-11-12): every green CI run of a
   release pull request (of `main`: its full run, #147) publishes `<version>-rc.<N>` and moves `next` to it
   when that run is still the head of the release branch
   (`.github/workflows/rc-image.yml`). N is the number of merges on the base
