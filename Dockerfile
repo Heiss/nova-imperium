@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # Base: Node 26 (see .node-version); pnpm in the version of package.json.
-FROM node:26-slim@sha256:e6bedef217677b276c591795e169840edd9096dbf13f29df8ef8d1856b8820bc AS base
+FROM node:26-slim@sha256:0c6375bcc1ee170c22bd04e11b7c1ff9afc3bb16a865a2629308ceb4b72380ff AS base
 WORKDIR /app
 ENV CI=true
 COPY package.json ./
@@ -27,7 +27,7 @@ COPY . .
 RUN pnpm build && pnpm prune --prod --ignore-scripts && touch VERSION
 
 # The image that runs: no compilers, no pnpm, not root, no tests.
-FROM node:26-slim@sha256:e6bedef217677b276c591795e169840edd9096dbf13f29df8ef8d1856b8820bc AS app
+FROM node:26-slim@sha256:0c6375bcc1ee170c22bd04e11b7c1ff9afc3bb16a865a2629308ceb4b72380ff AS app
 # Debian's security updates on top of the base image (owner, 2026-11-12): a
 # fix in Debian reaches the image before the official Node image is rebuilt.
 # Every release build sets OS_UPDATES (release.yml), so the layer cache never
