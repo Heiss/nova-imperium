@@ -129,12 +129,17 @@ export const assembleGlyphs = (listed: Listed): Record<string, string> =>
   );
 
 /** The rules of the views that are not always offered, by view key (#373). */
-export const assembleOffered = (listed: Listed): Record<string, Offered> =>
-  record(
-    collect(
-      'offered',
-      declared(listed, 'offered').map((d) => [d.view.key, d.file, d.value]),
-    ),
+export const assembleOffered = (listed: Listed): ReadonlyMap<string, Offered> =>
+  // A Map: the name of a view comes from the address, and a plain object
+  // would answer `constructor` or `hasOwnProperty` with a function of its
+  // prototype (CodeQL js/unvalidated-dynamic-method-call on #395).
+  new Map(
+    [
+      ...collect(
+        'offered',
+        declared(listed, 'offered').map((d) => [d.view.key, d.file, d.value]),
+      ),
+    ].map(([key, owned]) => [key, owned.value]),
   );
 
 /** The address parameters of the views that have some, by view key; each name belongs to one view (#379). */

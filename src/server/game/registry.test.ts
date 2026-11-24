@@ -70,7 +70,7 @@ describe('the list of the server features', () => {
       for (const type of Object.keys(feature.actions ?? {})) {
         expect(Object.hasOwn(ACTIONS, type), type).toBe(true);
         expect(ADMIN_ACTIONS.has(type), type).toBe(false);
-        expect(gates[type]?.off, `${name}: ${type}`).toBe(
+        expect(gates.get(type)?.off, `${name}: ${type}`).toBe(
           feature.enabled ? feature.off : undefined,
         );
       }
@@ -78,8 +78,8 @@ describe('the list of the server features', () => {
     for (const type of ADMIN_ACTIONS)
       expect(Object.hasOwn(ACTIONS, type), type).toBe(true);
     // The guild actions are exactly those behind the switch of guilds.
-    const guild = Object.keys(gates).filter(
-      (t) => gates[t]!.off === GUILDS_OFF,
+    const guild = [...gates.keys()].filter(
+      (t) => gates.get(t)!.off === GUILDS_OFF,
     );
     expect(guild.length).toBeGreaterThan(0);
     expect([...GUILD_ACTIONS].sort()).toEqual(guild.sort());
@@ -187,7 +187,9 @@ describe('the table of the actions', () => {
     expect(actions.build).toBe(a);
     expect(actions.send).toBe(b);
     expect(actions.createGuild).toBe(c);
-    expect(gates).toEqual({ createGuild: { enabled: on, off: 'Aus.' } });
+    expect(gates).toEqual(
+      new Map([['createGuild', { enabled: on, off: 'Aus.' }]]),
+    );
     expect([...admin]).toEqual(['settings']);
   });
 
@@ -200,6 +202,23 @@ describe('the table of the actions', () => {
     ).toThrow(
       'action "send" is defined in src/server/game/one.ts and in src/server/push-options.ts.',
     );
+  });
+
+  it('refuses a name of the prototype of an object as an unknown action (CodeQL on #395)', () => {
+    const ctx = testCtx();
+    const anna = addUser(ctx, 'Anna');
+    for (const type of [
+      'constructor',
+      'hasOwnProperty',
+      '__proto__',
+      'toString',
+      'valueOf',
+    ])
+      expect(() => runAction(ctx, anna.id, { type }), type).toThrow(
+        'Unbekannte Aktion.',
+      );
+    const { gates } = assembleActions({}, features);
+    expect(gates.get('constructor')).toBeUndefined();
   });
 
   it('names the actions behind one switch by its refusal (#374)', () => {

@@ -1,6 +1,11 @@
 // Which view the address names and the address of a view (formerly in
 // main.ts): the routing of the page, without a render.
-import { addressParams, type AddressParams, viewUrl } from './logic/address.ts';
+import {
+  addressParams,
+  type AddressParams,
+  namesOf,
+  viewUrl,
+} from './logic/address.ts';
 import { hiddenView } from './logic/navigation.ts';
 import { client } from './logic/state.svelte.ts';
 import { MOUNTED } from './views/mount.ts';
@@ -29,7 +34,7 @@ export const paramsOf = (
   values: readonly (string | null | undefined)[],
 ): Record<string, string> =>
   Object.fromEntries(
-    (ADDRESS[view] ?? []).flatMap((name, i) => {
+    namesOf(ADDRESS, view).flatMap((name, i) => {
       const value = values[i];
       return value ? [[name, value]] : [];
     }),
@@ -40,4 +45,4 @@ export const valuesOf = (
   view: string,
   params: Readonly<Record<string, string>>,
 ): (string | null)[] =>
-  (ADDRESS[view] ?? []).map((name) => params[name] ?? null);
+  namesOf(ADDRESS, view).map((name) => params[name] ?? null);

@@ -41,18 +41,25 @@ export function viewUrl(
   return url.pathname + url.search;
 }
 
+/**
+ * The parameter names of `view`, none for a view without any. Only the own
+ * entries of the table: the name of a view comes from the address, and
+ * `constructor` must not find the prototype's (CodeQL on #395).
+ */
+export const namesOf = (
+  table: AddressTable,
+  view: string,
+): readonly string[] => (Object.hasOwn(table, view) ? table[view]! : []);
+
 /** The parameters of `view` in the query `search` that have a value. */
 export function addressParams(
   search: string,
   view: string,
   table: AddressTable,
 ): Record<string, string> {
-  // A view without parameters reads none.
-  const names = table[view];
-  if (!names) return {};
   const query = new URLSearchParams(search);
   return Object.fromEntries(
-    names.flatMap((name) => {
+    namesOf(table, view).flatMap((name) => {
       const value = query.get(name);
       return value ? [[name, value]] : [];
     }),

@@ -12,4 +12,4 @@ export const offered = (
   view: string,
   round: RoundRules,
   admin: boolean,
-): boolean => OFFERED[view]?.(round, admin) ?? true;
+): boolean => OFFERED.get(view)?.(round, admin) ?? true;

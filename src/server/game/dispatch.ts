@@ -88,7 +88,7 @@ function run(
   // the vacation mode (#223; the messages since Q25, Q28, #226).
   if (vacationRefuses(type, u.vacation)) fail(VACATION_REFUSED);
   // An action of a feature that is off in the round (#191, #374).
-  const gate = GATES[type];
+  const gate = GATES.get(type);
   if (gate && !gate.enabled(roundRules(ctx))) fail(gate.off);
   const result = fn(ctx, u, d, event);
   recordAchievementAction(ctx, uid, type);

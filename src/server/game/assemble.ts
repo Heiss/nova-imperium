@@ -17,7 +17,8 @@ const fileOf = (name: string): string => `src/server/${name}.ts`;
 /** All actions, the switches of those of a feature that can be off, and the names of the admin actions. */
 export interface ActionTables {
   actions: Record<string, Action>;
-  gates: Readonly<Record<string, Gate>>;
+  /** A Map: the name of an action comes from the browser (CodeQL on #395). */
+  gates: ReadonlyMap<string, Gate>;
   admin: ReadonlySet<string>;
 }
 
@@ -38,7 +39,7 @@ export function assembleActions(
   const owners = new Map(
     Object.keys(frame).map((name) => [name, FRAME_ACTIONS]),
   );
-  const gates: Record<string, Gate> = {};
+  const gates = new Map<string, Gate>();
   const admin = new Set<string>();
   for (const [name, feature] of features) {
     const gate = gateOf(name, feature);
@@ -53,7 +54,7 @@ export function assembleActions(
         // the map of its name (feature.ts), here the type is erased.
         actions[type] = action as unknown as Action;
         group?.add(type);
-        if (gate) gates[type] = gate;
+        if (gate) gates.set(type, gate);
       }
   }
   return { actions, gates, admin };
@@ -97,7 +98,7 @@ function switched(
 
 /** The actions whose switch refuses with `off`: those of the features behind one switch. */
 export const gatedBy = (
-  gates: Readonly<Record<string, Gate>>,
+  gates: ReadonlyMap<string, Gate>,
   off: string,
 ): ReadonlySet<string> =>
-  new Set(Object.keys(gates).filter((type) => gates[type]!.off === off));
+  new Set([...gates].filter(([, gate]) => gate.off === off).map(([t]) => t));

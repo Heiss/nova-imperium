@@ -18,7 +18,15 @@ import {
 import type { ClientView, Mount } from './contract.ts';
 import { hiddenView } from '../logic/navigation.ts';
 import type { GameState } from '../logic/types.ts';
-import { menu, phoneMenu, TAB_GLYPHS, TAB_VIEWS, VIEWS } from './index.ts';
+import { addressParams, namesOf } from '../logic/address.ts';
+import {
+  ADDRESS,
+  menu,
+  phoneMenu,
+  TAB_GLYPHS,
+  TAB_VIEWS,
+  VIEWS,
+} from './index.ts';
 import { offered } from './offered.ts';
 import { ANEW, FRESH, MOUNTED, mountsAnew } from './mount.ts';
 import { CLIENT_VIEWS } from './views.gen.ts';
@@ -275,6 +283,15 @@ describe('the views with fields a player types into (#361)', () => {
   });
 });
 
+/** Names the prototype of a plain object answers (CodeQL on #395). */
+const PROTO = [
+  'constructor',
+  'hasOwnProperty',
+  '__proto__',
+  'toString',
+  'valueOf',
+];
+
 describe('whether a view is offered (#373)', () => {
   const ROUNDS = [true, false].flatMap((guilds) =>
     [true, false].flatMap((achievements) =>
@@ -305,6 +322,18 @@ describe('whether a view is offered (#373)', () => {
   it('is one rule for the menu, the tabs and the address of every view', () => {
     for (const round of ROUNDS)
       for (const admin of [true, false]) follow(round, admin);
+  });
+
+  it('answers a name of the prototype of an object like an unknown view, never throwing (CodeQL on #395)', () => {
+    const state = {
+      round: ROUNDS[0],
+      me: { admin: false },
+    } as unknown as GameState;
+    for (const name of PROTO) {
+      expect(offered(name, ROUNDS[0]!, false), name).toBe(true);
+      expect(offered(name, ROUNDS[0]!, true), name).toBe(true);
+      expect(hiddenView(name, state), name).toBe(false);
+    }
   });
 
   it('offers a view without a rule, an unknown name too', () => {
@@ -354,6 +383,17 @@ describe('the address parameters of the views (#379)', () => {
     expect(new Set(names).size).toBe(names.length);
     for (const name of names) expect(name).toMatch(KEY);
     expect(() => assembleAddress(listed)).not.toThrow();
+  });
+
+  it('read no parameter for a name of the prototype of an object (CodeQL on #395)', () => {
+    for (const name of PROTO) {
+      expect(namesOf(ADDRESS, name), name).toEqual([]);
+      expect(
+        addressParams(`?view=${name}&guild=g1&a=x`, name, ADDRESS),
+        name,
+      ).toEqual({});
+    }
+    expect(namesOf(ADDRESS, 'guilds')).toEqual(['guild']);
   });
 
   it('stop the start when two views declare one name, naming both files', () => {
