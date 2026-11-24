@@ -42,6 +42,7 @@ const READERS: Record<string, string> = {
   'src/test/release-guards.test.ts':
     'the release head: VERSION against tags and other release branches',
   'src/test/release-pr.test.ts': 'the release pull request script',
+  'src/test/release-tag.test.ts': 'the tag of a version a hotfix took first',
 };
 
 const ROOTS = [

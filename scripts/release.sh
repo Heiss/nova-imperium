@@ -80,7 +80,11 @@ if git rev-parse -q --verify "refs/tags/$tag" > /dev/null; then
     printf '%s\n' "$tag is the release of a merged-back hotfix: nothing to tag."
     exit 0
   else
-    fail "$tag is already the tag of another release: this release is not tagged. Fix VERSION through a new release pull request."
+    # A hotfix released the version first, while this release head was
+    # green and merged in the window before its rebuild (O25): the release
+    # commit stays untagged and this job red. Only the owner's word starts a
+    # release pull request (#387), so the message names the way out.
+    fail "$tag is already the tag of another release: this release is not tagged. Recovery: a new release pull request of $release_branch on the owner's word (workflow \"Release pull request\"), which takes the next free version."
   fi
 fi
 
