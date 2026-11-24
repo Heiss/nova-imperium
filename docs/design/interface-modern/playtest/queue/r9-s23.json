@@ -1,0 +1,30 @@
+{
+  "ask": "Sollen neue Bewerbungen in der Lage-Zeile erscheinen – für alle, die sie annehmen dürfen?",
+  "id": "s23",
+  "kind": "sit",
+  "order": "acb",
+  "round": "r9",
+  "roundTitle": "Runde 9 · Soziales (Handy)",
+  "seq": 820,
+  "short": "Gilde",
+  "station": 0,
+  "text": "Heute: Gildenprofil, Punkte, Mitglieder mit Rang, Bewerbungen, Ränge, „Gilde verlassen“ oder „Gilde auflösen“. Entschieden (d10): Mitglieder immer in ihrer Farbe auf der Karte, Details nur in der Ebene „Gilde“; der Chat ist „Funk“. Name und Zahlen sind Beispiele.",
+  "title": "Die eigene Gilde",
+  "variants": {
+    "a": {
+      "desc": "Eine Gildenseite mit den Reitern Übersicht · Mitglieder · Ränge · Bewerbungen.",
+      "emph": "Gilde: Reiter",
+      "img": "/_blob/4322363a4b8742f81f2e8ebc0874096d"
+    },
+    "b": {
+      "desc": "Eine Seite mit Karten: Bewerbungen oben, Mitglieder mit ⋯ für Rang, Nachricht, Leitung übergeben, Entfernen.",
+      "emph": "Gilde: Karten mit ⋯",
+      "img": "/_blob/d2d0c7a2f7569b7aaf15cafe4d03d989"
+    },
+    "c": {
+      "desc": "Die Ebene „Gilde“ auf der Karte, die Gilde im Blatt darunter.",
+      "emph": "Gilde: Karten-Ebene",
+      "img": "/_blob/e3244f2cce5a2ff6014fbeef6ade7a21"
+    }
+  }
+}

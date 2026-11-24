@@ -1,0 +1,19 @@
+{
+  "id": "s25",
+  "kind": "sit",
+  "order": "a",
+  "round": "r9",
+  "roundTitle": "Runde 9 · Soziales (Handy)",
+  "seq": 840,
+  "short": "Ränge",
+  "station": 0,
+  "text": "Heute: Ränge anlegen, umbenennen, ordnen, löschen, die Rechte als Häkchen, ein Standardrang. Hier oben die Ränge in ihrer Reihenfolge, darunter die Rechte des gewählten Rangs als Schalter. Ein Vorschlag: wähle ihn, wenn er passt, und schreib Korrekturen in die Notiz.",
+  "title": "Ränge verwalten (Vorschlag)",
+  "variants": {
+    "a": {
+      "desc": "Ränge oben, die Rechte des gewählten Rangs als Schalter.",
+      "emph": "Ränge: Liste und Schalter",
+      "img": "/_blob/b525084effa0b48497e13785441dce29"
+    }
+  }
+}

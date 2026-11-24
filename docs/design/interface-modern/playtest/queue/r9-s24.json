@@ -1,0 +1,19 @@
+{
+  "id": "s24",
+  "kind": "sit",
+  "order": "a",
+  "round": "r9",
+  "roundTitle": "Runde 9 · Soziales (Handy)",
+  "seq": 830,
+  "short": "Gespräch",
+  "station": 0,
+  "text": "Heute: ein Gespräch mit „Antworten“, „Melden“ an jeder empfangenen Nachricht, „Löschen“, „Unterhaltung löschen“ und „Blockieren“. Hier ein Verlauf mit Blasen; „Melden“ klein unter der Nachricht, Löschen und Blockieren hinter ⋯. Ein Vorschlag: wähle ihn, wenn er passt, und schreib Korrekturen in die Notiz.",
+  "title": "Ein Gespräch (Vorschlag)",
+  "variants": {
+    "a": {
+      "desc": "Verlauf mit Blasen, Antworten unten.",
+      "emph": "Gespräch: Blasen",
+      "img": "/_blob/dad36f16a030f54c205e81d34b964a7f"
+    }
+  }
+}

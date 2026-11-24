@@ -1,0 +1,19 @@
+{
+  "id": "s27",
+  "kind": "sit",
+  "order": "a",
+  "round": "r9",
+  "roundTitle": "Runde 9 · Soziales (Handy)",
+  "seq": 860,
+  "short": "Nachrichten-Einstellungen",
+  "station": 0,
+  "text": "Heute: „Nur Freunde dürfen mir schreiben“ und „Blockierte Spieler“ in den Nachrichten. Hier als kleine Einstellungsseite; die Ablehnung verrät nicht, warum (wie heute). Ein Vorschlag: wähle ihn, wenn er passt, und schreib Korrekturen in die Notiz.",
+  "title": "Wer dir schreiben darf (Vorschlag)",
+  "variants": {
+    "a": {
+      "desc": "Ein Schalter und die Liste der Blockierten.",
+      "emph": "Einstellungen: Schalter und Liste",
+      "img": "/_blob/6695fa5222bdf7737d87c398b093cbea"
+    }
+  }
+}

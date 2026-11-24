@@ -1,0 +1,30 @@
+{
+  "ask": "Sollen neue Freundschaftsanfragen in der Lage-Zeile erscheinen?",
+  "id": "s22",
+  "kind": "sit",
+  "order": "cab",
+  "round": "r9",
+  "roundTitle": "Runde 9 · Soziales (Handy)",
+  "seq": 810,
+  "short": "Freunde",
+  "station": 0,
+  "text": "Heute eine Seite mit den Freunden (online oder offline), Anfragen in beide Richtungen und „Freundschaft anfragen“. Freunde dürfen dir schreiben, auch wenn „Nur Freunde dürfen mir schreiben“ an ist.",
+  "title": "Freunde",
+  "variants": {
+    "a": {
+      "desc": "Eine Seite: Anfragen oben, darunter die Freunde mit Nachricht und Karte.",
+      "emph": "Freunde: Seite",
+      "img": "/_blob/2f34269871c71fcfa62f5b2c71842b4b"
+    },
+    "b": {
+      "desc": "Eine Ebene „Freunde“ auf der Karte wie die Ebene „Gilde“, die Liste im Blatt.",
+      "emph": "Freunde: Karten-Ebene",
+      "img": "/_blob/06e1dbc500716a4b66dd02a4815bade6"
+    },
+    "c": {
+      "desc": "Eine Seite „Soziales“ mit Freunde · Gilde · Blockiert.",
+      "emph": "Freunde: Soziales mit Reitern",
+      "img": "/_blob/bcd69c5374f8f540c5149895d711e51c"
+    }
+  }
+}
