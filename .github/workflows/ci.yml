@@ -86,9 +86,10 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       # A push checks out its own commit of main or the hotfix branch, the
-      # scripts only; nothing of a pull request.
+      # scripts only; nothing of a pull request. The nightly run needs it
+      # too, for .node-version (CodeRabbit on #395).
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' || github.event_name == 'schedule'
         with:
           persist-credentials: false
           sparse-checkout: scripts
@@ -144,7 +145,7 @@ jobs:
             } >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          files=$(git diff --name-only "$PR_BASE" "$HEAD_SHA")
+          files=$(git diff --name-only --no-renames "$PR_BASE" "$HEAD_SHA")
           # A release pull request (of main or of a hotfix branch) changes
           # only the metadata files and runs no expensive job; any other
           # file fails it (owner, 2026-11-23 and 2026-11-24, #387).

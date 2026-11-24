@@ -29,9 +29,11 @@ export interface Plan {
 
 /** The spec files of the suite, relative to the repository, sorted. */
 export function specFiles(dir = 'e2e'): string[] {
-  return readdirSync(dir)
+  // Folders below e2e/ too: a nested spec would run in no part otherwise
+  // (CodeRabbit on #395).
+  return readdirSync(dir, { recursive: true, encoding: 'utf8' })
     .filter((f) => f.endsWith('.spec.ts'))
-    .map((f) => `${dir}/${f}`)
+    .map((f) => `${dir}/${f.split(path.sep).join('/')}`)
     .sort();
 }
 
@@ -104,10 +106,21 @@ export function planOf(
     (a, b) => cost(b) - cost(a) || a.localeCompare(b),
   );
   const load = Array.from({ length: parts }, () => 0);
+  const count = Array.from({ length: parts }, () => 0);
   const plan: Plan = { parts, files: {} };
   for (const f of order) {
-    const part = load.indexOf(Math.min(...load));
+    // The least time, then the fewest files: files without a time spread
+    // over every part instead of all landing in the first (CodeRabbit on
+    // #395).
+    let part = 0;
+    for (let i = 1; i < parts; i++)
+      if (
+        load[i]! < load[part]! ||
+        (load[i] === load[part] && count[i]! < count[part]!)
+      )
+        part = i;
     load[part]! += cost(f);
+    count[part]!++;
     plan.files[f] = part + 1;
   }
   plan.files = Object.fromEntries(

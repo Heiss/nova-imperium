@@ -361,6 +361,20 @@ describe('Detect changes: the mutation jobs of a pull request (#309)', () => {
     }
   });
 
+  it('refuses a release pull request that moves a file into changes/ (#387, CodeRabbit 4679061288)', () => {
+    const { code, out } = detectIn(
+      ['VERSION'],
+      { PR_HEAD_REF: 'release/main', PR_BASE_REF: 'main' },
+      undefined,
+      () => {
+        mkdirSync(join(repo, 'changes'), { recursive: true });
+        vcs('mv', 'src/core/economy.ts', 'changes/economy.ts');
+      },
+    );
+    expect(code).toBe(1);
+    expect(out).toContain('not: src/core/economy.ts');
+  });
+
   it('refuses a release pull request that changes any other file (#387)', () => {
     for (const env of [
       { PR_HEAD_REF: 'release/main', PR_BASE_REF: 'main' },
@@ -596,6 +610,24 @@ describe('the events of ci.yml', () => {
     expect(CI).not.toContain('ready_for_review');
     expect(CI).not.toContain('voller-lauf');
     expect(CI).not.toContain('PR_DRAFT');
+  });
+
+  it('check out the scripts and .node-version for „Detect changes“ at night too (CodeRabbit 4679061280)', () => {
+    const job = CI.slice(
+      CI.indexOf('  changes:\n'),
+      CI.indexOf('  fragments:\n'),
+    );
+    const checkouts = job
+      .split('\n')
+      .map((line, i, all) =>
+        line.includes('actions/checkout@') ? all[i + 1]!.trim() : null,
+      )
+      .filter((c) => c !== null);
+    expect(checkouts).toEqual([
+      "if: github.event_name == 'pull_request'",
+      "if: github.event_name == 'push' || github.event_name == 'schedule'",
+    ]);
+    expect(job).toContain('node-version-file: .node-version');
   });
 
   it('run every night on main (#387 part 3)', () => {

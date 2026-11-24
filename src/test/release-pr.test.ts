@@ -32,10 +32,22 @@ const GIT_ENV = {
 
 const bin = join(root, 'bin');
 mkdirSync(bin);
-// Writes down every call; "gh pr list" finds no open pull request.
+/** The number gh answers for an open release pull request (CodeRabbit on #395). */
+const NUMBER = '42';
+// Writes down every call. "gh pr list" finds the pull request OPEN_PR, or
+// NUMBER once "gh pr create" made one; a call that starts with GH_FAIL fails.
 writeFileSync(
   join(bin, 'gh'),
-  '#!/bin/sh\nprintf \'%s\\n\' "$*" >> "$GH_CALLS"\n',
+  [
+    '#!/bin/sh',
+    'printf \'%s\\n\' "$*" >> "$GH_CALLS"',
+    'if [ -n "${GH_FAIL:-}" ]; then case "$*" in "$GH_FAIL"*) exit 1 ;; esac; fi',
+    'case "$*" in',
+    `  "pr create"*) : > "$GH_CALLS.made" ;;`,
+    `  "pr list"*) if [ -f "$GH_CALLS.made" ]; then echo ${NUMBER}; else printf '%s' "\${OPEN_PR:-}"; fi ;;`,
+    'esac',
+    '',
+  ].join('\n'),
 );
 chmodSync(join(bin, 'gh'), 0o755);
 
@@ -94,25 +106,36 @@ function release(
   repo: Repo,
   event = 'workflow_dispatch',
   rebuildOnly = 'false',
-): { calls: string[]; body: string; out: string } {
+  { open = '', fail = '' }: { open?: string; fail?: string } = {},
+): { calls: string[]; body: string; out: string; code: number } {
   repo.git('push', '-q', 'origin', '--all');
   repo.git('push', '-q', 'origin', '--tags');
   repo.git('fetch', '-q', 'origin');
   const calls = join(repo.dir, '..', `${repo.dir.split('/').pop()}.calls`);
-  const out = execFileSync('sh', ['scripts/release-pr.sh'], {
-    cwd: repo.dir,
-    env: {
-      PATH: `${bin}:${process.env.PATH}`,
-      HOME: root,
-      ...GIT_ENV,
-      BASE: 'main',
-      EVENT: event,
-      REBUILD_ONLY: rebuildOnly,
-      GH_CALLS: calls,
-    },
-    encoding: 'utf8',
-    stdio: 'pipe',
-  });
+  let out: string;
+  let code = 0;
+  try {
+    out = execFileSync('sh', ['scripts/release-pr.sh'], {
+      cwd: repo.dir,
+      env: {
+        PATH: `${bin}:${process.env.PATH}`,
+        HOME: root,
+        ...GIT_ENV,
+        BASE: 'main',
+        EVENT: event,
+        REBUILD_ONLY: rebuildOnly,
+        GH_CALLS: calls,
+        OPEN_PR: open,
+        GH_FAIL: fail,
+      },
+      encoding: 'utf8',
+      stdio: 'pipe',
+    });
+  } catch (error) {
+    const e = error as { status: number; stdout: string; stderr: string };
+    code = e.status;
+    out = e.stdout + e.stderr;
+  }
   const read = (file: string): string => {
     try {
       return readFileSync(file, 'utf8');
@@ -124,6 +147,7 @@ function release(
     calls: read(calls).trim().split('\n'),
     body: read(join(repo.dir, 'release-body.md')),
     out,
+    code,
   };
 }
 
@@ -138,6 +162,12 @@ const ready = (calls: string[]) =>
   calls.filter((c) => /^pr ready(?! --undo)/.test(c));
 const undone = (calls: string[]) =>
   calls.filter((c) => c.startsWith('pr ready --undo'));
+/** Every transition of the draft state names the pull request <n>. */
+const transitions = (calls: string[], n: string) => {
+  const all = calls.filter((c) => c.startsWith('pr ready'));
+  expect(all.length).toBeGreaterThan(0);
+  for (const c of all) expect(c).toMatch(new RegExp(` ${n}$`));
+};
 
 describe('release-pr.sh for main', () => {
   it('marks the pull request ready and writes no marker without a hotfix (#387: no draft)', () => {
@@ -145,8 +175,9 @@ describe('release-pr.sh for main', () => {
     commit(repo, 'changes/neu.md', 'Neue Funktion (#1)');
     const { calls, body } = release(repo);
     created(calls);
-    expect(ready(calls)).toHaveLength(1);
+    expect(ready(calls)).toEqual([`pr ready ${NUMBER}`]);
     expect(undone(calls)).toEqual([]);
+    transitions(calls, NUMBER);
     expect(body).not.toContain('Draft');
     expect(body).not.toContain('-rc.');
     expect(body).toContain(
@@ -162,7 +193,7 @@ describe('release-pr.sh for main', () => {
     const { calls, body } = release(repo);
     created(calls);
     expect(ready(calls)).toEqual([]);
-    expect(undone(calls)).toHaveLength(1);
+    expect(undone(calls)).toEqual([`pr ready --undo ${NUMBER}`]);
     expect(body).toContain(
       `\n${MARKER}\n**Draft:** merge the released hotfix branch(es) hotfix/x back into \`main\` first`,
     );
@@ -178,6 +209,31 @@ describe('release-pr.sh for main', () => {
     created(calls);
     expect(ready(calls)).toHaveLength(1);
     expect(body).not.toContain(MARKER);
+  });
+
+  it('rebuilds an open pull request without a draft transition when all goes well', () => {
+    const repo = repository('open');
+    commit(repo, 'changes/neu.md', 'Neue Funktion (#1)');
+    const { calls, code } = release(repo, 'push', 'false', { open: '7' });
+    expect(code).toBe(0);
+    expect(calls.filter((c) => c.startsWith('pr create'))).toEqual([]);
+    expect(calls).toContain(
+      `pr edit 7 --title Release ${'26.11.1'} --body-file release-body.md`,
+    );
+    expect(undone(calls)).toEqual([]);
+    expect(ready(calls)).toEqual(['pr ready 7']);
+  });
+
+  it('sets a ready pull request back to draft when the rebuild fails after its push (CodeRabbit 4679061330)', () => {
+    const repo = repository('fails');
+    commit(repo, 'changes/neu.md', 'Neue Funktion (#1)');
+    const { calls, code } = release(repo, 'push', 'false', {
+      open: '7',
+      fail: 'pr edit',
+    });
+    expect(code).not.toBe(0);
+    expect(calls.at(-1)).toBe('pr ready --undo 7');
+    expect(ready(calls)).toEqual([]);
   });
 
   it('creates none on a push to main: only the owner’s word starts one (#387)', () => {

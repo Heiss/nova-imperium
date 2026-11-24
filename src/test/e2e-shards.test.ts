@@ -1,6 +1,15 @@
 // The parts of the E2E suite in CI (#372): every spec file runs in exactly
 // one part, a new one too, and the plan balances the measured times.
-import { existsSync, readFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   filesOf,
@@ -43,6 +52,43 @@ describe('the parts of the E2E suite (#372)', () => {
         all.filter((other) => new RegExp(file).test(`/repo/${other}`)),
         file,
       ).toEqual([file]);
+  });
+
+  it('find the spec files in folders below e2e/ too (CodeRabbit 4679061313)', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'e2e-shards-'));
+    try {
+      for (const f of [
+        'a.spec.ts',
+        'x/y.spec.ts',
+        'x/z/w.spec.ts',
+        'helpers.ts',
+        'x/data.json',
+      ]) {
+        mkdirSync(join(dir, f, '..'), { recursive: true });
+        writeFileSync(join(dir, f), '');
+      }
+      expect(specFiles(dir)).toEqual([
+        `${dir}/a.spec.ts`,
+        `${dir}/x/y.spec.ts`,
+        `${dir}/x/z/w.spec.ts`,
+      ]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('spread files without a time over every part (CodeRabbit 4679061321)', () => {
+    const none = new Map(files.map((f) => [f, 0]));
+    const plan = planOf(files, none, 4);
+    expect(new Set(Object.values(plan.files))).toEqual(new Set([1, 2, 3, 4]));
+    // The reported times stay what was measured.
+    expect(loadOf(plan, none)).toEqual([0, 0, 0, 0]);
+    expect(planOf(files, new Map(), 2).files).toEqual({
+      'e2e/a.spec.ts': 1,
+      'e2e/b.spec.ts': 2,
+      'e2e/c.spec.ts': 1,
+      'e2e/d.spec.ts': 2,
+    });
   });
 
   it('give a spec file the plan does not know the part of its name, the same every time', () => {

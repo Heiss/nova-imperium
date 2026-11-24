@@ -69,7 +69,8 @@ description: 'When a push to main or a hotfix branch skips a job that succeeded 
   cases of the gate were run locally from the script of the gate, and
   actionlint with shellcheck and zizmor pass. The first live use is the push
   after the merge of the collecting pull request of 26.11.24; watch it before
-  the release pull request is merged.
+  the release pull request is merged (since #387 the release pull request
+  runs no expensive job and relies on that push run).
 
 * **[E]** The push of a release merge takes over the results of the commit
   before it (#387, owner, 2026-11-24, 77a): when the pushed commit changes

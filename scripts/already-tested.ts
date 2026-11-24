@@ -82,6 +82,7 @@ export interface WorkflowRun {
   status: string;
   conclusion: string | null;
   head_sha: string;
+  head_branch?: string | null;
   repository: { full_name: string } | null;
   head_repository: { full_name: string } | null;
 }
@@ -264,10 +265,13 @@ export function proofsOf(
 
 /**
  * The green push runs of the commit <parent> on <branch>, newest first:
- * the workflow "CI", event push, of <repo>, completed with success.
+ * the workflow "CI", event push, of <repo> and of the pushed branch (a run
+ * of the same commit on another branch proves nothing here; CodeRabbit on
+ * #395), completed with success.
  */
 export function greenPushRuns(
   parent: string,
+  branch: string,
   repo: string,
   runs: readonly WorkflowRun[],
 ): WorkflowRun[] {
@@ -275,6 +279,7 @@ export function greenPushRuns(
     .filter(
       (r) =>
         r.head_sha === parent &&
+        r.head_branch === branch &&
         r.path === WORKFLOW &&
         r.event === 'push' &&
         r.repository?.full_name === repo &&
@@ -329,11 +334,15 @@ function onlyMetadata(
   repo: string,
   api: Api,
 ): boolean {
-  const files = listOf<{ filename: string }>(
+  // A moved file counts with its old and its new name: a file moved out of
+  // the code into changes/ is no metadata (CodeRabbit on #395).
+  const files = listOf<{ filename: string; previous_filename?: string }>(
     api(`repos/${repo}/compare/${parent}...${sha}`),
     'files',
     'changed files',
-  ).map((f) => f.filename);
+  ).flatMap((f) =>
+    f.previous_filename ? [f.filename, f.previous_filename] : [f.filename],
+  );
   return (
     files.length > 0 &&
     files.length < COMPARE_LIMIT &&
@@ -344,11 +353,13 @@ function onlyMetadata(
 /** The newest green push run of <parent>, through the API. */
 const parentRun = (
   parent: string,
+  branch: string,
   repo: string,
   api: Api,
 ): WorkflowRun | undefined =>
   greenPushRuns(
     parent,
+    branch,
     repo,
     listOf<WorkflowRun>(
       api(
@@ -366,6 +377,7 @@ const parentRun = (
 function fromParent(
   decision: Decision,
   sha: string,
+  branch: string,
   repo: string,
   api: Api,
 ): Decision {
@@ -381,7 +393,7 @@ function fromParent(
     return why(
       `the push changes more than ${METADATA.join(', ')} against its parent ${parent}`,
     );
-  const run = parentRun(parent, repo, api);
+  const run = parentRun(parent, branch, repo, api);
   if (!run) return why(`no green push run of the parent ${parent}`);
   const taken = parentProofs(run, jobsThrough(api, repo)(run.id), missing);
   return {
@@ -492,7 +504,7 @@ export function decide(
   try {
     const decision = lookUp(sha, branch, repo, api);
     try {
-      return fromParent(decision, sha, repo, api);
+      return fromParent(decision, sha, branch, repo, api);
     } catch (error) {
       // The parent proves nothing on an error; the proofs found stay.
       return {

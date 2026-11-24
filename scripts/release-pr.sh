@@ -83,6 +83,17 @@ taken_by() {
 }
 other=$(taken_by)
 [ -z "$other" ] || fail "$other holds $version too: run this workflow again."
+# From the push on, a pull request that was ready gets the new head: when
+# this run fails after it, the pull request goes back to draft, so it is not
+# mergeable with a head the checks below did not pass (CodeRabbit on #395).
+draft_on_failure() {
+  status=$?
+  if [ "$status" -ne 0 ] && [ -n "$open" ]; then
+    gh pr ready --undo "$open" || true
+  fi
+  exit "$status"
+}
+trap draft_on_failure EXIT
 git push --quiet --force origin "HEAD:refs/heads/$branch"
 other=$(taken_by)
 

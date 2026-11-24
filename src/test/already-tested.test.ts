@@ -37,6 +37,7 @@ const ciRun = (fields: Partial<WorkflowRun> = {}): WorkflowRun => ({
   status: 'completed',
   conclusion: 'success',
   head_sha: HEAD,
+  head_branch: 'main',
   repository: { full_name: REPO },
   head_repository: { full_name: REPO },
   ...fields,
@@ -79,8 +80,8 @@ interface World {
   trees?: Record<string, string>;
   /** The annotations of a job by its id; a job without an entry has none. */
   notes?: Record<number, unknown>;
-  /** The files the push changed against its parent (#387). */
-  changed?: string[];
+  /** The files the push changed against its parent (#387), with the old name of a moved one. */
+  changed?: (string | { filename: string; previous_filename: string })[];
   /** The push runs of the parent. */
   parentRuns?: unknown;
 }
@@ -96,13 +97,15 @@ const DETECT_ID = 'Detect changes'.length;
 /** The answers about the parent of the pushed commit (#387), or undefined. */
 function parentAnswer(
   path: string,
-  changed: string[],
+  changed: World['changed'] & object,
   parentRuns: unknown,
 ): unknown {
   if (path === `repos/${REPO}/commits/${PUSHED}`)
     return { parents: [{ sha: PARENT }] };
   if (path === `repos/${REPO}/compare/${PARENT}...${PUSHED}`)
-    return { files: changed.map((filename) => ({ filename })) };
+    return {
+      files: changed.map((f) => (typeof f === 'string' ? { filename: f } : f)),
+    };
   if (
     path ===
     `repos/${REPO}/actions/workflows/ci.yml/runs?event=push&head_sha=${PARENT}&per_page=100`
@@ -406,6 +409,48 @@ describe('a push that changes only the metadata files (#387, owner, 2026-11-24)'
       world.jobs![200] = { jobs: parentJobs };
       expect(proven(world)).toEqual([]);
     }
+  });
+
+  it('runs everything when a file moved from the code into changes/ (CodeRabbit 4679061304)', () => {
+    const world = {
+      ...release(),
+      changed: [
+        'VERSION',
+        {
+          filename: 'changes/news.ts',
+          previous_filename: 'src/server/news.ts',
+        },
+      ],
+    };
+    world.jobs![200] = { jobs: parentJobs };
+    expect(proven(world)).toEqual([]);
+    // A file moved inside the metadata files is still metadata.
+    const inside = {
+      ...release(),
+      changed: [
+        { filename: 'changes/b.md', previous_filename: 'changes/a.md' },
+      ],
+    };
+    inside.jobs![200] = { jobs: parentJobs };
+    expect(proven(inside)).toEqual(Object.keys(JOBS));
+  });
+
+  it('takes no push run of the parent on another branch (CodeRabbit 4679061297)', () => {
+    const world = {
+      ...release(),
+      parentRuns: {
+        workflow_runs: [
+          ciRun({
+            id: 200,
+            event: 'push',
+            head_sha: PARENT,
+            head_branch: 'hotfix/x',
+          }),
+        ],
+      },
+    };
+    world.jobs![200] = { jobs: parentJobs };
+    expect(proven(world)).toEqual([]);
   });
 
   it('keeps the proofs of the pull request when the parent cannot be looked up', () => {

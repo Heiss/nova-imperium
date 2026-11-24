@@ -303,18 +303,17 @@ and one CI run (26.11.24; #347 for 26.11.25).
 * **[E]** CI and the tag workflow run for pushes to `main` and `hotfix/**`; the
   migration check compares the first push of a hotfix branch with the release
   tag it starts from.
-* **[E]** The pull requests into a hotfix branch and its release pull
-  request run the mutation jobs only when the hotfix changes what they
-  test (owner, 2026-11-13, #146): the release pull request compares with
-  the release tag the hotfix branch starts from, so a hotfix with code in
-  `src/` runs them, and one with only dependency or `Dockerfile` changes
-  (as a rule a security hotfix) does not; without a release tag below its
-  base the check fails, as the migration check does; every other check still runs,
-  and every push to `hotfix/**` runs the mutation jobs. The release pull
-  request of a hotfix branch keeps its automatic full run (owner,
-  2026-11-13, #147); the one of `main` runs its complete mutation run in
-  its full run (#147). See
-  [Test strategy](/ops/testing.md).
+* **[E]** The pull requests into a hotfix branch run the mutation jobs only
+  when the hotfix changes what they test (owner, 2026-11-13, #146), so a
+  hotfix with code in `src/` runs them, and one with only dependency or
+  `Dockerfile` changes (as a rule a security hotfix) does not; every other
+  check still runs, and every push to `hotfix/**` runs the mutation jobs.
+  See [Test strategy](/ops/testing.md). **[E, replaced by #387 on
+  2026-11-23]** What this rule said of the release pull requests: the one of
+  a hotfix branch compared with its release tag and kept its automatic full
+  run, and the one of `main` ran its complete mutation run in its full run
+  (#147). Since #387 a release pull request, of `main` or of a hotfix
+  branch, changes only the metadata files and runs no mutation job.
 
 * **[E]** Renovate opens pull requests for dependencies and images, waits
   3 days after a release (`minimumReleaseAge`) and merges patch updates
@@ -440,14 +439,15 @@ and one CI run (26.11.24; #347 for 26.11.25).
   pull request with a partial mutation run does not run the complete shards:
   the pull request's own mutation jobs, complete or partial, prove them, and
   so does a run that found nothing to mutate ([V], coordinator, 2026-11-21;
-  not a result taken over from another tree, #167); the
-  release pull request and the nightly run are enough for the complete run,
-  and the shards run on a push only when its tree is not proven (owner,
-  2026-11-21, O23).
-* **[E]** The release pull request and the nightly run in
-  `.github/workflows/mutation.yml` test every mutant. All of them run in 4
-  parallel shards with a gate job on the merged report (owner, 2026-11-12,
-  #131).
+  not a result taken over from another tree, #167); the nightly run is
+  enough for the complete run (the release pull request no longer runs
+  one, #387), and the shards run on a push only when its tree is not
+  proven (owner, 2026-11-21, O23).
+* **[E]** The nightly run in `.github/workflows/mutation.yml` tests every
+  mutant, in parallel shards with a gate job on the merged report (owner,
+  2026-11-12, #131). **[E, replaced by #387 on 2026-11-23]** The release
+  pull request tested every mutant too; since #387 it runs no mutation
+  job.
 
 ## Security hotfix (owner, 2026-11-12)
 
