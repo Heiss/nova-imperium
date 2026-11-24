@@ -6,7 +6,12 @@ import { describe, expect, it } from 'vitest';
 import { ROUND_SETTINGS } from '../../core/round.ts';
 import { SERVER_FEATURES } from '../features.gen.ts';
 import { addPlanet, addUser, testCtx } from '../test-helpers.ts';
-import { assembleActions, assembleState, type Listed } from './assemble.ts';
+import {
+  assembleActions,
+  assembleState,
+  gatedBy,
+  type Listed,
+} from './assemble.ts';
 import {
   ACTIONS,
   ADMIN_ACTIONS,
@@ -195,6 +200,21 @@ describe('the table of the actions', () => {
     ).toThrow(
       'action "send" is defined in src/server/game/one.ts and in src/server/push-options.ts.',
     );
+  });
+
+  it('names the actions behind one switch by its refusal (#374)', () => {
+    const on = () => true;
+    const { gates } = assembleActions({}, [
+      ['game/one', { actions: { send: a }, enabled: on, off: 'Eins aus.' }],
+      [
+        'game/two',
+        { actions: { build: b, pct: c }, enabled: on, off: 'Zwei aus.' },
+      ],
+      ['game/three', { actions: { rename: a } }],
+    ]);
+    expect([...gatedBy(gates, 'Zwei aus.')].sort()).toEqual(['build', 'pct']);
+    expect([...gatedBy(gates, 'Eins aus.')]).toEqual(['send']);
+    expect([...gatedBy(gates, 'Keiner.')]).toEqual([]);
   });
 
   it('throws when a feature has a switch but no refusal (#374)', () => {

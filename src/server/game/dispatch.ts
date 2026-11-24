@@ -5,7 +5,7 @@ import { recordAchievementAction } from './achievements.ts';
 import type { User } from '../db/repos/players.ts';
 import * as A from './actions.ts';
 import { tick } from './arrival.ts';
-import { assembleActions } from './assemble.ts';
+import { assembleActions, gatedBy } from './assemble.ts';
 import type { Handlers } from './feature.ts';
 import { SERVER_FEATURES } from '../features.gen.ts';
 import { type Ctx, fail, GameError } from './context.ts';
@@ -48,9 +48,7 @@ export const ACTIONS: Record<string, A.Action> = tables.actions;
 const GATES = tables.gates;
 
 /** The guild actions: those refused while guilds are off in the round (#191), read from the switches. */
-export const GUILD_ACTIONS: ReadonlySet<string> = new Set(
-  Object.keys(GATES).filter((type) => GATES[type]!.off === GUILDS_OFF),
-);
+export const GUILD_ACTIONS: ReadonlySet<string> = gatedBy(GATES, GUILDS_OFF);
 
 /** The actions of the admin: audited as `admin.write`, not as `game`. */
 export const ADMIN_ACTIONS: ReadonlySet<string> = tables.admin;

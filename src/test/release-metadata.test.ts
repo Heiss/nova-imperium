@@ -39,6 +39,8 @@ const READERS: Record<string, string> = {
   'src/test/changelog.test.ts': 'the fragment and release commands',
   'src/test/ci-release.test.ts': 'the metadata-only release pull request',
   'src/test/mutation-changes.test.ts': 'a fragment is no mutated file',
+  'src/test/release-guards.test.ts':
+    'the release head: VERSION against tags and other release branches',
   'src/test/release-pr.test.ts': 'the release pull request script',
 };
 

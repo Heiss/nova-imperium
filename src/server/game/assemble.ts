@@ -94,3 +94,10 @@ function switched(
       enabled(view.round) ? part.build(ctx, u, view) : { ...off },
   };
 }
+
+/** The actions whose switch refuses with `off`: those of the features behind one switch. */
+export const gatedBy = (
+  gates: Readonly<Record<string, Gate>>,
+  off: string,
+): ReadonlySet<string> =>
+  new Set(Object.keys(gates).filter((type) => gates[type]!.off === off));
