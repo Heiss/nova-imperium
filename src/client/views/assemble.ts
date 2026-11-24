@@ -136,3 +136,17 @@ export const assembleOffered = (listed: Listed): Record<string, Offered> =>
       declared(listed, 'offered').map((d) => [d.view.key, d.file, d.value]),
     ),
   );
+
+/** The address parameters of the views that have some, by view key; each name belongs to one view (#379). */
+export function assembleAddress(
+  listed: Listed,
+): Record<string, readonly string[]> {
+  const found = declared(listed, 'address');
+  collect(
+    'address parameter',
+    found.flatMap((d) =>
+      d.value.map((name) => [name, d.file, d.view.key] as const),
+    ),
+  );
+  return Object.fromEntries(found.map((d) => [d.view.key, d.value]));
+}

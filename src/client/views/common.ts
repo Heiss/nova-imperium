@@ -12,7 +12,8 @@ export interface Ui extends PushChoice {
   /** Whether the server sends Web Push; else the options hide the push kinds (#192). */
   webPush?: boolean;
   view: string;
-  guild?: string | null;
+  /** The address parameters of the open view that it declares (`address`, #379), e.g. the guild of „Gilden“. */
+  params: Readonly<Record<string, string>>;
   gal: number;
   sys: number;
   ft: { g: number; s: number; p: number; kind?: 'planet' | 'moon' } | null;

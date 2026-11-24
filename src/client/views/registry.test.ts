@@ -9,6 +9,7 @@ import {
   assembleGlyphs,
   assembleHtml,
   assembleMenu,
+  assembleAddress,
   assembleMounts,
   assembleOffered,
   assembleTabs,
@@ -37,6 +38,7 @@ const MEMBERS = [
   'glyph',
   'tab',
   'offered',
+  'address',
 ];
 const round = { guilds: true, achievements: true, daily: false } as RoundRules;
 
@@ -343,5 +345,43 @@ describe('whether a view is offered (#373)', () => {
     expect(readFileSync('src/client/views/mount.ts', 'utf8')).toContain(
       'Object.hasOwn(MOUNT, view) && offered(view, v.s.round, v.s.me.admin)',
     );
+  });
+});
+
+describe('the address parameters of the views (#379)', () => {
+  it('belong to one view each, plain names', () => {
+    const names = views.flatMap(([, view]) => view.address ?? []);
+    expect(new Set(names).size).toBe(names.length);
+    for (const name of names) expect(name).toMatch(KEY);
+    expect(() => assembleAddress(listed)).not.toThrow();
+  });
+
+  it('stop the start when two views declare one name, naming both files', () => {
+    expect(() =>
+      assembleAddress([
+        ['a', [{ key: 'x', html: () => '', address: ['p'] }]],
+        ['b', [{ key: 'y', html: () => '', address: ['q', 'p'] }]],
+      ]),
+    ).toThrow(
+      'address parameter "p" is defined in src/client/views/a.ts and in src/client/views/b.ts.',
+    );
+    expect(
+      assembleAddress([
+        ['a', [{ key: 'x', html: () => '', address: ['p', 'q'] }]],
+        ['b', [{ key: 'y', html: () => '' }]],
+      ]),
+    ).toEqual({ x: ['p', 'q'] });
+  });
+
+  it('are named by no shared file of the address and the routing', () => {
+    for (const file of [
+      'src/client/logic/address.ts',
+      'src/client/view-address.ts',
+      'src/client/routing.ts',
+      'src/client/ui-init.ts',
+    ])
+      expect(readFileSync(file, 'utf8'), file).not.toMatch(
+        /'guild'|\.guild\b|get\('a'\)/,
+      );
   });
 });

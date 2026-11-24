@@ -47,6 +47,8 @@ export const clientViews = [
   {
     key: 'guilds',
     mount: mountGuilds,
+    // The guild the page shows (#163).
+    address: ['guild'],
     fresh: true,
     // No guild view in a round with guilds off (#191).
     offered: (round) => round.guilds,

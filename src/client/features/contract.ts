@@ -37,7 +37,12 @@ export interface ClientCtx {
   /** Shows the HTML or the component in the dialog; the empty string closes it. */
   modal: (content: string | Dialog) => void;
   /** Shows a view with its address and renders it. */
-  go: (view: string, push?: boolean, guild?: string | null) => void;
+  /** Shows a view; `values` are its address parameters in the order it declares them (#379). */
+  go: (
+    view: string,
+    push?: boolean,
+    ...values: (string | null | undefined)[]
+  ) => void;
   /** Renders the shown view again; `fresh` drops the typed drafts. */
   render: (fresh?: boolean) => void;
   /** Calls the server; a refusal throws an error with the server's words. */

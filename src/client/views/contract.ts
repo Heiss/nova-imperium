@@ -67,6 +67,11 @@ export interface ClientView {
    * rule for the menu, the tabs, the address and the fallback of the mount.
    */
   offered?: Offered;
+  /**
+   * The parameters of its address (`&name=…`, #379), in the order `go` takes
+   * their values: kept on its own address only, dropped on every other.
+   */
+  address?: readonly string[];
   /** The entry in the menu; a view without one is reached by a link only. */
   menu?: MenuItem;
   /** The line icon (an `<svg>` string) of the menu entry and the tab. */

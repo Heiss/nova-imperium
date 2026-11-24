@@ -13,7 +13,8 @@ description: 'A view exports clientViews (key, mount or html, anew or fresh, men
   `ClientView` (`contract.ts`): `key`, `mount` (a Svelte view) or `html` (a
   view still drawn as a string), `anew` (mounted anew on every render) or
   `fresh` (mounted anew by a fresh render only, see below),
-  `menu` (`order`, `label`, `divider`), `glyph`, `tab` and `offered`. The
+  `menu` (`order`, `label`, `divider`), `glyph`, `tab`, `offered` and
+  `address`. The
   menu order of today is data: the entries stand at 10 to 180 (see `MenuItem`
   in `contract.ts`), the tabs of a phone at 10 to 40. The list is the
   git-ignored `views.gen.ts` (`CLIENT_VIEWS`); `assemble.ts` puts the modules
@@ -44,6 +45,22 @@ description: 'A view exports clientViews (key, mount or html, anew or fresh, men
   rule. `registry.test.ts` checks for every view and round that the menu,
   the tabs and the address follow the rule, and that the navigation, the
   address, the mount and `index.ts` name none of these views.
+* **[E]** A view declares its own address parameters (#379; owner,
+  2026-11-22, #351: a refactor of the v3 foundation without a change of
+  behaviour, for the deep links of the star map, #160). **[V]** The member
+  `address` of `ClientView` lists the names (`&name=…`) in the order `go`
+  takes their values; `assembleAddress` collects them, each name for one
+  view (a name twice stops the start). `viewUrl` of `logic/address.ts` keeps
+  the parameters of the open view with a value and drops those of every
+  other view and the hash; `addressParams` reads them back.
+  `client.ui.params` holds those of the open view instead of `ui.guild`
+  (coordinator, 2026-11-24, option 1, [V]); `go(view, push, ...values)`,
+  the start (`ui-init.ts`) and „back“ (`routing.ts`) fill it without naming
+  a parameter. „Gilden“ declares `guild`, the Lexicanum `a` (it still reads
+  its article itself, `articleParam`). `address-today.test.ts` lists the
+  addresses of today, dropped cases too, and passed before and after the
+  change; `registry.test.ts` checks that the address, the routing and the
+  start name no parameter.
 * **[V]** A view mounted anew on every render loses the selection and the
   caret of a field the player is editing: the field is a new element, and
   `render.ts` gives the focus back by id only (#352; a selected number typed

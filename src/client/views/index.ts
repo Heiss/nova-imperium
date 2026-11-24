@@ -1,5 +1,6 @@
 import type { RoundRules } from '../../core/round.ts';
 import {
+  assembleAddress,
   assembleGlyphs,
   assembleHtml,
   assembleMenu,
@@ -22,6 +23,10 @@ export interface MenuEntry {
   view: string;
   label: string;
 }
+
+/** The address parameters of every view that has some (#379). */
+export const ADDRESS: Readonly<Record<string, readonly string[]>> =
+  assembleAddress(CLIENT_VIEWS);
 
 /** The entries of all views in the order of their numbers. */
 const MENU = assembleMenu(CLIENT_VIEWS);

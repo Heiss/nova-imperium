@@ -364,7 +364,7 @@ function management(
 
 function guilds(v: V): string {
   const state = v.s.guilds ?? { directory: [], own: null, management: null };
-  const g = state.directory.find((guild) => guild.id === v.ui.guild);
+  const g = state.directory.find((guild) => guild.id === v.ui.params.guild);
   if (!g) return directory(state);
   const own = state.management?.id === g.id ? state.management : null;
   const me = own && state.ranks ? inside(state.ranks, v.s.me.id) : null;
@@ -584,7 +584,7 @@ function viewOf(x: Spec): V {
         chat: x.chat && { ...x.chat, messages },
       },
     },
-    ui: { guild: x.shown },
+    ui: { params: { guild: x.shown } },
   } as unknown as V;
 }
 
@@ -791,7 +791,7 @@ const HAND_BUILT: [string, V][] = [
     'guilds switched off for the round: no state of guilds',
     {
       s: { me: { id: 'u_a' }, guilds: null },
-      ui: { guild: 'g1' },
+      ui: { params: { guild: 'g1' } },
     } as unknown as V,
   ],
   [
