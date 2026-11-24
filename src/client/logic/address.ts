@@ -47,9 +47,12 @@ export function addressParams(
   view: string,
   table: AddressTable,
 ): Record<string, string> {
+  // A view without parameters reads none.
+  const names = table[view];
+  if (!names) return {};
   const query = new URLSearchParams(search);
   return Object.fromEntries(
-    (table[view] ?? []).flatMap((name) => {
+    names.flatMap((name) => {
       const value = query.get(name);
       return value ? [[name, value]] : [];
     }),
