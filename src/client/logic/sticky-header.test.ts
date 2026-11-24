@@ -151,6 +151,14 @@ describe('keeping the header in view (#193)', () => {
     });
   });
 
+  it('measures from the own top of the header wherever it stands (#348)', () => {
+    // The header 40 px down the screen: still two lines, the planet choice
+    // 12 px below the top of the logo.
+    const p = page(40, 128);
+    expect(p.classes.get('head-line')).toBe(false);
+    expect(p.props.get('--head-hide')).toBe('12px');
+  });
+
   it('measures again when the header or the bar changes size', () => {
     const p = page(0, 128);
     expect(p.watchers.map(([name]) => name)).toEqual(['header', 'resources']);
