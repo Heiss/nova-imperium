@@ -550,12 +550,13 @@ describe('CI Gate', () => {
       MUTATION: 'skipped',
     };
     expect(evaluate(night).code).toBe(0);
-    for (const env of [
+    const missing: Record<string, string>[] = [
       { CODE: 'false', CHECK: 'skipped', E2E: 'skipped' },
       { IMAGE: 'false', COMPOSE: 'skipped' },
       { SITE_SOURCES: 'false', SITE: 'skipped' },
       { MUTATED: 'true' },
-    ]) {
+    ];
+    for (const env of missing) {
       const { code, out } = evaluate({ ...night, ...env });
       expect(code).toBe(1);
       expect(out).toContain('::error::The nightly run runs the unit suite');
@@ -598,7 +599,7 @@ describe('the events of ci.yml', () => {
   });
 
   it('run every night on main (#387 part 3)', () => {
-    expect(CI).toMatch(/\n  schedule:\n    - cron: '\d+ \d+ \* \* \*'\n/);
+    expect(CI).toMatch(/\n {2}schedule:\n {4}- cron: '\d+ \d+ \* \* \*'\n/);
   });
 });
 
