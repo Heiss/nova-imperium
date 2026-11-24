@@ -23,7 +23,26 @@ interface is German.
      `in progress` (you started it), `in review` (its pull request is
      ready and waits for CI or review), `in discussion` (planned for a
      later release); `feature` and `idea` give the kind.
-2. Do the first step below that applies, and only that one.
+2. Before you choose a step, check the releases by state (owner,
+   2026-11-23, for the newest tag; the rest is [V]):
+   - If `VERSION` on `main` has no tag yet, a release is being tagged
+     (`tag.yml` tags after the green push run): wait for the tag before
+     anything else. If that push run or the tag workflow failed, the
+     release is not out: treat it as red CI (root cause, fix), tell the
+     owner, and do not plan a release [V].
+   - Every release tag from 26.11.25 on needs its retrospective
+     `okf/log/*-retro-<version with dashes>.md`, on `main` or in an open
+     pull request [V]. Write the missing ones first, oldest first, each in
+     a pull request, whichever pull request released it: what cost time
+     and at most five consequences, each an issue, a guard or a rule; a
+     machine check comes before a written rule (owner, 2026-11-22). Step 1
+     finishes that pull request like any other (CI, review, merge under
+     O4) [V].
+   - Stop the loop once the release this loop run made ready is tagged and
+     its retrospective is merged; a missing retrospective of another
+     release does not stop it [V]. Open details: O25 in
+     `okf/open-points.md`.
+     Then do the first step below that applies, and only that one.
 3. When a step needs the owner, ask with the question tool inside the
    iteration: the iteration waits for the answer and goes on with it, so
    the loop never waits without a question on screen. A step that needs no
@@ -82,9 +101,11 @@ interface is German.
    typecheck, eslint and the unit tests of the changed files, prettier,
    `checkLog` and `check:migrations`, and, for a change a player sees in
    the browser, a new E2E test once to show that it fails without the
-   change; the full E2E suite, Stryker and the
-   mutation gate run in the CI. They push and report at once instead of
-   waiting for a free machine; a red CI goes back to a subagent.
+   change; the full E2E suite and the complete mutation gate run in the
+   CI. Before every push to a pull request, also the complete unit suite
+   and Stryker on every changed file of the `mutate` globs, with no
+   exception for speed (owner, 2026-11-22). They push and report at once
+   instead of waiting for a free machine; a red CI goes back to a subagent.
    Small patches are slotted in between, so that none is left for the
    release (owner, 2026-11-16 and 2026-11-18): in every iteration in
    which no own pull request is the next one to merge, take the oldest
@@ -114,7 +135,11 @@ interface is German.
    open it with its entry in the Dependency Dashboard or its pull
    request's number, its breaking changes and, if it has a pull request,
    its CI, without a status label). Then go on with the release pull
-   request. The release pull request is a draft after
+   request. Before it is made ready, ask the owner for the export of the
+   error log of the live server since the last release (the download of
+   the admin tab „Fehler“) and read it; an error of the game gets an issue
+   first, and no player name or id goes to GitHub (owner, 2026-11-22).
+   The release pull request is a draft after
    every rebuild: its cheap run checks only secrets, dependencies,
    migrations, workflows, CodeQL and the changelog, and its CI Gate is red
    on purpose (#147). Check its texts (German, matching their pull
@@ -146,7 +171,9 @@ interface is German.
    you told the owner already: tell them once more, then wait. When the
    loop is about to end (seven days, or the session) before the release is
    merged, tell the owner to start `/loop` again. Once the release pull
-   request from `release/main` is merged, **stop the loop**.
+   request from `release/main` is merged, wait for its tag, write its
+   retrospective and finish that pull request, and only then **stop the
+   loop** (item 2 above) [V].
 3. **Plan the release** when no open issue has the label `ready`,
    `in progress` or `in review` and no release pull request is open. Ask
    the owner what the release should bring:
@@ -157,6 +184,12 @@ interface is German.
    - offer 3 to 5 bundles with a recommendation and the reason;
    - give the chosen issues the label `ready` (and remove
      `in discussion`). Wait for the answer; never pick on your own.
+   - The scope of a release closes: what comes later goes to the next
+     release unless the owner says „Ausnahme“ for it; name the consequence
+     for the date each time (owner, 2026-11-22). It closes when the
+     collecting pull request is opened [V]. How you know whether an issue
+     was in the scope, and how an „Ausnahme“ is recorded, is open [U]
+     (O24); until then the coordinating session watches it.
 4. **Clarify the next open issue** with the label `ready` (infrastructure first,
    then the lowest number) while it has no comment that starts with
    `Geklärt`. Do not start while anything is unclear. Red-team your
@@ -188,9 +221,12 @@ interface is German.
    `okf/log/<date>-<short-name>.md` with the UTC time in `date` (never an
    edit of another entry; the format is in `okf/ops/website.md`). Run the cheap local checks above
    before the push after which you mark it ready, and after a merge of
-   `main` with a conflict in code; the full E2E suite and every other push
-   of a draft rely on its CI. Open it as a draft, mark it ready when CI is green, subscribe to
-   it. Write `Closes #<issue>` in the description.
+   `main` with a conflict in code; before every push the complete unit suite
+   and Stryker on the changed mutated files (step 1); the full E2E suite
+   relies on its CI. Open it as a draft, mark it ready when CI is green, subscribe to
+   it. Write `Closes #<issue>` in the description. A collecting branch
+   asks CodeRabbit at its first push: `@coderabbitai review` on the draft
+   (owner, 2026-11-22).
 
 ## Never
 

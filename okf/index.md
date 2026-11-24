@@ -76,6 +76,7 @@ okf_version: "0.2"
 * [Test strategy](/ops/testing.md) - unit, equivalence, E2E, accessibility, mutation, gates
 * [Configuration](/ops/config.md) - environment variables, secret files, fail closed
 * [Branching and release](/ops/branching-release.md) - pull requests with changelog fragments, CI Gate, release pull request, CalVer tags, hotfixes, Renovate
+* [v3](/ops/v3.md) - the foundation to main in normal releases, the features on a v3 branch released together, test features in the admin panel (#351)
 * [Release loop](/ops/loop.md) - `/loop` with `.claude/loop.md`: plan with the owner, clarify, build, make the release ready, keep it ready until the owner merges it, stop
 * [Briefs for subagents](/ops/subagent-briefs.md) - what a task for a building subagent contains, the rules to state every time, and what went wrong before
 * [Languages](/ops/language.md) - development in English, game interface in German

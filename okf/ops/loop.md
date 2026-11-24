@@ -32,7 +32,9 @@ tasks).
   issue has `ready`, `in progress` or `in review` and the release pull
   request is open; „Plan the release“ when none has those labels and no
   release pull request is open. A merged release closes the release pull
-  request, so the loop stops there and a restarted `/loop` plans next.
+  request, so the loop stops there (since 2026-11-23 after its tag and
+  its merged retrospective [V], see below) and a restarted `/loop` plans
+  next.
 * **[E]** The owner's GitHub Project (`users/Heiss/projects/5`) shows the
   status labels in its field „Status“ (owner, 2026-11-14; replaces „the
   owner filters it by the labels“): the workflow „Project status“
@@ -70,7 +72,56 @@ tasks).
   owner merges the release pull request; that is the release (owner,
   2026-11-12, [Branching and release](/ops/branching-release.md)). The loop
   **stops** once the owner has merged it, not when it has told the owner
-  (owner, 2026-11-13, #149; replaces „tells the owner and stops“).
+  (owner, 2026-11-13, #149; replaces „tells the owner and stops“); since
+  2026-11-23 only after its tag and its merged retrospective [V] (below).
+* **[E]** Before every release the loop asks the owner for the export of
+  the error log of the live server since the last release (the download
+  of the admin tab „Fehler“, [Error log](/features/error-log.md)) and
+  reads it; an error of the game gets an issue before the release pull
+  request is made ready (owner, 2026-11-22). No player name or id goes to
+  GitHub. Reason: on 2026-11-22 the export showed #362 (`each_key_duplicate`
+  on „Flotte“), which no test had found.
+* **[E]** After every release, whichever pull request released it (the
+  release pull request of `release/main`, a hotfix release pull request,
+  or a collecting pull request by the owner's exception), a short
+  retrospective as a log entry `okf/log/<date>-retro-<version>.md`, the
+  full version written with dashes (`2026-11-22-retro-26-11-25.md`): what
+  cost time, and at most five consequences, each an issue, a guard or a
+  rule; a machine check comes before a written rule (owner, 2026-11-22).
+  Every lesson gets one consequence: a rule in the OKF where it is about
+  behaviour, an issue where something has to be built (owner, 2026-11-22,
+  #351). The first one is
+  [the retrospective of 26.11.25](/log/2026-11-22-retro-26-11-25.md);
+  it exceeds the limit of five, as its consequences were decided by the
+  owner one by one before the limit was written; the limit holds from the
+  next retrospective on (owner, 2026-11-23).
+* **[E]** The missing retrospective is found by state, not by event (owner,
+  2026-11-23): at the start of every iteration, before a step is chosen,
+  the loop checks whether the newest release tag has its retrospective
+  `okf/log/*-retro-<version with dashes>.md`; if it is missing, the loop
+  writes it first, in a pull request, whichever pull request released it.
+  Reason (CodeRabbit on #380): a release merged while the loop waits
+  leaves no open release pull request, and a hotfix or a collecting pull
+  request releases without one. The refinements below are **[V]**
+  (CodeRabbit on #380, the owner is told):
+  * every release tag from 26.11.25 on (the first release under the rule
+    of 2026-11-22) needs its retrospective, on `main` or in an open pull
+    request; the missing ones are written oldest first, so two releases
+    between two loop runs both get one;
+  * the tag comes minutes after the merge: `tag.yml` tags a commit on
+    `main` or `hotfix/**` that changed `VERSION` only after its green CI
+    push run. If `VERSION` on `main` has no tag yet, a release is being
+    tagged: the loop waits for the tag before anything else. If that push
+    run or the tag workflow failed, the release is not out: the loop
+    treats it as red CI (root cause, fix), tells the owner and does not
+    plan a release;
+  * the retrospective's pull request is finished in step 1 like any open
+    pull request (CI, review, merge under O4);
+  * the stop rule (owner, 2026-11-13, #149) becomes: the loop stops once
+    the release this loop run made ready is tagged and its retrospective
+    is merged; a missing retrospective of another release does not stop
+    it.
+  * open details: O25 in [Open points](/open-points.md).
 * **[E]** The release pull request of `main` is a draft with the cheap run
   after every rebuild; its CI Gate is red on purpose (owner, 2026-11-13 and
   2026-11-14, #147, [Branching and release](/ops/branching-release.md)).
@@ -94,7 +145,8 @@ tasks).
   request, so a restarted `/loop` finds the same state on GitHub. The
   loop sees the release as the merge of the release pull request from
   `release/main` (after that merge `release-pr.sh` opens no new one,
-  `tag.yml` takes over) and stops. While the release pull request stays
+  `tag.yml` takes over) and stops (after the tag and the retrospective
+  [V], see below). While the release pull request stays
   ready and green, the loop only waits and does not repeat its message
   (#149). The owner decided this first with the milestone („stays open
   until the release is merged“); with labels the open release pull
@@ -178,7 +230,9 @@ tasks).
   gate run in the CI, so no agent waits for a free machine; a red CI goes
   back to a subagent. Reason: two agents shared one machine and waited
   hours for each other's Stryker runs, while the CI runs the same checks
-  anyway.
+  anyway. Since 2026-11-22 the complete unit suite and Stryker on every
+  changed mutated file run before every push to a pull request as well
+  (the rule „Before every push“ below).
 * **[E]** Small patches are slotted in between features (owner,
   2026-11-16): the main agent merges Renovate's green patch and minor pull
   requests (one at a time, CI Gate green on a head up to date with `main`;
@@ -245,7 +299,19 @@ tasks).
   out-of-memory stop of 2026-11-15 came from Stryker and E2E of two agents
   at once), a few more red draft runs. Since 2026-11-17 the cheap local
   checks above replace `pnpm check` and the relevant E2E tests; the full
-  E2E suite runs in the CI.
+  E2E suite runs in the CI. Since 2026-11-22 every push to a pull request
+  also runs the complete unit suite and Stryker on every changed mutated
+  file (the next rule).
+* **[E]** Before every push to a pull request: the complete unit suite and
+  Stryker on every changed file of the `mutate` globs, with no exception
+  for speed (owner, 2026-11-22). **[V]** A changed test file counts for
+  the mutated source of the same name, as the CI chooses the files
+  ([Mutation runs of a pull request](/ops/testing/mutation-partial.md)).
+  Reason: on 2026-11-22 the coordinator told the build session to skip the
+  local Stryker runs for speed, and the complete CI run of #347 then
+  refused `src/client/logic/settings-draft.ts` (92 %): one run of two
+  hours lost. Replaces the rule „Local Stryker runs before a push only for
+  changed logic files close to their floor“ (2026-11-12).
 * **[E]** Saving usage (owner, 2026-11-15; the weekly limit stood at 94 %
   on 2026-11-15): an event that needs nothing (a bot edited a comment,
   CodeRabbit skipped a review, an own reply) gets no tool call and at most
@@ -256,7 +322,8 @@ tasks).
   weekly usage it can see, or „not visible“, to the log entry of its next
   pull request, never in a pull request of its own [U: whether a session
   can read its usage other than from a notice is not checked].
-* **[E]** Local Stryker runs before a push only for changed logic files whose
+* **[E]** (Replaced on 2026-11-22 by „Before every push to a pull
+  request“ above.) Local Stryker runs before a push only for changed logic files whose
   score is less than about 2 points above their floor in
   `mutation-floors.txt` (for example `economy.ts`, `settle.ts`,
   `actions.ts`); data and interface files such as `catalog.ts` or
@@ -293,7 +360,8 @@ tasks).
   is marked ready. Every push cancels the running CI and starts all jobs
   again (owner, 2026-11-12).
 * **[V]** Guards from loop engineering practice: a stop condition a machine
-  can check (release pull request merged), the state read
+  can check (release pull request merged, then its tag and its
+  retrospective), the state read
   fresh in every iteration, small reviewable steps, tests never weakened,
   and a hand-back to the owner after two failed attempts at one problem.
 * **[V]** While the loop waits on CI or a review it wakes every 20 to 30
