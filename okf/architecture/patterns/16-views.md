@@ -1,7 +1,7 @@
 ---
 type: Architecture
 title: '16. Svelte views register themselves'
-description: 'A view exports clientViews (key, mount or html, anew or fresh, menu entry, glyph, tab) from its own module; mount.ts and index.ts name no view (#317, #352).'
+description: 'A view exports clientViews (key, mount or html, anew or fresh, menu entry, glyph, tab, offered) from its own module; mount.ts, index.ts and the navigation name no view (#317, #352, #373).'
 ---
 
 # 16. Svelte views register themselves (#317)
@@ -13,7 +13,7 @@ description: 'A view exports clientViews (key, mount or html, anew or fresh, men
   `ClientView` (`contract.ts`): `key`, `mount` (a Svelte view) or `html` (a
   view still drawn as a string), `anew` (mounted anew on every render) or
   `fresh` (mounted anew by a fresh render only, see below),
-  `menu` (`order`, `label`, `show`, `divider`), `glyph` and `tab`. The
+  `menu` (`order`, `label`, `divider`), `glyph`, `tab` and `offered`. The
   menu order of today is data: the entries stand at 10 to 180 (see `MenuItem`
   in `contract.ts`), the tabs of a phone at 10 to 40. The list is the
   git-ignored `views.gen.ts` (`CLIENT_VIEWS`); `assemble.ts` puts the modules
@@ -28,6 +28,22 @@ description: 'A view exports clientViews (key, mount or html, anew or fresh, men
   glyph helper is `glyph.ts`. The menu, the labels, the glyphs and the tabs
   stay as they were (`index.test.ts` and `frame-reference.test.ts` check it).
 
+* **[E]** Whether a view is offered is one rule on the view (#373; owner,
+  2026-11-22, #351: a refactor of the v3 foundation without a change of
+  behaviour, in a normal release). **[V]** The member `offered(round,
+  admin)` of `ClientView` (default: always), put together by
+  `assembleOffered` and asked through `offered()` of `views/offered.ts`: a
+  view that is not offered has no menu entry (`menu()`), no tab
+  (`phoneMenu()` drops a tab without a menu entry), no address
+  (`hiddenView()` of `logic/navigation.ts`, so `gameView()` sends it to the
+  overview) and is not mounted (`mountView()` falls back to the overview).
+  Before the first state every view is open, as before. It replaces
+  `MenuItem.show` and the names admin, achievements and guilds that
+  `hiddenView()` kept by hand; „Admin“ (`admin`), „Gilden“ (`round.guilds`,
+  #191) and „Achievements“ (`round.achievements || round.daily`) carry their
+  rule. `registry.test.ts` checks for every view and round that the menu,
+  the tabs and the address follow the rule, and that the navigation, the
+  address, the mount and `index.ts` name none of these views.
 * **[V]** A view mounted anew on every render loses the selection and the
   caret of a field the player is editing: the field is a new element, and
   `render.ts` gives the focus back by id only (#352; a selected number typed

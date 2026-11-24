@@ -2,7 +2,7 @@
 // A view key, a menu number, a tab number or a glyph defined twice stops the
 // start with both files named, so no view silently replaces another.
 import type { V } from './common.ts';
-import type { ClientView, MenuItem, Mount, Tab } from './contract.ts';
+import type { ClientView, MenuItem, Mount, Offered, Tab } from './contract.ts';
 
 /** The modules as the generated list gives them: `[name in this folder, clientViews]`. */
 export type Listed = readonly (readonly [string, readonly ClientView[]])[];
@@ -125,5 +125,14 @@ export const assembleGlyphs = (listed: Listed): Record<string, string> =>
     collect(
       'glyph',
       declared(listed, 'glyph').map((d) => [d.view.key, d.file, d.value]),
+    ),
+  );
+
+/** The rules of the views that are not always offered, by view key (#373). */
+export const assembleOffered = (listed: Listed): Record<string, Offered> =>
+  record(
+    collect(
+      'offered',
+      declared(listed, 'offered').map((d) => [d.view.key, d.file, d.value]),
     ),
   );

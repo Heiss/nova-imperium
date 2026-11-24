@@ -48,6 +48,8 @@ export const clientViews = [
     key: 'guilds',
     mount: mountGuilds,
     fresh: true,
-    menu: { order: 120, label: 'Gilden', show: (round) => round.guilds },
+    // No guild view in a round with guilds off (#191).
+    offered: (round) => round.guilds,
+    menu: { order: 120, label: 'Gilden' },
   },
 ] satisfies readonly ClientView[];

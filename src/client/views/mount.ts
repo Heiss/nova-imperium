@@ -5,6 +5,7 @@
 import type { V } from './common.ts';
 import { assembleMounts } from './assemble.ts';
 import type { Mounted } from './contract.ts';
+import { offered } from './offered.ts';
 import { CLIENT_VIEWS } from './views.gen.ts';
 
 export type { Mounted };
@@ -32,8 +33,11 @@ export const mountsAnew = (
   list: boolean,
 ): boolean => ANEW.has(view) || (fresh && (list || FRESH.has(view)));
 
-/** Mounts the component of the view; any other view gets the overview. */
+/** Mounts the component of the view; any other view, or one not offered (#373), gets the overview. */
 export function mountView(view: string, target: HTMLElement, v: V): Mounted {
-  const name = Object.hasOwn(MOUNT, view) ? view : 'overview';
+  const name =
+    Object.hasOwn(MOUNT, view) && offered(view, v.s.round, v.s.me.admin)
+      ? view
+      : 'overview';
   return { view: name, ...MOUNT[name]!(target, v) };
 }
