@@ -243,9 +243,209 @@ const LISTS: Record<string, Record<string, Verdict>> = {
   'UnitTable.svelte': { i: index },
 };
 
-/** The keys of every `{#each}` block of a Svelte source; null for a block without a key. */
-function eachKeys(source: string): (string | null)[] {
-  const keys: (string | null)[] = [];
+/**
+ * Every loop by component, as its head reads (collection, item and key),
+ * once per loop: a component with two equal loops names it twice. A new
+ * loop fails until it is added here, also when its key is judged above, and
+ * a loop that is gone fails too (CodeRabbit on #395).
+ */
+const LOOPS: Record<string, string[]> = {
+  'Achievements.svelte': [
+    'page.list.filter.categories as choice (choice.key)',
+    'page.list.filter.statuses as choice (choice.key)',
+    'page.list.groups as group (group.status)',
+    'group.rows as row (row.id)',
+  ],
+  'Admin.svelte': [
+    'rows as row (`${page?.settings.owner}/${row.key}`)',
+    'row.choices as choice (choice.value)',
+    'page.tabs as tab (tab.key)',
+    'page.settings.sections as section, i (section.heading ?? i)',
+  ],
+  'AdminBotCheck.svelte': ['check.lines as line (line)'],
+  'AdminDiagnostics.svelte': [
+    'Object.entries(players) as [id, p] (id)',
+    'outcomes as [value, label] (value)',
+    'limits as limit (limit)',
+  ],
+  'AdminErrors.svelte': [
+    'kinds as [value, label] (value)',
+    'limits as limit (limit)',
+  ],
+  'AdminTable.svelte': [
+    'table.headers as header (header)',
+    'table.rows as row, r (r)',
+    'row as cell, c (c)',
+    'e.references as id, i (i)',
+  ],
+  'Auth.svelte': ['page.galaxies as galaxy (galaxy)'],
+  'BattleReport.svelte': [
+    'body.sides as side, i (i)',
+    'body.lines as line, i (i)',
+  ],
+  'CatalogList.svelte': [
+    'SEGMENTS as seg (seg.view)',
+    'page.places as place (place.id)',
+    'page.queue as order, i (i)',
+    'FILTERS as f (f.key)',
+    'page.rows as row (row.key)',
+    'row.lines as line, i (i)',
+  ],
+  'ChatLog.svelte': ['log.lines as line (line.id)'],
+  'Cost.svelte': ['parts as x (x.key)'],
+  'Fleet.svelte': [
+    'page.unions.unions as union (union.id)',
+    'page.unions.open as attack (attack.id)',
+    'page.ships as ship (ship.key)',
+    'form.quick as place (place.id)',
+    'choice.missions as option (option.value)',
+    'form.unions as union (union.value)',
+    'HOLD_HOURS as hours (hours)',
+    'SPEEDS as speed (speed.value)',
+    'CARGO_FIELDS as field, i (field.key)',
+    'page.jump.targets as place (place.value)',
+  ],
+  'FleetMoves.svelte': ['fleets as fleet (fleet.id)'],
+  'FleetText.svelte': ['parts as part, i (i)'],
+  'Friends.svelte': [
+    'page.rows as friend (friend.id)',
+    'page.incoming as player (player.id)',
+    'page.outgoing as player (player.id)',
+  ],
+  'Galaxy.svelte': [
+    'list as a, i (i)',
+    'list as mark, i (i)',
+    'page.scan.flights as flight, i (i)',
+    'page.rows as row (row.position)',
+    'sheet.actions as a, i (i)',
+  ],
+  'GuildDialogs.svelte': ['dialog.ranks as rank (rank.id)'],
+  'GuildMembers.svelte': [
+    'roster.rows as row (row.id)',
+    'controls.assign.options as option (option.id)',
+  ],
+  'GuildRanks.svelte': [
+    'ranks.entries as rank (rank.id)',
+    'editor.boxes as box (box.right)',
+    'rank.rights as text (text)',
+  ],
+  'Guilds.svelte': [
+    'page.rows as row (row.id)',
+    'management.applications as applicant (applicant.id)',
+  ],
+  'Header.svelte': ['line.places as place (place.id)'],
+  'Highscore.svelte': [
+    'page.buttons as button (button.key)',
+    'page.rows as row (row.id)',
+  ],
+  'LevelTable.svelte': [
+    'table.effects as head (head.label)',
+    'table.rows as row (row.level)',
+    'table.effects as head, i (head.label)',
+    'table.notes as note (note)',
+  ],
+  'LexicanumArticle.svelte': [
+    'article.intro as text, i (i)',
+    'article.lines as line, i (i)',
+    'article.sections as section (section.id)',
+    'section.blocks as block, i (i)',
+    'block.lines as line, j (j)',
+    'block.items as chip, j (j)',
+    'block.items as fact, j (j)',
+    'block.items as link (link.id)',
+    'block.head as head, j (j)',
+    'block.rows as row, j (j)',
+    'row.cells as c, k (k)',
+  ],
+  'LexicanumPage.svelte': [
+    'list as item (item.id)',
+    'crumbs(p) as crumb, i (i)',
+    'p.boxes as box (box.kind)',
+    'p.tiles as tile (tile.id)',
+    'p.article.sections as section (section.id)',
+    'p.article.siblings as sibling (sibling.id)',
+  ],
+  'LexicanumSearch.svelte': [
+    'groups as group (group.kind)',
+    'group.hits as hit (hit.id)',
+  ],
+  'LexicanumText.svelte': ['parts as part, i (i)'],
+  'Market.svelte': ['TRADED as r (r)', 'targets(shown.give) as r (r)'],
+  'MarketPreview.svelte': ['p.lines as line, i (i)'],
+  'Menu.svelte': ['nav.menu as item, i (i)'],
+  'Messages.svelte': [
+    'page.rows as report (report.id)',
+    'report.body.lines as line, i (i)',
+  ],
+  'MessagesTabs.svelte': ['tabs as key (key)'],
+  'MoreList.svelte': ['nav.more as link (link.view)'],
+  'News.svelte': [
+    'page.versions as version, v (v)',
+    'version.groups as group (group.label)',
+    'group.items as item, i (i)',
+  ],
+  'Options.svelte': [
+    'OPTION_SECTIONS as s (s.key)',
+    'page.explain as choice (choice.value)',
+    'page.levels as choice (choice.value)',
+    'page.main.options as option (option.id)',
+    'page.pushKinds as kind (kind.topic)',
+  ],
+  'Overview.svelte': [
+    'page.held as fleet (fleet.id)',
+    'page.activities as row (row.label)',
+  ],
+  'OverviewCards.svelte': [
+    'cards.running as item (item.label)',
+    'cards.attention as item (item.key)',
+    'cards.ready as item (item.key)',
+  ],
+  'PmCompose.svelte': ['names as name (name)'],
+  'PmInbox.svelte': ['page.inbox as row (row.key)'],
+  'PmSent.svelte': ['list.rows as row (row.id)'],
+  'PmSettings.svelte': ['blocked as who (who)'],
+  'PmThread.svelte': ['lines as line (line.id)'],
+  'ProducerTable.svelte': [
+    'COLUMNS as column (column)',
+    'SHARES as x (x)',
+    'COLUMNS as column (column)',
+    'table.rows as row (row.key)',
+  ],
+  'Requirements.svelte': ['needs as { n, st, energy } (`${n.kind}:${n.key}`)'],
+  'ResourceBar.svelte': ['bar.cells as cell (cell.icon)'],
+  'RoundArchive.svelte': [
+    'list as [name, value] (name)',
+    'who.places as place (place.where)',
+    'report.categories as category (category.key)',
+    'report.rows as row (row.place)',
+    'report.guilds as guild (guild.name)',
+    'report.rules as rule (rule)',
+    'body.rounds as round (round.number)',
+    'body.history as h (h.number)',
+  ],
+  'RoundDialog.svelte': [
+    'f.choices as choice (choice.value)',
+    'rows as row, i (i)',
+    'row.members as member (member.field.id)',
+    'page.sections as section, i (section.heading ?? i)',
+    'page.rows as row, i (i)',
+  ],
+  'RoundRewind.svelte': [
+    'page.cards as c, i (c.key)',
+    'card.lines as line (line)',
+  ],
+  'SpyReport.svelte': [
+    'body.sections as section (section.title)',
+    'section.entries as entry, i (i)',
+  ],
+  'SurveyReport.svelte': ['body.rows as [label, value] (label)'],
+  'TabBar.svelte': ['nav.tabs as link (link.view)'],
+  'UnitTable.svelte': ['rows as row, i (i)'],
+};
+
+/** The heads of every `{#each}` block of a Svelte source (collection, item, key), in order. */
+function eachHeads(source: string): string[] {
+  const heads: string[] = [];
   for (let at = source.indexOf('{#each'); at !== -1;) {
     let depth = 0;
     let end = at;
@@ -253,11 +453,20 @@ function eachKeys(source: string): (string | null)[] {
       if (source[end] === '{') depth++;
       else if (source[end] === '}' && --depth === 0) break;
     }
-    keys.push(keyOf(source.slice(at + '{#each'.length, end)));
+    heads.push(
+      source
+        .slice(at + '{#each'.length, end)
+        .replace(/\s+/g, ' ')
+        .trim(),
+    );
     at = source.indexOf('{#each', end);
   }
-  return keys;
+  return heads;
 }
+
+/** The keys of every `{#each}` block of a Svelte source; null for a block without a key. */
+const eachKeys = (source: string): (string | null)[] =>
+  eachHeads(source).map(keyOf);
 
 /** The key of the head of an `{#each}` block: its last parenthesis after ` as `. */
 function keyOf(head: string): string | null {
@@ -283,14 +492,41 @@ function svelteFiles(dir: string): string[] {
     .sort();
 }
 
-/** The keyed lists of the tree: component name and key. */
-function found(): { file: string; key: string | null }[] {
+/** The loops of the tree: component name, head and key. */
+function found(): { file: string; head: string; key: string | null }[] {
   return svelteFiles(ROOT).flatMap((f) =>
-    eachKeys(readFileSync(path.join(ROOT, f), 'utf8')).map((key) => ({
+    eachHeads(readFileSync(path.join(ROOT, f), 'utf8')).map((head) => ({
       file: path.basename(f),
-      key,
+      head,
+      key: keyOf(head),
     })),
   );
+}
+
+/**
+ * The loops of <now> that <census> does not name, and those it names that
+ * <now> lacks, each as „component: head“; a head counts as often as it
+ * stands.
+ */
+function censusDiff(
+  now: readonly { file: string; head: string }[],
+  census: Readonly<Record<string, readonly string[]>>,
+): { added: string[]; gone: string[] } {
+  const left = new Map<string, number>();
+  for (const [file, heads] of Object.entries(census))
+    for (const head of heads) {
+      const id = `${file}: ${head}`;
+      left.set(id, (left.get(id) ?? 0) + 1);
+    }
+  const added: string[] = [];
+  for (const { file, head } of now) {
+    const id = `${file}: ${head}`;
+    const n = left.get(id) ?? 0;
+    if (n > 0) left.set(id, n - 1);
+    else added.push(id);
+  }
+  const gone = [...left].flatMap(([id, n]) => Array<string>(n).fill(id));
+  return { added, gone };
 }
 
 describe('the keyed lists of the views (#369)', () => {
@@ -300,6 +536,35 @@ describe('the keyed lists of the views (#369)', () => {
         '{#each rows as row (`${a}/${row.key}`)}x{/each}{#each needs as { n, st } (`${n.kind}:${n.key}`)}y{/each}{#each list as i}z{/each}{#each xs as x, i (i)}{/each}',
       ),
     ).toEqual(['`${a}/${row.key}`', '`${n.kind}:${n.key}`', null, 'i']);
+  });
+
+  it('are each in the census of the loops, as often as they stand (CodeRabbit on #395)', () => {
+    expect(censusDiff(found(), LOOPS)).toEqual({ added: [], gone: [] });
+  });
+
+  it('fail for an added loop with a key already judged, and for a removed loop', () => {
+    const now = found();
+    const twice = [
+      ...now,
+      { file: 'Achievements.svelte', head: 'other.rows as row (row.id)' },
+    ];
+    expect(censusDiff(twice, LOOPS).added).toEqual([
+      'Achievements.svelte: other.rows as row (row.id)',
+    ]);
+    const cards = now.filter((l) => l.file === 'OverviewCards.svelte');
+    const without = now.filter(
+      (l) => l !== cards.find((c) => c.key === 'item.key'),
+    );
+    expect(censusDiff(without, LOOPS).gone).toEqual([
+      `OverviewCards.svelte: ${cards.find((c) => c.key === 'item.key')!.head}`,
+    ]);
+    // An equal loop a second time counts too.
+    const columns = now.find(
+      (l) => l.file === 'ProducerTable.svelte' && l.key === 'column',
+    )!;
+    expect(censusDiff([...now, columns], LOOPS).added).toEqual([
+      `ProducerTable.svelte: ${columns.head}`,
+    ]);
   });
 
   it('are all keyed', () => {
