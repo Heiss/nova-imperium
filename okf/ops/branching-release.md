@@ -498,7 +498,14 @@ and one CI run (26.11.24; #347 for 26.11.25).
   and marks it ready only when no released hotfix waits and no other
   release branch holds its version, and sets it back to draft when a
   rebuild fails after its push): its release would drop the fix from
-  `stable`. After every hotfix release, `tag.yml`
+  `stable`. **[V]** (coordinator, 2026-11-24; CodeRabbit on #395: the
+  draft is best effort) The CI of a release head refuses the same on every
+  push to it: „Detect changes“ runs `sh scripts/release-pr.sh check`, the
+  checks of `release-pr.sh` itself (no copy), and fails while a released
+  hotfix is not merged back (base `main`), while another release branch
+  holds its version or while its version is a tag already; the CI Gate
+  requires „Detect changes“. Once the hotfix is merged back and the release
+  head rebuilt, it passes again (`src/test/release-guards.test.ts`). After every hotfix release, `tag.yml`
   rebuilds the release pull request of `main`, so its version is newer than
   the hotfix and its release becomes `stable` again.
 * **[E]** The id is a hash of the fixed packages and the base image holes, so

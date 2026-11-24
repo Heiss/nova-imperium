@@ -12,6 +12,13 @@
 # expensive job, and merging it is the release (#387). It is no draft, except
 # while a released hotfix is not merged back or another release branch holds
 # its version: a draft cannot be merged [V].
+#
+#   sh scripts/release-pr.sh check
+#        the CI of a release head (release/<BASE>, every push to it): refuses
+#        a version another release branch or a tag already holds, and for
+#        main a released hotfix that is not merged back, so the CI Gate
+#        itself refuses what the draft only marks (CodeRabbit on #395). It
+#        reads the refs of the checkout and changes nothing.
 set -eu
 
 fail() {
@@ -25,6 +32,52 @@ case "$base" in
   *) fail "Releases come from main or hotfix/*, not $base." ;;
 esac
 branch="release/$base"
+
+# The release branch other than ours that holds <version> in its VERSION.
+taken_by() {
+  for ref in $(git for-each-ref --format='%(refname)' refs/remotes/origin/release/); do
+    [ "$ref" = "refs/remotes/origin/$branch" ] && continue
+    if [ "$(git show "$ref:VERSION" 2> /dev/null | tr -d '[:space:]')" = "$1" ]; then
+      printf '%s\n' "${ref#refs/remotes/origin/}"
+      return
+    fi
+  done
+}
+
+# The released hotfix branches whose release is not in HEAD yet, for main:
+# releasing main now would drop their fixes from stable (owner, 2026-11-12).
+unmerged_hotfixes() {
+  [ "$base" = main ] || return 0
+  for ref in $(git for-each-ref --format='%(refname:short)' refs/remotes/origin/hotfix/); do
+    t=$(git describe --tags --abbrev=0 --match '[0-9]*.[0-9]*.[0-9]*' "$ref" 2> /dev/null) || continue
+    # Merged back: the tag is part of HEAD, or (squash merge) VERSION held it.
+    git merge-base --is-ancestor "$t" HEAD && continue
+    [ -n "$(git log -1 --format=%H -G "^$(printf '%s' "$t" | sed 's/[.]/[.]/g')\$" HEAD -- VERSION)" ] && continue
+    printf ' %s' "${ref#origin/}"
+  done
+}
+
+if [ "${1:-}" = check ]; then
+  version=$(tr -d '[:space:]' < VERSION)
+  refused=
+  if [ -n "$(git tag --list "$version")" ]; then
+    printf '::error::%s is a release already (tag %s).\n' "$version" "$version"
+    refused=1
+  fi
+  other=$(taken_by "$version")
+  if [ -n "$other" ]; then
+    printf '::error::%s holds %s too.\n' "$other" "$version"
+    refused=1
+  fi
+  unmerged=$(unmerged_hotfixes)
+  if [ -n "$unmerged" ]; then
+    printf '::error::Released hotfix not in %s yet:%s; this release would drop its fix from stable.\n' "$base" "$unmerged"
+    refused=1
+  fi
+  [ -z "$refused" ] || exit 1
+  printf 'Release head of %s: %s is free and no released hotfix waits.\n' "$base" "$version"
+  exit 0
+fi
 
 # The merge of a release pull request itself: tag.yml takes over. A hotfix
 # merged back into main also changes VERSION, but to a version that is
@@ -71,17 +124,11 @@ git -c user.name='Nova Imperium Release' \
 # Release pull requests of main and of a hotfix are rebuilt by separate runs;
 # two runs at the same moment could pick the same version. Checked before the
 # push, and again after it for a run that pushed in between.
-taken_by() {
+fetch_releases() {
   git fetch --quiet origin '+refs/heads/release/*:refs/remotes/origin/release/*'
-  for ref in $(git for-each-ref --format='%(refname)' refs/remotes/origin/release/); do
-    [ "$ref" = "refs/remotes/origin/$branch" ] && continue
-    if [ "$(git show "$ref:VERSION" 2> /dev/null | tr -d '[:space:]')" = "$version" ]; then
-      printf '%s\n' "${ref#refs/remotes/origin/}"
-      return
-    fi
-  done
 }
-other=$(taken_by)
+fetch_releases
+other=$(taken_by "$version")
 [ -z "$other" ] || fail "$other holds $version too: run this workflow again."
 # From the push on, a pull request that was ready gets the new head: when
 # this run fails after it, the pull request goes back to draft, so it is not
@@ -95,21 +142,13 @@ draft_on_failure() {
 }
 trap draft_on_failure EXIT
 git push --quiet --force origin "HEAD:refs/heads/$branch"
-other=$(taken_by)
+fetch_releases
+other=$(taken_by "$version")
 
-# A released hotfix that is not merged back yet: releasing main now would
-# drop its fix from stable (owner, 2026-11-12). The pull request is a draft
-# until the hotfix branch is merged into main [V].
-unmerged=
-if [ "$base" = main ]; then
-  for ref in $(git for-each-ref --format='%(refname:short)' refs/remotes/origin/hotfix/); do
-    t=$(git describe --tags --abbrev=0 --match '[0-9]*.[0-9]*.[0-9]*' "$ref" 2> /dev/null) || continue
-    # Merged back: the tag is part of HEAD, or (squash merge) VERSION held it.
-    git merge-base --is-ancestor "$t" HEAD && continue
-    [ -n "$(git log -1 --format=%H -G "^$(printf '%s' "$t" | sed 's/[.]/[.]/g')\$" HEAD -- VERSION)" ] && continue
-    unmerged="$unmerged ${ref#origin/}"
-  done
-fi
+# A released hotfix that is not merged back yet: the pull request is a draft
+# until the hotfix branch is merged into main [V]; the CI of the release head
+# refuses it too (check above).
+unmerged=$(unmerged_hotfixes)
 
 # Written into the body while a released hotfix is not merged back.
 unmerged_marker='<!-- release-pr: unmerged-hotfix -->'
