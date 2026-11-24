@@ -73,7 +73,8 @@ bullets they replace below are marked.
   `release.yml` scans the freshly built release image `<version>` with
   Trivy (High and Critical holes that have a fix, the same severity the
   release pull request used before #387) in its job „Trivy of the release
-  image“ before the job „latest and stable“ moves the aliases. A finding
+  image“, each published platform (`linux/amd64`, `linux/arm64`) on its own
+  (CodeRabbit on #395), before the job „latest and stable“ moves the aliases. A finding
   stops the aliases (they stay on the previous release), the run fails
   visibly, and the loop tells the owner. The tag and the `<version>` image
   stay as they are.
@@ -312,7 +313,10 @@ and one CI run (26.11.24; #347 for 26.11.25).
   when the hotfix changes what they test (owner, 2026-11-13, #146), so a
   hotfix with code in `src/` runs them, and one with only dependency or
   `Dockerfile` changes (as a rule a security hotfix) does not; every other
-  check still runs, and every push to `hotfix/**` runs the mutation jobs.
+  check still runs. A push to `hotfix/**` runs the mutation jobs unless the
+  complete mutation run already succeeded on the identical tree in the green
+  CI run of the pull request it merged (the proofs of #342, below); a run of
+  the changed files only is no proof (CodeRabbit on #395).
   See [Test strategy](/ops/testing.md). **[E, replaced by #387 on
   2026-11-23]** What this rule said of the release pull requests: the one of
   a hotfix branch compared with its release tag and kept its automatic full
@@ -490,8 +494,11 @@ and one CI run (26.11.24; #347 for 26.11.25).
   owner merges `hotfix/sec-*` back into `main`; `tag.yml` opens that pull
   request. While a released hotfix is not merged back, the release pull
   request of `main` stays a draft (`scripts/release-pr.sh`; its body says
-  so, and „Release ready“ refuses „Ready for review“, #147): its release
-  would drop the fix from `stable`. After every hotfix release, `tag.yml`
+  so with its marker, #147; since #387 the same run creates it as a draft
+  and marks it ready only when no released hotfix waits and no other
+  release branch holds its version, and sets it back to draft when a
+  rebuild fails after its push): its release would drop the fix from
+  `stable`. After every hotfix release, `tag.yml`
   rebuilds the release pull request of `main`, so its version is newer than
   the hotfix and its release becomes `stable` again.
 * **[E]** The id is a hash of the fixed packages and the base image holes, so
@@ -513,8 +520,10 @@ and one CI run (26.11.24; #347 for 26.11.25).
   a fix is still in the new image, the Trivy gate of the CI blocks the fix
   pull request (see below), so the hotfix does not release; the open fix
   pull request keeps later scans waiting, and the owner decides; nothing is
-  retried automatically. The CI and the scan see only the `amd64` image, so
-  a hole left only in the `arm64` image is not caught. The job fails only when `package.json`,
+  retried automatically. The CI and the hourly scan see only the `amd64`
+  image, so a hole left only in the `arm64` image is not caught there; the
+  scan of the release image in `release.yml` checks both platforms before
+  the aliases move (79a; CodeRabbit on #395). The job fails only when `package.json`,
   `pnpm-lock.yaml` and `Dockerfile` stay as in the release.
 * **[E]** A release older than the release pull request (26.11.18 and
   older, no `scripts/release-pr.sh`) gets no automatic hotfix: its hotfix
@@ -524,10 +533,14 @@ and one CI run (26.11.24; #347 for 26.11.25).
   first scan on 2026-11-12 found two High holes in `zlib1g` of the base
   image of 26.11.18 (issue #97).
 * **[E]** What goes out as a release is checked before it goes out (owner,
-  2026-11-12, CodeRabbit security finding on pull request #105): in a
-  release pull request, a pull request into `hotfix/**` and a push to
-  `hotfix/**`, Trivy in the CI blocks every High and Critical hole with a
-  fix. Other pull requests block only on the Critical holes they bring in:
+  2026-11-12, CodeRabbit security finding on pull request #105): in a pull
+  request into `hotfix/**` and a push to `hotfix/**`, Trivy in the CI blocks
+  every High and Critical hole with a fix. **[E, replaced by #387 and 79a
+  on 2026-11-24]** The release pull request did the same; it builds no image
+  since #387. Instead `release.yml` scans the freshly built release image,
+  each platform, for every High and Critical hole with a fix before the
+  aliases move (79a, above); a finding fails the run and leaves `latest` and
+  `stable` on the previous release. Other pull requests block only on the Critical holes they bring in:
   the CI also builds and scans the image of the base branch and leaves out
   what is there already (`scripts/trivy-gate.ts`), so two Renovate pull
   requests that each fix one of two holes do not block each other (owner,

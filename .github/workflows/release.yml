@@ -119,12 +119,18 @@ jobs:
   # (owner, 2026-11-24, 79a). A finding fails this run visibly and stops
   # the aliases below: latest and stable stay on the previous release; the
   # tag and the image <version> stay as they are, and the loop tells the
-  # owner.
+  # owner. Each published platform is scanned on its own: a hole of the arm64
+  # image only must stop the aliases too (CodeRabbit on #395).
   scan:
-    name: Trivy of the release image
+    name: Trivy of the release image (${{ matrix.platform }})
     needs: image
     if: needs.image.outputs.publish == 'true'
     runs-on: ubuntu-latest
+    strategy:
+      # Both platforms report their holes; either one stops the aliases.
+      fail-fast: false
+      matrix:
+        platform: [linux/amd64, linux/arm64]
     permissions:
       contents: read
       packages: read # GHCR
@@ -148,11 +154,13 @@ jobs:
         env:
           IMAGE: ${{ needs.image.outputs.image }}
           TAG: ${{ needs.image.outputs.tag }}
+          PLATFORM: ${{ matrix.platform }}
         run: |
-          docker pull "$IMAGE:$TAG"
+          # The image of this platform only; it is scanned, not run.
+          docker pull --platform "$PLATFORM" "$IMAGE:$TAG"
           docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v "$PWD:/out" \
             aquasec/trivy:0.76.2@sha256:8f6bb947dbc528902e11f2f5be52f7b519f6a39d5d148f41166f2040499768fb \
-            image --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --format json \
+            image --platform "$PLATFORM" --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --format json \
             --output /out/trivy-image.json --no-progress "$IMAGE:$TAG"
           node scripts/trivy-gate.ts trivy-image.json
 

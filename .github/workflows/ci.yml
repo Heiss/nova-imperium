@@ -638,8 +638,8 @@ jobs:
       # Trivy gate (owner, 2026-11-12), holes with a fix only. What goes out
       # as a release from a hotfix branch (a pull request into or a push to
       # hotfix/**) blocks on every High and Critical hole; a release pull
-      # request builds no image since #387 (the open point of the strict
-      # scan of a release of main: okf/ops/branching-release.md). Every other
+      # request builds no image since #387: release.yml scans the release
+      # image before the aliases move (79a). Every other
       # run blocks on Critical; a pull request only on the Critical holes
       # it brings in: the image of its base branch is scanned too, so two
       # Renovate pull requests that each fix one of two holes do not block
@@ -730,8 +730,8 @@ jobs:
   # existing databases would skip it silently. A new migration sorts after
   # the newest migration of the last release (#213, owner, 2026-11-16).
   # Compares the checked-out change (the merge result of a pull request)
-  # with the base of the pull request, or a push to main with the previous
-  # tip of main, and with the last release tag (the newest of all refs; on a
+  # with the base of the pull request, a push to main with the previous
+  # tip of main, the nightly run with itself, and with the last release tag (the newest of all refs; on a
   # hotfix branch its own, and no new migration, O19). Runs for every change.
   migrations:
     name: Migrations append-only
@@ -750,7 +750,15 @@ jobs:
           BASE_REF: ${{ github.base_ref }}
           CREATED: ${{ github.event.created }}
           REF: ${{ github.ref }}
+          EVENT: ${{ github.event_name }}
         run: |
+          # The nightly run has no previous tip: its tree against itself (no
+          # migration added or changed since) and, below, against the last
+          # release tag, which is the check that matters then (CodeRabbit on
+          # #395).
+          if [ "$EVENT" = "schedule" ]; then
+            BASE=$GITHUB_SHA
+          fi
           # A new hotfix branch has no previous tip: compare it with the
           # release tag it starts from, so commits pushed with it count.
           if [ "$CREATED" = "true" ] && [ "${REF#refs/heads/hotfix/}" != "$REF" ]; then

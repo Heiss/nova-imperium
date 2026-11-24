@@ -834,6 +834,14 @@ describe('the scan of the release image (owner, 2026-11-24, 79a)', () => {
     expect(scan).toContain("if: needs.image.outputs.publish == 'true'");
     expect(scan).toContain('--severity HIGH,CRITICAL --ignore-unfixed');
     expect(scan).toContain('"$IMAGE:$TAG"');
+    // Every published platform on its own (CodeRabbit on #395).
+    const platforms = /platforms: (\S+)/.exec(job('image'))![1]!.split(',');
+    expect(platforms.length).toBeGreaterThan(1);
+    expect(scan).toContain(`        platform: [${platforms.join(', ')}]\n`);
+    expect(scan).toContain('      fail-fast: false\n');
+    expect(scan).toContain('docker pull --platform "$PLATFORM" "$IMAGE:$TAG"');
+    expect(scan).toContain('image --platform "$PLATFORM" --scanners vuln');
+    expect(scan).toContain('PLATFORM: ${{ matrix.platform }}');
     expect(scan).toContain('node scripts/trivy-gate.ts trivy-image.json\n');
     expect(job('image')).toContain('tag: ${{ steps.v.outputs.tag }}');
   });
@@ -854,5 +862,92 @@ describe('the scan of the release image (owner, 2026-11-24, 79a)', () => {
     expect(aliases.indexOf('"$newest" != "$TAG"')).toBeLessThan(
       aliases.indexOf('imagetools create'),
     );
+  });
+});
+
+describe('„Migrations append-only“ in every kind of run (CodeRabbit on #395)', () => {
+  /** The run script of the step „Released migrations are unchanged“, unindented. */
+  const script = (): string => {
+    const at = CI.indexOf('      - name: Released migrations are unchanged');
+    const run = CI.indexOf('        run: |\n', at) + '        run: |\n'.length;
+    const end = CI.indexOf('\n\n', run);
+    return CI.slice(run, end)
+      .split('\n')
+      .map((line) => line.replace(/^ {10}/, ''))
+      .join('\n');
+  };
+
+  /** Runs it in a repository with the release 26.11.0 and one commit after it; what the gate was called with, or the error. */
+  function run(env: Record<string, string>): { out: string; code: number } {
+    const dir = mkdtempSync(join(tmpdir(), 'migrations-job-'));
+    try {
+      const git = (...args: string[]) =>
+        execFileSync('git', args, {
+          cwd: dir,
+          encoding: 'utf8',
+          env: {
+            PATH: process.env.PATH,
+            HOME: dir,
+            GIT_AUTHOR_NAME: 'T',
+            GIT_AUTHOR_EMAIL: 't@example.org',
+            GIT_COMMITTER_NAME: 'T',
+            GIT_COMMITTER_EMAIL: 't@example.org',
+            GIT_CONFIG_GLOBAL: '/dev/null',
+            GIT_CONFIG_NOSYSTEM: '1',
+          },
+        }).trim();
+      git('init', '-q', '-b', 'main');
+      git('commit', '-q', '--allow-empty', '-m', 'Release 26.11.0');
+      git('tag', '-a', '26.11.0', '-m', '26.11.0');
+      git('commit', '-q', '--allow-empty', '-m', 'Next');
+      const head = git('rev-parse', 'HEAD');
+      const bin = join(dir, 'bin');
+      mkdirSync(bin);
+      // The gate itself is tested elsewhere: here only what it is given.
+      writeFileSync(join(bin, 'node'), '#!/bin/sh\necho "gate $2 $3 $4"\n');
+      chmodSync(join(bin, 'node'), 0o755);
+      try {
+        const out = execFileSync('bash', ['-e', '-c', script()], {
+          cwd: dir,
+          encoding: 'utf8',
+          stdio: 'pipe',
+          env: {
+            PATH: `${bin}:${process.env.PATH}`,
+            GITHUB_SHA: head,
+            BASE: '',
+            BASE_REF: '',
+            CREATED: '',
+            REF: 'refs/heads/main',
+            EVENT: 'push',
+            ...env,
+          },
+        });
+        return { out: out.replace(head, 'HEAD'), code: 0 };
+      } catch (error) {
+        const e = error as { status: number; stdout: string };
+        return { out: e.stdout, code: e.status };
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
+
+  it('compares the nightly run with itself and with the last release tag', () => {
+    expect(run({ EVENT: 'schedule' })).toEqual({
+      out: 'gate HEAD 26.11.0 \n',
+      code: 0,
+    });
+  });
+
+  it('still refuses a push without a previous tip, rather than passing silently', () => {
+    const { out, code } = run({ EVENT: 'push' });
+    expect(code).toBe(1);
+    expect(out).toContain(
+      '::error::No base commit to compare the migrations with.',
+    );
+    expect(
+      run({ EVENT: 'push', BASE: '0000000000000000000000000000000000000000' })
+        .code,
+    ).toBe(1);
   });
 });
