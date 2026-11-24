@@ -313,10 +313,13 @@ and one CI run (26.11.24; #347 for 26.11.25).
   when the hotfix changes what they test (owner, 2026-11-13, #146), so a
   hotfix with code in `src/` runs them, and one with only dependency or
   `Dockerfile` changes (as a rule a security hotfix) does not; every other
-  check still runs. A push to `hotfix/**` runs the mutation jobs unless the
-  complete mutation run already succeeded on the identical tree in the green
-  CI run of the pull request it merged (the proofs of #342, below); a run of
-  the changed files only is no proof (CodeRabbit on #395).
+  check still runs. A push to `hotfix/**` runs the mutation jobs unless a
+  proof of #342 covers them (CodeRabbit on #395): the mutation jobs of the
+  pull request it merged succeeded on the identical tree, complete or of the
+  changed files (#309); that run's „Detect changes“ found nothing to mutate;
+  or the push changes only the metadata files and takes over the green push
+  run of its parent (77a). The one list of the proofs is
+  [Proofs of a push run](/ops/testing/push-proofs.md).
   See [Test strategy](/ops/testing.md). **[E, replaced by #387 on
   2026-11-23]** What this rule said of the release pull requests: the one of
   a hotfix branch compared with its release tag and kept its automatic full
