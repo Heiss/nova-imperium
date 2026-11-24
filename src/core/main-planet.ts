@@ -23,8 +23,11 @@ export const roundHeading = 'Hauptplanet';
 
 /**
  * The lock as a setting of the round (#283): a number field of the dialog
- * „Neue Runde“ only; existing universes lock for the default 7 days. The
- * export under this name registers it (#310, src/core/round.ts).
+ * „Neue Runde“ and, since #366, a live row of the universe settings, so the
+ * admin can change it during the round (owner, 2026-11-22); a change counts
+ * only for later switches, the end of a lock is stored at its switch.
+ * Existing universes lock for the default 7 days. The export under this
+ * name registers it (#310, src/core/round.ts).
  */
 export const roundSettings = [
   {
@@ -36,6 +39,7 @@ export const roundSettings = [
     min: MAIN_LOCK_DAYS.min,
     max: MAIN_LOCK_DAYS.max,
     def: MAIN_LOCK_DAYS.default,
+    live: true,
     refusal: `Bitte für die Sperre des Hauptplaneten ${MAIN_LOCK_DAYS.min} bis ${MAIN_LOCK_DAYS.max} ganze Tage angeben.`,
   },
 ] as const satisfies readonly RoundSetting[];
@@ -47,9 +51,11 @@ export const canBeMain = (
 ): boolean => !!p && p.owner === uid && p.kind === 'planet';
 
 /**
- * When the lock of the last switch at `switched` ends; null without a
- * switch. The first switch and a switch back to the first planet start it
- * too (D4, D5).
+ * When the lock of a switch at `switched` ends with the days of the round
+ * at that moment; null without a switch. The first switch and a switch
+ * back to the first planet start it too (D4, D5). The end is stored at the
+ * switch, so a later change of the setting counts only for later switches
+ * (owner, 2026-11-22, #366).
  */
 export const mainLockEnd = (
   switched: number | null,
@@ -75,11 +81,11 @@ export interface Main<P> {
 export function mainOf<P extends Pick<Planet, 'owner' | 'kind'>>(
   chosen: P | null | undefined,
   uid: string,
-  lock: { switched: number | null; days: number },
+  lockEnd: number | null,
   oldest: () => P | null,
 ): Main<P> {
   if (!canBeMain(chosen, uid)) return { planet: oldest(), lockEnd: null };
-  return { planet: chosen!, lockEnd: mainLockEnd(lock.switched, lock.days) };
+  return { planet: chosen!, lockEnd };
 }
 
 /** Why a planet cannot become the main planet. */

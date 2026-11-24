@@ -153,6 +153,7 @@ export function register(
     rq: null,
     mainPlanet: null,
     mainSwitched: null,
+    mainLockEnd: null,
     vacation: null,
   };
   ctx.players.save(u);

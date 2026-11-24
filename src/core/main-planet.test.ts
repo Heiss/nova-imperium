@@ -45,7 +45,7 @@ describe('the lock length of a round', () => {
       expect(refused(days)).toBe(1);
   });
 
-  it('is one entry of the registry, a number field of „Neue Runde“ only, not live (#283)', () => {
+  it('is one entry of the registry, a number field of „Neue Runde“ and a live row of the universe settings (#283, #366)', () => {
     expect(mainLockSetting).toEqual([
       {
         kind: 'number',
@@ -56,12 +56,14 @@ describe('the lock length of a round', () => {
         min: 1,
         max: 30,
         def: 7,
+        live: true,
         refusal:
           'Bitte für die Sperre des Hauptplaneten 1 bis 30 ganze Tage angeben.',
       },
     ]);
     expect(mainLockSetting.map(roundFieldId)).toEqual(['round-main-lock']);
-    expect(liveSpecs().map((s) => s.key)).not.toContain('roundMainLock');
+    // Owner, 2026-11-22 (#366): it can be changed during the round.
+    expect(liveSpecs().map((s) => s.key)).toContain('roundMainLock');
   });
 });
 
@@ -120,15 +122,17 @@ describe('the lock after a switch', () => {
 
 describe('the main planet of a player', () => {
   const oldest = (): Place => home;
-  const lock = { switched: NOW, days: 7 };
+  // The end stored at the switch (#366): the switch at NOW with 7 days.
+  const lock = mainLockEnd(NOW, 7);
 
   it('is the first planet without a choice, without a lock', () => {
-    expect(mainOf(null, 'u_Anna', { switched: null, days: 7 }, oldest)).toEqual(
-      { planet: home, lockEnd: null },
-    );
+    expect(mainOf(null, 'u_Anna', mainLockEnd(null, 7), oldest)).toEqual({
+      planet: home,
+      lockEnd: null,
+    });
   });
 
-  it('is the chosen planet with the lock of the last switch', () => {
+  it('is the chosen planet with the lock stored at the last switch', () => {
     expect(mainOf(colony, 'u_Anna', lock, oldest)).toEqual({
       planet: colony,
       lockEnd: NOW + 7 * DAY_MS,

@@ -31,6 +31,8 @@ const ROUND_HEADINGS = [
 /** The tab „Universum“: the base values, then the features with live settings, in the same order. */
 const UNIVERSE_HEADINGS = [
   'Universum',
+  // A live setting since #366: the lock of a switch of the main planet.
+  'Hauptplanet',
   'Kolonie aufgeben',
   'Aktivität',
   'Wache stellen',
