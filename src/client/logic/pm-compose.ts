@@ -73,9 +73,15 @@ export const keepDraft = (reply: string | undefined, draft: PmDraft): void => {
   drafts.set(reply ?? null, { ...draft });
 };
 
-/** Drops the draft once its message went through. */
-export const dropDraft = (reply?: string): void => {
-  drafts.delete(reply ?? null);
+/**
+ * Drops the draft once its message went through, but only while it is still
+ * what was sent: a dialog closed and opened again during the send, with a
+ * new text typed, keeps that new draft (CodeRabbit on #395).
+ */
+export const dropDraft = (reply: string | undefined, sent: PmDraft): void => {
+  const key = reply ?? null;
+  const now = drafts.get(key);
+  if (now?.to === sent.to && now.text === sent.text) drafts.delete(key);
 };
 
 /** Drops every draft: the player logged out. */

@@ -56,6 +56,13 @@
   let busy = $state(false);
   let refusal = $state('');
   let toField = $state<HTMLInputElement>();
+  // Whether this dialog is still open: a send that answers after the dialog
+  // was closed (and maybe opened again) closes and empties nothing
+  // (CodeRabbit on #395).
+  let open = true;
+  $effect(() => () => {
+    open = false;
+  });
   let textField = $state<HTMLTextAreaElement>();
 
   const reply = $derived(to !== undefined);
@@ -89,6 +96,8 @@
     if (busy) return;
     busy = true;
     const name = (to ?? recipient).trim();
+    // What is sent, to drop exactly this draft once it went through.
+    const sending = { to: recipient, text };
     refusal = '';
     const ok = await pmCall(
       event.currentTarget as HTMLFormElement,
@@ -98,7 +107,8 @@
     );
     busy = false;
     if (!ok) return;
-    dropDraft(to);
+    dropDraft(to, sending);
+    if (!open) return;
     recipient = '';
     text = '';
     sent(name);

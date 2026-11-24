@@ -285,3 +285,74 @@ test('the dialog of a message on a phone fills the screen (#349) @phone', async 
 }) => {
   await dialogFlow(page, browser);
 });
+
+/**
+ * A send still on its way while the dialog is closed, opened again and a new
+ * text typed: its answer neither drops the new draft nor closes the dialog
+ * opened since (CodeRabbit on #395).
+ */
+async function raceFlow(page: Page, browser: Browser): Promise<void> {
+  const problems = watch(page);
+  await register(page, uniqueName('Eile'));
+  const bert = await player(page, browser, 'Ziel');
+  await nav(page, 'messages');
+  await page.getByRole('tab', { name: /^Posteingang/ }).click();
+  const open = page.getByRole('button', { name: 'Neue Nachricht' });
+  const compose = dialogOf(page, 'pm-compose');
+
+  // The send waits until it is let go.
+  let release = (): void => {};
+  const held = new Promise<void>((resolve) => (release = resolve));
+  await page.route('**/api/action', async (route) => {
+    if ((route.request().postData() ?? '').includes('sendPrivateMessage'))
+      await held;
+    await route.continue();
+  });
+  await open.click();
+  await compose.locator('#pm-to').fill(bert.name);
+  await compose.locator('#pm-text').fill('Erste Fassung');
+  await compose.getByRole('button', { name: 'Senden', exact: true }).click();
+  // Closed while the message is on its way, opened again, typed anew.
+  await compose.getByRole('button', { name: 'Abbrechen' }).click();
+  await expect(compose).toBeHidden();
+  await open.click();
+  await expect(compose).toBeVisible();
+  await compose.locator('#pm-text').fill('Zweite Fassung');
+  const answered = page.waitForResponse((r) => r.url().endsWith('/api/action'));
+  release();
+  await answered;
+  // The dialog opened since stays, with its text (the answer had time to
+  // close it).
+  await page.waitForTimeout(500);
+  await expect(compose).toBeVisible();
+  await expect(compose.locator('#pm-text')).toHaveValue('Zweite Fassung');
+  await expect(compose.locator('#pm-to')).toHaveValue(bert.name);
+  // The new text is still the draft at the next opening.
+  await page.keyboard.press('Escape');
+  await expect(compose).toBeHidden();
+  await open.click();
+  await expect(compose.locator('#pm-text')).toHaveValue('Zweite Fassung');
+  // Sent without a race, the draft goes and the dialog closes, as before
+  // (after the shortest gap between two messages).
+  await page.waitForTimeout(GAP_MS);
+  await compose.getByRole('button', { name: 'Senden', exact: true }).click();
+  await expect(compose).toBeHidden();
+  await open.click();
+  await expect(compose.locator('#pm-text')).toHaveValue('');
+  await bert.close();
+  expect(problems.problems).toEqual([]);
+}
+
+test('a send answered after the dialog was closed and opened again keeps the new draft (#349)', async ({
+  page,
+  browser,
+}) => {
+  await raceFlow(page, browser);
+});
+
+test('a send answered after the dialog was closed and opened again keeps the new draft, on a phone (#349) @phone', async ({
+  page,
+  browser,
+}) => {
+  await raceFlow(page, browser);
+});

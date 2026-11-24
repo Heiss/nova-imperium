@@ -142,11 +142,30 @@ describe('the drafts (owner, 2026-11-22, decision 3)', () => {
   it('drops only the draft of the message that went through', () => {
     keepDraft(undefined, { to: 'Bert', text: 'Neu' });
     keepDraft('Bert', { to: '', text: 'Antwort' });
-    dropDraft('Bert');
+    dropDraft('Bert', { to: '', text: 'Antwort' });
     expect(draftOf('Bert')).toEqual({ to: '', text: '' });
     expect(draftOf().text).toBe('Neu');
-    dropDraft();
+    dropDraft(undefined, { to: 'Bert', text: 'Neu' });
     expect(draftOf()).toEqual({ to: '', text: '' });
+  });
+
+  it('keeps a draft typed again while the message was on its way (CodeRabbit on #395)', () => {
+    // Sent „Neu“, closed, opened again and typed „Neu und mehr“ before the
+    // answer came: the answer drops nothing.
+    keepDraft(undefined, { to: 'Bert', text: 'Neu und mehr' });
+    dropDraft(undefined, { to: 'Bert', text: 'Neu' });
+    expect(draftOf()).toEqual({ to: 'Bert', text: 'Neu und mehr' });
+    // Another recipient with the same text is another draft too.
+    keepDraft(undefined, { to: 'Cora', text: 'Neu' });
+    dropDraft(undefined, { to: 'Bert', text: 'Neu' });
+    expect(draftOf()).toEqual({ to: 'Cora', text: 'Neu' });
+    // A reply the same way.
+    keepDraft('Bert', { to: '', text: 'zweite Antwort' });
+    dropDraft('Bert', { to: '', text: 'erste Antwort' });
+    expect(draftOf('Bert').text).toBe('zweite Antwort');
+    // Nothing kept: nothing to drop, no error.
+    dropDraft('Cora', { to: '', text: 'x' });
+    expect(draftOf('Cora')).toEqual({ to: '', text: '' });
   });
 
   it('drops every draft at a logout', () => {

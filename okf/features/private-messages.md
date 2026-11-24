@@ -98,7 +98,9 @@ the owner chose it and answered its open questions on 2026-11-21/22.
   fills the screen; on the lock screen of the vacation mode „Antworten“ opens
   the same dialog (#349).
 * **[V]** Drafts (#349): one for „Neue Nachricht“ (recipient and text) and
-  one per conversation for a reply; a sent message clears its draft; a
+  one per conversation for a reply; a sent message clears its draft (only
+  while the draft is still what was sent, and an answer after the dialog was
+  closed closes nothing: coordinator, 2026-11-24, CodeRabbit on #395); a
   reload clears all, they live in the memory of the page only (no storage).
   A logout clears them too, so the next account on the page does not see
   them (the builder's reading of „until the page is reloaded“).
