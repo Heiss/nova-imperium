@@ -12,6 +12,7 @@ import type { User } from '../db/repos/players.ts';
 import type { ActionName } from '../../core/actions.ts';
 import type { Handler } from './actions.ts';
 import type { Ctx } from './context.ts';
+import type { ScorePass } from './scores.ts';
 
 /** What `stateFor` works out once for all parts of the state. */
 export interface StateView {
@@ -20,8 +21,13 @@ export interface StateView {
   main: Main<Planet>;
   /** The shown planet: the selected own planet, else the main planet. */
   planet: Planet | null;
-  /** The points of every player. */
+  /** The points of every player: the total of `scores`. */
   pts: Readonly<Record<string, number>>;
+  /**
+   * The pass of the points and categories this state is built from (#405):
+   * read once, so the total, the categories and „Stand“ are of one pass.
+   */
+  scores: ScorePass;
   limits: ActivityLimits;
   /** The conversation of the private messages the browser has open (Q32), if it names one. */
   pmOpen?: PmOpen;

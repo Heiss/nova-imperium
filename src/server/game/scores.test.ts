@@ -3,7 +3,7 @@
 // the exact points of a check, a fresh pass for a new round, and the one
 // pass equal to the two passes before #405 at the same moment.
 import fc from 'fast-check';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { BUILD, RES, SHIPS, UNIT } from '../../core/catalog.ts';
 import { addPlanet, addUser, testCtx, type TestCtx } from '../test-helpers.ts';
 import { FIGHTERS } from '../../core/catalog.ts';
@@ -17,6 +17,7 @@ import { reset } from './admin.ts';
 import { send } from './fleet-actions.ts';
 import { stateFor } from './state.ts';
 import {
+  SCORES_REVISION,
   exactPoints,
   newScores,
   scoreBeat,
@@ -120,10 +121,65 @@ describe('the stored pass (#405)', () => {
     expect(storedScores(ctx).total).toEqual(scorePass(ctx).total);
   });
 
+  it('drops the pass of a new round whose transaction rolled back (CodeRabbit on #418)', () => {
+    const ctx = world(3);
+    const boss = addUser(ctx, 'Boss', { admin: true });
+    const before = storedScores(ctx);
+    expect(before.total.u_Anna).toBeGreaterThan(0);
+    ctx.clock.t = at(7, 10);
+    // The commit fails after the round was reset and its pass made.
+    expect(() =>
+      ctx.tx(() => {
+        reset(ctx, boss, {});
+        throw new Error('SQLITE_FULL');
+      }),
+    ).toThrow('SQLITE_FULL');
+    // The old round is back: its points, not the fresh planets of the new one.
+    const now = storedScores(ctx);
+    expect(now.total).toEqual(scorePass(ctx).total);
+    expect(now.total.u_Anna).toBe(before.total.u_Anna);
+  });
+
+  it('drops the pass when a writer outside the server raised the revision', () => {
+    const ctx = world(3);
+    const first = storedScores(ctx);
+    grow(ctx);
+    expect(storedScores(ctx)).toBe(first);
+    ctx.admin.putSettings([[SCORES_REVISION, 1]]);
+    const next = storedScores(ctx);
+    expect(next).not.toBe(first);
+    expect(next.total.u_Anna).toBeGreaterThan(first.total.u_Anna!);
+    expect(storedScores(ctx)).toBe(next);
+  });
+
   it('keeps a pass per database', () => {
     const a = world(3);
     const b = world(3);
     expect(storedScores(a)).not.toBe(storedScores(b));
+  });
+});
+
+describe('one pass per state (#405, CodeRabbit on #418)', () => {
+  /** The passes a state makes: each settles all planets once. */
+  function passesOf(perDay: number, moving: boolean): number {
+    const ctx = world(perDay, at(12, 0));
+    addUser(ctx, 'Bert');
+    addPlanet(ctx, 'u_Bert', { g: 1, s: 2, p: 6, b: { metal: 15 } });
+    storedScores(ctx);
+    // A clock that moves 11 s at every read: a live pass held for no read.
+    if (moving) ctx.now = () => (ctx.clock.t += 11_000);
+    const all = vi.spyOn(ctx.planets, 'all');
+    const state = stateFor(ctx, ctx.players.get('u_Anna')!) as {
+      scoresAt: number;
+      players: Record<string, { points: number }>;
+    };
+    expect(state.players.u_Bert!.points).toBeGreaterThan(0);
+    return all.mock.calls.length;
+  }
+
+  it('reads the stored pass once, so points, categories and „Stand“ are of one pass', () => {
+    const held = passesOf(3, false);
+    expect(passesOf(0, true) - held).toBe(1);
   });
 });
 

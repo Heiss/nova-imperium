@@ -8,13 +8,12 @@
 // pass. [V] The pass is kept in the memory of the server: a restart makes a
 // new one at the first reader.
 import { BUILD, FIGHTERS, RES, SHIPS, UNIT } from '../../core/catalog.ts';
-import { passHolds } from '../../core/highscore-passes.ts';
+import { passHolds, roundSettings } from '../../core/highscore-passes.ts';
 import { pointsOf } from '../../core/points.ts';
 import { settle, settleR } from '../../core/settle.ts';
 import type { Levels } from '../../core/types.ts';
 import { type Ctx, universe } from './context.ts';
 import { sumLevels } from '../../core/economy.ts';
-import { roundRules } from './round.ts';
 
 /** The categories of the highscore besides the total (#78). */
 interface CategoryScores {
@@ -123,20 +122,48 @@ export function scorePass(ctx: Ctx, only?: ReadonlySet<string>): ScorePass {
   return { at: t, total, categories };
 }
 
-/** The stored pass of each database, the server's memory. */
-const stored = new WeakMap<object, ScorePass>();
+/**
+ * „Highscore-Aktualisierungen pro Tag“ of the round: the one setting, not
+ * every rule of the round, since the clock asks for it every second.
+ */
+const passesPerDay = (ctx: Ctx): number =>
+  ctx.admin.setting(roundSettings[0].key) ?? roundSettings[0].def;
+
+/**
+ * The stored pass of each database, the server's memory, with the start of
+ * the round it was made in. A new round makes its pass inside its
+ * transaction; should that transaction roll back, the stored start of the
+ * round is the old one again and the pass is not taken (CodeRabbit on #418).
+ */
+const stored = new WeakMap<object, { pass: ScorePass; round: string }>();
+
+/**
+ * A writer outside the server (the seed of the E2E tests, a repair by
+ * hand) raises this setting after it changed points: the stored pass of the
+ * running server is then not taken.
+ */
+export const SCORES_REVISION = 'scoresRevision';
+
+/** What a stored pass must still match: the start of the round and the revision. */
+const roundOf = (ctx: Ctx): string =>
+  `${ctx.admin.setting('roundStart') ?? '-'}/${ctx.admin.setting(SCORES_REVISION) ?? 0}`;
 
 /**
  * The stored pass while it holds, else a new one, stored (#405): the state,
  * the guilds and `topPoints` read it.
  */
 export function storedScores(ctx: Ctx): ScorePass {
-  const pass = stored.get(ctx.db);
-  const perDay = roundRules(ctx).highscorePasses;
-  if (pass && passHolds(pass.at, ctx.now(), perDay)) return pass;
-  const next = scorePass(ctx);
-  stored.set(ctx.db, next);
-  return next;
+  const kept = stored.get(ctx.db);
+  const round = roundOf(ctx);
+  if (
+    kept &&
+    kept.round === round &&
+    passHolds(kept.pass.at, ctx.now(), passesPerDay(ctx))
+  )
+    return kept.pass;
+  const pass = scorePass(ctx);
+  stored.set(ctx.db, { pass, round });
+  return pass;
 }
 
 /**
@@ -144,12 +171,12 @@ export function storedScores(ctx: Ctx): ScorePass {
  * first reader after it. Live (0) waits for a reader.
  */
 export function scoreBeat(ctx: Ctx): void {
-  if (roundRules(ctx).highscorePasses > 0) storedScores(ctx);
+  if (passesPerDay(ctx) > 0) storedScores(ctx);
 }
 
-/** A new round computes at once (#405). */
+/** A new round computes at once (#405), for the start it just stored. */
 export function newScores(ctx: Ctx): void {
-  stored.set(ctx.db, scorePass(ctx));
+  stored.set(ctx.db, { pass: scorePass(ctx), round: roundOf(ctx) });
 }
 
 /**

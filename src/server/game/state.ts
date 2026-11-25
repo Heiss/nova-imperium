@@ -20,7 +20,7 @@ import { inactivities, planetActivities } from './activity.ts';
 import { type Ctx, universe } from './context.ts';
 import { mainPlanetOf } from './main-planet.ts';
 import { roundRules } from './round.ts';
-import { storedScores } from './scores.ts';
+import { type ScorePass, storedScores } from './scores.ts';
 import { assembleState } from './assemble.ts';
 import type { StatePart, StateView } from './feature.ts';
 import type { LockedState } from '../../core/state.ts';
@@ -109,14 +109,11 @@ const meOf = (ctx: Ctx, u: User) => ({
  * Every player with name and points, whether he is in vacation mode (#223),
  * and the inactivity of the account (#229) while it shows one.
  */
-function playersOf(
-  ctx: Ctx,
-  pts: Readonly<Record<string, number>>,
-  limits: ActivityLimits,
-) {
-  // The categories of the highscore, for every player (#78 D4), of the
-  // stored pass like the points (#405).
-  const scores = storedScores(ctx).categories;
+function playersOf(ctx: Ctx, pass: ScorePass, limits: ActivityLimits) {
+  // The points and the categories of the highscore, for every player (#78
+  // D4), of the one pass of this state (#405).
+  const pts = pass.total;
+  const scores = pass.categories;
   const idle = inactivities(ctx, limits);
   return Object.fromEntries(
     ctx.players.all().map((x) => [
@@ -213,10 +210,10 @@ const FRAME: readonly StatePart[] = [
   keyed(90, 'fleets', fleetsOf),
   keyed(100, 'reports', (ctx, u) => ctx.reports.ofPlayer(u.id)),
   keyed(140, 'players', (ctx, _u, view) =>
-    playersOf(ctx, view.pts, view.limits),
+    playersOf(ctx, view.scores, view.limits),
   ),
   // „Stand“ of the highscore: when the stored pass was made (#405).
-  keyed(145, 'scoresAt', (ctx) => storedScores(ctx).at),
+  keyed(145, 'scoresAt', (_ctx, _u, view) => view.scores.at),
   keyed(150, 'galaxy', (ctx, _u, view) => galaxyOf(ctx, view.limits)),
   // Every player sees every Trümmerfeld (#45).
   keyed(160, 'debris', (ctx) => ctx.debris.all()),
@@ -238,12 +235,14 @@ export function stateFor(
   const main = mainPlanetOf(ctx, u);
   const requested =
     typeof selected === 'string' ? ctx.planets.get(selected) : null;
+  const scores = storedScores(ctx);
   const view: StateView = {
     round,
     main,
     planet: requested?.owner === u.id ? requested : main.planet,
-    // The stored pass, N times a day (#405).
-    pts: storedScores(ctx).total,
+    // The stored pass, N times a day (#405), read once for the whole state.
+    pts: scores.total,
+    scores,
     limits: activityLimits(round),
     pmOpen,
   };
