@@ -543,7 +543,7 @@ CREATE TABLE users (
     rq_cost_d INTEGER
   , explain_mode TEXT NOT NULL DEFAULT 'icon'
     CHECK (explain_mode IN ('always', 'icon', 'hidden')), rq_planet TEXT, main_planet TEXT, main_switched INTEGER, active_at INTEGER, vacation INTEGER, level_table TEXT NOT NULL DEFAULT 'icon'
-      CHECK (level_table IN ('always', 'icon', 'hidden'))) STRICT;
+      CHECK (level_table IN ('always', 'icon', 'hidden')), main_lock_end INTEGER) STRICT;
 
 CREATE TRIGGER private_messages_orphans AFTER DELETE ON users
     BEGIN

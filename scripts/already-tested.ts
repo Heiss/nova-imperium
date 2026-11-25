@@ -18,8 +18,13 @@
 // push whose tree is not proven. A pull request that took over the result of
 // its head before (#167, note „reuse“) proves none: that was another tree. Any other case, an error of
 // the API included, proves nothing, and the push runs everything: the rule
-// fails closed. The draft release pull request of main runs the cheap checks
-// and its gate fails on purpose (#147), so its run proves nothing either.
+// fails closed.
+// A push that differs from its parent only in the metadata files VERSION,
+// CHANGELOG.md and changes/ (the merge of a release pull request, which runs
+// no expensive job, #387) takes over every job the green push run of its
+// parent on the same branch succeeded in or skipped with its own proof
+// (owner, 2026-11-24, 77a): those files change no test result but the ones
+// that read them (src/test/release-metadata.test.ts names every reader).
 //
 //   node scripts/already-tested.ts decide <sha> <branch>
 //        prints "proof-<job>=<proof>" for each job, empty without a proof
@@ -77,6 +82,7 @@ export interface WorkflowRun {
   status: string;
   conclusion: string | null;
   head_sha: string;
+  head_branch?: string | null;
   repository: { full_name: string } | null;
   head_repository: { full_name: string } | null;
 }
@@ -95,6 +101,17 @@ export interface Annotation {
   title: string | null;
   message: string;
 }
+
+/**
+ * The metadata files of a release (#387): a release pull request changes
+ * nothing else, and a push that differs from its parent only in them takes
+ * over the proofs of the parent.
+ */
+export const METADATA = ['VERSION', 'CHANGELOG.md', 'changes/'] as const;
+
+/** Whether a changed file is one of the metadata files. */
+export const isMetadata = (file: string): boolean =>
+  METADATA.some((m) => (m.endsWith('/') ? file.startsWith(m) : file === m));
 
 /** The job that decides which checks a run needs, and its note of the mutation jobs. */
 export const DETECT = 'Detect changes';
@@ -246,6 +263,153 @@ export function proofsOf(
   return { proofs, reasons };
 }
 
+/**
+ * The green push runs of the commit <parent> on <branch>, newest first:
+ * the workflow "CI", event push, of <repo> and of the pushed branch (a run
+ * of the same commit on another branch proves nothing here; CodeRabbit on
+ * #395), completed with success.
+ */
+export function greenPushRuns(
+  parent: string,
+  branch: string,
+  repo: string,
+  runs: readonly WorkflowRun[],
+): WorkflowRun[] {
+  return runs
+    .filter(
+      (r) =>
+        r.head_sha === parent &&
+        r.head_branch === branch &&
+        r.path === WORKFLOW &&
+        r.event === 'push' &&
+        r.repository?.full_name === repo &&
+        r.status === 'completed' &&
+        r.conclusion === 'success',
+    )
+    .sort((a, b) => b.id - a.id);
+}
+
+/**
+ * The proofs a push that changed only the metadata files takes over from
+ * the green push run <run> of its parent: a job that succeeded there, or
+ * that run skipped with its own proof (a green push run skips a job only
+ * with one, #342), for every job <missing> still lacks.
+ */
+export function parentProofs(
+  run: WorkflowRun,
+  jobs: readonly Job[],
+  missing: readonly JobKey[],
+): Partial<Record<JobKey, string>> {
+  const proofs: Partial<Record<JobKey, string>> = {};
+  for (const key of missing) {
+    const job = jobs.find(
+      (j) =>
+        j.name === JOBS[key] &&
+        j.status === 'completed' &&
+        (j.conclusion === 'success' || j.conclusion === 'skipped'),
+    );
+    if (job)
+      proofs[key] =
+        `CI run ${run.id} of the parent ${run.head_sha}, job "${job.name}" ${job.conclusion === 'success' ? 'succeeded' : 'was proven there'} (${job.html_url}); the push changes only ${METADATA.join(', ')}`;
+  }
+  return proofs;
+}
+
+/** The most files the compare API lists; a longer change proves nothing. */
+const COMPARE_LIMIT = 300;
+
+/** The first parent of <sha>, through the API. */
+function parentOf(sha: string, repo: string, api: Api): string | undefined {
+  return listOf<{ sha: string }>(
+    api(`repos/${repo}/commits/${sha}`),
+    'parents',
+    'parents',
+  )[0]?.sha;
+}
+
+/** Whether <sha> changes only the metadata files against <parent>. */
+function onlyMetadata(
+  parent: string,
+  sha: string,
+  repo: string,
+  api: Api,
+): boolean {
+  // A moved file counts with its old and its new name: a file moved out of
+  // the code into changes/ is no metadata (CodeRabbit on #395).
+  const files = listOf<{ filename: string; previous_filename?: string }>(
+    api(`repos/${repo}/compare/${parent}...${sha}`),
+    'files',
+    'changed files',
+  ).flatMap((f) =>
+    f.previous_filename ? [f.filename, f.previous_filename] : [f.filename],
+  );
+  return (
+    files.length > 0 &&
+    files.length < COMPARE_LIMIT &&
+    files.every((f) => isMetadata(f))
+  );
+}
+
+/** The newest green push run of <parent>, through the API. */
+const parentRun = (
+  parent: string,
+  branch: string,
+  repo: string,
+  api: Api,
+): WorkflowRun | undefined =>
+  greenPushRuns(
+    parent,
+    branch,
+    repo,
+    listOf<WorkflowRun>(
+      api(
+        `repos/${repo}/actions/workflows/ci.yml/runs?event=push&head_sha=${parent}&per_page=100`,
+      ),
+      'workflow_runs',
+      'workflow runs',
+    ),
+  )[0];
+
+/**
+ * The proofs of the parent for the jobs of <decision> without one, when the
+ * push <sha> changes only the metadata files against its first parent.
+ */
+function fromParent(
+  decision: Decision,
+  sha: string,
+  branch: string,
+  repo: string,
+  api: Api,
+): Decision {
+  const missing = KEYS.filter((k) => !decision.proofs[k]);
+  if (!missing.length) return decision;
+  const why = (reason: string): Decision => ({
+    ...decision,
+    reasons: [...decision.reasons, reason],
+  });
+  const parent = parentOf(sha, repo, api);
+  if (!parent) return why(`${sha} has no parent`);
+  if (!onlyMetadata(parent, sha, repo, api))
+    return why(
+      `the push changes more than ${METADATA.join(', ')} against its parent ${parent}`,
+    );
+  const run = parentRun(parent, branch, repo, api);
+  if (!run) return why(`no green push run of the parent ${parent}`);
+  const taken = parentProofs(run, jobsThrough(api, repo)(run.id), missing);
+  return {
+    proofs: { ...decision.proofs, ...taken },
+    reasons: [
+      ...decision.reasons,
+      ...missing
+        .filter((k) => !taken[k])
+        .map(
+          (k) =>
+            `"${JOBS[k]}" did not succeed in the push run ${run.id} of the parent`,
+        ),
+    ],
+  };
+}
+
 const message = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
 
@@ -338,7 +502,19 @@ export function decide(
   api: Api,
 ): Decision {
   try {
-    return lookUp(sha, branch, repo, api);
+    const decision = lookUp(sha, branch, repo, api);
+    try {
+      return fromParent(decision, sha, branch, repo, api);
+    } catch (error) {
+      // The parent proves nothing on an error; the proofs found stay.
+      return {
+        ...decision,
+        reasons: [
+          ...decision.reasons,
+          `cannot look up the parent: ${message(error)}`,
+        ],
+      };
+    }
   } catch (error) {
     return {
       proofs: none(),

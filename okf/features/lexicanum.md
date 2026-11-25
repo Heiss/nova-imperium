@@ -189,6 +189,18 @@ their own.
   every string of every page.
 * **[V]** „Optionen“ has a line below its boxes with a link to „Dieses
   Universum“; the old box and its CSS are gone.
+* **[E]** The page of a feature switched off for the round is hidden for
+  every player and the admin (#404; owner, 2026-11-25, 113a, 114a).
+  **[V]** A page names the rule of its feature's view (`offered` of
+  `PageDef`, the same function): „Marktplatz“ (`rule-market`), „Gilden“
+  (`rule-guilds`) and „Tagesbelohnung und Erfolge“ (`rule-rewards`, hidden
+  only with both switched off). Hidden, it is left out of its list,
+  „Begriffe A–Z“, the start page and its counts, the other articles of its
+  kind, „Siehe auch“ and the search; a link to it in a text, a fact or a
+  table keeps its words as plain text; its address shows the start page,
+  as an unknown id does (`opens` of `src/client/logic/lexicanum.ts`). Text
+  that names the round's value stays (the table of „Dieses Universum“, the
+  answers of „Wie bekomme ich mehr Rohstoffe?“).
 
 # Stage 2, second part: the rules the first part left out (#288)
 

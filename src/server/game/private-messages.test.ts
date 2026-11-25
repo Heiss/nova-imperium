@@ -120,6 +120,30 @@ describe('sending', () => {
     ]);
   });
 
+  it('keeps the line breaks of a text, "\\r\\n" and "\\r" as "\\n", and still takes out every other control character', () => {
+    const s = setup();
+    s.say(
+      'Anna',
+      'Bert',
+      '\n Zeile eins\r\nZeile zwei\rZeile drei\n\n\nEnde\u0007\t\u000b\u000c\u001f\u007f \n',
+    );
+    expect(s.texts('Bert', 'Anna')).toEqual([
+      'Zeile eins\nZeile zwei\nZeile drei\n\n\nEnde',
+    ]);
+  });
+
+  it('counts every line break of a text towards the 1,000 characters', () => {
+    const s = setup();
+    const lines = 'a\n'.repeat(500);
+    expect(() => s.say('Anna', 'Bert', `${lines}b`)).toThrow(LONG);
+    s.say('Anna', 'Bert', `${lines.slice(0, -1)}b`);
+    expect(s.texts('Bert', 'Anna')[0]).toHaveLength(1000);
+    // "\r\n" counts once, as the "\n" it becomes.
+    s.say('Anna', 'Bert', `${'a\r\n'.repeat(499)}ab`);
+    expect(s.texts('Bert', 'Anna')[1]).toHaveLength(1000);
+    expect(() => s.say('Anna', 'Bert', '\n\r\n\r')).toThrow(EMPTY);
+  });
+
   it('holds a sender for 2 seconds, and a refused message does not count', () => {
     const s = setup();
     s.run('Anna', { type: 'sendPrivateMessage', name: 'Bert', text: 'eins' });

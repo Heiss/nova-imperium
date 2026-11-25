@@ -1,8 +1,8 @@
-// The cheap and the full run of the release pull request of main in
-// .github/workflows/ci.yml and release-ready.yml (owner, 2026-11-13 and
-// 2026-11-14, #147): the shell of "Detect changes", of the CI Gate and of
-// "Release ready" runs here with the inputs GitHub would give it, as bash
-// runs it in the workflow; gh is a stub that writes down its calls.
+// The release pull request in .github/workflows/ci.yml: it changes only the
+// metadata files and runs no expensive job (owner, 2026-11-23 and
+// 2026-11-24, #387). The shell of "Detect changes" and of the CI Gate runs
+// here with the inputs GitHub would give it, as bash runs it in the
+// workflow; gh is a stub that writes down its calls.
 import { execFileSync } from 'node:child_process';
 import {
   chmodSync,
@@ -19,7 +19,6 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { formatFloors } from '../../scripts/mutation-floorfile.ts';
 
 const CI = readFileSync('.github/workflows/ci.yml', 'utf8');
-const READY = readFileSync('.github/workflows/release-ready.yml', 'utf8');
 const NIGHTLY = readFileSync('.github/workflows/mutation.yml', 'utf8');
 
 /**
@@ -85,52 +84,23 @@ describe('Detect changes', () => {
     return { ...result, written: readFileSync(output, 'utf8') };
   };
 
-  it('gives the draft release pull request of main the cheap run', () => {
-    const { code, out, written } = run({
-      PR_HEAD_REF: 'release/main',
-      PR_BASE_REF: 'main',
-      PR_DRAFT: 'true',
+  it('runs everything but the mutation jobs at night (#387 part 3)', () => {
+    const { code, written } = run({
+      EVENT: 'schedule',
+      PR_BASE: '',
+      PR_HEAD_REF: '',
+      PR_BASE_REF: '',
     });
     expect(code).toBe(0);
-    expect(written).toBe(
-      'code=false\nimage=false\nmutation=false\nsite=false\n',
-    );
-    expect(out).toContain('"Ready for review" starts the full run');
+    expect(written).toBe('code=true\nimage=true\nmutation=false\nsite=true\n');
   });
 
-  it('decides the cheap run from the head, the base and the draft state', () => {
-    // Without a checkout, every other case fails at the file list: it never
-    // takes the cheap path.
-    const cases: Record<string, string>[] = [
-      { PR_HEAD_REF: 'release/main', PR_BASE_REF: 'main', PR_DRAFT: 'false' },
-      { PR_HEAD_REF: 'release/main', PR_BASE_REF: 'other', PR_DRAFT: 'true' },
-      {
-        PR_HEAD_REF: 'release/hotfix/x',
-        PR_BASE_REF: 'hotfix/x',
-        PR_DRAFT: 'true',
-      },
-      { PR_HEAD_REF: 'claude/x', PR_BASE_REF: 'main', PR_DRAFT: 'true' },
-    ];
-    for (const env of cases) {
-      const result = bash(detect, {
-        EVENT: 'pull_request',
-        PR_BASE: 'base',
-        HEAD_SHA: 'merge',
-        GITHUB_OUTPUT: output,
-        GIT_DIR: join(dir, 'no-repository'),
-        ...env,
-      });
-      expect(result.out).not.toContain('the cheap run');
-    }
-  });
-
-  it('runs everything on a push, draft or not', () => {
+  it('runs everything on a push', () => {
     const { written } = run({
       EVENT: 'push',
       PR_BASE: '',
       PR_HEAD_REF: '',
       PR_BASE_REF: '',
-      PR_DRAFT: '',
     });
     expect(written).toBe('code=true\nimage=true\nmutation=true\nsite=true\n');
   });
@@ -229,14 +199,13 @@ describe('Detect changes: the mutation jobs of a pull request (#309)', () => {
         PR_HEAD: to,
         PR_HEAD_REF: 'claude/x',
         PR_BASE_REF: 'main',
-        PR_DRAFT: 'false',
         GITHUB_REPOSITORY: 'owner/game',
         GITHUB_OUTPUT: output,
         ...env,
       },
       repo,
     );
-    return { ...result, written: readFileSync(output, 'utf8') };
+    return { ...result, written: textOf(output) ?? '' };
   };
   const field = (written: string, name: string): string | undefined =>
     new RegExp(`^${name}=(.*)$`, 'm').exec(written)?.[1];
@@ -338,8 +307,9 @@ describe('Detect changes: the mutation jobs of a pull request (#309)', () => {
   });
 
   it('keeps mutation-floors.txt a configuration where the complete run decides', () => {
-    // A pull request into a hotfix branch and the release pull request of a
-    // hotfix branch use scripts/mutation-changes.ts: a floor runs everything.
+    // A pull request into a hotfix branch uses scripts/mutation-changes.ts:
+    // a floor runs everything. A release pull request may not change the
+    // floors at all (#387).
     const floor = floors({
       'src/core/economy.ts': 75,
       'src/core/fleet.ts': 80,
@@ -351,20 +321,15 @@ describe('Detect changes: the mutation jobs of a pull request (#309)', () => {
       floor,
     );
     expect(field(hotfix.written, 'mutation')).toBe('true');
-    const release = detectIn(
-      ['okf/ops/x.md'],
+    const releases: Record<string, string>[] = [
       { PR_HEAD_REF: 'release/hotfix/x', PR_BASE_REF: 'hotfix/x' },
-      '26.1.1',
-      floor,
-    );
-    expect(field(release.written, 'mutation')).toBe('true');
-    const main = detectIn(
-      ['okf/ops/x.md'],
       { PR_HEAD_REF: 'release/main' },
-      undefined,
-      floor,
-    );
-    expect(field(main.written, 'mutation')).toBe('true');
+    ];
+    for (const env of releases) {
+      const release = detectIn(['VERSION'], env, undefined, floor);
+      expect(release.code).toBe(1);
+      expect(release.out).toContain('not: mutation-floors.txt');
+    }
   });
 
   it('mutates a set at the limit of one job and runs everything above it', () => {
@@ -379,15 +344,54 @@ describe('Detect changes: the mutation jobs of a pull request (#309)', () => {
     expect(field(above.written, 'mutation-files')).toBe('');
   });
 
-  it('keeps the complete run in a release pull request', () => {
-    for (const changed of [['okf/ops/x.md'], ['src/core/economy.ts']]) {
-      const { written } = detectIn(changed, {
-        PR_HEAD_REF: 'release/main',
-        PR_BASE_REF: 'main',
-      });
-      expect(field(written, 'mutation')).toBe('true');
-      expect(field(written, 'mutation-files')).toBe('');
+  it('runs no expensive job in a release pull request that changes only the metadata files (#387)', () => {
+    for (const env of [
+      { PR_HEAD_REF: 'release/main', PR_BASE_REF: 'main' },
+      { PR_HEAD_REF: 'release/hotfix/x', PR_BASE_REF: 'hotfix/x' },
+    ]) {
+      const { code, out, written } = detectIn(
+        ['VERSION', 'CHANGELOG.md', 'changes/neu.md'],
+        env,
+      );
+      expect(code).toBe(0);
+      expect(written).toBe(
+        'code=false\nimage=false\nmutation=false\nsite=false\n',
+      );
+      expect(out).toContain('Release pull request: metadata only');
     }
+  });
+
+  it('refuses a release pull request that moves a file into changes/ (#387, CodeRabbit 4679061288)', () => {
+    const { code, out } = detectIn(
+      ['VERSION'],
+      { PR_HEAD_REF: 'release/main', PR_BASE_REF: 'main' },
+      undefined,
+      () => {
+        mkdirSync(join(repo, 'changes'), { recursive: true });
+        vcs('mv', 'src/core/economy.ts', 'changes/economy.ts');
+      },
+    );
+    expect(code).toBe(1);
+    expect(out).toContain('not: src/core/economy.ts');
+  });
+
+  it('refuses a release pull request that changes any other file (#387)', () => {
+    for (const env of [
+      { PR_HEAD_REF: 'release/main', PR_BASE_REF: 'main' },
+      { PR_HEAD_REF: 'release/hotfix/x', PR_BASE_REF: 'hotfix/x' },
+    ])
+      for (const other of [
+        'src/core/economy.ts',
+        'okf/ops/x.md',
+        'changes.md',
+        'docs/VERSION',
+      ]) {
+        const { code, out } = detectIn(['VERSION', other], env);
+        expect(code, other).toBe(1);
+        expect(out).toContain(
+          `::error::A release pull request changes only VERSION, CHANGELOG.md and changes/, not: ${other}`,
+        );
+      }
   });
 
   it('keeps the decision of #146 in a pull request into a hotfix branch', () => {
@@ -402,19 +406,6 @@ describe('Detect changes: the mutation jobs of a pull request (#309)', () => {
       expect(field(written, 'mutation-files')).toBe('');
     }
   });
-
-  it('keeps the decision of #146 in the release pull request of a hotfix branch', () => {
-    const env = { PR_HEAD_REF: 'release/hotfix/x', PR_BASE_REF: 'hotfix/x' };
-    for (const [changed, expected] of [
-      [['okf/ops/x.md'], 'false'],
-      [['src/core/economy.ts'], 'true'],
-    ] as const) {
-      const { code, written } = detectIn([...changed], env, '26.1.1');
-      expect(code).toBe(0);
-      expect(field(written, 'mutation')).toBe(expected);
-      expect(field(written, 'mutation-files')).toBe('');
-    }
-  });
 });
 
 describe('CI Gate', () => {
@@ -424,6 +415,7 @@ describe('CI Gate', () => {
     SECURITY: 'success',
     MIGRATIONS: 'success',
     WORKFLOWS: 'success',
+    REDOS: 'success',
     CODEQL: 'success',
     FRAGMENTS: 'success',
     CHECK: 'success',
@@ -442,7 +434,6 @@ describe('CI Gate', () => {
     PR_HEAD: 'head',
     HEAD_REF: 'claude/x',
     BASE_REF: 'main',
-    PR_DRAFT: 'false',
   };
   const skipped = {
     CHECK: 'skipped',
@@ -457,12 +448,6 @@ describe('CI Gate', () => {
     MUTATED: 'false',
     SITE_SOURCES: 'false',
   };
-  const noMutation = {
-    MUTATED: 'false',
-    MUTATION_PLAN: 'skipped',
-    MUTATION_SHARDS: 'skipped',
-    MUTATION: 'skipped',
-  };
   const partial = {
     MUTATED: 'partial',
     MUTATION_PLAN: 'skipped',
@@ -470,28 +455,30 @@ describe('CI Gate', () => {
     MUTATION: 'skipped',
     MUTATION_PARTIAL: 'success',
   };
-  const draftMain = { HEAD_REF: 'release/main', PR_DRAFT: 'true' };
+  const releaseMain = { HEAD_REF: 'release/main' };
   const hotfix = { HEAD_REF: 'release/hotfix/x', BASE_REF: 'hotfix/x' };
   const evaluate = (env: Record<string, string>) =>
     bash(gate, { ...green, ...env });
 
-  it('fails the cheap run of the draft on purpose after its checks', () => {
-    const { code, out } = evaluate({ ...skipped, ...draftMain });
-    expect(code).toBe(1);
-    expect(out).toContain(
-      '::error::Draft release pull request of main: the cheap checks passed. The full run starts with "Ready for review".',
-    );
+  it('accepts the metadata-only run of a release pull request of main or of a hotfix branch (#387)', () => {
+    for (const env of [releaseMain, hotfix]) {
+      const { code, out } = evaluate({ ...skipped, ...env });
+      expect(code).toBe(0);
+      expect(out).toContain('Release pull request: metadata only (#387).');
+    }
   });
 
-  it('names a red cheap check of the draft first', () => {
+  it('names a red cheap check of a release pull request first', () => {
     for (const [job, name] of [
+      ['CHANGES', 'Detect changes'],
       ['CODEQL', 'CodeQL'],
       ['FRAGMENTS', 'Changelog fragments'],
       ['WORKFLOWS', 'Workflow lint'],
+      ['REDOS', 'ReDoS lint'],
     ] as const) {
       const { code, out } = evaluate({
         ...skipped,
-        ...draftMain,
+        ...releaseMain,
         [job]: 'failure',
       });
       expect(code).toBe(1);
@@ -499,72 +486,33 @@ describe('CI Gate', () => {
     }
   });
 
-  it('fails the draft of main even when every job ran', () => {
-    expect(evaluate(draftMain).code).toBe(1);
-  });
-
-  it('accepts the full run of the release pull request of main', () => {
-    expect(evaluate({ HEAD_REF: 'release/main' }).code).toBe(0);
-  });
-
-  it('requires every check in every other release pull request', () => {
-    const cases: Record<string, string>[] = [
-      { ...skipped, HEAD_REF: 'release/main' },
-      { HEAD_REF: 'release/main', IMAGE: 'false', COMPOSE: 'skipped' },
-      {
-        HEAD_REF: 'release/main',
-        CODE: 'false',
-        CHECK: 'skipped',
-        E2E: 'skipped',
-      },
-      { HEAD_REF: 'release/main', SITE_SOURCES: 'false', SITE: 'skipped' },
-      { ...skipped, ...draftMain, BASE_REF: 'other' },
-      { ...skipped, ...hotfix },
-      { ...skipped, ...hotfix, PR_DRAFT: 'true' },
-      { ...skipped, HEAD_REF: 'release/other' },
-    ];
-    for (const env of cases) {
-      const { code, out } = evaluate(env);
-      expect(code).toBe(1);
-      expect(out).toContain(
-        '::error::A release pull request must run every check.',
-      );
-    }
-  });
-
-  it('requires the mutation jobs in a release pull request except as #146 allows', () => {
+  it('refuses an expensive job in a release pull request (#387)', () => {
     for (const env of [
-      { HEAD_REF: 'release/main', ...noMutation },
-      { HEAD_REF: 'release/main', ...noMutation, MUTATED: 'reuse' },
-      { HEAD_REF: 'release/other', ...noMutation },
-      { ...hotfix, ...noMutation, MUTATED: 'reuse' },
+      releaseMain,
+      { ...skipped, ...releaseMain, CODE: 'true' },
+      { ...skipped, ...releaseMain, IMAGE: 'true' },
+      { ...skipped, ...releaseMain, MUTATED: 'true' },
+      { ...skipped, ...releaseMain, MUTATED: 'partial' },
+      { ...skipped, ...releaseMain, MUTATED: 'reuse' },
+      { ...skipped, ...releaseMain, SITE_SOURCES: 'true' },
+      { ...skipped, ...hotfix, CODE: 'true' },
+      { ...skipped, HEAD_REF: 'release/other', MUTATED: 'true' },
     ]) {
       const { code, out } = evaluate(env);
       expect(code).toBe(1);
       expect(out).toContain(
-        `::error::A release pull request must run the mutation jobs (result of the detection: ${env.MUTATED}).`,
+        '::error::A release pull request runs no expensive job',
       );
     }
-    expect(evaluate({ ...hotfix, ...noMutation }).code).toBe(0);
-    expect(evaluate({ ...hotfix, PR_DRAFT: 'true' }).code).toBe(0);
   });
 
-  it('keeps every other pull request as before, draft or not', () => {
-    for (const draft of ['true', 'false']) {
-      expect(evaluate({ PR_DRAFT: draft }).code).toBe(0);
-      expect(evaluate({ ...skipped, PR_DRAFT: draft }).code).toBe(0);
-      expect(
-        evaluate({
-          ...hotfix,
-          HEAD_REF: 'claude/x',
-          ...skipped,
-          PR_DRAFT: draft,
-        }).code,
-      ).toBe(0);
-      expect(evaluate({ ...skipped, CODE: 'true', PR_DRAFT: draft }).code).toBe(
-        1,
-      );
-    }
+  it('keeps every other pull request as before', () => {
+    expect(evaluate({}).code).toBe(0);
+    expect(evaluate(skipped).code).toBe(0);
+    expect(evaluate({ ...hotfix, HEAD_REF: 'claude/x', ...skipped }).code).toBe(
+      0,
+    );
+    expect(evaluate({ ...skipped, CODE: 'true' }).code).toBe(1);
   });
 
   it('accepts the mutation of the changed files only in a pull request that needs no complete run (#309)', () => {
@@ -606,12 +554,49 @@ describe('CI Gate', () => {
     }
   });
 
+  it('requires every job but the mutation jobs in the nightly run (#387 part 3)', () => {
+    const night = {
+      EVENT: 'schedule',
+      HEAD_REF: '',
+      BASE_REF: '',
+      FRAGMENTS: 'skipped',
+      MUTATED: 'false',
+      MUTATION_PLAN: 'skipped',
+      MUTATION_SHARDS: 'skipped',
+      MUTATION: 'skipped',
+    };
+    expect(evaluate(night).code).toBe(0);
+    const missing: Record<string, string>[] = [
+      { CODE: 'false', CHECK: 'skipped', E2E: 'skipped' },
+      { IMAGE: 'false', COMPOSE: 'skipped' },
+      { SITE_SOURCES: 'false', SITE: 'skipped' },
+      { MUTATED: 'true' },
+    ];
+    for (const env of missing) {
+      const { code, out } = evaluate({ ...night, ...env });
+      expect(code).toBe(1);
+      expect(out).toContain('::error::The nightly run runs the unit suite');
+    }
+    for (const [job, name] of [
+      ['CHECK', 'Lint, types, unit tests and build'],
+      ['E2E', 'E2E tests'],
+      ['COMPOSE', 'Docker image and Compose stack'],
+    ] as const) {
+      const { code, out } = evaluate({ ...night, [job]: 'failure' });
+      expect(code).toBe(1);
+      expect(out).toContain(`::error::${name} must succeed (result: failure)`);
+    }
+    // A proof counts only on a push.
+    expect(
+      evaluate({ ...night, CHECK: 'skipped', PROOF_CHECK: 'x' }).code,
+    ).toBe(1);
+  });
+
   it('keeps the full suite on a push', () => {
     const push = {
       EVENT: 'push',
       HEAD_REF: '',
       BASE_REF: '',
-      PR_DRAFT: '',
       FRAGMENTS: 'skipped',
     };
     expect(evaluate(push).code).toBe(0);
@@ -619,108 +604,36 @@ describe('CI Gate', () => {
   });
 });
 
-describe('the start of the full run', () => {
-  it('leaves the events of ci.yml as they were', () => {
+describe('the events of ci.yml', () => {
+  it('start no run when a pull request is marked ready, and know no label of a full run (#387)', () => {
     expect(CI).toContain(
       '    types: [opened, synchronize, reopened, labeled, unlabeled]\n',
     );
     expect(CI).not.toContain('ready_for_review');
+    expect(CI).not.toContain('voller-lauf');
+    expect(CI).not.toContain('PR_DRAFT');
   });
 
-  it('labels only the release pull request of main, with the release App', () => {
-    expect(READY).toContain('types: [ready_for_review]');
-    expect(READY).toContain(
-      "github.event.pull_request.head.ref == 'release/main'",
+  it('check out the scripts and .node-version for „Detect changes“ at night too (CodeRabbit 4679061280)', () => {
+    const job = CI.slice(
+      CI.indexOf('  changes:\n'),
+      CI.indexOf('  fragments:\n'),
     );
-    expect(READY).toContain(
-      'github.event.pull_request.head.repo.full_name == github.repository',
-    );
-    expect(READY).toContain("github.event.pull_request.base.ref == 'main'");
-    expect(READY).toContain('environment: release');
-    expect(READY).toContain('permissions: {}');
-    expect(READY).toContain('LABEL: voller-lauf');
-    expect(READY).not.toContain('actions/checkout');
-  });
-});
-
-describe('Release ready', () => {
-  const ready = script('- name: Start the full run, or refuse it', READY);
-  const marker = /^ {10}MARKER: '(.+)'$/m.exec(READY)?.[1];
-  const bin = join(dir, 'bin');
-  const calls = join(dir, 'gh-calls');
-  mkdirSync(bin, { recursive: true });
-  // Answers the body of the pull request; every other call succeeds.
-  writeFileSync(
-    join(bin, 'gh'),
-    [
-      '#!/bin/sh',
-      'printf \'%s\\n\' "$*" >> "$GH_CALLS"',
-      'case "$*" in',
-      '  "api repos/owner/game/pulls/7 --jq .body")',
-      '    [ -z "$FAIL" ] || exit 1',
-      '    printf \'%s\\n\' "$BODY" ;;',
-      'esac',
-      '',
-    ].join('\n'),
-  );
-  chmodSync(join(bin, 'gh'), 0o755);
-  const run = (body: string, fail = '') => {
-    rmSync(calls, { force: true });
-    const result = bash(ready, {
-      FAIL: fail,
-      PATH: `${bin}:${process.env.PATH}`,
-      GH_CALLS: calls,
-      BODY: body,
-      GITHUB_REPOSITORY: 'owner/game',
-      NUMBER: '7',
-      LABEL: 'voller-lauf',
-      MARKER: marker!,
-      REFUSAL: 'refused, because',
-    });
-    return { ...result, calls: readFileSync(calls, 'utf8').trim().split('\n') };
-  };
-
-  it('reads the marker that scripts/release-pr.sh writes', () => {
-    const script = readFileSync('scripts/release-pr.sh', 'utf8');
-    expect(marker).toBe('<!-- release-pr: unmerged-hotfix -->');
-    expect(script).toContain(`unmerged_marker='${marker}'`);
-  });
-
-  it('adds and removes the label when no released hotfix waits', () => {
-    const { code, calls } = run(
-      'Merging this pull request releases **26.11.23**',
-    );
-    expect(code).toBe(0);
-    expect(calls).toEqual([
-      'api repos/owner/game/pulls/7 --jq .body',
-      'api repos/owner/game/labels/voller-lauf --silent',
-      'api --method POST repos/owner/game/issues/7/labels --silent -f labels[]=voller-lauf',
-      'api --method DELETE repos/owner/game/issues/7/labels/voller-lauf --silent',
+    const checkouts = job
+      .split('\n')
+      .map((line, i, all) =>
+        line.includes('actions/checkout@') ? all[i + 1]!.trim() : null,
+      )
+      .filter((c) => c !== null);
+    expect(checkouts).toEqual([
+      "if: github.event_name == 'pull_request'",
+      "if: github.event_name == 'push' || github.event_name == 'schedule'",
     ]);
+    expect(job).toContain('node-version-file: .node-version');
   });
 
-  it('refuses while a released hotfix is not merged back', () => {
-    for (const body of [
-      `Text\n\n${marker}\n**Draft:** merge the released hotfix branch(es) hotfix/x back`,
-      `Text\r\n${marker}\r\n**Draft:** edited in the browser`,
-    ]) {
-      const { code, out, calls } = run(body);
-      expect(code).toBe(1);
-      expect(out).toContain(
-        '::error::A released hotfix is not merged back into main: the release pull request #7 is a draft again, no full run.',
-      );
-      expect(calls).toEqual([
-        'api repos/owner/game/pulls/7 --jq .body',
-        'pr ready --undo 7 --repo owner/game',
-        'pr comment 7 --repo owner/game --body refused, because',
-      ]);
-    }
-  });
-
-  it('touches no label when the body cannot be read', () => {
-    const { code, calls } = run('', 'yes');
-    expect(code).not.toBe(0);
-    expect(calls).toEqual(['api repos/owner/game/pulls/7 --jq .body']);
+  it('run every night on main (#387 part 3)', () => {
+    expect(CI).toMatch(/\n {2}schedule:\n {4}- cron: '\d+ \d+ \* \* \*'\n/);
   });
 });
 
@@ -838,5 +751,205 @@ describe('Nightly mutation run: the permission of the issue step (#309)', () => 
       "if: always() && steps.gate.outcome == 'failure' && github.ref == 'refs/heads/main'",
     );
     expect(job).toContain('        id: gate\n');
+  });
+});
+
+describe('the image „next“ (#387, owner, 2026-11-23)', () => {
+  const NEXT = readFileSync('.github/workflows/next-image.yml', 'utf8');
+  const version = script('- name: Version and image name', NEXT);
+
+  it('writes the short commit into VERSION and names the image of the owner in lower case', () => {
+    const repo = join(dir, 'next');
+    rmSync(repo, { recursive: true, force: true });
+    mkdirSync(repo, { recursive: true });
+    const git = (...args: string[]): string =>
+      execFileSync('git', args, {
+        cwd: repo,
+        encoding: 'utf8',
+        env: {
+          PATH: process.env.PATH,
+          GIT_CONFIG_GLOBAL: '/dev/null',
+          GIT_CONFIG_SYSTEM: '/dev/null',
+          GIT_AUTHOR_NAME: 'x',
+          GIT_AUTHOR_EMAIL: 'x@example.org',
+          GIT_COMMITTER_NAME: 'x',
+          GIT_COMMITTER_EMAIL: 'x@example.org',
+        },
+      }).trim();
+    git('init', '-q', '-b', 'main');
+    writeFileSync(join(repo, 'VERSION'), '26.11.25\n');
+    git('add', '-A');
+    git('commit', '-q', '-m', 'c');
+    const sha = git('rev-parse', 'HEAD');
+    const output = join(dir, 'next-output');
+    rmSync(output, { force: true });
+    const { code } = bash(
+      version,
+      {
+        SHA: sha,
+        GITHUB_REPOSITORY_OWNER: 'Heiss',
+        GITHUB_OUTPUT: output,
+      },
+      repo,
+    );
+    expect(code).toBe(0);
+    expect(readFileSync(join(repo, 'VERSION'), 'utf8')).toBe(
+      `${git('rev-parse', '--short', sha)}\n`,
+    );
+    expect(readFileSync(output, 'utf8')).toBe(
+      'image=ghcr.io/heiss/nova-imperium\n',
+    );
+  });
+
+  it('runs after a green push run on main only, for amd64 and arm64, with the revision label, and moves only „next“', () => {
+    expect(NEXT).toContain("github.event.workflow_run.conclusion == 'success'");
+    expect(NEXT).toContain("github.event.workflow_run.event == 'push'");
+    expect(NEXT).toContain("github.event.workflow_run.head_branch == 'main'");
+    expect(NEXT).toContain(
+      'github.event.workflow_run.head_repository.full_name == github.repository',
+    );
+    expect(NEXT).toContain('platforms: linux/amd64,linux/arm64');
+    expect(NEXT).toContain(
+      'labels: org.opencontainers.image.revision=${{ github.event.workflow_run.head_sha }}',
+    );
+    expect(NEXT).toContain('tags: ${{ steps.v.outputs.image }}:next');
+    // The one tag it pushes; no candidate number, no latest or stable.
+    expect(NEXT.match(/^\s+tags:.*$/gm)).toEqual([
+      '          tags: ${{ steps.v.outputs.image }}:next',
+    ]);
+  });
+});
+
+describe('the scan of the release image (owner, 2026-11-24, 79a)', () => {
+  const RELEASE = readFileSync('.github/workflows/release.yml', 'utf8');
+  const job = (name: string): string => {
+    const start = RELEASE.indexOf(`\n  ${name}:\n`);
+    const next = RELEASE.slice(start + 1).search(/\n {2}[a-z-]+:\n/);
+    return next < 0
+      ? RELEASE.slice(start)
+      : RELEASE.slice(start, start + 1 + next);
+  };
+
+  it('scans the published image of the run for High and Critical holes with a fix', () => {
+    const scan = job('scan');
+    expect(scan).toContain('    needs: image\n');
+    expect(scan).toContain("if: needs.image.outputs.publish == 'true'");
+    expect(scan).toContain('--severity HIGH,CRITICAL --ignore-unfixed');
+    expect(scan).toContain('"$IMAGE:$TAG"');
+    // Every published platform on its own (CodeRabbit on #395).
+    const platforms = /platforms: (\S+)/.exec(job('image'))![1]!.split(',');
+    expect(platforms.length).toBeGreaterThan(1);
+    expect(scan).toContain(`        platform: [${platforms.join(', ')}]\n`);
+    expect(scan).toContain('      fail-fast: false\n');
+    expect(scan).toContain('docker pull --platform "$PLATFORM" "$IMAGE:$TAG"');
+    expect(scan).toContain('image --platform "$PLATFORM" --scanners vuln');
+    expect(scan).toContain('PLATFORM: ${{ matrix.platform }}');
+    expect(scan).toContain('node scripts/trivy-gate.ts trivy-image.json\n');
+    expect(job('image')).toContain('tag: ${{ steps.v.outputs.tag }}');
+  });
+
+  it('lets the aliases move only after the scan passed', () => {
+    const aliases = job('aliases');
+    expect(aliases).toContain('    needs: [image, scan]\n');
+    // No always() or failure(): a failed scan skips the aliases.
+    expect(aliases).not.toMatch(/always\(\)|failure\(\)|!cancelled\(\)/);
+  });
+
+  it('move the aliases only to the image the run scanned, never to a newer one whose scan failed', () => {
+    const aliases = job('aliases');
+    expect(aliases).toContain('TAG: ${{ needs.image.outputs.tag }}');
+    expect(aliases).toMatch(
+      /if \[ "\$newest" != "\$TAG" \]; then\n[^\n]*\n {12}exit 0\n {10}fi\n/,
+    );
+    expect(aliases.indexOf('"$newest" != "$TAG"')).toBeLessThan(
+      aliases.indexOf('imagetools create'),
+    );
+  });
+});
+
+describe('„Migrations append-only“ in every kind of run (CodeRabbit on #395)', () => {
+  /** The run script of the step „Released migrations are unchanged“, unindented. */
+  const script = (): string => {
+    const at = CI.indexOf('      - name: Released migrations are unchanged');
+    const run = CI.indexOf('        run: |\n', at) + '        run: |\n'.length;
+    const end = CI.indexOf('\n\n', run);
+    return CI.slice(run, end)
+      .split('\n')
+      .map((line) => line.replace(/^ {10}/, ''))
+      .join('\n');
+  };
+
+  /** Runs it in a repository with the release 26.11.0 and one commit after it; what the gate was called with, or the error. */
+  function run(env: Record<string, string>): { out: string; code: number } {
+    const dir = mkdtempSync(join(tmpdir(), 'migrations-job-'));
+    try {
+      const git = (...args: string[]) =>
+        execFileSync('git', args, {
+          cwd: dir,
+          encoding: 'utf8',
+          env: {
+            PATH: process.env.PATH,
+            HOME: dir,
+            GIT_AUTHOR_NAME: 'T',
+            GIT_AUTHOR_EMAIL: 't@example.org',
+            GIT_COMMITTER_NAME: 'T',
+            GIT_COMMITTER_EMAIL: 't@example.org',
+            GIT_CONFIG_GLOBAL: '/dev/null',
+            GIT_CONFIG_NOSYSTEM: '1',
+          },
+        }).trim();
+      git('init', '-q', '-b', 'main');
+      git('commit', '-q', '--allow-empty', '-m', 'Release 26.11.0');
+      git('tag', '-a', '26.11.0', '-m', '26.11.0');
+      git('commit', '-q', '--allow-empty', '-m', 'Next');
+      const head = git('rev-parse', 'HEAD');
+      const bin = join(dir, 'bin');
+      mkdirSync(bin);
+      // The gate itself is tested elsewhere: here only what it is given.
+      writeFileSync(join(bin, 'node'), '#!/bin/sh\necho "gate $2 $3 $4"\n');
+      chmodSync(join(bin, 'node'), 0o755);
+      try {
+        const out = execFileSync('bash', ['-e', '-c', script()], {
+          cwd: dir,
+          encoding: 'utf8',
+          stdio: 'pipe',
+          env: {
+            PATH: `${bin}:${process.env.PATH}`,
+            GITHUB_SHA: head,
+            BASE: '',
+            BASE_REF: '',
+            CREATED: '',
+            REF: 'refs/heads/main',
+            EVENT: 'push',
+            ...env,
+          },
+        });
+        return { out: out.replace(head, 'HEAD'), code: 0 };
+      } catch (error) {
+        const e = error as { status: number; stdout: string };
+        return { out: e.stdout, code: e.status };
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
+
+  it('compares the nightly run with itself and with the last release tag', () => {
+    expect(run({ EVENT: 'schedule' })).toEqual({
+      out: 'gate HEAD 26.11.0 \n',
+      code: 0,
+    });
+  });
+
+  it('still refuses a push without a previous tip, rather than passing silently', () => {
+    const { out, code } = run({ EVENT: 'push' });
+    expect(code).toBe(1);
+    expect(out).toContain(
+      '::error::No base commit to compare the migrations with.',
+    );
+    expect(
+      run({ EVENT: 'push', BASE: '0000000000000000000000000000000000000000' })
+        .code,
+    ).toBe(1);
   });
 });

@@ -49,8 +49,12 @@ Compose stack run only when one of `Dockerfile`, `.dockerignore`,
 `.node-version`, `src/server/db/`, the server start (`main.ts`, `server.ts`,
 `config.ts`, `cli.ts`, `maintenance.ts` in `src/server/`) or
 `.github/workflows/ci.yml` changes – game code alone does not build the
-image – and always in a release pull request and in a pull request into
-`hotfix/**`. The mutation tests run in a pull request only when it changes a
+image – and always in a pull request into `hotfix/**`, on a push to `main`
+or `hotfix/**` (unless proven, #342) and in the nightly run. A release
+pull request (head `release/*`) runs no expensive job: it changes only
+`VERSION`, `CHANGELOG.md` and `changes/` and relies on the results of its
+base; the release image is scanned in `release.yml` before `latest` and
+`stable` move (#387). The mutation tests run in a pull request only when it changes a
 file Stryker mutates (the `mutate` globs of `stryker.config.json`), a test
 file (`src/**/*.test.ts`, `src/test/`, `src/server/test-helpers.ts`), the
 mutation configuration (`stryker.config.json`, `mutation-standard.json`,
@@ -63,8 +67,9 @@ sources of the test files it changes and the files whose floor in
 `mutation-floors.txt` it adds, changes or removes, in one job; more
 than 12 such files, a change of the mutation configuration
 (`mutation-standard.json` included) or the test tool chain,
-a release pull request, a push and the nightly run mutate everything in 6
-shards. `node scripts/mutation-partial.ts
+a push to `main` or `hotfix/**` (unless proven) and the nightly run of
+`mutation.yml` mutate everything in 6 shards; a release pull request mutates
+nothing (#387). `node scripts/mutation-partial.ts
 plan $(git merge-base origin/main HEAD)` prints `true` (everything) or the
 list of files. The gate job "CI Gate" must be green before a pull request goes to
 review.
@@ -74,6 +79,7 @@ pnpm lint:dead       # knip: unused files, exports, dependencies
 pnpm lint:dupes      # jscpd: copied code
 pnpm lint:deps       # dependency-cruiser: import rules
 pnpm lint            # ESLint incl. complexity ≤ 10, cognitive ≤ 10, depth ≤ 4, functions ≤ 50 lines
+pnpm lint:redos      # ReDoS lint: no regular expression of polynomial time (tests: exponential), cached; own CI job
 pnpm format:check    # Prettier
 pnpm typecheck       # svelte-check (TypeScript and Svelte)
 pnpm test:coverage   # Vitest; blocks below 90 % lines / 85 % branches

@@ -18,14 +18,16 @@ description: 'The scripts that choose what a pull request mutates and reuse a gr
   of both lockfiles for the tool chain; it fails when the new lockfile
   names no version of one of the tools, so a changed lockfile format never
   skips the run unnoticed. „Detect changes“ sets up Node for it (no
-  dependencies) and writes the output `mutation`: `true` on a push and in
-  the full run of the release pull request of `main` (its draft writes
-  `false` for every output, #147); in the release pull request of a
-  hotfix branch the script compares the release tag below the base
+  dependencies) and writes the output `mutation`: `true` on a push; a
+  pull request into a hotfix branch compares its base with the merge
+  commit. Until #387 it also wrote `true` in the full run of the release
+  pull request of `main` (its draft wrote `false` for every output, #147),
+  and in the release pull request of a hotfix branch the script compared
+  the release tag below the base
   (`git describe --tags --abbrev=0 --match '[0-9]*.[0-9]*.[0-9]*'`, as
-  the migration check does) with the merge commit, and fails without
-  such a tag (decision above); a pull request into a hotfix branch
-  compares its base with the merge commit. Every other pull request asks
+  the migration check does) with the merge commit and failed without such
+  a tag. Since #387 a release pull request runs no mutation job (it
+  changes only the metadata files): „Detect changes“ writes `false`. Every other pull request asks
   `node scripts/mutation-partial.ts plan <base> <merge commit>` (tests in
   `src/test/mutation-partial.test.ts`, #309): `true` (everything, in the
   shards, with the check of #167 for `reuse`), or the JSON list of the

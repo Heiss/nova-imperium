@@ -10,6 +10,33 @@ fail() {
   exit 1
 }
 
+# Never a release after a newer one (owner, 2026-11-25, 108): gaps in the
+# numbers are allowed, a version at or below the newest CalVer tag is not.
+# The same two functions are in scripts/release-pr.sh and scripts/release.sh
+# (each is tested alone, copied into a repository of its own).
+calver_sort() { sort -t. -k1,1n -k2,2n -k3,3n; }
+newest_tag() {
+  git tag --list '[0-9]*.[0-9]*.[0-9]*' |
+    grep -E '^[0-9]{2}\.([1-9]|1[0-2])\.(0|[1-9][0-9]*)$' | calver_sort | tail -n 1
+}
+# Whether CalVer $1 is strictly newer than CalVer $2, part by part as numbers.
+newer_than() {
+  [ "$1" != "$2" ] && [ "$(printf '%s\n%s\n' "$1" "$2" | calver_sort | tail -n 1)" = "$1" ]
+}
+
+# Whether <2> is the merge-back of the released hotfix <1>, squashed into
+# main (owner, 2026-11-25, 116a): the tag's commit is on a hotfix branch, and
+# <2> is exactly its parent with that hotfix merged in, as the squash of
+# hotfix-back/<name> (always built from the current main) is. A release
+# commit of main that took the hotfix's version (O25) brings its own changes,
+# so it is no merge-back and is refused as before.
+merged_back() {
+  git fetch --quiet origin '+refs/heads/hotfix/*:refs/remotes/origin/hotfix/*' || return 1
+  [ -n "$(git branch -r --contains "$1^{commit}" --list 'origin/hotfix/*')" ] || return 1
+  merged=$(git merge-tree --write-tree --no-messages "$2^" "$1^{commit}") || return 1
+  [ "$(printf '%s\n' "$merged" | head -n 1)" = "$(git rev-parse "$2^{tree}")" ]
+}
+
 dry_run=false
 case "$#:${1:-}" in
   0:) ;;
@@ -75,12 +102,28 @@ existing=''
 if git rev-parse -q --verify "refs/tags/$tag" > /dev/null; then
   if [ "$(git rev-parse "$tag^{commit}")" = "$commit" ]; then
     existing=$tag
-  elif git merge-base --is-ancestor "$tag^{commit}" "$commit"; then
-    # A hotfix merged back into main carries the hotfix's VERSION.
+  elif git merge-base --is-ancestor "$tag^{commit}" "$commit" ||
+    merged_back "$tag" "$commit"; then
+    # A hotfix merged back into main carries the hotfix's VERSION, as a
+    # merge or squashed (116a).
     printf '%s\n' "$tag is the release of a merged-back hotfix: nothing to tag."
     exit 0
   else
-    fail "$tag is already the tag of another release: this release is not tagged. Fix VERSION through a new release pull request."
+    # A hotfix released the version first, while this release head was
+    # green and merged in the window before its rebuild (O25): the release
+    # commit stays untagged and this job red. Only the owner's word starts a
+    # release pull request (#387), so the message names the way out.
+    fail "$tag is already the tag of another release: this release is not tagged. Recovery: a new release pull request of $release_branch on the owner's word (workflow \"Release pull request\"), which takes the next free version."
+  fi
+fi
+
+# A new tag only for a version newer than every release: a merge that
+# slipped past the CI of the release head is never tagged, so nothing is
+# published and no alias moves (owner, 2026-11-25, 108).
+if [ -z "$existing" ]; then
+  newest=$(newest_tag)
+  if [ -n "$newest" ] && ! newer_than "$tag" "$newest"; then
+    fail "$tag is not newer than the newest release $newest: this release is not tagged, a release is never published after a newer one. Recovery: a new release pull request of $release_branch on the owner's word (workflow \"Release pull request\"), which takes the next free version."
   fi
 fi
 

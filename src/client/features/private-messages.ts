@@ -37,6 +37,13 @@ function send(act: Act, call: Exclude<PmCall, PmLoad>): Promise<boolean> {
   }
 }
 
+/** The way a request is sent: a refusal as a note, quietly, or to the component itself (#349). */
+function actOf(ctx: ClientCtx, request: PmRequest): Act {
+  const refused = request.refused;
+  if (refused) return (type, ...data) => ctx.actOwn(refused, type, ...data);
+  return request.quiet ? ctx.quiet : ctx.act;
+}
+
 /** Runs one request: ask first where an action cannot be taken back, then send. */
 export async function answer(
   ctx: ClientCtx,
@@ -62,7 +69,7 @@ export async function answer(
     }
     return;
   }
-  request.done(await send(request.quiet ? ctx.quiet : ctx.act, call));
+  request.done(await send(actOf(ctx, request), call));
 }
 
 export const clientFeature = {

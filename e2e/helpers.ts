@@ -276,15 +276,14 @@ export async function openAllRows(page: Page): Promise<void> {
 }
 
 /**
- * „Optionen“ is in sections on a phone (#189): this chooses one of „Spiel“,
- * „Runde“, „Konto“, „Gerät“ and „Weiteres“, so its boxes are in sight. It does
- * nothing on a desktop, which shows them all.
+ * „Optionen“ is in sections (#189, on every width since #356): this chooses
+ * one of „Spiel“, „Runde“, „Konto“, „Gerät“ and „Weiteres“, so its boxes are
+ * in sight.
  */
 export async function optionsSection(
   page: Page,
   section: 'Spiel' | 'Runde' | 'Konto' | 'Gerät' | 'Weiteres',
 ): Promise<void> {
-  if ((page.viewportSize()?.width ?? 1280) > 760) return;
   await page
     .getByRole('group', { name: 'Bereich' })
     .getByRole('button', { name: section, exact: true })

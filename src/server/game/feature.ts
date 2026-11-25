@@ -58,10 +58,22 @@ export type Handlers = { readonly [K in ActionName]?: Handler<K> };
 export interface ServerFeature {
   /** The actions of the feature by name. */
   actions?: Handlers;
-  /** The actions refused while guilds are off in the round (#191). */
-  guildActions?: Handlers;
   /** The actions of the admin: audited as `admin.write`, not as `game`. */
   adminActions?: Handlers;
   /** The keys the feature adds to the state. */
   state?: StatePart;
+  /**
+   * Whether the feature is on in the round (default: always; #374). While it
+   * is off, each of its `actions` is refused with `off` and every key of its
+   * `state` is null.
+   */
+  enabled?: (round: RoundRules) => boolean;
+  /** The refusal of its actions while the feature is off; required with `enabled`. */
+  off?: string;
+}
+
+/** The switch of the actions of a feature that can be off (#374). */
+export interface Gate {
+  enabled: (round: RoundRules) => boolean;
+  off: string;
 }

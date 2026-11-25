@@ -2,16 +2,20 @@
 // used by the actions of src/client/views/lexicanum.ts and by the
 // components of the Lexicanum, which load on demand. Part of the start
 // bundle.
-import { LEXICANUM_VIEW, viewUrl } from '../logic/address.ts';
+import { ARTICLE_PARAM, LEXICANUM_VIEW } from '../logic/address.ts';
 import { client } from '../logic/state.svelte.ts';
 import { lex } from './lexicanum-state.svelte.ts';
 
 type Go = (view: string, push?: boolean) => void;
+/** The address of a view with its parameters (view-address.ts, #379). */
+type Url = (view: string, params: Record<string, string>) => string;
 let go: Go = () => undefined;
+let url: Url = () => '';
 
-/** Sets the navigation of main.ts that renders a view. */
-export const useNavigation = (navigate: Go): void => {
+/** Sets the navigation of main.ts that renders a view, and the address of a view. */
+export const useNavigation = (navigate: Go, address: Url): void => {
   go = navigate;
+  url = address;
 };
 
 /** Renders a view through main.ts. */
@@ -36,6 +40,6 @@ export function closePanel(focus = true): void {
 /** Opens an article on the page of the Lexicanum, with its address. */
 export function openArticle(id: string): void {
   closePanel(false);
-  history.pushState(null, '', viewUrl(location.href, LEXICANUM_VIEW, null, id));
+  history.pushState(null, '', url(LEXICANUM_VIEW, { [ARTICLE_PARAM]: id }));
   go(LEXICANUM_VIEW, false);
 }

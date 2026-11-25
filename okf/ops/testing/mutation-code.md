@@ -13,8 +13,8 @@ description: 'The scripts and jobs of the sharded mutation runs (#131): plan, ga
     its mutants in the weights of `reports/mutation-state.json` (#141,
     below); without a state in `reports/mutation/mutation.json`, restored
     from the cache: the merged report of the last **complete** run
-    (`stryker-weights-…`, saved by `mutation.yml` and by a release pull
-    request), else the last merged report. The first complete sharded run planned with an
+    (`stryker-weights-…`, saved by `mutation.yml`; by a release pull
+    request too until #387), else the last merged report. The first complete sharded run planned with an
     incremental report: its reused results put shard 4 at 56 instead of 101
     mutant-minutes, 36 instead of about 22 minutes (owner, 2026-11-13). In
     that run the reported times matched the wall time of every shard
@@ -100,7 +100,7 @@ description: 'The scripts and jobs of the sharded mutation runs (#131): plan, ga
   as job output), „Mutation tests (shard N of 12)“ (`mutation-shard`, matrix
   1 to N from the output `shards` of the plan, N = `SHARDS`, the name takes it
   from `strategy.job-total`, `fail-fast: false`, incremental after `drop-static` (#201),
-  `--force` when the head branch is `release/*`, uploads `mutation-shard-N`), „Mutation tests“ (`mutation`,
+  `--force` when the head branch was `release/*` until #387, uploads `mutation-shard-N`), „Mutation tests“ (`mutation`,
   the gate: merge, total, floors). The CI Gate requires all three when the
   output `mutation` of „Detect changes“ is `true`, and accepts their skip
   only when it is `false` (#146) or `reuse` (#167, below) or `partial`

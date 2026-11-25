@@ -13,10 +13,10 @@ import type { RoundRules } from '../../core/round.ts';
 const LAST_SHOWN = 5;
 
 /** The ids of the main planets of some players, in the order given; a player without a planet is left out. */
-const mains = (ctx: Ctx, ids: readonly string[], round: RoundRules): string[] =>
+const mains = (ctx: Ctx, ids: readonly string[]): string[] =>
   ids.flatMap((id) => {
     const player = ctx.players.get(id);
-    const planet = player ? mainPlanetOf(ctx, player, round).planet : null;
+    const planet = player ? mainPlanetOf(ctx, player).planet : null;
     return planet ? [planet.id] : [];
   });
 
@@ -93,8 +93,8 @@ export function quickState(
   const guild = guildIds(ctx, u.id, round.guilds).filter(
     (id) => !friends.includes(id),
   );
-  const friendPlaces = mains(ctx, friends, round);
-  const guildPlaces = mains(ctx, guild, round);
+  const friendPlaces = mains(ctx, friends);
+  const guildPlaces = mains(ctx, guild);
   // A place is listed once, under the first group that has it: friend, then
   // guild, then last target (#362; the owner's rule of 2026-11-17 for a friend
   // who is a guild member, extended to the last targets [V]).

@@ -2,7 +2,7 @@
 // options opens the confirmation with the password, a component that owns its
 // input (views/DeleteAccountDialog.svelte). Once the server deleted the
 // account, the push subscription goes, the dialog closes and the login shows.
-import { deleteAccountDialogText } from '../logic/options.ts';
+import { deleteAccountDialogText } from '../logic/delete-account.ts';
 import { client } from '../logic/state.svelte.ts';
 import { disablePush } from '../push.ts';
 import { deleteAccountDialog } from '../views/account.ts';

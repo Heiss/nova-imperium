@@ -9,12 +9,25 @@ import {
   assembleGlyphs,
   assembleHtml,
   assembleMenu,
+  assembleAddress,
   assembleMounts,
+  assembleOffered,
   assembleTabs,
   type Listed,
 } from './assemble.ts';
 import type { ClientView, Mount } from './contract.ts';
-import { menu, TAB_GLYPHS, TAB_VIEWS, VIEWS } from './index.ts';
+import { hiddenView } from '../logic/navigation.ts';
+import type { GameState } from '../logic/types.ts';
+import { addressParams, namesOf } from '../logic/address.ts';
+import {
+  ADDRESS,
+  menu,
+  phoneMenu,
+  TAB_GLYPHS,
+  TAB_VIEWS,
+  VIEWS,
+} from './index.ts';
+import { offered } from './offered.ts';
 import { ANEW, FRESH, MOUNTED, mountsAnew } from './mount.ts';
 import { CLIENT_VIEWS } from './views.gen.ts';
 
@@ -32,6 +45,8 @@ const MEMBERS = [
   'menu',
   'glyph',
   'tab',
+  'offered',
+  'address',
 ];
 const round = { guilds: true, achievements: true, daily: false } as RoundRules;
 
@@ -265,5 +280,153 @@ describe('the views with fields a player types into (#361)', () => {
     expect(TYPED.test('<textarea id="y">')).toBe(true);
     expect(TYPED.test('<input type="checkbox" id="z">')).toBe(false);
     expect(TYPED.test('<input\n  type="hidden" name="a" />')).toBe(false);
+  });
+});
+
+/** Names the prototype of a plain object answers (CodeQL on #395). */
+const PROTO = [
+  'constructor',
+  'hasOwnProperty',
+  '__proto__',
+  'toString',
+  'valueOf',
+];
+
+describe('whether a view is offered (#373)', () => {
+  const ROUNDS = [true, false].flatMap((guilds) =>
+    [true, false].flatMap((achievements) =>
+      [true, false].map(
+        (daily) => ({ guilds, achievements, daily }) as RoundRules,
+      ),
+    ),
+  );
+  const shown = (items: ReturnType<typeof menu>) =>
+    items.flatMap((i) => (i === '-' ? [] : [i.view]));
+
+  /** The menu, the tabs and the address of every view follow its rule in the round. */
+  function follow(round: RoundRules, admin: boolean): void {
+    const items = menu(admin, round);
+    const tabs = phoneMenu(items).tabs.map((t) => t.view);
+    const state = { round, me: { admin } } as unknown as GameState;
+    for (const [, view] of views) {
+      const on = offered(view.key, round, admin);
+      expect(on, view.key).toBe(view.offered?.(round, admin) ?? true);
+      if (view.menu) expect(shown(items).includes(view.key), view.key).toBe(on);
+      if (view.tab) expect(tabs.includes(view.key), view.key).toBe(on);
+      expect(hiddenView(view.key, state), view.key).toBe(!on);
+      // Before the first state every view is open.
+      expect(hiddenView(view.key, null), view.key).toBe(false);
+    }
+  }
+
+  it('is one rule for the menu, the tabs and the address of every view', () => {
+    for (const round of ROUNDS)
+      for (const admin of [true, false]) follow(round, admin);
+  });
+
+  it('answers a name of the prototype of an object like an unknown view, never throwing (CodeQL on #395)', () => {
+    const state = {
+      round: ROUNDS[0],
+      me: { admin: false },
+    } as unknown as GameState;
+    for (const name of PROTO) {
+      expect(offered(name, ROUNDS[0]!, false), name).toBe(true);
+      expect(offered(name, ROUNDS[0]!, true), name).toBe(true);
+      expect(hiddenView(name, state), name).toBe(false);
+    }
+  });
+
+  it('offers a view without a rule, an unknown name too', () => {
+    expect(offered('no-such-view', ROUNDS[0]!, false)).toBe(true);
+  });
+
+  it('drops the tab of a view that is not in the menu', () => {
+    const items = menu(false, ROUNDS[0]!).filter(
+      (i) => i === '-' || i.view !== TAB_VIEWS[0],
+    );
+    expect(phoneMenu(items).tabs.map((t) => t.view)).toEqual(
+      TAB_VIEWS.slice(1),
+    );
+  });
+
+  it('is defined once per view', () => {
+    const rule = () => true;
+    expect(() =>
+      assembleOffered([
+        ['a', [{ key: 'x', html: () => '', offered: rule }]],
+        ['b', [{ key: 'x', html: () => '', offered: rule }]],
+      ]),
+    ).toThrow(
+      'offered "x" is defined in src/client/views/a.ts and in src/client/views/b.ts.',
+    );
+  });
+
+  it('names no view in the navigation, the address or the mount', () => {
+    for (const file of [
+      'src/client/logic/navigation.ts',
+      'src/client/view-address.ts',
+      'src/client/views/mount.ts',
+      'src/client/views/index.ts',
+    ])
+      expect(readFileSync(file, 'utf8'), file).not.toMatch(
+        /'(admin|guilds|achievements|market)'/,
+      );
+    const mount = readFileSync('src/client/views/mount.ts', 'utf8');
+    // The mount asks the one rule, after checking the view is its own.
+    expect(mount).toContain(
+      'const own = Object.hasOwn(MOUNT, view) ? MOUNT[view] : undefined;',
+    );
+    expect(mount).toContain(
+      "typeof own === 'function' && offered(view, v.s.round, v.s.me.admin);",
+    );
+  });
+});
+
+describe('the address parameters of the views (#379)', () => {
+  it('belong to one view each, plain names', () => {
+    const names = views.flatMap(([, view]) => view.address ?? []);
+    expect(new Set(names).size).toBe(names.length);
+    for (const name of names) expect(name).toMatch(KEY);
+    expect(() => assembleAddress(listed)).not.toThrow();
+  });
+
+  it('read no parameter for a name of the prototype of an object (CodeQL on #395)', () => {
+    for (const name of PROTO) {
+      expect(namesOf(ADDRESS, name), name).toEqual([]);
+      expect(
+        addressParams(`?view=${name}&guild=g1&a=x`, name, ADDRESS),
+        name,
+      ).toEqual({});
+    }
+    expect(namesOf(ADDRESS, 'guilds')).toEqual(['guild']);
+  });
+
+  it('stop the start when two views declare one name, naming both files', () => {
+    expect(() =>
+      assembleAddress([
+        ['a', [{ key: 'x', html: () => '', address: ['p'] }]],
+        ['b', [{ key: 'y', html: () => '', address: ['q', 'p'] }]],
+      ]),
+    ).toThrow(
+      'address parameter "p" is defined in src/client/views/a.ts and in src/client/views/b.ts.',
+    );
+    expect(
+      assembleAddress([
+        ['a', [{ key: 'x', html: () => '', address: ['p', 'q'] }]],
+        ['b', [{ key: 'y', html: () => '' }]],
+      ]),
+    ).toEqual({ x: ['p', 'q'] });
+  });
+
+  it('are named by no shared file of the address and the routing', () => {
+    for (const file of [
+      'src/client/logic/address.ts',
+      'src/client/view-address.ts',
+      'src/client/routing.ts',
+      'src/client/ui-init.ts',
+    ])
+      expect(readFileSync(file, 'utf8'), file).not.toMatch(
+        /'guild'|\.guild\b|get\('a'\)/,
+      );
   });
 });

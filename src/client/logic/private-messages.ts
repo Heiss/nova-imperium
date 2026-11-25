@@ -311,6 +311,8 @@ export interface PmRequest {
   quiet: boolean;
   /** Called once with whether the action went through and the data it answered. */
   done: (ok: boolean, data?: Record<string, unknown>) => void;
+  /** Gets a refusal with the server's words instead of a note: the dialog of a message (#349). */
+  refused?: (message: string) => void;
 }
 
 /** What an action answered: whether it went through and its data. */
@@ -319,11 +321,15 @@ export interface PmAnswer {
   data: Record<string, unknown>;
 }
 
-/** Asks for `call` from inside a component; resolves with the answer. */
+/**
+ * Asks for `call` from inside a component; resolves with the answer.
+ * `refused` gets a refusal with the server's words instead of a note (#349).
+ */
 export const pmAsk = (
   from: Element,
   call: PmCall,
   quiet = false,
+  refused?: (message: string) => void,
 ): Promise<PmAnswer> =>
   new Promise((resolve) =>
     from.dispatchEvent(
@@ -332,6 +338,7 @@ export const pmAsk = (
         detail: {
           call,
           quiet,
+          refused,
           done: (ok, data) => resolve({ ok, data: data ?? {} }),
         },
       }),
@@ -343,4 +350,5 @@ export const pmCall = (
   from: Element,
   call: PmCall,
   quiet = false,
-): Promise<boolean> => pmAsk(from, call, quiet).then((a) => a.ok);
+  refused?: (message: string) => void,
+): Promise<boolean> => pmAsk(from, call, quiet, refused).then((a) => a.ok);

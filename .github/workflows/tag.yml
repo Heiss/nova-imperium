@@ -89,8 +89,8 @@ jobs:
           git config user.email 'nova-imperium-release@users.noreply.github.com'
           sh scripts/release.sh
 
-      # A hotfix took the next version: the release pull request of main is
-      # rebuilt now, so it takes a newer one and its release becomes stable
+      # A hotfix took the next version: an open release pull request of main
+      # is rebuilt now (none is created, #387), so it takes a newer one and its release becomes stable
       # (release.yml points stable at the newest tag). A security hotfix
       # also opens its pull request back into main; the owner merges it
       # (owner, 2026-11-12).
@@ -108,14 +108,15 @@ jobs:
             echo "This run tagged nothing: no follow-up."
             exit 0
           fi
-          gh workflow run release-pr.yml --ref main
+          gh workflow run release-pr.yml --ref main -f rebuild=true
+          # The merge-back comes from hotfix-back/<name>, the current main
+          # with the hotfix merged in, never from the hotfix branch, which
+          # its ruleset keeps unchanged (owner, 2026-11-25, 111a). The script
+          # comes from main: a hotfix cut from an older release has none.
           case "$BRANCH" in
             hotfix/sec-*)
-              open=$(GH_TOKEN="$APP_TOKEN" gh pr list --head "$BRANCH" --base main --state open --json number --jq '.[0].number // empty')
-              if [ -z "$open" ]; then
-                GH_TOKEN="$APP_TOKEN" gh pr create --base main --head "$BRANCH" \
-                  --title "Sicherheits-Hotfix $version zurück nach main" \
-                  --body "Release $version from \`$BRANCH\` is published. Merge it back into main (owner); its version is not tagged again."
-              fi
+              git fetch --quiet origin main
+              git show origin/main:scripts/hotfix-back.sh > "$RUNNER_TEMP/hotfix-back.sh"
+              GH_TOKEN="$APP_TOKEN" sh "$RUNNER_TEMP/hotfix-back.sh" open "$BRANCH" "$version"
               ;;
           esac

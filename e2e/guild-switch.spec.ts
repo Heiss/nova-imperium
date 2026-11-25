@@ -79,9 +79,12 @@ async function openRoundDialog(page: Page): Promise<Locator> {
   const box = page.getByLabel(BOX);
   await expect(page.getByText(WARNING)).toBeVisible();
   await expect(box).toHaveAccessibleDescription(WARNING);
-  // The lock of the main planet (#221): 7 days, as no round changed it.
+  // The lock of the main planet (#221): 7 days, as no round changed it. The
+  // field of the dialog: „Universum“ has one with the same label (#366).
   await expect(
-    page.getByLabel('Sperre nach einem Wechsel des Hauptplaneten (Tage)'),
+    page
+      .getByRole('dialog')
+      .getByLabel('Sperre nach einem Wechsel des Hauptplaneten (Tage)'),
   ).toHaveValue('7');
   return box;
 }

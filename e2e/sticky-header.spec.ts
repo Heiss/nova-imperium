@@ -3,14 +3,21 @@
 // and the keyboard focus is never hidden under them (#193, WCAG 2.4.11).
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { nav, openAllRows, register, uniqueName, watch } from './helpers.ts';
+import {
+  nav,
+  openAllRows,
+  register,
+  seed,
+  uniqueName,
+  watch,
+} from './helpers.ts';
 
 const isPhone = (page: Page): boolean =>
   (page.viewportSize()?.width ?? 1280) <= 760;
 
 /** A long view: the buildings are listed one below the other. */
-async function longView(page: Page, name: string): Promise<void> {
-  await register(page, name);
+async function longView(page: Page, name: string, fresh = true): Promise<void> {
+  if (fresh) await register(page, name);
   await nav(page, 'buildings');
   await expect(page.locator('h2')).toContainText('Gebäude');
   // On a phone the rows are compact; every one unfolded makes the page long.
@@ -126,5 +133,66 @@ test.describe('the header stays in view (#193)', () => {
   }) => {
     test.slow();
     await stickyFlow(page);
+  });
+});
+
+test.describe('the planet choice stays in view while scrolled (#348)', () => {
+  test('a header of two lines: only the logo goes, the planet choice, „Kommandant …“ and „Logout“ stay and work', async ({
+    page,
+  }) => {
+    test.skip(isPhone(page), 'the phone keeps its header (#348)');
+    test.slow();
+    // At 1,100 px the resources take a line of their own below the logo.
+    await page.setViewportSize({ width: 1100, height: 800 });
+    const w = watch(page);
+    const name = uniqueName('KlebPlanet');
+    await register(page, name);
+    seed({ name, colony: { name: uniqueName('Kolonie') } });
+    await page.reload();
+    await longView(page, name, false);
+    await expect(page.locator('html')).not.toHaveClass(/head-line/);
+    const logo = page.locator('header .logo');
+    const select = page.locator('#planet_select');
+    const logout = page.locator('#pinfo [data-act=logout]');
+    // At the top the header is as before: the logo is there.
+    await expect(logo).toBeVisible();
+    await expect(logo).toBeInViewport({ ratio: 1 });
+    await page.evaluate(() => window.scrollTo(0, 1500));
+    await expect(page.locator('html')).toHaveClass(/scrolled/);
+    await expect(logo).toBeHidden();
+    for (const part of [select, logout, page.locator('#resbar')])
+      await expect(part).toBeInViewport({ ratio: 1 });
+    await expect(page.locator('#pinfo')).toContainText(`Kommandant ${name}`);
+    // The planet choice is above the resources and the menu below the header.
+    const pinfo = (await page.locator('#pinfo').boundingBox())!;
+    const bar = (await page.locator('#resbar').boundingBox())!;
+    expect(pinfo.y + pinfo.height).toBeLessThanOrEqual(bar.y + 1);
+    const head = (await page.locator('header').boundingBox())!;
+    const menu = (await page.locator('#menu').boundingBox())!;
+    expect(menu.y).toBeGreaterThanOrEqual(head.y + head.height - 1);
+    // The planet changes without scrolling up.
+    const before = await page.evaluate(() => window.scrollY);
+    const other = await select
+      .locator('option:not(:checked)')
+      .first()
+      .getAttribute('value');
+    await select.selectOption(other!);
+    await expect(select).toHaveValue(other!);
+    expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(300);
+    expect(before).toBeGreaterThan(300);
+    // The keyboard focus keeps clear of what stays of the header.
+    await page.locator('#view').focus();
+    const hidden: string[] = [];
+    for (let i = 0; i < 30; i++) {
+      await page.keyboard.press('Tab');
+      const state = await focusState(page);
+      if (state) hidden.push(`Tab ${i + 1}: ${state}`);
+    }
+    expect(hidden).toEqual([]);
+    // Back at the top the logo is there again.
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await expect(page.locator('html')).not.toHaveClass(/scrolled/);
+    await expect(logo).toBeVisible();
+    expect(w.problems).toEqual([]);
   });
 });

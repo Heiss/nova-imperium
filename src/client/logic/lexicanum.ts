@@ -144,39 +144,63 @@ const ICON_CLASS: Readonly<Record<ArticleKind, string>> = {
   guide: 'ic-m',
 };
 
-const textParts = (text: string): Segment[] => segments(text, titleOf);
+/** Whether the player may open an article, by its id. */
+type Open = (id: string) => boolean;
 
-const cell = (c: Cell): ViewCell =>
-  typeof c === 'number'
-    ? { text: fmt(c), num: true }
-    : typeof c === 'string'
-      ? { text: c }
-      : c;
+/** Every article: the default where no state is at hand. */
+const ALL: Open = () => true;
 
-/** A block of the data as the components draw it. */
-export function viewBlock(b: Block): ViewBlock {
+/**
+ * Whether the player sees an article (#404; owner, 2026-11-25, 113a): the
+ * page of a feature only while the round offers it (the rule of its page,
+ * the one of its view), for the admin as for every player (114a); every
+ * other article, an unknown id too, always. A hidden article is not listed,
+ * found or linked, and its address falls back like an unknown one.
+ */
+export const opens =
+  (v: V): Open =>
+  (id) =>
+    article(id)?.page?.offered?.(v.s.round) ?? true;
+
+/** The pieces of a text; a link to an article the player does not see is plain words. */
+const textParts = (text: string, open: Open): Segment[] =>
+  segments(text, titleOf).map((part) =>
+    'link' in part && !open(part.link) ? { text: part.text } : part,
+  );
+
+/** A cell as shown; a link to an article the player does not see is plain words. */
+function cell(c: Cell, open: Open): ViewCell {
+  if (typeof c === 'number') return { text: fmt(c), num: true };
+  if (typeof c === 'string') return { text: c };
+  return open(c.link) ? c : { text: c.text };
+}
+
+/** A block of the data as the components draw it; a link to an article the player does not see is left out (#404). */
+export function viewBlock(b: Block, open: Open = ALL): ViewBlock {
   switch (b.t) {
     case 'text':
-      return { t: 'text', parts: textParts(fill(b.text, b.values)) };
+      return { t: 'text', parts: textParts(fill(b.text, b.values), open) };
     case 'facts':
       return {
         t: 'facts',
         items: b.items.map((i) => ({
           label: i.label,
-          parts: textParts(i.text),
+          parts: textParts(i.text, open),
         })),
       };
     case 'links':
       return {
         t: 'links',
-        items: b.items.map((i) => {
-          const item: { id: string; text: string; note?: string } = {
-            id: i.id,
-            text: i.text ?? titleOf(i.id) ?? i.id,
-          };
-          if (i.note) item.note = i.note;
-          return item;
-        }),
+        items: b.items
+          .filter((i) => open(i.id))
+          .map((i) => {
+            const item: { id: string; text: string; note?: string } = {
+              id: i.id,
+              text: i.text ?? titleOf(i.id) ?? i.id,
+            };
+            if (i.note) item.note = i.note;
+            return item;
+          }),
       };
     case 'table': {
       const t: Extract<ViewBlock, { t: 'table' }> = {
@@ -184,7 +208,7 @@ export function viewBlock(b: Block): ViewBlock {
         head: b.head,
         rows: b.rows.map((r) => {
           const row: { cells: ViewCell[]; mark?: boolean } = {
-            cells: r.cells.map(cell),
+            cells: r.cells.map((c) => cell(c, open)),
           };
           if (r.mark) row.mark = true;
           return row;
@@ -241,10 +265,10 @@ function stand(v: V, a: ArticleMeta, e: LevelEffect): ViewBlock[] {
 }
 
 /** The texts of the lexicon part of an article, with their values. */
-const partTexts = (a: ArticleMeta): ViewBlock[] =>
+const partTexts = (a: ArticleMeta, open: Open): ViewBlock[] =>
   (a.lexicon.texts ?? []).map((t) => ({
     t: 'text',
-    parts: textParts(fill(t.text, t.values)),
+    parts: textParts(fill(t.text, t.values), open),
   }));
 
 /** „Was die Stufen bringen“: texts, formulas, computed blocks, the own state. */
@@ -252,11 +276,12 @@ function effectSection(v: V, a: ArticleMeta, e?: LevelEffect): Section | null {
   const store = STORAGE.some((s) => s.key === a.key);
   if (!hasEffect(a) && !e) return null;
   const custom = a.lexicon.blocks?.(lexState(v)) ?? [];
+  const open = opens(v);
   const blocks: ViewBlock[] = [
-    ...partTexts(a),
+    ...partTexts(a, open),
     ...(a.lexicon.formulas ?? []).map(formula),
     ...(store ? [formula(storageFormula(v.s.cfg))] : []),
-    ...custom.map(viewBlock),
+    ...custom.map((b) => viewBlock(b, open)),
     ...(e && !custom.some((b) => b.t === 'stand') ? stand(v, a, e) : []),
   ];
   return { id: 'effect', title: HEADINGS.effect, blocks };
@@ -357,7 +382,7 @@ const missionsOf = (key: string): string[] =>
     .filter((m) => missionShips(m)?.ships.includes(key))
     .map(missionArticle);
 
-function missionFacts(m: string): ViewBlock {
+function missionFacts(m: string, open: Open): ViewBlock {
   const r = missionRules(m)!;
   const ships = missionShips(m);
   const items: { label: string; text: string }[] = [
@@ -371,18 +396,18 @@ function missionFacts(m: string): ViewBlock {
       label: 'Schiffe',
       text: `${ships.only ? 'nur' : 'braucht'} ${ships.ships.map((k) => `[[${k}]]`).join(', ')}`,
     });
-  return viewBlock({ t: 'facts', items });
+  return viewBlock({ t: 'facts', items }, open);
 }
 
 // ----- articles -----
 
-function seeSection(a: ArticleMeta): Section | null {
+function seeSection(a: ArticleMeta, open: Open): Section | null {
   const ids = [
     ...(a.lexicon.seeAlso ?? []),
     ...(a.kind === 'mission'
       ? (missionShips(a.key)?.ships ?? [])
       : missionsOf(a.key)),
-  ].filter((id, i, all) => all.indexOf(id) === i);
+  ].filter((id, i, all) => all.indexOf(id) === i && open(id));
   if (!ids.length) return null;
   return {
     id: 'see',
@@ -405,6 +430,7 @@ function own(v: V, a: ArticleMeta): string | null {
 /** The article of an id with the player's state; null for an unknown id. */
 /** The sections of an article, the empty ones left out. */
 function sections(v: V, a: ArticleMeta): Section[] {
+  const open = opens(v);
   // A rule, a question or a guide is written; its sections are computed from
   // the rules for this player (#288, #289).
   if (a.page)
@@ -412,9 +438,9 @@ function sections(v: V, a: ArticleMeta): Section[] {
       ...a.page.sections(lexState(v)).map((x) => ({
         id: x.id,
         title: x.title,
-        blocks: x.blocks.map(viewBlock),
+        blocks: x.blocks.map((b) => viewBlock(b, open)),
       })),
-      seeSection(a),
+      seeSection(a, open),
     ].filter((s): s is Section => !!s);
   // A mission has the name of a research (`spy`): its text, facts and links.
   const all =
@@ -423,16 +449,16 @@ function sections(v: V, a: ArticleMeta): Section[] {
           {
             id: 'mission',
             title: '',
-            blocks: [...partTexts(a), missionFacts(a.key)],
+            blocks: [...partTexts(a, open), missionFacts(a.key, open)],
           },
-          seeSection(a),
+          seeSection(a, open),
         ]
       : [
           effectSection(v, a, effectOf(v, a)),
           levelSection(v, a, effectOf(v, a)),
           requirementSection(v, a),
           usedSection(a),
-          seeSection(a),
+          seeSection(a, open),
         ];
   return all.filter((s): s is Section => !!s);
 }
@@ -443,9 +469,10 @@ const unitCost = (a: ArticleMeta): Cost | undefined =>
     ? (SHIPS[a.key] ?? DEF[a.key])?.cost
     : undefined;
 
+/** The article of an id with the player's state; null for an unknown id and for one the player does not see (#404). */
 export function articleView(id: string, v: V): ArticleView | null {
   const a = article(id);
-  if (!a) return null;
+  if (!a || !opens(v)(id)) return null;
   const cost = unitCost(a);
   const view: ArticleView = {
     id,
@@ -458,7 +485,7 @@ export function articleView(id: string, v: V): ArticleView | null {
     intro: a.lt ? a.lt.split('\n\n').map((p) => p.trim()) : [],
     lines: cost ? unitLines(v, a.key)! : [],
     sections: sections(v, a),
-    siblings: ARTICLES.filter((x) => x.kind === a.kind).map((x) => ({
+    siblings: shownArticles(v, a.kind).map((x) => ({
       id: x.id,
       title: x.title,
     })),
@@ -472,6 +499,14 @@ export function articleView(id: string, v: V): ArticleView | null {
 const plural = (n: number): string =>
   `${n} ${n === 1 ? 'Eintrag' : 'Einträge'}`;
 
+/** The articles the player sees, of one kind or of all (#404). */
+function shownArticles(v: V, kind?: ArticleKind): ArticleMeta[] {
+  const open = opens(v);
+  return ARTICLES.filter(
+    (a) => (kind === undefined || a.kind === kind) && open(a.id),
+  );
+}
+
 /** The page of an address: the start, a list, „Begriffe A–Z“ or an article. */
 export function page(id: string, v: V): Page {
   const kind = [...KINDS, ...PAGE_KINDS].find((k) => listId(k) === id);
@@ -480,14 +515,14 @@ export function page(id: string, v: V): Page {
       t: 'list',
       id,
       title: KIND_TITLES[kind],
-      items: ARTICLES.filter((a) => a.kind === kind).map(item),
+      items: shownArticles(v, kind).map(item),
     };
   if (id === AZ)
     return {
       t: 'list',
       id,
       title: 'Begriffe A–Z',
-      items: [...ARTICLES]
+      items: shownArticles(v)
         .sort((a, b) => a.title.localeCompare(b.title, 'de'))
         .map(item),
     };
@@ -496,7 +531,7 @@ export function page(id: string, v: V): Page {
   return {
     t: 'start',
     boxes: PAGE_KINDS.flatMap((k) => {
-      const items = ARTICLES.filter((a) => a.kind === k).map((a) => ({
+      const items = shownArticles(v, k).map((a) => ({
         id: a.id,
         title: a.title,
         line: a.ds ?? '',
@@ -507,7 +542,7 @@ export function page(id: string, v: V): Page {
       ...KINDS.map((k) => ({
         id: listId(k),
         title: KIND_TITLES[k],
-        note: plural(ARTICLES.filter((a) => a.kind === k).length),
+        note: plural(shownArticles(v, k).length),
       })),
       { id: AZ, title: 'Begriffe A–Z', note: 'alle Namen und Kürzel' },
     ],
@@ -546,9 +581,11 @@ export function crumbs(p: Page): Crumb[] {
 
 let docs: SearchDoc[] | null = null;
 
-/** The hits of a query, grouped by kind; none for an empty query. */
-export const searchHits = (query: string): HitGroup[] =>
-  search(query, (docs ??= searchDocs()));
+/** The hits of a query, grouped by kind; none for an empty query, and no article the player does not see (#404). */
+export const searchHits = (query: string, open: Open = ALL): HitGroup[] =>
+  search(query, (docs ??= searchDocs()))
+    .map((g) => ({ kind: g.kind, hits: g.hits.filter((h) => open(h.id)) }))
+    .filter((g) => g.hits.length > 0);
 
 /** The hits one after another, as the keys ↑ ↓ walk them. */
 export const flatHits = (groups: readonly HitGroup[]): Hit[] =>
@@ -559,6 +596,24 @@ export const hitsLabel = (n: number): string => `${n} Treffer`;
 
 /** The kind of a group of hits, as the start page names it. */
 export const groupTitle = (g: HitGroup): string => KIND_TITLES[g.kind];
+
+/** The marked hit, by its id and its place when it was marked. */
+export interface Marked {
+  readonly id: string;
+  readonly at: number;
+}
+
+/**
+ * The place of the marked hit in the hits as they are now (#404): a state
+ * update can hide a page while the results are open. The marked hit keeps
+ * its mark where it went; a hit gone hands the mark to the hit at its place,
+ * or to the last hit when the list got shorter; no hit, no mark (-1).
+ */
+export function markOf(hits: readonly Hit[], marked: Marked | null): number {
+  if (!marked) return -1;
+  const i = hits.findIndex((h) => h.id === marked.id);
+  return i >= 0 ? i : Math.min(marked.at, hits.length - 1);
+}
 
 /**
  * The hit marked after a key: ↓ and ↑ walk the hits and wrap around; any

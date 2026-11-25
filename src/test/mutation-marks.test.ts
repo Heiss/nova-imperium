@@ -2,7 +2,13 @@
 // in the sensitive files, one line each, named mutators and a reason; the
 // guard below checks every file Stryker mutates.
 import { describe, expect, it } from 'vitest';
-import { main, markProblems, marksIn } from '../../scripts/mutation-marks.ts';
+import {
+  directiveOf,
+  main,
+  markProblems,
+  marksIn,
+} from '../../scripts/mutation-marks.ts';
+import { fast, HOSTILE, sameOn } from './redos.ts';
 
 const SENSITIVE = 'src/server/auth.ts';
 const OTHER = 'src/core/a.ts';
@@ -222,6 +228,38 @@ describe('the command', () => {
     expect(main({ log: (line) => void lines.push(line) })).toBe(0);
     expect(lines.at(-1)).toMatch(
       /^\d+ marks of mutants that cannot be killed, 0 not allowed\.$/,
+    );
+  });
+});
+
+describe('a directive of a comment line in linear time (#367)', () => {
+  it('is read as the expression with `.*?` before `\\s*$` read it', () => {
+    const OLD = /^[\s*]*Stryker\s+((?:disable|restore)\b.*?)\s*$/i;
+    sameOn(
+      [
+        'Stryker',
+        'stryker',
+        'disable',
+        'restore',
+        'd',
+        ' ',
+        '\t',
+        '\r',
+        '\n',
+        '*',
+        'x',
+        '\u2028',
+      ],
+      (content) => {
+        expect(directiveOf(content)).toBe(OLD.exec(content)?.[1]);
+      },
+    );
+  });
+
+  it('reads a long run of spaces in a directive fast (before: about 3 s)', () => {
+    const content = ` Stryker disable${'\t'.repeat(HOSTILE)}x  `;
+    expect(fast(() => directiveOf(content))).toBe(
+      `disable${'\t'.repeat(HOSTILE)}x`,
     );
   });
 });

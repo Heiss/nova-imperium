@@ -223,8 +223,25 @@ describe('pmCall', () => {
     await expect(result).resolves.toBe(true);
     const quiet = pmCall(target, call, true);
     expect(request!.quiet).toBe(true);
+    expect(request!.refused).toBeUndefined();
     request!.done(false);
     await expect(quiet).resolves.toBe(false);
+  });
+
+  it('hands the own way of the dialog to show a refusal to the feature (#349)', async () => {
+    let request: PmRequest | undefined;
+    const target = {
+      dispatchEvent: (e: Event) => {
+        request = (e as CustomEvent<PmRequest>).detail;
+        return true;
+      },
+    } as unknown as Element;
+    const refused = vi.fn();
+    const call: PmCall = ['sendPrivateMessage', { name: 'Bert', text: 'x' }];
+    const result = pmCall(target, call, false, refused);
+    expect(request).toMatchObject({ call, quiet: false, refused });
+    request!.done(false);
+    await expect(result).resolves.toBe(false);
   });
 });
 
@@ -409,5 +426,48 @@ describe('pmAsk', () => {
     await expect(pmCall(answerWith(true, { more: true }), call)).resolves.toBe(
       true,
     );
+  });
+});
+
+describe('the details a mutation run of #349 found untested', () => {
+  it('marks only a received unread message new', () => {
+    expect(
+      startThread(
+        [line(1, true, false), line(2, false, true)],
+        false,
+      ).lines.map((l) => l.fresh),
+    ).toEqual([false, false]);
+  });
+
+  it('marks every message read once the player read a thread with some new ones', () => {
+    const t = startThread([line(1, false, false), line(2, false, true)], false);
+    expect(withRead(t).lines.map((l) => l.fresh)).toEqual([false, false]);
+  });
+
+  it('removes only the deleted message from „Gesendet“', () => {
+    const list = startSent(
+      [
+        { id: 1, to: 'Bert', time: 1, text: 'a' },
+        { id: 2, to: 'Bert', time: 2, text: 'b' },
+      ],
+      false,
+    );
+    expect(sentWithout(list, 1).rows.map((r) => r.id)).toEqual([2]);
+  });
+
+  it('sends a request that is not quiet by default, under the event `pm:act`', () => {
+    let request: PmRequest | undefined;
+    let type = '';
+    const target = {
+      dispatchEvent: (e: Event) => {
+        type = e.type;
+        request = (e as CustomEvent<PmRequest>).detail;
+        return true;
+      },
+    } as unknown as Element;
+    void pmAsk(target, ['blockPlayer', { name: 'Bert' }]);
+    expect(type).toBe('pm:act');
+    expect(PM_EVENT).toBe('pm:act');
+    expect(request!.quiet).toBe(false);
   });
 });

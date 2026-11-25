@@ -141,7 +141,9 @@ class Collector {
 }
 
 function publicUrl(c: Collector): string {
-  const raw = c.text('NOVA_PUBLIC_URL').replace(/\/+$/, '');
+  // The slashes at the end; the match starts only where a run of slashes
+  // starts, so it stays linear (#367).
+  const raw = c.text('NOVA_PUBLIC_URL').replace(/(?<!\/)\/+$/, '');
   if (!raw) {
     c.errors.push(
       'NOVA_PUBLIC_URL is required: the address of the game as players open it.',

@@ -9,8 +9,9 @@ description: 'Stryker mutation tests, the score that blocks, static mutants, the
 * **[E]** Mutation tests with Stryker, a total score below 80 % blocks;
   incremental on pull requests (only those that change what they test,
   #146; a head that only merged `main` takes over the green result of the
-  head before, #167; the release pull request of `main` runs it
-  completely in its full run, #147) and on
+  head before, #167; the release pull request of `main` ran it
+  completely in its full run, #147, until #387: since then a release pull
+  request runs no mutation job) and on
   pushes to `main` (unchanged code keeps its cached result),
   complete every night (owner, 2026-11-11). Tag workflows verify the
   earlier CI result.
@@ -19,8 +20,9 @@ description: 'Stryker mutation tests, the score that blocks, static mutants, the
   before every incremental run, the step „Static mutants run again“
   (`scripts/mutation-shards.ts drop-static`) removes the cached results of
   the static mutants from the incremental file of the shard; every other
-  result stays cached. The release pull request and the nightly run stay
-  complete (`--force`). A static mutant changes code that runs when its
+  result stays cached. The nightly run stays complete (`--force`); the
+  release pull request did too until #387, since then it runs no mutation
+  job. A static mutant changes code that runs when its
   module loads (`static: true` in the report, written by StrykerJS for a
   mutant with static coverage, also when tests cover it as well); it has
   no coverage per test (`coveredBy: []`) and every test runs against it.
@@ -40,8 +42,8 @@ description: 'Stryker mutation tests, the score that blocks, static mutants, the
   about 12 to 15 minutes; with 6 the measured times give about 41.5
   mutant-minutes per job, about 12 to 16 minutes; 8 would gain nothing,
   because the largest piece of `catalog.ts` alone weighs 40): pull
-  requests and pushes to `main` (incremental), the release pull request and
-  the nightly run (complete). A script splits the mutated files by their
+  requests and pushes to `main` (incremental) and the nightly run
+  (complete); the release pull request (complete) until #387. A script splits the mutated files by their
   estimated run time, heaviest first onto the emptiest job (since #141
   every file stays on its job, below): the test time of their mutants in
   the last report, so static mutants weigh what they cost; a file the report does not know weighs as much as the mean file the
@@ -81,7 +83,7 @@ description: 'Stryker mutation tests, the score that blocks, static mutants, the
   (owner, 2026-11-20, #309, #321; the owner decided both): the complete
   runs, in `mutation.yml` (nightly and „Run workflow“) and in the sharded
   job of `ci.yml` (pull requests above 12 changed files, the release pull
-  request, #321), run in 12 shards instead of 6, and the plan weighs a file
+  request until #387, #321), run in 12 shards instead of 6, and the plan weighs a file
   without a weight by the rule below. The change does not touch which tests
   run, a floor or the gate (the owner rejected changing the tests). Why:
   the complete run 44619270864 of `mutation.yml` on the collecting branch

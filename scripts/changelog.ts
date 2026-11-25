@@ -52,7 +52,9 @@ export function parseFragment(name: string, content: string): Fragment {
   const kind = /^art:\s*(\S+)\s*$/m.exec(m.groups.head!)?.[1];
   if (!KINDS.includes(kind as Kind))
     throw new Error(`${name}: "art" must be one of ${KINDS.join(', ')}`);
-  const text = m.groups.body!.trim().replace(/\s*\n\s*/g, ' ');
+  // Each run of white space with a line break becomes one space. The match
+  // starts only where a run starts, so it stays linear (#367).
+  const text = m.groups.body!.trim().replace(/(?<!\s)\s*\n\s*/g, ' ');
   if (!text) throw new Error(`${name}: the text is empty`);
   if (text.length > MAX_TEXT)
     throw new Error(`${name}: the text has more than ${MAX_TEXT} characters`);
@@ -235,23 +237,42 @@ function notes(version: string | undefined): number {
 }
 
 /**
+ * The release branches whose VERSION the release branch `own` must not
+ * pick, from the release branches `refs` (full ref names under `prefix`):
+ * every other one, but a hotfix ignores the release pull request of main,
+ * which moves up on its rebuild after the hotfix release (owner,
+ * 2026-11-25, 108a).
+ */
+export function heldBy(
+  own: string | undefined,
+  refs: readonly string[],
+  prefix: string,
+): string[] {
+  const hotfix = own?.startsWith('release/hotfix/') ?? false;
+  return refs.filter(
+    (ref) =>
+      ref !== '' &&
+      ref !== `${prefix}${own ?? ''}` &&
+      !(hotfix && ref === `${prefix}release/main`),
+  );
+}
+
+/**
  * Every tag, the version in VERSION (a merged release pull request is not
  * tagged yet while its CI push run is still running) and the versions held
- * by the other open release branches (release/main and release/hotfix/*
- * must not pick the same one). `own` is the release branch being rebuilt.
+ * by the other open release branches (`heldBy`). `own` is the release
+ * branch being rebuilt.
  */
 function usedVersions(own: string | undefined): string[] {
   const used = git('tag', '--list').split('\n').filter(Boolean);
   const current = readIfPresent(VERSION)?.trim();
   if (current) used.push(current);
   const prefix = 'refs/remotes/origin/';
-  const branches = git(
-    'for-each-ref',
-    '--format=%(refname)',
-    `${prefix}release/`,
-  )
-    .split('\n')
-    .filter((ref) => ref && ref !== `${prefix}${own ?? ''}`);
+  const branches = heldBy(
+    own,
+    git('for-each-ref', '--format=%(refname)', `${prefix}release/`).split('\n'),
+    prefix,
+  );
   for (const ref of branches) {
     try {
       used.push(git('show', `${ref}:${VERSION}`).trim());

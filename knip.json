@@ -16,6 +16,7 @@
     "src/server/round-reset.gen.ts",
     "src/server/db/repos/repositories.gen.ts",
     "src/client/views/views.gen.ts",
+    "src/client/views/options/boxes.gen.ts",
     "src/server/db/migrations/**/*.ts",
     "scripts/*.ts",
     ".github/scripts/*.mjs"

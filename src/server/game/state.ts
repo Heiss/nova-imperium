@@ -233,7 +233,7 @@ export function stateFor(
   const round = roundRules(ctx);
   // Without a selection the main planet (#221); the first planet stays the
   // home planet („Heimatplanet“).
-  const main = mainPlanetOf(ctx, u, round);
+  const main = mainPlanetOf(ctx, u);
   const requested =
     typeof selected === 'string' ? ctx.planets.get(selected) : null;
   const view: StateView = {

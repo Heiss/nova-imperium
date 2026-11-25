@@ -2,9 +2,9 @@
 // Handelsposten a player exchanges one resource for another; the preview
 // shows the result, the fee and the cap, „max“ fills the field, the price of
 // the pair falls with the amount. The admin switches the market off for the
-// round: the view says it is closed and the server refuses every exchange;
-// the panel warns about ratios that gain on a round trip. Desktop and phone,
-// with axe on the form and the closed view. The market is shared by all
+// round: the view is hidden (#404, e2e/hide-switched-off.spec.ts) and the
+// server refuses every exchange; the panel warns about ratios that gain on a
+// round trip. Desktop and phone, with axe on the form. The market is shared by all
 // players of the universe, so the tests run one after the other and put the
 // settings back.
 import AxeBuilder from '@axe-core/playwright';
@@ -161,9 +161,10 @@ test('the admin switches the market off for the round and sees the warning', asy
     await expect(page.getByRole('alert')).toContainText(
       'Achtung: Ein Tausch im Kreis bringt selbst ohne Gebühr Gewinn: Adamant → Psikristall → Adamant',
     );
-    await nav(page, 'market');
-    await expect(page.locator('#view')).toContainText(CLOSED);
-    expect(await violations(page)).toEqual([]);
+    // Hidden, not shown as closed (#404): no entry, the address opens the overview.
+    await expect(page.locator('#menu [data-v=market]')).toHaveCount(0);
+    await page.goto('/?view=market');
+    await expect(page.locator('h2')).toContainText('Übersicht');
     expect(
       await refusal(page, { type: 'trade', give: 'm', get: 'c', amount: 1000 }),
     ).toBe(CLOSED);

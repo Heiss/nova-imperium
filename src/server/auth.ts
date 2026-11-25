@@ -45,7 +45,13 @@ export function passwordMatches(u: User, pw: string): boolean {
 
 // ----- invitations -----
 
-const EMAIL = /^[^\s@<>"',;]+@[^\s@<>"',;]+\.[^\s@<>"',;]+$/;
+/**
+ * An address: a domain with a dot that is neither its first nor its last
+ * character. The domain reads up to its first dot after the first character,
+ * so a domain of many dots costs linear time (#367).
+ */
+export const EMAIL =
+  /^[^\s@<>"',;]+@[^\s@<>"',;][^\s@<>"',;.]*\.[^\s@<>"',;]+$/;
 
 export function inviteLink(cfg: Config, token: string): string {
   // The token is in the fragment: browsers never send it to a server or in a Referer.
@@ -153,6 +159,7 @@ export function register(
     rq: null,
     mainPlanet: null,
     mainSwitched: null,
+    mainLockEnd: null,
     vacation: null,
   };
   ctx.players.save(u);

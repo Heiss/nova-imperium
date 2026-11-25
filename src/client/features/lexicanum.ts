@@ -2,6 +2,7 @@
 // frame, the „?“ of a list entry and the links of an article. The page, the
 // side panel and the articles are in views/lexicanum.ts and its components.
 import { LEXICANUM_VIEW } from '../logic/address.ts';
+import { urlOf } from '../view-address.ts';
 import {
   closePanel,
   goTo,
@@ -15,7 +16,7 @@ import type { ClientFeature } from './contract.ts';
 /** nav, explain and the links of the Lexicanum. */
 export const clientFeature = {
   acts: ({ go }) => {
-    useNavigation(go);
+    useNavigation(go, urlOf);
     return {
       // The navigation of main.ts; the menu entry of the Lexicanum opens its
       // start page, also from an article.

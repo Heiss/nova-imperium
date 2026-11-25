@@ -7,6 +7,7 @@ import {
   CATEGORIES,
   LEVEL_REWARD,
   REWARD_CAP,
+  rewardsOn,
   UNIT_REWARD,
 } from '../../achievements.ts';
 import {
@@ -141,6 +142,8 @@ const roundSection = (s: LexState): PageSection =>
 
 export const page: PageDef = {
   id: 'rule-rewards',
+  // Hidden in a round without achievements and daily rewards, as its view (#404).
+  offered: rewardsOn,
   kind: 'rule',
   title: 'Tagesbelohnung und Erfolge',
   line: 'Wie die Tagesbelohnung wächst und was die Erfolge auszahlen.',

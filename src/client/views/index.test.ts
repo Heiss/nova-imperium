@@ -1,9 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { menu, phoneMenu, TAB_GLYPHS, TAB_VIEWS } from './index.ts';
 
-const round = { achievements: true, daily: false, guilds: true } as Parameters<
-  typeof menu
->[1];
+// Every switch of a feature on but the daily reward; the marketplace is on
+// too, its view is offered only then (#404).
+const round = {
+  achievements: true,
+  daily: false,
+  guilds: true,
+  marketOn: 1,
+} as Parameters<typeof menu>[1];
 
 describe('phone menu', () => {
   it('puts four destinations in the tab bar and the rest under „Mehr“ (#189, D1)', () => {

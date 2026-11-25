@@ -34,7 +34,7 @@ The test strategy is split by topic into the notes below.
 
 ## Gates
 
-* [Quality gates](/ops/testing/quality-gates.md) - Mutation standard per file, coverage, ESLint complexity and code hygiene that block in the CI.
+* [Quality gates](/ops/testing/quality-gates.md) - Mutation standard per file, coverage, ESLint complexity, the ReDoS lint and code hygiene that block in the CI.
 * [Workflow lint](/ops/testing/workflow-lint.md) - The job that checks the workflows and the tests of the shell of the release detection.
 * [Security gates](/ops/testing/security-gates.md) - gitleaks, pnpm audit and the other security gates, and what to do with a finding that is no secret.
 * [Append-only migrations and the size ratchet](/ops/testing/migrations-and-ratchet.md) - The job that keeps migrations append-only and the ratchet that keeps src/client/main.ts from growing.

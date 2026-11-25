@@ -510,6 +510,6 @@ function guildPage(v: V, state: GuildState, g: Guild): GuildPage {
 /** The directory, or the page of the guild the player opened. */
 export function guildsPage(v: V): GuildsPage {
   const state = v.s.guilds ?? { directory: [], own: null, management: null };
-  const g = state.directory.find((guild) => guild.id === v.ui.guild);
+  const g = state.directory.find((guild) => guild.id === v.ui.params.guild);
   return g ? guildPage(v, state, g) : directoryPage(state);
 }

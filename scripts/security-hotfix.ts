@@ -275,9 +275,13 @@ export function pinPackages(
   return next;
 }
 
-/** The key of a line of a YAML map, without its quotes, or undefined. */
-const yamlKey = (line: string): string | undefined =>
-  /^\s+(?:'([^']+)'|"([^"]+)"|([^\s'"#][^:]*?))\s*:/
+/**
+ * The key of a line of a YAML map, without its quotes, or undefined. A bare
+ * key ends with a character that is no space: `[^:]*?` before `\s*:` took
+ * quadratic time on a long run of spaces (#367).
+ */
+export const yamlKey = (line: string): string | undefined =>
+  /^\s+(?:'([^']+)'|"([^"]+)"|([^\s'"#](?:[^:]*[^\s:])?))\s*:/
     .exec(line)
     ?.slice(1)
     .find((key) => key !== undefined);

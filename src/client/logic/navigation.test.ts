@@ -6,7 +6,8 @@ import { hiddenView, navigation, type NavLink } from './navigation.ts';
 import type { NewsData } from './news.ts';
 import type { GameState } from './types.ts';
 
-const round = { achievements: false, daily: false, guilds: true };
+// The marketplace on: its view is offered only then (#404).
+const round = { achievements: false, daily: false, guilds: true, marketOn: 1 };
 
 const state = (over: object = {}, me: object = {}): GameState =>
   ({
