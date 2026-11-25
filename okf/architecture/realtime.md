@@ -29,10 +29,19 @@ generated: { by: claude-code/web, at: 2026-11-25T09:30:00Z }
 * **[E]** Stage 3: Server-Sent Events (`EventSource`, no library) tell the
   browser that something changed, the browser fetches with an ETag, the
   poll of 4 s becomes a slow fallback, and the client updates its state in
-  place instead of mounting views anew. How the data travel (deltas,
-  slices or GraphQL) is open as O26; until it is settled, the [E] of
-  [System architecture](/architecture/system.md) that the answer carries
-  the new state of the player stands.
+  place instead of mounting views anew.
+* **[E]** The data travel as parts of the state (O26, owner, 2026-11-25):
+  the state is cut into parts (for example planet, fleets, map, players,
+  messages), each with its own version and ETag. The first load fetches
+  everything without an ETag; after that an event names the parts that
+  changed and the browser fetches only those, with `If-None-Match`. Not
+  chosen: JSON Patch deltas of the full state (they keep the full build on
+  the server and leave a gap to repair after a lost connection) and
+  GraphQL per component (a schema layer and a new surface for DoS for
+  little gain over parts cut along the views). **[V]** The answer of an
+  action carries the parts it changed. Until the parts are built, step 4
+  of the request flow in [System architecture](/architecture/system.md)
+  (the answer carries the new state of the player) describes the game.
 * **[E]** HTTP/2 between the browser and the outermost proxy is a
   requirement: over HTTP/1.1 a browser opens at most 6 connections per
   host [U], which several tabs with a stream each would use up.
