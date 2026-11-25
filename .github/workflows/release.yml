@@ -156,11 +156,15 @@ jobs:
           TAG: ${{ needs.image.outputs.tag }}
           PLATFORM: ${{ matrix.platform }}
         run: |
-          # The image of this platform only; it is scanned, not run.
-          docker pull --platform "$PLATFORM" "$IMAGE:$TAG"
-          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v "$PWD:/out" \
+          # The image of this platform only, read by Trivy from the registry:
+          # a pull of the other platform into the daemon of the runner left
+          # its export to Trivy without the content (26.11.28, arm64:
+          # "content digest ... not found"). The login above wrote the
+          # credentials to the docker config, mounted read-only; the token
+          # is in no argument and no log.
+          docker run --rm -v "$PWD:/out" -v "$HOME/.docker:/docker:ro" -e DOCKER_CONFIG=/docker \
             aquasec/trivy:0.76.2@sha256:8f6bb947dbc528902e11f2f5be52f7b519f6a39d5d148f41166f2040499768fb \
-            image --platform "$PLATFORM" --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --format json \
+            image --image-src remote --platform "$PLATFORM" --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --format json \
             --output /out/trivy-image.json --no-progress "$IMAGE:$TAG"
           node scripts/trivy-gate.ts trivy-image.json
 
