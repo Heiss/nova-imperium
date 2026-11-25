@@ -597,6 +597,24 @@ export const hitsLabel = (n: number): string => `${n} Treffer`;
 /** The kind of a group of hits, as the start page names it. */
 export const groupTitle = (g: HitGroup): string => KIND_TITLES[g.kind];
 
+/** The marked hit, by its id and its place when it was marked. */
+export interface Marked {
+  readonly id: string;
+  readonly at: number;
+}
+
+/**
+ * The place of the marked hit in the hits as they are now (#404): a state
+ * update can hide a page while the results are open. The marked hit keeps
+ * its mark where it went; a hit gone hands the mark to the hit at its place,
+ * or to the last hit when the list got shorter; no hit, no mark (-1).
+ */
+export function markOf(hits: readonly Hit[], marked: Marked | null): number {
+  if (!marked) return -1;
+  const i = hits.findIndex((h) => h.id === marked.id);
+  return i >= 0 ? i : Math.min(marked.at, hits.length - 1);
+}
+
 /**
  * The hit marked after a key: ↓ and ↑ walk the hits and wrap around; any
  * other key keeps the mark. -1 is no mark.

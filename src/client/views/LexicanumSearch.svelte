@@ -6,6 +6,8 @@
     flatHits,
     groupTitle,
     hitsLabel,
+    markOf,
+    type Marked,
     moveMark,
     opens,
     searchHits,
@@ -15,7 +17,9 @@
 
   let query = $state('');
   let open = $state(false);
-  let mark = $state(-1);
+  // The marked hit by its id, so a state update that hides a page keeps
+  // the mark on a rendered hit (#404, markOf).
+  let marked = $state<Marked | null>(null);
   let field: HTMLInputElement | undefined = $state();
 
   // No article the player does not see (#404).
@@ -23,6 +27,12 @@
   const groups = $derived(searchHits(query, v ? opens(v) : undefined));
   const hits = $derived(flatHits(groups));
   const shown = $derived(open && query.trim() !== '');
+  const mark = $derived(markOf(hits, marked));
+
+  function markAt(i: number): void {
+    const hit = hits[i];
+    marked = hit ? { id: hit.id, at: i } : null;
+  }
 
   function choose(id: string): void {
     query = '';
@@ -34,7 +44,7 @@
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       e.preventDefault();
       open = true;
-      mark = moveMark(mark, hits.length, e.key);
+      markAt(moveMark(mark, hits.length, e.key));
     } else if (e.key === 'Enter') {
       const hit = hits[Math.max(mark, 0)];
       if (hit) {
@@ -45,7 +55,7 @@
       // Esc closes the results only, not a dialog of the page.
       e.stopPropagation();
       open = false;
-      mark = -1;
+      marked = null;
     }
   }
 
@@ -80,7 +90,7 @@
     autocomplete="off"
     oninput={() => {
       open = true;
-      mark = -1;
+      marked = null;
     }}
     onfocus={() => (open = true)}
     onblur={() => (open = false)}

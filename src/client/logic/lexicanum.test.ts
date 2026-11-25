@@ -21,6 +21,7 @@ import {
   hitsLabel,
   listId,
   missionShips,
+  markOf,
   moveMark,
   opens,
   page,
@@ -997,5 +998,33 @@ describe('the page of a feature switched off for the round (#404; owner, 2026-11
     const v = inRound({});
     expect(ARTICLES.every((a) => opens(v)(a.id))).toBe(true);
     expect(opens(v)('nope')).toBe(true);
+  });
+});
+
+describe('the mark of the search when a state update hides a hit (#404)', () => {
+  const hits = (...ids: string[]) =>
+    ids.map(
+      (id) =>
+        ({ id, title: id }) as unknown as Parameters<typeof markOf>[0][number],
+    );
+
+  it('keeps no mark without one', () => {
+    expect(markOf(hits('a', 'b'), null)).toBe(-1);
+  });
+
+  it('follows the marked hit to its new place', () => {
+    expect(markOf(hits('a', 'b', 'c'), { id: 'c', at: 2 })).toBe(2);
+    expect(markOf(hits('b', 'c'), { id: 'c', at: 2 })).toBe(1);
+    expect(markOf(hits('x', 'a', 'b'), { id: 'a', at: 0 })).toBe(1);
+  });
+
+  it('hands the mark of a hit gone to the hit at its place, or to the last hit', () => {
+    expect(markOf(hits('a', 'c'), { id: 'b', at: 1 })).toBe(1);
+    expect(markOf(hits('a', 'b'), { id: 'c', at: 2 })).toBe(1);
+    expect(markOf(hits('a'), { id: 'c', at: 5 })).toBe(0);
+  });
+
+  it('marks nothing when no hit is left', () => {
+    expect(markOf([], { id: 'c', at: 2 })).toBe(-1);
   });
 });

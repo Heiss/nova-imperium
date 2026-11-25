@@ -134,3 +134,54 @@ test('a marketplace switched off is hidden on a phone (#404) @phone', async ({
 }) => {
   await hideFlow(page, browser);
 });
+
+test('open search results keep a rendered mark when the marketplace is switched off (#404)', async ({
+  page,
+  browser,
+}) => {
+  const w = watch(page);
+  const admin = uniqueName('Schaltwart');
+  await register(page, admin);
+  cli('admin', admin);
+  await page.reload();
+  const context = await browser.newContext({ viewport: page.viewportSize() });
+  const player = await context.newPage();
+  const p = watch(player);
+  const box = player.getByRole('combobox', { name: 'Suche im Lexicanum' });
+  const marked = player.locator(
+    '#lx-results [role=option][aria-selected=true]',
+  );
+  try {
+    await register(player, uniqueName('Leserin'));
+    await player.goto('/?view=lexicanum');
+    await box.fill('Marktplatz');
+    // „Marktplatz“, „Handelsposten“, the question last; ↑ marks the last hit.
+    await expect(player.locator('#lx-results [role=option]')).toHaveCount(3);
+    await box.press('ArrowUp');
+    await expect(marked).toContainText('Wie komme ich an mehr Rohstoffe?');
+
+    await switchMarket(page, '0');
+    // The state update hides „Marktplatz“ while the results are open: the
+    // list is shorter, the mark stays on the question it marked.
+    await nextState(player);
+    await expect(player.locator('#lx-results [role=option]')).toHaveCount(2);
+    await expect(marked).toHaveCount(1);
+    await expect(marked).toContainText('Wie komme ich an mehr Rohstoffe?');
+    const id = await box.getAttribute('aria-activedescendant');
+    expect(id).toBeTruthy();
+    await expect(
+      player.locator(`#lx-results [role=option]#${id}`),
+    ).toHaveAttribute('aria-selected', 'true');
+    // Enter opens the marked hit.
+    await box.press('Enter');
+    await expect(player.locator('#view .lx-title')).toContainText(
+      'Wie komme ich an mehr Rohstoffe?',
+    );
+  } finally {
+    await switchMarket(page, '1');
+  }
+  cli('unadmin', admin);
+  await context.close();
+  expect(w.problems).toEqual([]);
+  expect(p.problems).toEqual([]);
+});
