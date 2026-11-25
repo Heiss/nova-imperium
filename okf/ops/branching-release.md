@@ -512,7 +512,13 @@ and one CI run (26.11.24; #347 for 26.11.25).
   hotfix is not merged back (base `main`), while another release branch
   holds its version or while its version is a tag already; the CI Gate
   requires „Detect changes“. Once the hotfix is merged back and the release
-  head rebuilt, it passes again (`src/test/release-guards.test.ts`). After every hotfix release, `tag.yml`
+  head rebuilt, it passes again (`src/test/release-guards.test.ts`).
+  **[E]** A double failure is accepted (owner, 2026-11-25, 82a): when a
+  rebuild fails after its push and setting the pull request back to draft
+  fails as well, the pull request keeps the new head with the title and
+  the body of the run before. Its text is stale until the next rebuild
+  writes it again; what is released is still guarded by the CI of the
+  release head above. After every hotfix release, `tag.yml`
   rebuilds the release pull request of `main`, so its version is newer than
   the hotfix and its release becomes `stable` again.
 * **[E]** The id is a hash of the fixed packages and the base image holes, so
