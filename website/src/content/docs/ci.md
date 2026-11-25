@@ -225,8 +225,10 @@ fix only, and `scripts/trivy-gate.ts` decides:
 | Push to `main`, the nightly run                    | Every Critical hole.                                                                                                                                                                                           |
 | Any other pull request                             | Only the Critical holes it brings in: the image of the base branch is built and scanned too, and its holes are left out, so two Renovate pull requests that each fix one of two holes do not block each other. |
 
-A release pull request builds no image, so it runs no Trivy. What blocks a
-High hole in a release of `main` is an open point
+A release pull request builds no image, so it runs no Trivy. The release
+image itself is scanned by `release.yml` for every High and Critical hole
+with a fix, each platform on its own, before `latest` and `stable` move; a
+finding leaves them on the previous release
 ([Branching and release](/okf/ops/branching-release.md)).
 
 The published release is scanned again every hour by the workflow

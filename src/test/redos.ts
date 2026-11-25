@@ -18,9 +18,14 @@ export const HOSTILE = 50_000;
 /** Runs <work> and fails when it takes FAST_MS or more; returns its result. */
 export function fast<T>(work: () => T): T {
   const start = performance.now();
-  const result = work();
-  expect(performance.now() - start).toBeLessThan(FAST_MS);
-  return result;
+  try {
+    return work();
+  } finally {
+    // Also when `work` throws (a length refusal, say): the time counts
+    // either way, and the error still reaches the caller (CodeRabbit on
+    // #395).
+    expect(performance.now() - start).toBeLessThan(FAST_MS);
+  }
 }
 
 /** Texts joined from <pieces>, up to <max> of them. */
