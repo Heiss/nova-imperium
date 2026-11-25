@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  type Fragment,
   germanDate,
+  heldBy,
   MAX_TEXT,
   missingFragment,
   nextVersion,
@@ -10,6 +10,7 @@ import {
   prepend,
   section,
   sectionOf,
+  type Fragment,
 } from '../../scripts/changelog.ts';
 import { fast, HOSTILE, sameOn } from './redos.ts';
 
@@ -180,5 +181,29 @@ describe('the text of a fragment in linear time (#367)', () => {
     expect(() =>
       fast(() => parseFragment('a.md', `---\nart: neu\n---\n${body}`)),
     ).toThrow(`more than ${MAX_TEXT} characters`);
+  });
+});
+
+describe('the release branches a release must not take a version from (owner, 2026-11-25, 108a)', () => {
+  const P = 'refs/remotes/origin/';
+  const refs = [
+    `${P}release/main`,
+    `${P}release/hotfix/x`,
+    `${P}release/hotfix/y`,
+    '',
+  ];
+  it('are every other release branch for main', () => {
+    expect(heldBy('release/main', refs, P)).toEqual([
+      `${P}release/hotfix/x`,
+      `${P}release/hotfix/y`,
+    ]);
+  });
+  it('leave out the release pull request of main for a hotfix', () => {
+    expect(heldBy('release/hotfix/x', refs, P)).toEqual([
+      `${P}release/hotfix/y`,
+    ]);
+  });
+  it('are all of them without a branch of its own', () => {
+    expect(heldBy(undefined, refs, P)).toEqual(refs.slice(0, 3));
   });
 });

@@ -49,9 +49,15 @@ newer_than() {
 }
 
 # The release branch other than ours that holds <version> in its VERSION.
+# A hotfix ignores the release pull request of main: the hotfix takes the
+# version, and main moves up on its rebuild (owner, 2026-11-25, 108a), so in
+# a collision main yields, never the hotfix (scripts/changelog.ts, heldBy).
 taken_by() {
   for ref in $(git for-each-ref --format='%(refname)' refs/remotes/origin/release/); do
     [ "$ref" = "refs/remotes/origin/$branch" ] && continue
+    case "$base" in
+      hotfix/*) [ "$ref" = refs/remotes/origin/release/main ] && continue ;;
+    esac
     if [ "$(git show "$ref:VERSION" 2> /dev/null | tr -d '[:space:]')" = "$1" ]; then
       printf '%s\n' "${ref#refs/remotes/origin/}"
       return

@@ -527,6 +527,17 @@ and one CI run (26.11.24; #347 for 26.11.25).
   moves. The two scripts carry the same small comparison (each is tested
   alone); tests in `src/test/release-guards.test.ts` and
   `src/test/release-tag.test.ts`.
+  **[E]** A hotfix takes the next version after the tags (owner,
+  2026-11-25, 108a): it ignores the version the open release pull request
+  of `main` holds, and that pull request moves one up on its rebuild, which
+  `tag.yml` starts after every hotfix release. **[V]** `next-version` of
+  `scripts/changelog.ts` (`heldBy`) leaves out `release/main` for a
+  `release/hotfix/*` branch and still counts every hotfix release branch
+  for `release/main`; `taken_by` of `release-pr.sh` does the same, so when
+  a hotfix and `main` pick the same version, `main` yields (its release
+  pull request and its CI fail until it is rebuilt), never the hotfix. Two
+  hotfixes still keep apart. A failed rebuild may leave a gap; the rule
+  above guards that no release comes after a newer one.
   **[E]** A double failure is accepted (owner, 2026-11-25, 82a): when a
   rebuild fails after its push and setting the pull request back to draft
   fails as well, the pull request keeps the new head with the title and

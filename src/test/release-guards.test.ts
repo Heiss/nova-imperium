@@ -240,3 +240,107 @@ describe('a release is never published after a newer one (owner, 2026-11-25, 108
     expect(versions('gap', ['26.11.25'], '26.11.28').code).toBe(0);
   });
 });
+
+describe('a hotfix takes the next version, the release pull request of main moves up (owner, 2026-11-25, 108a)', () => {
+  // The versions of this month, as next-version computes them (Berlin).
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/Berlin',
+    year: '2-digit',
+    month: 'numeric',
+  }).formatToParts(new Date());
+  const ym = `${parts.find((p) => p.type === 'year')!.value}.${Number(parts.find((p) => p.type === 'month')!.value)}`;
+  const v = (micro: number) => `${ym}.${micro}`;
+
+  /** main released v(0); the open release pull request of main holds v(1). */
+  function scenario(name: string) {
+    const dir = join(root, name);
+    const origin = join(root, `${name}.git`);
+    mkdirSync(join(dir, 'scripts'), { recursive: true });
+    const git = (...args: string[]) =>
+      execFileSync('git', args, {
+        cwd: dir,
+        env: ENV,
+        encoding: 'utf8',
+      }).trim();
+    execFileSync('git', ['init', '-q', '--bare', origin]);
+    git('init', '-q', '-b', 'main');
+    git('remote', 'add', 'origin', origin);
+    for (const file of ['scripts/release-pr.sh', 'scripts/changelog.ts'])
+      copyFileSync(join(ROOT, file), join(dir, file));
+    version(dir, v(0));
+    git('add', '-A');
+    git('commit', '-q', '-m', `Release ${v(0)}`);
+    git('tag', '-a', v(0), '-m', v(0));
+    git('switch', '-q', '-c', 'release/main');
+    version(dir, v(1));
+    git('commit', '-q', '-am', `Release ${v(1)}`);
+    git('switch', '-q', '-c', 'hotfix/x', v(0));
+    writeFileSync(join(dir, 'fix.txt'), 'fix\n');
+    git('add', '-A');
+    git('commit', '-q', '-m', 'Fix (#2)');
+    git('push', '-q', 'origin', '--all');
+    git('push', '-q', 'origin', '--tags');
+    git('fetch', '-q', 'origin');
+    const next = (branch: string) =>
+      execFileSync(
+        process.execPath,
+        ['scripts/changelog.ts', 'next-version', branch],
+        { cwd: dir, env: ENV, encoding: 'utf8' },
+      ).trim();
+    const check = (head: string, base: string) => {
+      git('switch', '-q', '--detach', `origin/${head}`);
+      try {
+        execFileSync('sh', ['scripts/release-pr.sh', 'check'], {
+          cwd: dir,
+          env: { ...ENV, BASE: base },
+          encoding: 'utf8',
+          stdio: 'pipe',
+        });
+        return { code: 0, out: '' };
+      } catch (error) {
+        const e = error as { status: number; stdout: string };
+        return { code: e.status, out: e.stdout };
+      }
+    };
+    return { dir, git, next, check };
+  }
+
+  it('gives the hotfix the version the release pull request of main holds, and main the next one on its rebuild', () => {
+    const s = scenario('allocation');
+    // The hotfix ignores release/main: it takes v(1), as if main held none.
+    s.git('switch', '-q', 'hotfix/x');
+    expect(s.next('release/hotfix/x')).toBe(v(1));
+    // Its release head with v(1) passes, although release/main holds v(1).
+    s.git('switch', '-q', '-c', 'release/hotfix/x');
+    version(s.dir, v(1));
+    s.git('commit', '-q', '-am', `Release ${v(1)}`);
+    s.git('push', '-q', 'origin', 'release/hotfix/x');
+    s.git('fetch', '-q', 'origin');
+    expect(s.check('release/hotfix/x', 'hotfix/x').code).toBe(0);
+    // Main yields: its release head with v(1) is refused while the hotfix
+    // release branch holds it, and once the hotfix is tagged too.
+    const held = s.check('release/main', 'main');
+    expect(held.code).toBe(1);
+    expect(held.out).toContain(`::error::release/hotfix/x holds ${v(1)} too.`);
+    s.git('tag', '-a', v(1), '-m', v(1), 'origin/release/hotfix/x');
+    expect(s.check('release/main', 'main').code).toBe(1);
+    // Rebuilt from main, the release pull request of main takes v(2).
+    s.git('switch', '-q', 'main');
+    expect(s.next('release/main')).toBe(v(2));
+  });
+
+  it('still keeps two hotfix release branches apart, and main counts every hotfix', () => {
+    const s = scenario('two-hotfixes');
+    s.git('switch', '-q', '-c', 'release/hotfix/y', v(0));
+    version(s.dir, v(1));
+    s.git('commit', '-q', '-am', `Release ${v(1)}`);
+    s.git('push', '-q', 'origin', 'release/hotfix/y');
+    s.git('fetch', '-q', 'origin');
+    s.git('switch', '-q', 'hotfix/x');
+    // Another hotfix holds v(1): this one takes v(2).
+    expect(s.next('release/hotfix/x')).toBe(v(2));
+    s.git('switch', '-q', 'main');
+    // Main counts the hotfix: v(2), not v(1) it holds itself.
+    expect(s.next('release/main')).toBe(v(2));
+  });
+});
