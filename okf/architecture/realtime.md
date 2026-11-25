@@ -163,9 +163,11 @@ generated: { by: claude-code/web, at: 2026-11-25T09:30:00Z }
   fix silent errors; the forms with `basedOn` and „Übernehmen“ (O31) and
   the [Guild log](/features/guild-log.md) to v3.
 
-# Not pursued [V]
+# Not pursued [E]
 
-From the research of 2026-11-24; the owner chose stage 3 with SSE.
+From the research of 2026-11-24; the owner chose stage 3 with SSE and
+confirmed these as not pursued (2026-11-25). The reasons marked [U] come
+from the research and were not checked further.
 
 * WebSocket (`ws`, Socket.IO): only the direction server to browser is
   needed, since the actions stay `POST`; it would add a library, and
