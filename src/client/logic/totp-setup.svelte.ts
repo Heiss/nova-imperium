@@ -1,6 +1,7 @@
 // The setup of the authenticator app under way (#401): what the server gave
 // once at „Einrichten“, the address of the QR code and the secret, kept in
-// this page only until the first code confirms it or the page goes.
+// this page only until the first code confirms it, the account signs out
+// (session.ts, render.ts) or the page goes.
 import qrcode from 'qrcode-generator';
 
 export const totpSetup: { uri: string | null; secret: string | null } = $state({

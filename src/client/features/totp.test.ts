@@ -1,6 +1,7 @@
 // The box „Authenticator-App“ of „Optionen“ (#401; owner, 2026-11-25, text
 // 4 and 137a): the setup, its confirmation and the removal over the server.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { client } from '../logic/state.svelte.ts';
 import { totpSetup } from '../logic/totp-setup.svelte.ts';
 import { clientFeature } from './totp.ts';
 import { fakeCtx } from './test-ctx.ts';
@@ -14,8 +15,14 @@ beforeEach(() => {
   });
   totpSetup.uri = null;
   totpSetup.secret = null;
+  client.game = game('anna');
 });
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  client.game = null;
+  vi.unstubAllGlobals();
+});
+
+const game = (id: string) => ({ me: { id } }) as never;
 
 const STATE = { me: { totp: true } };
 
@@ -86,5 +93,42 @@ describe('the authenticator app of the account', () => {
       expect(ctx.toast).toHaveBeenCalledWith(refused.message, refused);
     }
     expect({ ...totpSetup }).toEqual({ uri: 'otpauth://x', secret: 'ABC' });
+  });
+});
+
+// A late answer of „Einrichten“ (CodeRabbit of #417): the secret belongs to
+// the account that asked, never to the one signed in later in the same tab.
+describe('the setup of an account that is gone', () => {
+  async function lateSetup(
+    after: () => void,
+  ): Promise<ReturnType<typeof fakeCtx>> {
+    let answer: (v: unknown) => void = () => undefined;
+    const ctx = fakeCtx({
+      api: vi.fn(() => new Promise((r) => (answer = r))) as never,
+    });
+    const asked = clientFeature.acts(ctx).totpSetup!();
+    after();
+    answer({ uri: 'otpauth://anna', secret: 'ANNA' });
+    await asked;
+    return ctx;
+  }
+
+  it('drops an answer that comes in after a sign-out or for another account', async () => {
+    for (const after of [
+      () => (client.game = null),
+      () => (client.game = game('berta')),
+    ]) {
+      client.game = game('anna');
+      const ctx = await lateSetup(after);
+      expect({ ...totpSetup }).toEqual({ uri: null, secret: null });
+      expect(ctx.render).not.toHaveBeenCalled();
+    }
+  });
+
+  it('drops an answer when no account asked', async () => {
+    client.game = null;
+    const ctx = await lateSetup(() => (client.game = game('anna')));
+    expect({ ...totpSetup }).toEqual({ uri: null, secret: null });
+    expect(ctx.render).not.toHaveBeenCalled();
   });
 });

@@ -708,6 +708,31 @@ describe('account audit and replies', () => {
     expect(mails).toHaveLength(1);
   });
 
+  it('keeps the failed attempts of the old code for the new one (101b, #401)', async () => {
+    const mails: Mail[] = [];
+    const { ctx, call } = await player({
+      cfg: { emailLoginCodes: true },
+      mailer: async (m) => void mails.push(m),
+    });
+    const verify = (code: string) => call('POST', '/api/login/code', { code });
+    await call('POST', '/api/login', { name: 'Anna', password: 'secret1' });
+    expect((await verify('x')).status).toBe(400);
+    ctx.clock.t += 30_000;
+    expect((await call('POST', '/api/login/resend', {})).json).toEqual({
+      ok: true,
+    });
+    await tick();
+    expect(mails).toHaveLength(2);
+    const code = /\b\d{6}\b/.exec(mails[1]!.text)![0];
+    // One failed attempt before and four after are the five there are.
+    for (let i = 0; i < 4; i++) expect((await verify('x')).status).toBe(400);
+    const late = await verify(code);
+    expect(late.json).toEqual({
+      error: 'Der Anmeldecode ist ungültig oder abgelaufen.',
+    });
+    expect(late.set ?? '').not.toContain('nova_session=');
+  });
+
   it('refuses a new code while the codes are off', async () => {
     const { call } = await player({
       mailer: async () => undefined,

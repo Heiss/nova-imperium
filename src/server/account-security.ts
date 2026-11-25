@@ -210,6 +210,9 @@ function codeFits(
   code: string,
 ): boolean {
   if (record.code_hash === null) return takeAppCode(ctx, record.user_id, code);
+  // An account with the app never signs in by mail code (102a), also with
+  // one sent before the app was set up.
+  if (hasAuthenticator(ctx, record.user_id)) return false;
   const expected = Buffer.from(record.code_hash, 'hex');
   const actual = Buffer.from(hashToken(challenge + code), 'hex');
   return expected.length === actual.length && timingSafeEqual(expected, actual);
@@ -262,8 +265,14 @@ export function resendLoginCode(
   const now = ctx.now();
   const record = liveLogin(ctx, c);
   const user = record && ctx.players.get(record.user_id);
-  // A sign-in with the app has no mail code and no way out by mail (102a).
-  if (!record || !user || record.code_hash === null)
+  // A sign-in with the app has no mail code and no way out by mail (102a),
+  // nor has an account whose app was set up after the mail was sent.
+  if (
+    !record ||
+    !user ||
+    record.code_hash === null ||
+    hasAuthenticator(ctx, user.id)
+  )
     return fail('Der Anmeldecode ist ungültig oder abgelaufen.');
   // The code was sent when its ten minutes began.
   if (now < record.expires - CODE_LIFE + RESEND_AFTER) return null;

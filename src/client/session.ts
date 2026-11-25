@@ -2,6 +2,7 @@
 // and when the server says the session is gone (a 401).
 import { AuthError } from './logic/transport.ts';
 import { client } from './logic/state.svelte.ts';
+import { endTotpSetup } from './logic/totp-setup.svelte.ts';
 
 /**
  * True until boot() knows what to show. A 401 meanwhile renders nothing:
@@ -21,6 +22,8 @@ export function whenSignedOut(show: () => void): void {
 /** The session is gone (401): back to the login, then stop the caller. */
 export function signedOut(error: unknown): never {
   client.game = null;
+  // The setup of the app under way was of this account (#401).
+  endTotpSetup();
   client.ui.auth ??= 'login';
   if (!session.booting) showLogin();
   throw new AuthError(String(error ?? 'Bitte einloggen.'));

@@ -42,6 +42,8 @@ function openReset(): boolean {
   // With an authenticator app the page asks for its code too (104, #401).
   void api('/api/password/reset/check', { token })
     .then((j) => {
+      // A later link of another reset is the one shown now.
+      if (login.resetToken !== token) return;
       ui.resetApp = j.app === true;
       render(true);
     })
@@ -62,6 +64,8 @@ async function openCodeLink(): Promise<boolean> {
   try {
     const j = await api('/api/login/code', { code, link: true });
     ui.auth = null;
+    // Signed in: a reset screen open in this tab is over, so the state is taken.
+    login.resetToken = null;
     apply(j.state as GameState);
     homeSystem(ui, client.game);
     return true;

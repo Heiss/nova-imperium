@@ -70,7 +70,8 @@ export function beginSetup(
 
 /**
  * The first code of the app confirms the setup; from then on the account
- * signs in with it. A wrong code counts; the fifth ends the setup.
+ * signs in with it, and a sign-in by mail code under way ends. A wrong code
+ * counts; the fifth ends the setup.
  */
 export function confirmSetup(ctx: Ctx, user: User, code: unknown): void {
   const row = rowOf(ctx, user.id);
@@ -86,11 +87,19 @@ export function confirmSetup(ctx: Ctx, user: User, code: unknown): void {
         .run(user.id);
     return fail(WRONG_APP_CODE);
   }
-  ctx.db
-    .prepare(
-      'UPDATE totp SET confirmed = 1, last_step = ?, attempts = 0 WHERE user_id = ?',
-    )
-    .run(step, user.id);
+  // A sign-in by mail code under way in another browser ends with it (102a).
+  ctx.tx(() => {
+    ctx.db
+      .prepare(
+        'UPDATE totp SET confirmed = 1, last_step = ?, attempts = 0 WHERE user_id = ?',
+      )
+      .run(step, user.id);
+    ctx.db
+      .prepare(
+        "DELETE FROM account_tokens WHERE user_id = ? AND purpose = 'login'",
+      )
+      .run(user.id);
+  });
 }
 
 /** „Entfernen“ asks for the password and a code of the app (text 4). */

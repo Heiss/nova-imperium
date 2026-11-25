@@ -8,6 +8,7 @@ import {
   loginByCode,
   mail,
   mailCli,
+  mailSeed,
   nav,
   optionsSection,
   registerByMail,
@@ -64,13 +65,27 @@ test.describe('accounts by mail (#68)', () => {
     await expect(again).toHaveCount(0);
     await page.clock.fastForward(1_000);
     await expect(again).toBeVisible();
+    // The clock of the page does not move the server's: the first code is
+    // made 30 s old there, so the server sends a new one (101b).
+    const [, first] = await mail(emailOf(name), /Anmeldecode lautet (\d{6})\./);
+    mailSeed({ name, loginCodeAge: 30_000 });
     // Asked for, the button waits another 30 s.
     await again.click();
     await expect(again).toHaveCount(0);
+    const [, code] = await mail(
+      emailOf(name),
+      new RegExp(`Anmeldecode lautet (?!${first!}\\.)(\\d{6})\\.`),
+    );
     await page.clock.fastForward(30_000);
     await expect(again).toBeVisible();
-    const [, code] = await mail(emailOf(name), /Anmeldecode lautet (\d{6})\./);
-    await page.getByLabel('Sechsstelliger Code aus deiner E-Mail').fill(code!);
+    // The first code is void (101b).
+    const field = page.getByLabel('Sechsstelliger Code aus deiner E-Mail');
+    await field.fill(first!);
+    await page.getByRole('button', { name: 'Anmelden' }).click();
+    await expect(page.locator('.toast.err').last()).toContainText(
+      'Der Anmeldecode ist ungültig oder abgelaufen.',
+    );
+    await field.fill(code!);
     await page.getByRole('button', { name: 'Anmelden' }).click();
     await expect(page.locator('h2')).toContainText('Übersicht');
     expect(w.problems).toEqual([]);

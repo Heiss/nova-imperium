@@ -28,6 +28,7 @@ import { type Mounted, MOUNTED, mountsAnew, mountView } from './views/mount.ts';
 import { $, keepChatScroll } from './dom.ts';
 import { rememberCompletions, renderCompletions } from './completions.ts';
 import { forgetForms } from './logic/form-state.svelte.ts';
+import { endTotpSetup } from './logic/totp-setup.svelte.ts';
 import { forgetDrafts } from './logic/pm-compose.ts';
 import { seeNews } from './news-seen.ts';
 import { urlOf } from './view-address.ts';
@@ -54,6 +55,8 @@ function paintPlanets(root: ParentNode): void {
 function renderLoggedOut(view: HTMLElement): void {
   client.forget();
   forgetLock();
+  // The setup of the app under way was of the account signed out (#401).
+  endTotpSetup();
   unmountViews();
   clearFrame();
   view.replaceChildren();

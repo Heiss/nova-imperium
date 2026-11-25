@@ -2,8 +2,12 @@
 // and 137a): „Einrichten“ asks the server for a secret and shows it as a QR
 // code, the first code confirms it; „Entfernen“ sends the password and a
 // code of the app. After each the state is loaded again, so the box shows
-// whether an app is set up. The box is views/options/TotpBox.svelte.
+// whether an app is set up. The secret of „Einrichten“ is kept only for the
+// account that asked: an answer after a sign-out or for another account is
+// dropped, and signing out forgets it. The box is
+// views/options/TotpBox.svelte.
 import { $, val } from '../dom.ts';
+import { client } from '../logic/state.svelte.ts';
 import { endTotpSetup, totpSetup } from '../logic/totp-setup.svelte.ts';
 import type { GameState } from '../logic/types.ts';
 import type { ClientCtx, ClientFeature } from './contract.ts';
@@ -13,8 +17,11 @@ async function reload(ctx: ClientCtx): Promise<void> {
 }
 
 async function beginSetup(ctx: ClientCtx): Promise<void> {
+  const player = client.game?.me.id;
   try {
     const j = await ctx.api('/api/totp/setup', {});
+    // An answer after a sign-out, or for another account, is dropped.
+    if (!player || client.game?.me.id !== player) return;
     totpSetup.uri = String(j.uri);
     totpSetup.secret = String(j.secret);
     ctx.render();
