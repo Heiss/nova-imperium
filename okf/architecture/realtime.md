@@ -65,6 +65,23 @@ generated: { by: claude-code/web, at: 2026-11-25T09:30:00Z }
   * The proposals above were confirmed by the owner (2026-11-25).
   * Built in #405, target `main`, although players see the change: the
     highscore with the default can be up to 8 h old (owner, 2026-11-25).
+    **[V]** As built: `server/game/scores.ts` makes one pass (`scorePass`:
+    each planet settled once for the total and the categories) and keeps it
+    per database in the memory of the server (`storedScores`); a restart
+    makes a new pass at the first reader. A pass holds until the next slot
+    (`core/highscore-passes.ts`: `lastSlot` from 00:05 on the clock of the
+    server, every 24/N hours; a pass made between two slots, at a start,
+    holds until the next) or, live, 10 s. The clock of the server makes the
+    pass of a slot at its time (`scoreBeat` after the arrivals; live waits
+    for a reader). The state, the guilds and `topPoints` take the stored
+    pass; the noob protection of attacks and missiles takes
+    `exactPoints` of its two players; the archive of a round a fresh pass;
+    „Neue Runde“ makes a pass at once. The state carries `scoresAt`; the
+    highscore shows „Stand: HH:MM“ on the clock of the browser, below the
+    table. The heading of the setting in „Neue Runde“ and „Universum“ is
+    „Highscore“, the name of the view (the owner gave the label only). A
+    property test holds the one pass equal to the two passes before it,
+    frozen in `scores.test.ts`.
 * **[E]** The parts that are the same for every player are built once and
   sent to all (owner, 2026-11-25): `galaxy` (`state.ts`: its builder ignores
   the player), `players`, the universe and the rules of the round. Each is

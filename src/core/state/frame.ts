@@ -96,6 +96,8 @@ export type StateShape = {
   fleets: ClientFleet[];
   reports: Report[];
   players: Players;
+  /** When the points and categories of `players` were computed: „Stand“ (#405). */
+  scoresAt: number;
   galaxy: GalaxyPlanet[];
   /** Every Trümmerfeld, for every player (#45). */
   debris: DebrisField[];

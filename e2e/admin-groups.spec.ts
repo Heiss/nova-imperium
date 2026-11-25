@@ -26,6 +26,8 @@ const ROUND_HEADINGS = [
   'Expeditionen',
   'Marktplatz',
   'Planetengrenze',
+  // How often the highscore is computed (#405), a live setting.
+  'Highscore',
 ];
 
 /** The tab „Universum“: the base values, then the features with live settings, in the same order. */
@@ -43,6 +45,8 @@ const UNIVERSE_HEADINGS = [
   'Expeditionen',
   'Marktplatz',
   'Planetengrenze',
+  // How often the highscore is computed (#405), a live setting.
+  'Highscore',
 ];
 
 async function violations(page: Page): Promise<string[]> {

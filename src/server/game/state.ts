@@ -20,8 +20,7 @@ import { inactivities, planetActivities } from './activity.ts';
 import { type Ctx, universe } from './context.ts';
 import { mainPlanetOf } from './main-planet.ts';
 import { roundRules } from './round.ts';
-import { categoryScores } from './highscore.ts';
-import { pointsMap } from './points.ts';
+import { storedScores } from './scores.ts';
 import { assembleState } from './assemble.ts';
 import type { StatePart, StateView } from './feature.ts';
 import type { LockedState } from '../../core/state.ts';
@@ -115,8 +114,9 @@ function playersOf(
   pts: Readonly<Record<string, number>>,
   limits: ActivityLimits,
 ) {
-  // The categories of the highscore, for every player (#78 D4).
-  const scores = categoryScores(ctx);
+  // The categories of the highscore, for every player (#78 D4), of the
+  // stored pass like the points (#405).
+  const scores = storedScores(ctx).categories;
   const idle = inactivities(ctx, limits);
   return Object.fromEntries(
     ctx.players.all().map((x) => [
@@ -215,6 +215,8 @@ const FRAME: readonly StatePart[] = [
   keyed(140, 'players', (ctx, _u, view) =>
     playersOf(ctx, view.pts, view.limits),
   ),
+  // „Stand“ of the highscore: when the stored pass was made (#405).
+  keyed(145, 'scoresAt', (ctx) => storedScores(ctx).at),
   keyed(150, 'galaxy', (ctx, _u, view) => galaxyOf(ctx, view.limits)),
   // Every player sees every Trümmerfeld (#45).
   keyed(160, 'debris', (ctx) => ctx.debris.all()),
@@ -240,7 +242,8 @@ export function stateFor(
     round,
     main,
     planet: requested?.owner === u.id ? requested : main.planet,
-    pts: pointsMap(ctx),
+    // The stored pass, N times a day (#405).
+    pts: storedScores(ctx).total,
     limits: activityLimits(round),
     pmOpen,
   };

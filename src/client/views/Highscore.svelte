@@ -39,4 +39,5 @@
     </tbody>
   </table>
 </div>
+{#if page.stand}<div class="dim">{page.stand}</div>{/if}
 <div class="dim">{page.note}</div>
