@@ -193,3 +193,118 @@ describe('the tag of a version not newer than every release (owner, 2026-11-25, 
     expect(tagging('tag-gap', ['26.11.25'], '26.11.28').code).toBe(0);
   });
 });
+
+describe('the merge-back of a released hotfix, squashed into main (owner, 2026-11-25, 116a)', () => {
+  /** main with 26.11.0; a branch <branch> released 26.11.1 with a fix; main takes it in by <how>. */
+  function mergedBack(
+    name: string,
+    branch: string,
+    how: 'squash' | 'merge' | 'own',
+  ) {
+    const dir = join(root, name);
+    const origin = join(root, `${name}.git`);
+    mkdirSync(join(dir, 'scripts'), { recursive: true });
+    const git = (...args: string[]) =>
+      execFileSync(REAL_GIT, args, {
+        cwd: dir,
+        env: { PATH: process.env.PATH, ...ENV },
+        encoding: 'utf8',
+      }).trim();
+    execFileSync(REAL_GIT, ['init', '-q', '--bare', origin]);
+    git('init', '-q', '-b', 'main');
+    git('remote', 'add', 'origin', origin);
+    copyFileSync(
+      join(ROOT, 'scripts/release.sh'),
+      join(dir, 'scripts/release.sh'),
+    );
+    const version = (v: string) =>
+      writeFileSync(join(dir, 'VERSION'), `${v}\n`);
+    version('26.11.0');
+    writeFileSync(join(dir, 'game.txt'), 'game\n');
+    git('add', '-A');
+    git('commit', '-q', '-m', 'Release 26.11.0');
+    git('tag', '-a', '26.11.0', '-m', '26.11.0');
+    writeFileSync(join(dir, 'later.txt'), 'main moved on\n');
+    git('add', '-A');
+    git('commit', '-q', '-m', 'Later work (#5)');
+    git('switch', '-q', '-c', branch, '26.11.0');
+    writeFileSync(join(dir, 'fix.txt'), 'the fix\n');
+    version('26.11.1');
+    git('add', '-A');
+    git('commit', '-q', '-m', 'Release 26.11.1 (#3)');
+    git('tag', '-a', '26.11.1', '-m', '26.11.1');
+    git('switch', '-q', 'main');
+    if (how === 'merge') git('merge', '-q', '--no-edit', branch);
+    else if (how === 'squash') {
+      git('merge', '-q', '--squash', branch);
+      git(
+        'commit',
+        '-q',
+        '-m',
+        `Sicherheits-Hotfix 26.11.1 zurück nach main (#10)`,
+      );
+    } else {
+      // main's own release commit took the version: its own changes, no fix.
+      writeFileSync(join(dir, 'feature.txt'), 'own\n');
+      version('26.11.1');
+      git('add', '-A');
+      git('commit', '-q', '-m', 'Release 26.11.1 (#9)');
+    }
+    git('push', '-q', 'origin', 'main', branch, '--tags');
+    const commit = git('rev-parse', 'HEAD');
+    let code = 0;
+    let out: string;
+    let err = '';
+    try {
+      out = execFileSync('sh', ['scripts/release.sh'], {
+        cwd: dir,
+        env: {
+          PATH: `${bin}:${process.env.PATH}`,
+          ...ENV,
+          NOVA_RELEASE_EXPECTED_SHA: commit,
+          NOVA_RELEASE_BRANCH: 'main',
+        },
+        encoding: 'utf8',
+        stdio: 'pipe',
+      });
+    } catch (error) {
+      const e = error as { status: number; stdout: string; stderr: string };
+      code = e.status;
+      out = e.stdout;
+      err = e.stderr;
+    }
+    const tags = git('tag', '--list').split('\n');
+    return { code, out, err, tags };
+  }
+
+  it('is green and tags nothing when the hotfix was squashed into main', () => {
+    const { code, out, tags } = mergedBack(
+      'squashed',
+      'hotfix/sec-x',
+      'squash',
+    );
+    expect(code).toBe(0);
+    expect(out).toContain(
+      '26.11.1 is the release of a merged-back hotfix: nothing to tag.',
+    );
+    expect(tags).toEqual(['26.11.0', '26.11.1']);
+  });
+
+  it('stays green as before when the hotfix was merged into main', () => {
+    const { code, out } = mergedBack('merged', 'hotfix/sec-x', 'merge');
+    expect(code).toBe(0);
+    expect(out).toContain('is the release of a merged-back hotfix');
+  });
+
+  it('still refuses the same version squashed in from a branch that is no hotfix', () => {
+    const { code, err } = mergedBack('unrelated', 'side', 'squash');
+    expect(code).toBe(1);
+    expect(err).toContain('26.11.1 is already the tag of another release');
+  });
+
+  it('still refuses a release commit of main that took the version of a hotfix (O25)', () => {
+    const { code, err } = mergedBack('own-release', 'hotfix/sec-x', 'own');
+    expect(code).toBe(1);
+    expect(err).toContain('26.11.1 is already the tag of another release');
+  });
+});
