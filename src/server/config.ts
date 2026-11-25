@@ -218,7 +218,7 @@ export function loadConfig(
   };
   if (config.emailLoginCodes && !config.smtp)
     c.errors.push(
-      'NOVA_EMAIL_LOGIN_CODES requires SMTP_HOST and mail settings.',
+      'NOVA_EMAIL_LOGIN_CODES is on by default and requires SMTP_HOST and the mail settings; set NOVA_EMAIL_LOGIN_CODES=0 to sign in without a mail code.',
     );
   if (config.webPush && !config.secureCookies)
     c.errors.push('NOVA_WEB_PUSH requires an HTTPS NOVA_PUBLIC_URL.');

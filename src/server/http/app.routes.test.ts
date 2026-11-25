@@ -206,7 +206,7 @@ describe('mails', () => {
       logs,
     });
     expect((await failing.call('POST', '/api/login', login)).json).toEqual({
-      challenge: expect.any(String),
+      code: true,
     });
     await tick();
     await tick();
@@ -234,14 +234,19 @@ describe('mails', () => {
       error: 'Für dieses Konto ist keine E-Mail-Adresse hinterlegt.',
     });
     const sent = await call('POST', '/api/login', login);
-    expect(sent.json).toEqual({ challenge: expect.any(String) });
-    expect(sent.set).toBeNull();
+    // The challenge stays in the browser's cookie, never in the page (129a,
+    // #401): HttpOnly, for the sign-in routes only, as long as the code.
+    expect(sent.json).toEqual({ code: true });
+    expect(sent.set).toMatch(
+      /^nova_login=[\w-]{43}\.1; HttpOnly; Path=\/api\/login; SameSite=Lax; Max-Age=600$/,
+    );
     expect(mails).toEqual([
       {
         to: 'anna@example.org',
         subject: 'Dein Anmeldecode für Nova Imperium',
+        // Text 1 of the owner, the code in the fragment of the link.
         text: expect.stringMatching(
-          /^Dein Anmeldecode lautet \d{6}\. Er gilt einmal und für zehn Minuten\.$/,
+          /^Dein Anmeldecode lautet (\d{6})\. Er gilt einmal und für zehn Minuten\. Oder melde dich direkt mit diesem Link an: http:\/\/localhost:8080\/#code=\1\. Der Link funktioniert nur in dem Browser, in dem du die Anmeldung begonnen hast\. Wenn du das nicht warst, ignoriere diese E-Mail\.$/,
         ),
       },
     ]);
@@ -631,7 +636,7 @@ describe('account audit and replies', () => {
       password: 'secret1',
     });
     // The answer is here while the mail still waits for the SMTP server.
-    expect(begun.json).toEqual({ challenge: expect.any(String) });
+    expect(begun.json).toEqual({ code: true });
     expect(mails).toEqual([]);
     sent!();
     expect(mails).toHaveLength(1);
@@ -644,24 +649,27 @@ describe('account audit and replies', () => {
       mailer: async (m) => void mails.push(m),
     });
     const codeOf = (i: number) => /\b\d{6}\b/.exec(mails[i]!.text)![0];
-    const { challenge } = (
-      await call('POST', '/api/login', { name: 'Anna', password: 'secret1' })
-    ).json as { challenge: string };
+    await call('POST', '/api/login', { name: 'Anna', password: 'secret1' });
     await tick();
-    const resend = () => call('POST', '/api/login/resend', { challenge });
+    // The challenge comes from the cookie of the browser (129a).
+    const resend = () => call('POST', '/api/login/resend', {});
     // Before 30 s nothing is sent: the button comes only then.
     ctx.clock.t += 29_999;
-    expect((await resend()).json).toEqual({ ok: true });
+    const early = await resend();
+    expect(early.json).toEqual({ ok: true });
+    expect(early.set).toBeNull();
     await tick();
     expect(mails).toHaveLength(1);
     ctx.clock.t += 1;
-    expect((await resend()).json).toEqual({ ok: true });
+    const again = await resend();
+    expect(again.json).toEqual({ ok: true });
+    // The cookie gets its ten minutes again, as the code does.
+    expect(again.set).toMatch(/^nova_login=[\w-]{43}\.1; .*Max-Age=600$/);
     await tick();
     expect(mails).toHaveLength(2);
     expect(mails[1]).toEqual({ ...mails[0], text: expect.any(String) });
     // The old code is void, the failed attempts stay.
-    const verify = (code: string) =>
-      call('POST', '/api/login/code', { challenge, code });
+    const verify = (code: string) => call('POST', '/api/login/code', { code });
     // (A new code equal to the old one, one in a million, would sign in.)
     if (codeOf(0) !== codeOf(1))
       expect((await verify(codeOf(0))).status).toBe(400);
@@ -676,33 +684,126 @@ describe('account audit and replies', () => {
 
   it('counts the failed attempts across a new code (101b, #401)', async () => {
     const mails: Mail[] = [];
-    const { ctx, call } = await player({
+    const { ctx, call, setCookie } = await player({
       cfg: { emailLoginCodes: true },
       mailer: async (m) => void mails.push(m),
     });
-    const { challenge } = (
-      await call('POST', '/api/login', { name: 'Anna', password: 'secret1' })
-    ).json as { challenge: string };
+    await call('POST', '/api/login', { name: 'Anna', password: 'secret1' });
     for (let i = 0; i < 5; i++)
-      await call('POST', '/api/login/code', { challenge, code: 'x' });
+      await call('POST', '/api/login/code', { code: 'x' });
     ctx.clock.t += 30_000;
-    expect(
-      (await call('POST', '/api/login/resend', { challenge })).json,
-    ).toEqual({ error: 'Der Anmeldecode ist ungültig oder abgelaufen.' });
+    expect((await call('POST', '/api/login/resend', {})).json).toEqual({
+      error: 'Der Anmeldecode ist ungültig oder abgelaufen.',
+    });
     await tick();
     expect(mails).toHaveLength(1);
-    expect(
-      (await call('POST', '/api/login/resend', { challenge: 'unknown' })).json,
-    ).toEqual({ error: 'Der Anmeldecode ist ungültig oder abgelaufen.' });
+    // An unknown sign-in, or none, sends nothing either.
+    for (const cookie of [`nova_login=${'u'.repeat(43)}.1`, '']) {
+      setCookie(cookie);
+      expect((await call('POST', '/api/login/resend', {})).json).toEqual({
+        error: 'Der Anmeldecode ist ungültig oder abgelaufen.',
+      });
+    }
+    await tick();
+    expect(mails).toHaveLength(1);
   });
 
   it('refuses a new code while the codes are off', async () => {
     const { call } = await player({
       mailer: async () => undefined,
     });
-    expect(
-      (await call('POST', '/api/login/resend', { challenge: 'x' })).json,
-    ).toEqual({ error: 'Anmeldecodes sind nicht aktiviert.' });
+    expect((await call('POST', '/api/login/resend', {})).json).toEqual({
+      error: 'Anmeldecodes sind nicht aktiviert.',
+    });
+  });
+
+  it('signs in by the link only in the browser of the sign-in (95a, 129a, 130b, #401)', async () => {
+    const mails: Mail[] = [];
+    const { ctx, call, setCookie } = await player({
+      cfg: { emailLoginCodes: true },
+      mailer: async (m) => void mails.push(m),
+    });
+    const begin = () =>
+      call('POST', '/api/login', { name: 'Anna', password: 'secret1' });
+    const linkOf = (i: number) => /#code=(\d{6})\./.exec(mails[i]!.text)![1]!;
+    const link = (code: string) =>
+      call('POST', '/api/login/code', { code, link: true });
+    const signIn = /nova_login=[^;]+/.exec((await begin()).set!)![0];
+    // Another browser: no sign-in there, nothing signed in (text 2).
+    setCookie('');
+    const other = await link(linkOf(0));
+    expect(other.json).toEqual({
+      error:
+        'Dieser Link gilt nur im Browser, in dem du die Anmeldung begonnen hast. Gib dort den Code aus der E-Mail ein.',
+    });
+    expect(other.set).toBeNull();
+    // A newer sign-in in the same browser: the old link is refused (130b).
+    setCookie(signIn);
+    await begin();
+    if (linkOf(0) !== linkOf(1))
+      expect((await link(linkOf(0))).json).toEqual({
+        error:
+          'Dieser Link gehört zu einer älteren Anmeldung. Gib den Code aus der neuesten E-Mail ein.',
+      });
+    // The newest link signs in, once.
+    const entered = await link(linkOf(1));
+    expect(entered.json).toMatchObject({ ok: true });
+    expect(entered.set).toContain('nova_session=');
+    expect((await call('GET', '/api/state')).status).toBe(200);
+    // Used, the sign-in is gone and its cookie cleared; the cookie of the
+    // first, replaced sign-in signs in nothing either.
+    expect(entered.set).toContain('nova_login=; ');
+    setCookie(signIn);
+    expect((await link(linkOf(1))).json).toEqual({
+      error: 'Der Anmeldecode ist ungültig oder abgelaufen.',
+    });
+    // An expired sign-in is not called older.
+    await begin();
+    ctx.clock.t += 10 * 60_000;
+    expect((await link(linkOf(2))).json).toEqual({
+      error: 'Der Anmeldecode ist ungültig oder abgelaufen.',
+    });
+  });
+
+  it('keeps the sign-in over a reload and ends it with „Zurück zum Login“ (129a, #401)', async () => {
+    const mails: Mail[] = [];
+    const { call } = await player({
+      cfg: { emailLoginCodes: true, secureCookies: true },
+      mailer: async (m) => void mails.push(m),
+    });
+    const pending = async () => (await call('GET', '/api/login/pending')).json;
+    expect(await pending()).toEqual({ pending: false });
+    const begun = await call('POST', '/api/login', {
+      name: 'Anna',
+      password: 'secret1',
+    });
+    expect(begun.set).toMatch(/; Max-Age=600; Secure$/);
+    expect(await pending()).toEqual({ pending: true });
+    const cancelled = await call('POST', '/api/login/cancel', {});
+    expect(cancelled.json).toEqual({ ok: true });
+    expect(cancelled.set).toBe(
+      'nova_login=; HttpOnly; Path=/api/login; SameSite=Lax; Max-Age=0; Secure',
+    );
+    expect(await pending()).toEqual({ pending: false });
+  });
+
+  it('ends a cancelled sign-in on the server too (#401)', async () => {
+    const mails: Mail[] = [];
+    const { call, setCookie } = await player({
+      cfg: { emailLoginCodes: true },
+      mailer: async (m) => void mails.push(m),
+    });
+    const signIn = /nova_login=[^;]+/.exec(
+      (await call('POST', '/api/login', { name: 'Anna', password: 'secret1' }))
+        .set!,
+    )![0];
+    await call('POST', '/api/login/cancel', {});
+    // The cookie kept elsewhere signs in nothing.
+    setCookie(signIn);
+    const code = /\b\d{6}\b/.exec(mails[0]!.text)![0];
+    expect((await call('POST', '/api/login/code', { code })).json).toEqual({
+      error: 'Der Anmeldecode ist ungültig oder abgelaufen.',
+    });
   });
 
   it('audits password and code logins, a refused code and logout', async () => {
@@ -711,24 +812,31 @@ describe('account audit and replies', () => {
       cfg: { emailLoginCodes: true },
       mailer: async (m) => void mails.push(m),
     });
-    const { challenge } = (
-      await codes.call('POST', '/api/login', {
-        name: 'Anna',
-        password: 'secret1',
-      })
-    ).json as { challenge: string };
-    const code = /\d{6}/.exec(mails[0]!.text)![0];
-    expect(
-      (await codes.call('POST', '/api/login/code', { challenge, code: 'x' }))
-        .json,
-    ).toEqual({ error: 'Der Anmeldecode ist ungültig oder abgelaufen.' });
-    const entered = await codes.call('POST', '/api/login/code', {
-      challenge,
-      code,
+    // „Angemeldet bleiben“ is chosen in the login form and kept in the
+    // cookie of the sign-in, for the typed code and the link alike.
+    await codes.call('POST', '/api/login', {
+      name: 'Anna',
+      password: 'secret1',
       remember: false,
     });
+    const code = /\d{6}/.exec(mails[0]!.text)![0];
+    expect(
+      (await codes.call('POST', '/api/login/code', { code: 'x' })).json,
+    ).toEqual({ error: 'Der Anmeldecode ist ungültig oder abgelaufen.' });
+    const entered = await codes.call('POST', '/api/login/code', {
+      code,
+      link: true,
+      // The wish of the login form counts, not one sent with the code.
+      remember: true,
+    });
     expect(entered.json).toMatchObject({ ok: true });
-    expect(entered.set).not.toContain('Max-Age');
+    // A session for this visit only; the sign-in cookie is cleared.
+    expect(entered.headers.getSetCookie()).toEqual([
+      expect.stringMatching(
+        /^nova_session=[\w-]+; HttpOnly; Path=\/; SameSite=Lax$/,
+      ),
+      'nova_login=; HttpOnly; Path=/api/login; SameSite=Lax; Max-Age=0',
+    ]);
     expect(rows(codes.ctx)).toEqual([
       {
         category: 'account',

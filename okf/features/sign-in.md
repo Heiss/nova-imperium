@@ -36,10 +36,35 @@ gave `0`). Own pull request after #395 (98a).
   „Wir haben dir einen Code per E-Mail geschickt.“ and the button „Code
   erneut senden“ (text 3).
 * **[E]** The code is the second factor; the mail carries the code and a
-  link that signs in only the browser in which the sign-in was started (95a).
-  **[U]** How the browser is bound: proposal to the owner, 2026-11-25.
+  link that signs in only the browser in which the sign-in was started (95a),
+  with text 1 of the owner. **[E]** The cookie `nova_login` is the one path
+  for the link and the typed code; the client no longer sends a challenge,
+  and a reload of the code step keeps the sign-in (129a). **[V]** The cookie
+  is HttpOnly, SameSite=Lax, Secure on https, Path=/api/login, Max-Age 600,
+  and holds `challenge.1` or `challenge.0`: the wish „angemeldet bleiben“ of
+  the login form, so the link, which opens a new tab, keeps it too. The link
+  is `{publicUrl}/#code={code}`, the code in the fragment, which the page
+  takes out of the address at once and sends with `link: true`. A link
+  without the cookie answers text 2 of the owner; **[E]** a link whose code
+  does not fit the live sign-in of the cookie answers „Dieser Link gehört zu
+  einer älteren Anmeldung. Gib den Code aus der neuesten E-Mail ein.“ (130b);
+  **[V]** an expired or used sign-in answers „Der Anmeldecode ist ungültig
+  oder abgelaufen.“ like a typed code, and every wrong code counts as a
+  failed attempt. Success clears the cookie. `GET /api/login/pending` lets a
+  reload show the code step again; „Zurück zum Login“ from the code step
+  ends the sign-in (`POST /api/login/cancel`: the challenge is deleted and
+  the cookie cleared).
+* **[E]** The start error names the way out (128a): „NOVA_EMAIL_LOGIN_CODES is
+  on by default and requires SMTP_HOST and the mail settings; set
+  NOVA_EMAIL_LOGIN_CODES=0 to sign in without a mail code.“, with
+  `docs/operations.md` and `.env.example`; no release-notes mechanism and
+  nothing in the news of the game for operators.
 * **[E]** An authenticator app (TOTP) is a further second factor (97b); with
   it set up the mail code is off for the account (102a); a lost
   authenticator is reset only by the admin (103c); „Passwort vergessen“ with
-  an authenticator asks for its code too (104). **[U]** The algorithm, the
-  QR code and the storage of the secret: proposals to the owner, 2026-11-25.
+  an authenticator asks for its code too (104). **[E]** The secret is stored
+  plain in the database, like the VAPID key, never in the journal, the audit
+  log, the error log, an export or the state (127a). **[V]** Own RFC 6238 on
+  node:crypto (SHA-1, 6 digits, 30 s, ±1 step, five attempts, a used step
+  refused again); the QR code by `qrcode-generator` on the client after the
+  supply-chain check, pinned exactly.

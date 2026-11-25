@@ -63,7 +63,7 @@ describe('configuration', () => {
 
   it('asks for the mail code unless it is set to 0 (94b, #401)', () => {
     expect(errors(url)).toEqual([
-      'NOVA_EMAIL_LOGIN_CODES requires SMTP_HOST and mail settings.',
+      'NOVA_EMAIL_LOGIN_CODES is on by default and requires SMTP_HOST and the mail settings; set NOVA_EMAIL_LOGIN_CODES=0 to sign in without a mail code.',
     ]);
     expect(
       ok({ ...url, ...mail, NOVA_EMAIL_LOGIN_CODES: '' }).emailLoginCodes,
@@ -79,7 +79,7 @@ describe('configuration', () => {
 
   it('requires SMTP for email login codes', () => {
     expect(errors({ ...base, NOVA_EMAIL_LOGIN_CODES: '1' })).toContain(
-      'NOVA_EMAIL_LOGIN_CODES requires SMTP_HOST and mail settings.',
+      'NOVA_EMAIL_LOGIN_CODES is on by default and requires SMTP_HOST and the mail settings; set NOVA_EMAIL_LOGIN_CODES=0 to sign in without a mail code.',
     );
     expect(
       ok({

@@ -8,9 +8,8 @@ const game = (g: number, s: number) =>
   ({ planet: { g, s } }) as unknown as Pick<GameState, 'planet'>;
 
 describe('the state of the login', () => {
-  it('starts with no challenge, not remembered and no reset token', () => {
+  it('starts not remembered and with no reset token; the sign-in by code is in a cookie (#401)', () => {
     expect(login).toEqual({
-      challenge: null,
       remember: false,
       resetToken: null,
     });

@@ -33,10 +33,8 @@ function continueLogin(
   ctx: ClientCtx,
   reply: Record<string, unknown>,
 ): boolean {
-  if (!reply.loginRequired && typeof reply.challenge !== 'string') return false;
-  login.challenge =
-    typeof reply.challenge === 'string' ? reply.challenge : null;
-  client.ui.auth = login.challenge ? 'code' : 'login';
+  if (!reply.loginRequired && reply.code !== true) return false;
+  client.ui.auth = reply.code === true ? 'code' : 'login';
   client.ui.invite = null;
   ctx.render(true);
   if (reply.loginRequired) ctx.toast('Konto erstellt. Melde dich jetzt an.');
@@ -81,12 +79,9 @@ async function loginByPasskey(ctx: ClientCtx): Promise<void> {
 
 async function submitLoginCode(ctx: ClientCtx): Promise<void> {
   try {
-    const j = await ctx.api('/api/login/code', {
-      challenge: login.challenge,
-      code: val('#login_code'),
-      remember: login.remember,
-    });
-    login.challenge = null;
+    // The sign-in of this browser and the wish to stay logged in are in its
+    // cookie (129a, #401).
+    const j = await ctx.api('/api/login/code', { code: val('#login_code') });
     signedIn(ctx, j);
   } catch (e) {
     ctx.toast((e as Error).message, e as Error);
@@ -96,7 +91,7 @@ async function submitLoginCode(ctx: ClientCtx): Promise<void> {
 /** A new code for the sign-in under way (101b, #401). */
 async function resendLoginCode(ctx: ClientCtx): Promise<void> {
   try {
-    await ctx.api('/api/login/resend', { challenge: login.challenge });
+    await ctx.api('/api/login/resend', {});
   } catch (e) {
     ctx.toast((e as Error).message, e as Error);
   }
@@ -151,7 +146,9 @@ export const clientFeature = {
   acts: (ctx) => ({
     forgot: showAuth(ctx, () => 'forgot'),
     authback: () => {
-      login.challenge = null;
+      // Back from the code step, the sign-in under way ends (#401).
+      if (client.ui.auth === 'code')
+        void ctx.api('/api/login/cancel', {}).catch(() => undefined);
       login.resetToken = null;
       showAuth(ctx, () => 'login')();
     },

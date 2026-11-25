@@ -142,11 +142,7 @@ export function issueLoginCode(
 
 function verifyCode(ctx: Ctx, challenge: string, code: string): User | null {
   const hash = hashToken(challenge);
-  const record = ctx.db
-    .prepare(
-      "SELECT * FROM account_tokens WHERE token_hash = ? AND purpose = 'login' AND expires > ? AND attempts < ?",
-    )
-    .get(hash, ctx.now(), CODE_ATTEMPTS) as AccountToken | undefined;
+  const record = liveLogin(ctx, challenge);
   if (!record) return null;
   const expected = Buffer.from(record.code_hash ?? '', 'hex');
   const actual = Buffer.from(hashToken(challenge + code), 'hex');
@@ -162,6 +158,33 @@ function verifyCode(ctx: Ctx, challenge: string, code: string): User | null {
   return ctx.players.get(record.user_id);
 }
 
+/** A live sign-in by mail code: the challenge is known, not used, not expired, not used up. */
+function liveLogin(
+  ctx: Ctx,
+  challenge: string,
+): (AccountToken & { expires: number }) | undefined {
+  return ctx.db
+    .prepare(
+      "SELECT * FROM account_tokens WHERE token_hash = ? AND purpose = 'login' AND expires > ? AND attempts < ?",
+    )
+    .get(hashToken(challenge), ctx.now(), CODE_ATTEMPTS) as
+    (AccountToken & { expires: number }) | undefined;
+}
+
+/** Whether the sign-in of this browser waits for its code (129a, #401). */
+export const loginPending = (ctx: Ctx, challenge: unknown): boolean =>
+  typeof challenge === 'string' && liveLogin(ctx, challenge) !== undefined;
+
+/** „Zurück zum Login“: the sign-in under way ends (#401). */
+export function cancelLogin(ctx: Ctx, challenge: unknown): void {
+  if (typeof challenge !== 'string') return;
+  ctx.db
+    .prepare(
+      "DELETE FROM account_tokens WHERE token_hash = ? AND purpose = 'login'",
+    )
+    .run(hashToken(challenge));
+}
+
 /**
  * A new code for a sign-in under way, on the same challenge (101b, #401): the
  * old code is void, the ten minutes start again, the failed attempts stay. A
@@ -175,12 +198,7 @@ export function resendLoginCode(
 ): { user: User; code: string } | null {
   const c = String(challenge ?? '');
   const now = ctx.now();
-  const record = ctx.db
-    .prepare(
-      "SELECT * FROM account_tokens WHERE token_hash = ? AND purpose = 'login' AND expires > ? AND attempts < ?",
-    )
-    .get(hashToken(c), now, CODE_ATTEMPTS) as
-    (AccountToken & { expires: number }) | undefined;
+  const record = liveLogin(ctx, c);
   const user = record && ctx.players.get(record.user_id);
   if (!record || !user)
     return fail('Der Anmeldecode ist ungültig oder abgelaufen.');

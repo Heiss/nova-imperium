@@ -208,7 +208,10 @@ without SMTP while it is on; set `NOVA_EMAIL_LOGIN_CODES=0` to sign in without
 it. Codes expire after ten minutes and allow five attempts. The code form
 comes at once and the mail is sent in the background; after 30 seconds the
 player can ask for a new code. A mail that fails shows in the admin's error
-log. Confirm that every player has an address before enabling this option. Configure
+log. The mail also carries a link that signs in only the browser where the
+sign-in began: that browser keeps the sign-in in the HttpOnly cookie
+`nova_login` (path `/api/login`, ten minutes), and the code is in the `#`
+part of the link, so it reaches no server or proxy log. Confirm that every player has an address before enabling this option. Configure
 SMTP with TLS for production. Email codes are an additional
 check, and email access is also the recovery channel.
 

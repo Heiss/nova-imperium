@@ -71,6 +71,81 @@ test.describe('accounts by mail (#68)', () => {
     expect(w.problems).toEqual([]);
   });
 
+  test('the link of the mail signs in only the browser of the sign-in (95a, 129a, 130b, #401)', async ({
+    page,
+    browser,
+  }) => {
+    const w = watch(page);
+    const name = uniqueName('Link');
+    await registerByMail(page, name);
+    const begin = async (): Promise<void> => {
+      await page.fill('#a_name', name);
+      await page.fill('#a_pw', 'ein-sicheres-testpasswort');
+      await page.click('button[type=submit]');
+      await expect(page.locator('.auth .hd')).toHaveText('Anmeldecode');
+    };
+    /** The link of the newest mail, on this server; not `old`. */
+    const newestLink = async (old = 'none'): Promise<string> => {
+      const code = old.replace(/\D/g, '') || 'x';
+      const [, path] = await mail(
+        emailOf(name),
+        new RegExp(`Link an: http://[^/]+(/#code=(?!${code})\\d{6})\\. `),
+      );
+      return `${E2E_MAIL_URL}${path!}`;
+    };
+    await begin();
+    const first = await newestLink();
+    // A reload of the code step keeps the sign-in (129a).
+    await page.reload();
+    await expect(page.locator('.auth .hd')).toHaveText('Anmeldecode');
+
+    // Another browser: nothing signed in, the note says where to go (text 2).
+    const other = await browser.newContext();
+    const phone = await other.newPage();
+    await phone.goto(first);
+    await expect(lastToast(phone)).toContainText(
+      'Dieser Link gilt nur im Browser, in dem du die Anmeldung begonnen hast. Gib dort den Code aus der E-Mail ein.',
+    );
+    await expect(phone.locator('.auth .hd')).toHaveText('Login');
+    await expect(phone).toHaveURL(/\/$/);
+    await other.close();
+
+    // A newer sign-in here: the old link is of an older one (130b), and the
+    // code step stays for the newest code.
+    await page.getByRole('button', { name: 'Zurück zum Login' }).click();
+    await begin();
+    // (A second code equal to the first, one in a million, would wait here.)
+    const second = await newestLink(first);
+    await page.goto(first);
+    await expect(lastToast(page)).toContainText(
+      'Dieser Link gehört zu einer älteren Anmeldung. Gib den Code aus der neuesten E-Mail ein.',
+    );
+    await expect(page.locator('.auth .hd')).toHaveText('Anmeldecode');
+    // The newest link signs in, and the code leaves the address bar.
+    await page.goto(second);
+    await expect(page.locator('h2')).toContainText('Übersicht');
+    await expect(page.locator('#pinfo')).toContainText(name);
+    await expect(page).toHaveURL(/\/$/);
+    expect(w.problems).toEqual([]);
+  });
+
+  test('„Zurück zum Login“ ends the sign-in under way (#401)', async ({
+    page,
+  }) => {
+    const w = watch(page);
+    const name = uniqueName('Zurueck');
+    await registerByMail(page, name);
+    await page.fill('#a_name', name);
+    await page.fill('#a_pw', 'ein-sicheres-testpasswort');
+    await page.click('button[type=submit]');
+    await expect(page.locator('.auth .hd')).toHaveText('Anmeldecode');
+    await page.getByRole('button', { name: 'Zurück zum Login' }).click();
+    await expect(page.locator('.auth .hd')).toHaveText('Login');
+    await page.reload();
+    await expect(page.locator('.auth .hd')).toHaveText('Login');
+    expect(w.problems).toEqual([]);
+  });
+
   test('an invitation link shows no login while the server checks it (#272)', async ({
     page,
   }) => {

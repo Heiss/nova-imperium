@@ -35,11 +35,38 @@ function openReset(): boolean {
   if (!token) return false;
   history.replaceState(null, '', location.pathname + location.search);
   login.resetToken = token;
-  login.challenge = null;
   client.game = null;
   ui.auth = 'reset';
   render(true);
   return true;
+}
+
+/**
+ * The link of a sign-in mail (95a, #401): its code signs in this browser if
+ * the sign-in began here. A refusal (another browser, text 2; an older
+ * sign-in, 130b) is a note; the page then goes on as without the link.
+ */
+async function openCodeLink(): Promise<boolean> {
+  const code = /^#code=(\d{6})/.exec(location.hash)?.[1];
+  if (!code) return false;
+  // The code leaves the address bar at once (history, screenshots).
+  history.replaceState(null, '', location.pathname + location.search);
+  try {
+    const j = await api('/api/login/code', { code, link: true });
+    ui.auth = null;
+    apply(j.state as GameState);
+    homeSystem(ui, client.game);
+    return true;
+  } catch (e) {
+    toast((e as Error).message, e as Error);
+    return false;
+  }
+}
+
+/** A sign-in that waits for its code shows the code step again after a reload (129a). */
+async function pendingSignIn(): Promise<boolean> {
+  const j = await api('/api/login/pending').catch(() => null);
+  return j?.pending === true;
 }
 
 /** The token of an invitation link in the address, if there is one. */
@@ -67,12 +94,18 @@ export async function boot(): Promise<void> {
     return;
   }
   await policy;
+  if (await openCodeLink()) {
+    session.booting = false;
+    render(true);
+    return;
+  }
   const invite = inviteToken();
   try {
     apply((await api('/api/state')) as unknown as GameState);
     homeSystem(ui, client.game);
   } catch {
     if (invite) await openInvite(invite);
+    else if (await pendingSignIn()) ui.auth = 'code';
     ui.auth ??= 'login';
   }
   session.booting = false;
@@ -90,6 +123,10 @@ export function resumeAfterMaintenance(): void {
 export function watchLinks(): void {
   window.addEventListener('hashchange', () => {
     if (openReset()) return;
+    if (/^#code=/.test(location.hash)) {
+      void openCodeLink().then(() => render(true));
+      return;
+    }
     const token = inviteToken();
     if (!token || client.game) return;
     void openInvite(token).then(() => render(true));
