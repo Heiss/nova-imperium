@@ -11,23 +11,20 @@ import {
   type Pair,
   type Quote,
   PAIRS,
-  RATIO_UNIT,
   RES_NAME,
   type Res,
   TRADED,
   feeOf,
   gainingTrips,
-  got,
   marketOpen,
   maxGive,
   pairOf,
   postLevel,
   ratiosOf,
   remaining,
-  termsOf,
   trade,
 } from '../../core/market.ts';
-import { tradeNote } from '../../core/market-text.ts';
+import { rateText, tradeNote } from '../../core/market-text.ts';
 import type { Planet, Universe } from '../../core/types.ts';
 import { fmt } from './format.ts';
 import type { GameState } from './types.ts';
@@ -104,11 +101,10 @@ const percent = (fee: number): string => `${fee} %`;
  * what 1,000 give.
  */
 export function preview(m: Market, d: Draft): Preview {
-  const terms = termsOf(m, pairOf(d.give, d.get)!);
   const [give, get] = [RES_NAME[d.give], RES_NAME[d.get]];
   const rate: PreviewLine = {
     label: 'Kurs',
-    value: `${fmt(got(RATIO_UNIT, terms))} ${get} je ${fmt(RATIO_UNIT)} ${give}`,
+    value: rateText(m, pairOf(d.give, d.get)!),
   };
   const today: PreviewLine = {
     label: 'Heute noch',

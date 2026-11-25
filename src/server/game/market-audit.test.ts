@@ -38,6 +38,7 @@ describe('the marketplace in the audit log', () => {
       get: 'c',
       amount: 1000,
       planet: 'p1_1_5',
+      price: 1_000_000,
     });
     expect(reply.json).toMatchObject({
       ok: true,

@@ -367,6 +367,16 @@ export function priceAfter(price: number, given: number, step: number): number {
   );
 }
 
+/**
+ * Whether the price of a pair now is worse than the one the player saw
+ * (#406, owner, 2026-11-25, O31): a lower price gives less for the same
+ * amount (`got`), so any fall refuses the exchange, with no tolerance; a
+ * price that is no number the player could have seen counts as worse. The
+ * price compared is the one before the own exchange moves it.
+ */
+export const priceWorse = (seen: unknown, now: number): boolean =>
+  !Number.isSafeInteger(seen) || now < (seen as number);
+
 /** What an exchange needs of the planet, the round and the market. */
 export interface Terms {
   /** The ratio of the pair, per `RATIO_UNIT` given. */
