@@ -111,15 +111,35 @@ generated: { by: claude-code/web, at: 2026-11-25T09:30:00Z }
 * **[E]** The long connections are protected: a stream opens only with a
   valid session (401 otherwise, so nothing stays open), there is a maximum
   of streams per account and in total, a heartbeat, and the server closes
-  dead connections. The values are O27, several tabs O28.
+  dead connections (owner, 2026-11-25):
+  * The total is an environment variable. It must allow at least 2 streams
+    per account; when it does not, the admin panel says so at the
+    invitations, that the server holds more accounts than it carries, with
+    the request to raise the number. **[V]** Name `NOVA_EVENT_STREAMS`.
+  * The heartbeat is an environment variable, 30 s by default. **[V]** Name
+    `NOVA_EVENT_HEARTBEAT`. It must stay below the shortest idle timeout of
+    the proxies in front; the operator texts say so.
+  * After an error the browser connects again at the interval the server
+    sends in `retry:`, not at the browser's own.
+  * The page shows when it has no connection. **[V]** Two states: the
+    events are cut but requests still pass (the slow poll takes over), and
+    the server cannot be reached at all.
+  * Several tabs (O28): a hidden tab closes its stream and opens it again
+    when shown; above the limit of an account the oldest stream is closed,
+    not the new one refused.
+  * Still open in O27: the limit per account, the default of the total,
+    the limits per address, the interval of `retry:`, and clicks while
+    there is no connection.
 * **[E]** Volumetric attacks are the operator's concern (protection in
   front of the proxy); the game and its proxies do not try to absorb them.
 * **[E]** The operator documentation in `docs/operations.md` comes with the
   pull request of the events: texts for nginx, Apache and Caddy on HTTP/2,
   the event route (no buffering, timeouts, heartbeat), hardening against
   DoS (limits per address, timeouts, body size), and a full Apache
-  example. The CI runs E2E tests through real proxies (O29), which also
-  checks U2.
+  example. The CI runs a focused E2E spec through nginx, Apache and Caddy,
+  images pinned by digest (O29): HTTP/2, an event arrives at once, the
+  stream outlives the idle timeout, 401 without a session, the limits. This
+  also checks U2.
 * **[E]** Cobalt27 (`@cobalt27/*`, GraphQL APIs generated from TypeScript)
   is rejected: nothing is gained over the standards. The research of
   2026-11-24 also found version 0.5.27, a Bun runtime and the license
