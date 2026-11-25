@@ -101,6 +101,74 @@ describe('the setup of the app (text 4)', () => {
     ).toEqual({ error: WRONG });
   });
 
+  it('takes the first code until the end of the ten minutes', async () => {
+    const s = await anna();
+    await s.login();
+    const { secret } = (await s.call('POST', '/api/totp/setup', {})).json as {
+      secret: string;
+    };
+    s.ctx.clock.t += 10 * 60_000 - 1;
+    expect(
+      (await s.call('POST', '/api/totp/confirm', { code: codeOf(s, secret) }))
+        .json,
+    ).toEqual({ ok: true });
+    // Set up, a further code confirms nothing.
+    s.ctx.clock.t += 30_000;
+    expect(
+      (await s.call('POST', '/api/totp/confirm', { code: codeOf(s, secret) }))
+        .json,
+    ).toEqual({ error: WRONG });
+  });
+
+  it('audits every change of the own app with its outcome, never the secret', async () => {
+    const s = await anna();
+    await s.login();
+    const { secret } = (await s.call('POST', '/api/totp/setup', {})).json as {
+      secret: string;
+    };
+    await s.call('POST', '/api/totp/confirm', { code: '000000' });
+    await s.call('POST', '/api/totp/confirm', { code: codeOf(s, secret) });
+    s.ctx.clock.t += 30_000;
+    await s.call('POST', '/api/totp/remove', {
+      password: 'secret1',
+      code: codeOf(s, secret),
+    });
+    const rows = s.ctx.db
+      .prepare(
+        "SELECT category, action, actor, outcome, detail FROM audit_events WHERE action LIKE 'totp%' ORDER BY id",
+      )
+      .all();
+    expect(rows).toEqual(
+      [
+        ['totpSetup', 'ok'],
+        ['totpConfirm', 'rejected'],
+        ['totpConfirm', 'ok'],
+        ['totpRemove', 'ok'],
+      ].map(([action, outcome]) => ({
+        category: 'account',
+        action,
+        actor: 'u_Anna',
+        outcome,
+        detail: '{}',
+      })),
+    );
+  });
+
+  it('counts its requests against the limit of attempts', async () => {
+    const s = await start({ cfg: { rateLimitAttempts: 1 } });
+    addUser(s.ctx, 'Anna');
+    const limited = { error: 'Zu viele Versuche – bitte später nochmal.' };
+    // The first request of the address passes the guard, the second not.
+    await s.call('POST', '/api/password/reset/check', { token: 'x' });
+    for (const route of [
+      '/api/password/reset/check',
+      '/api/totp/setup',
+      '/api/totp/confirm',
+      '/api/totp/remove',
+    ])
+      expect((await s.call('POST', route, {})).json).toEqual(limited);
+  });
+
   it('needs a session', async () => {
     const s = await anna();
     for (const route of ['setup', 'confirm', 'remove'])
@@ -201,6 +269,24 @@ describe('the removal of the app (text 4)', () => {
     // Without the app the sign-in is as before: here without codes.
     expect((await s.login()).json).toMatchObject({ ok: true });
   });
+
+  it('refuses a removal without an app, a removal of a setup not confirmed, and one without a password', async () => {
+    const s = await anna();
+    await s.login();
+    const remove = (body: object) => s.call('POST', '/api/totp/remove', body);
+    expect(
+      (await remove({ password: 'secret1', code: '000000' })).json,
+    ).toEqual({ error: WRONG });
+    const { secret } = (await s.call('POST', '/api/totp/setup', {})).json as {
+      secret: string;
+    };
+    expect(
+      (await remove({ password: 'secret1', code: codeOf(s, secret) })).json,
+    ).toEqual({ error: WRONG });
+    expect((await remove({ code: codeOf(s, secret) })).json).toEqual({
+      error: 'Das bisherige Passwort ist falsch.',
+    });
+  });
 });
 
 describe('the reset of the admin (text 7, 103c)', () => {
@@ -230,12 +316,19 @@ describe('the reset of the admin (text 7, 103c)', () => {
     expect(
       s.ctx.db
         .prepare(
-          "SELECT action, actor, target, outcome FROM audit_events WHERE action = 'totpReset' ORDER BY id",
+          "SELECT category, action, actor, target, outcome FROM audit_events WHERE action = 'totpReset' ORDER BY id",
         )
         .all(),
     ).toEqual([
-      { action: 'totpReset', actor: 'u_Boss', target: 'u_Anna', outcome: 'ok' },
       {
+        category: 'admin.write',
+        action: 'totpReset',
+        actor: 'u_Boss',
+        target: 'u_Anna',
+        outcome: 'ok',
+      },
+      {
+        category: 'admin.write',
         action: 'totpReset',
         actor: 'u_Boss',
         target: 'nobody',

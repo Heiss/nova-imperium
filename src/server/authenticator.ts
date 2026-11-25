@@ -111,10 +111,8 @@ export function removeAuthenticator(
 }
 
 /** The admin resets a lost app (103c); the account signs in by mail again. */
-export function resetAuthenticator(ctx: Ctx, uid: string): boolean {
-  return (
-    ctx.db.prepare('DELETE FROM totp WHERE user_id = ?').run(uid).changes > 0
-  );
+export function resetAuthenticator(ctx: Ctx, uid: string): void {
+  ctx.db.prepare('DELETE FROM totp WHERE user_id = ?').run(uid);
 }
 
 /** The app of an account stays across rounds, as the account does. */
