@@ -23,6 +23,21 @@ generated: { by: claude-code/web, at: 2026-11-25T09:30:00Z }
 
 # Decisions (owner, 2026-11-25)
 
+* **[E]** The requirement behind all of it: the game runs on weak hardware
+  shared with other services, such as an Intel Celeron J4104, with about
+  20 players today and more where others run it
+  ([Overview](/overview.md)).
+* Measured on 2026-11-25 (a synthetic universe of 9 planets and 4 moons
+  per player, no reports, fleets or chat; SQLite in memory; a Xeon of
+  2.1 GHz, not the J4104): the state of one player is 31 KB of JSON for 20
+  players (4.7 KB with gzip) and 59 KB for 40 (7.7 KB); `galaxy` is over
+  80 % of it. Building it takes 46 to 51 ms for 20 players and 99 ms for 40,
+  three quarters of it in `pointsMap` and `categoryScores`, which compute
+  the points and highscore categories of every player on every call. The
+  bytes are harmless; the time of the server is the cost.
+* **[E]** First, and on its own: the points and highscore categories are
+  kept between calls and computed again only when they can have changed
+  (owner, 2026-11-25).
 * **[E]** The problems to solve, in this order: the load of the full state
   every 4 s per tab, the redraw of the client, and the delay of up to 4 s
   for the guild chat, private messages and attacks.
@@ -49,17 +64,26 @@ generated: { by: claude-code/web, at: 2026-11-25T09:30:00Z }
   fleet that lands, must not refuse a click on „bauen“ with 412.
 * **[E]** Checks against a stale view (O31, owner, 2026-11-25):
   * Forms that several people edit send `basedOn`, the ETag of the part
-    they were read from, and only the fields that were changed. Every
-    editable field keeps a stamp of its last change: the version of the
-    part, who and when. It is one row per field, overwritten, so it does
-    not grow with the changes. The server takes every field nobody else
-    changed since `basedOn` and refuses only a field changed meanwhile,
-    with its current value, who and when („von Anna um 14:03 auf 3
-    geändert“). A field the editor did not touch takes the new value at
-    once, with a line saying who changed it. This holds for the universe
-    settings, the guild profile (tag, name, description), the name of a
-    rank and each right of a rank; one save is one entry of the
+    they were read from, and the fields that were changed. This holds for
+    the universe settings, the guild profile (tag, name, description) and
+    each rank (its name and its rights); one save is one entry of the
     [Guild log](/features/guild-log.md).
+  * A save holds all or nothing: values that belong together, such as
+    higher costs and lower prices, are never taken in part.
+  * Any change of the part by someone else since `basedOn` refuses the
+    whole save, also when it touched other fields, because a value can
+    depend on another one (two admins, one raising costs while the other
+    lowers prices on the old costs). The refusal names what changed, who
+    and when. The safest choice first; if its UX turns out bad, a finer one
+    is looked for later (owner, 2026-11-25).
+  * A change by someone else that arrives while the form is open shows
+    as a line such as „Anna hat Marktgebühr 5 → 3 geändert [Übernehmen]“.
+    Only „Übernehmen“ moves `basedOn` on; the client never moves it by
+    itself, or the check would be worthless.
+  * Every editable field keeps a stamp of its last change: the version of
+    the part, who and when. It is one row per field, overwritten, so it
+    does not grow with the changes; it gives the „who, what, when“ of the
+    line and the refusal.
   * The stamp is written in the repository method of its field, one place
     per field, with a guard test; a change by the server itself carries the
     actor „System“ [V].
