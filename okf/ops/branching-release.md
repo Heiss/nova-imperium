@@ -511,7 +511,20 @@ and one CI run (26.11.24; #347 for 26.11.25).
   conflict stops the job with the files named, and the branch and its pull
   request stay as they were. After the squash, `release-pr.sh` counts the
   hotfix as merged back (`VERSION` held its tag). Tests:
-  `src/test/hotfix-back.test.ts`. While a released hotfix is not merged back, the release pull
+  `src/test/hotfix-back.test.ts`. **[E]** The automatic merge-back stays
+  for security hotfixes (`hotfix/sec-*`) only (owner, 2026-11-25, 118a).
+  **[E]** The squashed merge-back is no release (owner, 2026-11-25, 116a):
+  its push changes `VERSION` of `main` to the hotfix's tag, and `release.sh`
+  says „<tag> is the release of a merged-back hotfix: nothing to tag.“ and
+  ends green. **[V]** It counts as a merge-back when the tag's commit is on
+  a hotfix branch (fetched for the check) and the pushed commit is exactly
+  its parent with the hotfix merged in (`git merge-tree`), as the squash of
+  `hotfix-back/<name>` is; a tag on a commit that is neither an ancestor
+  nor such a merge-back still fails as before, so a release commit of
+  `main` that took a hotfix's version (O25) stays refused, and the rule
+  against a release after a newer one (108) is unchanged for new tags.
+  `release-pr.sh` rebuilds the release pull request of `main` on that push.
+  Tests: `src/test/release-tag.test.ts`, `src/test/release-pr.test.ts`. While a released hotfix is not merged back, the release pull
   request of `main` stays a draft (`scripts/release-pr.sh`; its body says
   so with its marker, #147; since #387 the same run creates it as a draft
   and marks it ready only when no released hotfix waits and no other

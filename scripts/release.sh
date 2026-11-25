@@ -24,6 +24,19 @@ newer_than() {
   [ "$1" != "$2" ] && [ "$(printf '%s\n%s\n' "$1" "$2" | calver_sort | tail -n 1)" = "$1" ]
 }
 
+# Whether <2> is the merge-back of the released hotfix <1>, squashed into
+# main (owner, 2026-11-25, 116a): the tag's commit is on a hotfix branch, and
+# <2> is exactly its parent with that hotfix merged in, as the squash of
+# hotfix-back/<name> (always built from the current main) is. A release
+# commit of main that took the hotfix's version (O25) brings its own changes,
+# so it is no merge-back and is refused as before.
+merged_back() {
+  git fetch --quiet origin '+refs/heads/hotfix/*:refs/remotes/origin/hotfix/*' || return 1
+  [ -n "$(git branch -r --contains "$1^{commit}" --list 'origin/hotfix/*')" ] || return 1
+  merged=$(git merge-tree --write-tree --no-messages "$2^" "$1^{commit}") || return 1
+  [ "$(printf '%s\n' "$merged" | head -n 1)" = "$(git rev-parse "$2^{tree}")" ]
+}
+
 dry_run=false
 case "$#:${1:-}" in
   0:) ;;
@@ -89,8 +102,10 @@ existing=''
 if git rev-parse -q --verify "refs/tags/$tag" > /dev/null; then
   if [ "$(git rev-parse "$tag^{commit}")" = "$commit" ]; then
     existing=$tag
-  elif git merge-base --is-ancestor "$tag^{commit}" "$commit"; then
-    # A hotfix merged back into main carries the hotfix's VERSION.
+  elif git merge-base --is-ancestor "$tag^{commit}" "$commit" ||
+    merged_back "$tag" "$commit"; then
+    # A hotfix merged back into main carries the hotfix's VERSION, as a
+    # merge or squashed (116a).
     printf '%s\n' "$tag is the release of a merged-back hotfix: nothing to tag."
     exit 0
   else
