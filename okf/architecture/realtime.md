@@ -44,17 +44,17 @@ generated: { by: claude-code/web, at: 2026-11-25T09:30:00Z }
   a write empties is not enough: a building, a research or a unit of the
   shipyard is finished when a planet is read (`settle`), so points change
   with time and without a write.
-  * **[V]** The setting is an entry of the registry of the round settings
+  * **[E]** The setting is an entry of the registry of the round settings
     (`ROUND_SETTINGS`, `live: true`, so also a row of the universe
     settings): „Highscore-Aktualisierungen pro Tag (0 = Echtzeit)“, 0 to
     24. N times a day means every 24/N hours, the first at 00:05 server
     time, as in 0.78b.
-  * **[V]** „Live“ (0) means one pass at most every 10 s, not one per call,
+  * **[E]** „Live“ (0) means one pass at most every 10 s, not one per call,
     as the requirement of weak hardware asks.
-  * **[V]** The pass runs in the clock of the server at its time, so the
+  * **[E]** The pass runs in the clock of the server at its time, so the
     points are those of that moment, as in 0.78b („was zum Zeitpunkt der
     Aktualisierung vorhanden ist“). The highscore shows „Stand: {Uhrzeit}“.
-  * **[V]** A check of an action that needs points (noob protection) keeps
+  * **[E]** A check of an action that needs points (noob protection) keeps
     computing them exactly, for the two players it concerns only; the
     expeditions (#93) take the stored points. **[U]** Whether 0.78b
     protected by the stored points or by the current ones was not checked.
@@ -62,7 +62,9 @@ generated: { by: claude-code/web, at: 2026-11-25T09:30:00Z }
     `categoryScores` took about 15 and 18.6 ms, 34 ms together; three
     passes a day cost nothing worth naming, one every 10 s about 0.3 % of
     one core.
-  * Built in #405, target `main`.
+  * The proposals above were confirmed by the owner (2026-11-25).
+  * Built in #405, target `main`, although players see the change: the
+    highscore with the default can be up to 8 h old (owner, 2026-11-25).
 * **[E]** The parts that are the same for every player are built once and
   sent to all (owner, 2026-11-25): `galaxy` (`state.ts`: its builder ignores
   the player), `players`, the universe and the rules of the round. Each is
