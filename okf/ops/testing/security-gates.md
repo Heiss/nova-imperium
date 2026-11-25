@@ -12,6 +12,16 @@ description: 'gitleaks, pnpm audit and the other security gates, and what to do 
   request. First case: the sample token of `src/server/error-log.test.ts`
   in commit f45319c (#126, owner, 2026-11-12).
 
+* **[E]** gitleaks in CI (owner, 2026-11-25, 143a): a pull request scans
+  only its own commits (`--log-opts` with the base and head commit of the
+  event, passed as environment, never written into the script), so a branch
+  of someone else among the fetched refs fails no other pull request; a push
+  to `main` or `hotfix/**` and the nightly run scan the whole history of all
+  refs. `--verbose` shows each finding with its file and line, the values
+  stay redacted. Cause: a test password on an unmerged branch made every
+  pull request fail (2026-11-25). Before each push a branch is scanned
+  locally with gitleaks 8.30.1 on `origin/main..HEAD`.
+
 * **[E]** Security gates: gitleaks over the whole history, `pnpm audit --prod`
   (high blocks), CodeQL `security-extended` (severity ≥ 7.0 and every result of level
   „error“ block, `.github/scripts/codeql-gate.mjs`), Trivy on

@@ -604,6 +604,72 @@ describe('CI Gate', () => {
   });
 });
 
+describe('gitleaks in ci.yml (owner, 2026-11-25, 143a)', () => {
+  const job = CI.slice(
+    CI.indexOf('  security:\n'),
+    CI.indexOf('\n  # ', CI.indexOf('  security:\n')),
+  );
+  const step = job.slice(job.indexOf('- name: No secrets in the history'));
+  const script = ((): string => {
+    const lines = step
+      .slice(step.indexOf('run: |\n') + 'run: |\n'.length)
+      .split('\n');
+    const end = lines.findIndex((l) => !l.startsWith('          '));
+    return lines
+      .slice(0, end)
+      .map((l) => l.slice(10))
+      .join('\n');
+  })();
+
+  /** Runs the step's script with a fake docker: the range gitleaks gets, and its command. */
+  function scan(env: Record<string, string>): { range: string; cmd: string } {
+    const dir = mkdtempSync(join(tmpdir(), 'gitleaks-'));
+    const bin = join(dir, 'docker');
+    writeFileSync(
+      bin,
+      '#!/bin/sh\nfor a in "$@"; do case "$a" in RANGE=*) echo "range:${a#RANGE=}";; esac; done\neval "last=\\${$#}"; echo "cmd:$last"\n',
+    );
+    chmodSync(bin, 0o755);
+    const out = execFileSync('sh', ['-c', script], {
+      env: { PATH: `${dir}:/usr/bin:/bin`, ...env },
+      encoding: 'utf8',
+    });
+    rmSync(dir, { recursive: true, force: true });
+    return {
+      range: /^range:(.*)$/m.exec(out)![1]!,
+      cmd: /^cmd:(.*)$/m.exec(out)![1]!,
+    };
+  }
+
+  it('scans only the commits of a pull request, the range given as data', () => {
+    expect(step).toContain('EVENT: ${{ github.event_name }}');
+    expect(step).toContain(
+      'BASE_SHA: ${{ github.event.pull_request.base.sha }}',
+    );
+    expect(step).toContain(
+      'HEAD_SHA: ${{ github.event.pull_request.head.sha }}',
+    );
+    // No expression of the event inside the script itself.
+    expect(script).not.toContain('${{');
+    const pr = scan({ EVENT: 'pull_request', BASE_SHA: 'b0', HEAD_SHA: 'h1' });
+    expect(pr.range).toBe('b0..h1');
+    expect(pr.cmd).toContain(
+      'gitleaks git . --log-opts="$RANGE" --redact --verbose --no-banner',
+    );
+  });
+
+  it('scans the whole history of all refs for a push and the nightly run, redacted and verbose', () => {
+    for (const EVENT of ['push', 'schedule']) {
+      const run = scan({ EVENT, BASE_SHA: '', HEAD_SHA: '' });
+      expect(run.range).toBe('');
+      expect(run.cmd).toContain(
+        'else gitleaks git . --redact --verbose --no-banner; fi',
+      );
+    }
+    expect(step.match(/--redact/g)).toHaveLength(2);
+  });
+});
+
 describe('the events of ci.yml', () => {
   it('start no run when a pull request is marked ready, and know no label of a full run (#387)', () => {
     expect(CI).toContain(

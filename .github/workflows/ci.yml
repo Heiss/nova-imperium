@@ -713,8 +713,9 @@ jobs:
         if: always()
         run: docker compose down --volumes
 
-  # Secrets in the whole history and known holes in the production
-  # dependencies. Runs for every change, documentation included.
+  # Secrets in the history (of a pull request its own commits, 143a) and
+  # known holes in the production dependencies. Runs for every change,
+  # documentation included.
   security:
     name: Secrets and dependencies
     runs-on: ubuntu-latest
@@ -723,10 +724,20 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 0
+      # A pull request scans its own commits only, so a branch of someone else
+      # among the fetched refs fails no other pull request; a push and the
+      # nightly run scan the whole history of all refs (owner, 2026-11-25,
+      # 143a). The range comes from the event as data, never as code.
       - name: No secrets in the history (gitleaks, exceptions in .gitleaksignore)
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          docker run --rm -v "$PWD:/repo" --entrypoint sh zricethezav/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f -c \
-            'git config --global --add safe.directory /repo && cd /repo && gitleaks git . --redact --no-banner'
+          range=
+          if [ "$EVENT" = pull_request ]; then range="$BASE_SHA..$HEAD_SHA"; fi
+          docker run --rm -v "$PWD:/repo" -e RANGE="$range" --entrypoint sh zricethezav/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f -c \
+            'git config --global --add safe.directory /repo && cd /repo && if [ -n "$RANGE" ]; then gitleaks git . --log-opts="$RANGE" --redact --verbose --no-banner; else gitleaks git . --redact --verbose --no-banner; fi'
       - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
