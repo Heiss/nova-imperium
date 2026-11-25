@@ -45,6 +45,7 @@ okf_version: "0.2"
 * [Push settings per kind](/features/push-settings.md) - which kinds of Web Push a player gets, per account for all devices (#192)
 * [Guild ranks](/features/guild-ranks.md) - ranks with configurable rights, one Leitung, order, default rank, checked on the server (#163)
 * [Guilds on or off per round](/features/guild-switch.md) - one switch „Gilden (mit Chat)“ in the dialog „Neue Runde“, off deletes the guilds and the server refuses every guild action (#191)
+* [Guild log](/features/guild-log.md) - a page with the actions of the guild's management for the right „Protokoll lesen“, texts only as „geändert“, deleted each round, 500 entries (decided, not built)
 * [Guild chat](/features/guild-chat.md) - one chat per guild with three rights of the ranks, events of the server, a red mark on „Gilden“, 500 messages, deleted each round, read by the admin with an audit entry (#169)
 * [Vacation mode](/features/vacation-mode.md) - pause the account, production stops, everything protected, minimum duration per round (#223)
 * [Main planet](/features/main-planet.md) - the „Hauptplanet“ chosen in the options decides navigation and research, every switch locks it for a time set per round (#221)

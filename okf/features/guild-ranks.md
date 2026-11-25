@@ -268,3 +268,11 @@ may pass on a right its holder lacks.
   member's view and both dialogs. A third rank test (desktop): after a
   refresh, a disabled box shows the right the Leitung just gave, and the
   own unsaved tick stays.
+
+# Later decisions
+
+* **[E]** A further right „Protokoll lesen“ for the [Guild log](/features/guild-log.md)
+  (owner, 2026-11-25). The rights of a rank, its name and the guild profile
+  are saved with the stamps of [Data exchange and realtime](/architecture/realtime.md):
+  only the changed rights travel, and only a right someone else changed
+  meanwhile is refused (O31).

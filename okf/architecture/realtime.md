@@ -46,9 +46,39 @@ generated: { by: claude-code/web, at: 2026-11-25T09:30:00Z }
   reading the parts (`If-None-Match`, 304). A game action is a command the
   server checks against the current state in its transaction, so it
   carries no `If-Match`: a change elsewhere, such as the highscore or a
-  fleet that lands, must not refuse a click on „bauen“ with 412. Whether
-  documents that several people edit, and actions that depend on a value
-  the player saw, get a check of their own is O31.
+  fleet that lands, must not refuse a click on „bauen“ with 412.
+* **[E]** Checks against a stale view (O31, owner, 2026-11-25):
+  * Forms that several people edit send `basedOn`, the ETag of the part
+    they were read from, and only the fields that were changed. Every
+    editable field keeps a stamp of its last change: the version of the
+    part, who and when. It is one row per field, overwritten, so it does
+    not grow with the changes. The server takes every field nobody else
+    changed since `basedOn` and refuses only a field changed meanwhile,
+    with its current value, who and when („von Anna um 14:03 auf 3
+    geändert“). A field the editor did not touch takes the new value at
+    once, with a line saying who changed it. This holds for the universe
+    settings, the guild profile (tag, name, description), the name of a
+    rank and each right of a rank; one save is one entry of the
+    [Guild log](/features/guild-log.md).
+  * The stamp is written in the repository method of its field, one place
+    per field, with a guard test; a change by the server itself carries the
+    actor „System“ [V].
+  * Not chosen: sending the original values (a comparison of values that
+    the normalisation of the server breaks: the profile is trimmed, the tag
+    upper-cased, tag and name compared with `COLLATE NOCASE`; and no „who“
+    for guilds) and a log of every change (storage that grows; the audit
+    log holds before and after only for the universe settings, and the
+    journal of #235 keeps texts only as their length).
+  * The marketplace: the action carries the price the player saw, and the
+    server refuses any worse price, with the new one (exact, no tolerance).
+    Prices fall only by trades and climb back with time
+    (`src/core/market.ts`), so only a trade of someone else on the same
+    pair in between refuses it [U: read from the formula, a falling price
+    taken as worse for the player].
+  * The „alles“ buttons of the fleet form send the intent; the server
+    computes the amounts from the current state.
+  * Commands and intents (build, move, delete or assign a rank, …) carry no
+    version.
 * **[E]** HTTP/2 between the browser and the outermost proxy is a
   requirement: over HTTP/1.1 a browser opens at most 6 connections per
   host [U], which several tabs with a stream each would use up.
