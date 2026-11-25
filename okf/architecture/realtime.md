@@ -42,6 +42,13 @@ generated: { by: claude-code/web, at: 2026-11-25T09:30:00Z }
   action carries the parts it changed. Until the parts are built, step 4
   of the request flow in [System architecture](/architecture/system.md)
   (the answer carries the new state of the player) describes the game.
+* **[E]** ETags where they help, not everywhere (owner, 2026-11-25): for
+  reading the parts (`If-None-Match`, 304). A game action is a command the
+  server checks against the current state in its transaction, so it
+  carries no `If-Match`: a change elsewhere, such as the highscore or a
+  fleet that lands, must not refuse a click on „bauen“ with 412. Whether
+  documents that several people edit, and actions that depend on a value
+  the player saw, get a check of their own is O31.
 * **[E]** HTTP/2 between the browser and the outermost proxy is a
   requirement: over HTTP/1.1 a browser opens at most 6 connections per
   host [U], which several tabs with a stream each would use up.
