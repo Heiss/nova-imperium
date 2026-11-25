@@ -24,6 +24,9 @@ test.describe('accounts by mail (#68)', () => {
     await page.fill('#a_pw', 'ein-sicheres-testpasswort');
     await page.click('button[type=submit]');
     await expect(page.locator('.auth .hd')).toHaveText('Anmeldecode');
+    await expect(page.locator('.auth')).toContainText(
+      'Wir haben dir einen Code per E-Mail geschickt.',
+    );
     const [, code] = await mail(emailOf(name), /Anmeldecode lautet (\d{6})\./);
     const wrong = code!.replace(/\d$/, (d) => String((Number(d) + 1) % 10));
     const field = page.getByLabel('Sechsstelliger Code aus deiner E-Mail');
@@ -36,6 +39,35 @@ test.describe('accounts by mail (#68)', () => {
     await page.getByRole('button', { name: 'Anmelden' }).click();
     await expect(page.locator('h2')).toContainText('Übersicht');
     await expect(page.locator('#pinfo')).toContainText(name);
+    expect(w.problems).toEqual([]);
+  });
+
+  test('the code form offers „Code erneut senden“ after 30 s (101b, #401)', async ({
+    page,
+  }) => {
+    const w = watch(page);
+    await page.clock.install();
+    const name = uniqueName('Neucode');
+    await registerByMail(page, name);
+    await page.fill('#a_name', name);
+    await page.fill('#a_pw', 'ein-sicheres-testpasswort');
+    await page.click('button[type=submit]');
+    await expect(page.locator('.auth .hd')).toHaveText('Anmeldecode');
+    const again = page.getByRole('button', { name: 'Code erneut senden' });
+    await expect(again).toHaveCount(0);
+    await page.clock.fastForward(29_000);
+    await expect(again).toHaveCount(0);
+    await page.clock.fastForward(1_000);
+    await expect(again).toBeVisible();
+    // Asked for, the button waits another 30 s.
+    await again.click();
+    await expect(again).toHaveCount(0);
+    await page.clock.fastForward(30_000);
+    await expect(again).toBeVisible();
+    const [, code] = await mail(emailOf(name), /Anmeldecode lautet (\d{6})\./);
+    await page.getByLabel('Sechsstelliger Code aus deiner E-Mail').fill(code!);
+    await page.getByRole('button', { name: 'Anmelden' }).click();
+    await expect(page.locator('h2')).toContainText('Übersicht');
     expect(w.problems).toEqual([]);
   });
 

@@ -197,13 +197,32 @@ describe('mails', () => {
     expect((await noMail.call('POST', '/api/login', login)).json).toEqual({
       error: 'Anmeldecodes sind momentan nicht verfügbar.',
     });
+    // A mail that fails: the code form comes all the same, the failure is in
+    // the admin's error log only (101b, #401).
+    const logs: string[] = [];
     const failing = await player({
       ...codes,
-      mailer: () => Promise.reject(new Error('down')),
+      mailer: () => Promise.reject(new Error('smtp down')),
+      logs,
     });
     expect((await failing.call('POST', '/api/login', login)).json).toEqual({
-      error: 'Der Anmeldecode konnte nicht gesendet werden.',
+      challenge: expect.any(String),
     });
+    await tick();
+    await tick();
+    expect(logs).toEqual(['Login code mail failed']);
+    expect(
+      failing.ctx.db
+        .prepare('SELECT kind, action, player, message FROM error_events')
+        .all(),
+    ).toEqual([
+      {
+        kind: 'server',
+        action: 'mail',
+        player: 'u_Anna',
+        message: 'Error: smtp down',
+      },
+    ]);
     const { ctx, call } = await player({
       ...codes,
       mailer: async (m) => void mails.push(m),
@@ -592,6 +611,98 @@ describe('account audit and replies', () => {
         },
       ]);
     }
+  });
+
+  it('answers before the mail is sent (101b, #401)', async () => {
+    let sent: (() => void) | undefined;
+    const mails: Mail[] = [];
+    const { call } = await player({
+      cfg: { emailLoginCodes: true },
+      mailer: (m) =>
+        new Promise<void>((done) => {
+          sent = () => {
+            mails.push(m);
+            done();
+          };
+        }),
+    });
+    const begun = await call('POST', '/api/login', {
+      name: 'Anna',
+      password: 'secret1',
+    });
+    // The answer is here while the mail still waits for the SMTP server.
+    expect(begun.json).toEqual({ challenge: expect.any(String) });
+    expect(mails).toEqual([]);
+    sent!();
+    expect(mails).toHaveLength(1);
+  });
+
+  it('sends a new code after 30 s on the same challenge (101b, #401)', async () => {
+    const mails: Mail[] = [];
+    const { ctx, call } = await player({
+      cfg: { emailLoginCodes: true },
+      mailer: async (m) => void mails.push(m),
+    });
+    const codeOf = (i: number) => /\b\d{6}\b/.exec(mails[i]!.text)![0];
+    const { challenge } = (
+      await call('POST', '/api/login', { name: 'Anna', password: 'secret1' })
+    ).json as { challenge: string };
+    await tick();
+    const resend = () => call('POST', '/api/login/resend', { challenge });
+    // Before 30 s nothing is sent: the button comes only then.
+    ctx.clock.t += 29_999;
+    expect((await resend()).json).toEqual({ ok: true });
+    await tick();
+    expect(mails).toHaveLength(1);
+    ctx.clock.t += 1;
+    expect((await resend()).json).toEqual({ ok: true });
+    await tick();
+    expect(mails).toHaveLength(2);
+    expect(mails[1]).toEqual({ ...mails[0], text: expect.any(String) });
+    // The old code is void, the failed attempts stay.
+    const verify = (code: string) =>
+      call('POST', '/api/login/code', { challenge, code });
+    // (A new code equal to the old one, one in a million, would sign in.)
+    if (codeOf(0) !== codeOf(1))
+      expect((await verify(codeOf(0))).status).toBe(400);
+    // The ten minutes start again with the new code.
+    ctx.clock.t += 10 * 60_000 - 1;
+    expect((await verify(codeOf(1))).set).toContain('nova_session=');
+    // A used challenge sends nothing.
+    expect((await resend()).json).toEqual({
+      error: 'Der Anmeldecode ist ungültig oder abgelaufen.',
+    });
+  });
+
+  it('counts the failed attempts across a new code (101b, #401)', async () => {
+    const mails: Mail[] = [];
+    const { ctx, call } = await player({
+      cfg: { emailLoginCodes: true },
+      mailer: async (m) => void mails.push(m),
+    });
+    const { challenge } = (
+      await call('POST', '/api/login', { name: 'Anna', password: 'secret1' })
+    ).json as { challenge: string };
+    for (let i = 0; i < 5; i++)
+      await call('POST', '/api/login/code', { challenge, code: 'x' });
+    ctx.clock.t += 30_000;
+    expect(
+      (await call('POST', '/api/login/resend', { challenge })).json,
+    ).toEqual({ error: 'Der Anmeldecode ist ungültig oder abgelaufen.' });
+    await tick();
+    expect(mails).toHaveLength(1);
+    expect(
+      (await call('POST', '/api/login/resend', { challenge: 'unknown' })).json,
+    ).toEqual({ error: 'Der Anmeldecode ist ungültig oder abgelaufen.' });
+  });
+
+  it('refuses a new code while the codes are off', async () => {
+    const { call } = await player({
+      mailer: async () => undefined,
+    });
+    expect(
+      (await call('POST', '/api/login/resend', { challenge: 'x' })).json,
+    ).toEqual({ error: 'Anmeldecodes sind nicht aktiviert.' });
   });
 
   it('audits password and code logins, a refused code and logout', async () => {

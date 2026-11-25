@@ -80,6 +80,30 @@ describe('the login', () => {
     expect(client.ui.auth).toBeNull();
   });
 
+  it('asks for a new code of the sign-in under way, and shows a refusal (101b, #401)', async () => {
+    login.challenge = 'c1';
+    client.ui.auth = 'code';
+    const ctx = fakeCtx({ api: vi.fn(async () => ({ ok: true })) });
+    await acts(ctx).resendcode!();
+    expect(ctx.api).toHaveBeenCalledWith('/api/login/resend', {
+      challenge: 'c1',
+    });
+    expect(ctx.toast).not.toHaveBeenCalled();
+    expect([login.challenge, client.ui.auth]).toEqual(['c1', 'code']);
+    const refused = fakeCtx({
+      api: vi.fn(async () => {
+        throw new Error('Der Anmeldecode ist ungültig oder abgelaufen.');
+      }),
+    });
+    await acts(refused).resendcode!();
+    expect(refused.toast).toHaveBeenCalledWith(
+      'Der Anmeldecode ist ungültig oder abgelaufen.',
+      expect.objectContaining({
+        message: 'Der Anmeldecode ist ungültig oder abgelaufen.',
+      }),
+    );
+  });
+
   it('shows a refusal as a note and stays on the screen', async () => {
     const ctx = fakeCtx({
       api: vi.fn(async () => {

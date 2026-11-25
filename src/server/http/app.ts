@@ -125,7 +125,49 @@ function sessionUserOf(ctx: Ctx, call: Call): User {
   return u;
 }
 
-async function beginLogin(d: AppDeps, u: User): Promise<Reply> {
+/**
+ * The mail of a sign-in code goes in the background: the code form comes at
+ * once, and a mail that failed shows only in the admin's error log (owner,
+ * 2026-11-25, 101b, #401).
+ */
+function mailLoginCode(
+  d: AppDeps,
+  user: User,
+  code: string,
+  requestId: string,
+): void {
+  const send = async (): Promise<void> =>
+    d.mailer!({
+      to: user.email!,
+      subject: 'Dein Anmeldecode für Nova Imperium',
+      text: `Dein Anmeldecode lautet ${code}. Er gilt einmal und für zehn Minuten.`,
+    });
+  void send().catch((error: unknown) => {
+    d.log?.('Login code mail failed');
+    noteServerError(
+      d.ctx,
+      {
+        action: 'mail',
+        error,
+        player: user.id,
+        requestId,
+        version: d.news?.version,
+      },
+      d.log,
+    );
+  });
+}
+
+/** „Code erneut senden“ (101b, #401): a new code by mail, in the background. */
+function resendReply(d: AppDeps, challenge: unknown, requestId: string): Reply {
+  if (!d.cfg.emailLoginCodes || !d.mailer)
+    throw new GameError('Anmeldecodes sind nicht aktiviert.');
+  const next = security.resendLoginCode(d.ctx, challenge);
+  if (next) mailLoginCode(d, next.user, next.code, requestId);
+  return { json: { ok: true } };
+}
+
+function beginLogin(d: AppDeps, u: User, requestId: string): Reply {
   if (!d.mailer)
     throw new GameError('Anmeldecodes sind momentan nicht verfügbar.');
   if (!u.email)
@@ -133,15 +175,7 @@ async function beginLogin(d: AppDeps, u: User): Promise<Reply> {
       'Für dieses Konto ist keine E-Mail-Adresse hinterlegt.',
     );
   const { challenge, code } = security.issueLoginCode(d.ctx, u.id);
-  try {
-    await d.mailer({
-      to: u.email,
-      subject: 'Dein Anmeldecode für Nova Imperium',
-      text: `Dein Anmeldecode lautet ${code}. Er gilt einmal und für zehn Minuten.`,
-    });
-  } catch {
-    throw new GameError('Der Anmeldecode konnte nicht gesendet werden.');
-  }
+  mailLoginCode(d, u, code, requestId);
   return { json: { challenge } };
 }
 
@@ -339,7 +373,7 @@ function loginRoutes(
         () => auth.login(ctx, body.name, body.password),
       );
       return cfg.emailLoginCodes
-        ? beginLogin(d, user)
+        ? beginLogin(d, user, requestId)
         : enter(user, body.remember !== false);
     },
     'POST /api/login/code': ({ req, body, requestId }) => {
@@ -347,6 +381,10 @@ function loginRoutes(
       if (!cfg.emailLoginCodes)
         throw new GameError('Anmeldecodes sind nicht aktiviert.');
       return loginCodeReply(ctx, body, requestId, enter);
+    },
+    'POST /api/login/resend': ({ req, body, requestId }) => {
+      guard(req);
+      return resendReply(d, body.challenge, requestId);
     },
   };
 }

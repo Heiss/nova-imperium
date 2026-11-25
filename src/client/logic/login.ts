@@ -8,6 +8,9 @@
 import type { Ui } from '../views/common.ts';
 import type { GameState } from './types.ts';
 
+/** „Code erneut senden“ comes after 30 s, as the server allows (101b, #401). */
+export const RESEND_AFTER = 30_000;
+
 export const login: {
   challenge: string | null;
   remember: boolean;

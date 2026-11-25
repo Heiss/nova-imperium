@@ -93,6 +93,15 @@ async function submitLoginCode(ctx: ClientCtx): Promise<void> {
   }
 }
 
+/** A new code for the sign-in under way (101b, #401). */
+async function resendLoginCode(ctx: ClientCtx): Promise<void> {
+  try {
+    await ctx.api('/api/login/resend', { challenge: login.challenge });
+  } catch (e) {
+    ctx.toast((e as Error).message, e as Error);
+  }
+}
+
 async function submitForgot(ctx: ClientCtx): Promise<void> {
   try {
     await ctx.api('/api/password/forgot', { email: val('#recovery_email') });
@@ -150,6 +159,7 @@ export const clientFeature = {
       client.ui.auth === 'register' ? 'login' : 'register',
     ),
     passkeyLogin: () => loginByPasskey(ctx),
+    resendcode: () => resendLoginCode(ctx),
   }),
   forms: (ctx) => ({
     authform: () => submitAuth(ctx),

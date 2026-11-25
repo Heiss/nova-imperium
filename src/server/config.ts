@@ -131,9 +131,10 @@ class Collector {
     return +raw;
   }
 
-  flag(name: string): boolean {
+  flag(name: string, def = false): boolean {
     const raw = this.text(name);
-    if (raw === '' || raw === '0') return false;
+    if (raw === '') return def;
+    if (raw === '0') return false;
     if (raw === '1') return true;
     this.errors.push(`${name}: 0 or 1, got "${raw}".`);
     return false;
@@ -210,7 +211,8 @@ export function loadConfig(
     inviteDays: c.number(NUMBERS.inviteDays),
     rateLimitAttempts: c.number(NUMBERS.rateLimitAttempts),
     rateLimitMinutes: c.number(NUMBERS.rateLimitMinutes),
-    emailLoginCodes: c.flag('NOVA_EMAIL_LOGIN_CODES'),
+    // On unless set to 0 (owner, 2026-11-25, 94b, #401).
+    emailLoginCodes: c.flag('NOVA_EMAIL_LOGIN_CODES', true),
     webPush: c.flag('NOVA_WEB_PUSH'),
     smtp: smtp(c),
   };

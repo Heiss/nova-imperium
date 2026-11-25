@@ -6,8 +6,21 @@
   // `resetform`, `codeform`), which reads the fields by their ids.
   import type { Snippet } from 'svelte';
   import type { AuthPage } from '../logic/auth.ts';
+  import { RESEND_AFTER } from '../logic/login.ts';
 
   let { page }: { page: AuthPage } = $props();
+
+  // „Code erneut senden“ comes 30 s after a code was sent, and again 30 s
+  // after each new one (owner, 2026-11-25, 101b, #401).
+  let canResend = $state(false);
+  let sent = $state(0);
+  $effect(() => {
+    if (page.kind !== 'code') return;
+    void sent;
+    canResend = false;
+    const timer = setTimeout(() => (canResend = true), RESEND_AFTER);
+    return () => clearTimeout(timer);
+  });
 </script>
 
 {#snippet step(title: string, form: string, button: string, input: Snippet)}
@@ -44,6 +57,7 @@
 {/snippet}
 
 {#snippet codeInput()}
+  <p>Wir haben dir einen Code per E-Mail geschickt.</p>
   <label for="login_code">Sechsstelliger Code aus deiner E-Mail</label>
   <input
     id="login_code"
@@ -52,6 +66,16 @@
     pattern="[0-9]{'{6}'}"
     required
   />
+  {#if canResend}
+    <p>
+      <button
+        class="small"
+        type="button"
+        data-act="resendcode"
+        onclick={() => sent++}>Code erneut senden</button
+      >
+    </p>
+  {/if}
 {/snippet}
 
 {#if page.kind === 'forgot'}

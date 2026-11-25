@@ -14,6 +14,8 @@ import type { RoundReset } from './db/round-reset.ts';
 const RESET_LIFE = 30 * 60_000;
 const CODE_LIFE = 10 * 60_000;
 const CODE_ATTEMPTS = 5;
+/** „Code erneut senden“ comes after 30 s (owner, 2026-11-25, 101b, #401). */
+const RESEND_AFTER = 30_000;
 const RESET_COOLDOWN = 60_000;
 
 interface AccountToken {
@@ -117,12 +119,15 @@ export function resetPassword(
   });
 }
 
+/** Six digits, the code of a sign-in mail. */
+const newCode = (): string => String(randomInt(1_000_000)).padStart(6, '0');
+
 export function issueLoginCode(
   ctx: Ctx,
   uid: string,
 ): { challenge: string; code: string } {
   const challenge = newToken();
-  const code = String(randomInt(1_000_000)).padStart(6, '0');
+  const code = newCode();
   // The high-entropy challenge is sent to the client but not stored in the DB.
   saveToken(
     ctx,
@@ -155,6 +160,39 @@ function verifyCode(ctx: Ctx, challenge: string, code: string): User | null {
   }
   ctx.db.prepare('DELETE FROM account_tokens WHERE token_hash = ?').run(hash);
   return ctx.players.get(record.user_id);
+}
+
+/**
+ * A new code for a sign-in under way, on the same challenge (101b, #401): the
+ * old code is void, the ten minutes start again, the failed attempts stay. A
+ * code is sent once in 30 s; an earlier ask sends nothing (null), as the
+ * button comes only after 30 s. An unknown, expired or used-up challenge is
+ * refused like a wrong code.
+ */
+export function resendLoginCode(
+  ctx: Ctx,
+  challenge: unknown,
+): { user: User; code: string } | null {
+  const c = String(challenge ?? '');
+  const now = ctx.now();
+  const record = ctx.db
+    .prepare(
+      "SELECT * FROM account_tokens WHERE token_hash = ? AND purpose = 'login' AND expires > ? AND attempts < ?",
+    )
+    .get(hashToken(c), now, CODE_ATTEMPTS) as
+    (AccountToken & { expires: number }) | undefined;
+  const user = record && ctx.players.get(record.user_id);
+  if (!record || !user)
+    return fail('Der Anmeldecode ist ungültig oder abgelaufen.');
+  // The code was sent when its ten minutes began.
+  if (now < record.expires - CODE_LIFE + RESEND_AFTER) return null;
+  const code = newCode();
+  ctx.db
+    .prepare(
+      'UPDATE account_tokens SET code_hash = ?, expires = ? WHERE token_hash = ?',
+    )
+    .run(hashToken(c + code), now + CODE_LIFE, record.token_hash);
+  return { user, code };
 }
 
 export function completeLogin(
