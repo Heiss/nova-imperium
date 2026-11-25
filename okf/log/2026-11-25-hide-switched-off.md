@@ -1,0 +1,8 @@
+---
+type: log-entry
+date: 2026-11-25T19:00
+kind: Feature
+issues: [404, 373, 237, 375]
+---
+
+A feature switched off for the round is hidden, not shown as closed (#404, owner, 2026-11-25, 112a to 114a). The marketplace gets its rule `offered: marketOpen`: with „Marktplatz aktiv“ on „Nein“ there is no „Marktplatz“ in the menu or under „Mehr“, `?view=market` opens the overview, an open view falls back to the overview at the next state, and the page „Marktplatz“ of the Lexicanum is not listed, found or linked and its address opens the start page of the Lexicanum, for every player and the admin; the switch stays in „Universum“, and the server still refuses a trade with „Der Marktplatz ist in dieser Runde geschlossen.“. The pages „Gilden“ and „Tagesbelohnung und Erfolge“ of the Lexicanum are hidden by the rule of their view the same way (`PageDef.offered`, the very function of the view, #373). Every yes or no of the round settings was swept: `achievements`, `daily`, `guilds` and `marketOn` turn off views, `colonyResearch` turns off the research Kolonialverwaltung, which the research list already leaves out (#237; catalog entries are #375), and `expeditionSpeed` is a rule, no feature. The guard `src/client/views/round-switches.test.ts` reads the switches from the registry and fails for a switch without its mapping, a mapped view without a rule, or a Lexicanum page without the rule of its view. With every switch on, everything stays as before. The answer „Wie bekomme ich mehr Rohstoffe?“ drops its row „Tauschen“ while the marketplace is off and its row „Belohnungen“ while both rewards are off (122a); „Dieses Universum“ keeps every row (123a); the catalog entries Handelsposten and Kolonialverwaltung are hidden with #375 (121a, 124a).

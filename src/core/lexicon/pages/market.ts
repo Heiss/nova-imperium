@@ -142,6 +142,8 @@ const feeSection = (s: LexState): PageSection => {
 
 export const page: PageDef = {
   id: 'rule-market',
+  // Hidden in a round with the marketplace off, as its view (#404).
+  offered: marketOpen,
   kind: 'rule',
   title: 'Marktplatz',
   line: 'Wie du Rohstoffe tauschst: Verhältnisse, Preise, Gebühr und Tageslimit dieser Runde.',

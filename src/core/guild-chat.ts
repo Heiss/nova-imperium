@@ -29,6 +29,12 @@ export const roundSettings = [
   },
 ] as const satisfies readonly RoundSetting[];
 
+/**
+ * Whether the round has guilds: the one rule of the view „Gilden“ (#373) and
+ * of its page in the Lexicanum (#404).
+ */
+export const guildsOn = (round: { guilds: boolean }): boolean => round.guilds;
+
 /** Longest message in characters, plain text (issue #169, kept by the owner). */
 export const MAX_CHAT_TEXT = 1000;
 /** Messages each guild keeps, events included (owner, 2026-11-14, D6). */

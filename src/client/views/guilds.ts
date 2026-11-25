@@ -1,4 +1,5 @@
 import { type ComponentProps, mount, unmount } from 'svelte';
+import { guildsOn } from '../../core/guild-chat.ts';
 import {
   adminChatPage,
   dissolvePage,
@@ -51,7 +52,7 @@ export const clientViews = [
     address: ['guild'],
     fresh: true,
     // No guild view in a round with guilds off (#191).
-    offered: (round) => round.guilds,
+    offered: guildsOn,
     menu: { order: 120, label: 'Gilden' },
   },
 ] satisfies readonly ClientView[];

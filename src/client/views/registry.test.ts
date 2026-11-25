@@ -369,7 +369,7 @@ describe('whether a view is offered (#373)', () => {
       'src/client/views/index.ts',
     ])
       expect(readFileSync(file, 'utf8'), file).not.toMatch(
-        /'(admin|guilds|achievements)'/,
+        /'(admin|guilds|achievements|market)'/,
       );
     const mount = readFileSync('src/client/views/mount.ts', 'utf8');
     // The mount asks the one rule, after checking the view is its own.

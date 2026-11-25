@@ -1,3 +1,4 @@
+import { marketOpen } from '../../core/market.ts';
 import { marketPage } from '../logic/market-page.ts';
 import Market from './Market.svelte';
 import type { ClientView } from './contract.ts';
@@ -16,6 +17,9 @@ export const clientViews = [
     key: 'market',
     mount: mountMarket,
     fresh: true,
+    // Only in a round with the marketplace on: switched off, it is hidden,
+    // not shown as closed (#404; owner, 2026-11-25, 112a).
+    offered: marketOpen,
     menu: { order: 40, label: 'Marktplatz' },
   },
 ] satisfies readonly ClientView[];
