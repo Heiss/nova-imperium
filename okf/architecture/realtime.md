@@ -112,24 +112,31 @@ generated: { by: claude-code/web, at: 2026-11-25T09:30:00Z }
   valid session (401 otherwise, so nothing stays open), there is a maximum
   of streams per account and in total, a heartbeat, and the server closes
   dead connections (owner, 2026-11-25):
-  * The total is an environment variable. It must allow at least 2 streams
-    per account; when it does not, the admin panel says so at the
-    invitations, that the server holds more accounts than it carries, with
-    the request to raise the number. **[V]** Name `NOVA_EVENT_STREAMS`.
+  * At most 5 streams per account (O27).
+  * The total is an environment variable, 100 by default. It must allow at
+    least 2 streams per account; when it does not, the admin panel says so
+    at the invitations, that the server holds more accounts than it
+    carries, with the request to raise the number. **[V]** Name
+    `NOVA_EVENT_STREAMS`; it counts the accounts and the open invitations.
   * The heartbeat is an environment variable, 30 s by default. **[V]** Name
     `NOVA_EVENT_HEARTBEAT`. It must stay below the shortest idle timeout of
     the proxies in front; the operator texts say so.
   * After an error the browser connects again at the interval the server
-    sends in `retry:`, not at the browser's own.
+    sends in `retry:`, not at the browser's own. The interval is an
+    environment variable, by default the heartbeat. **[V]** Name
+    `NOVA_EVENT_RETRY`.
   * The page shows when it has no connection. **[V]** Two states: the
     events are cut but requests still pass (the slow poll takes over), and
-    the server cannot be reached at all.
+    the server cannot be reached at all. While the server cannot be
+    reached, clicks are not sent and not kept for later: the buttons wait
+    and the drafts of the forms stay (O27). Sent later, a command would act
+    on a state the player no longer sees, and without a key per action a
+    request whose answer was lost would run twice.
   * Several tabs (O28): a hidden tab closes its stream and opens it again
     when shown; above the limit of an account the oldest stream is closed,
     not the new one refused.
-  * Still open in O27: the limit per account, the default of the total,
-    the limits per address, the interval of `retry:`, and clicks while
-    there is no connection.
+  * The operator texts give limits per address measured in the E2E run
+    (requests per page load and per minute of play) times a margin (O27).
 * **[E]** Volumetric attacks are the operator's concern (protection in
   front of the proxy); the game and its proxies do not try to absorb them.
 * **[E]** The operator documentation in `docs/operations.md` comes with the
@@ -144,8 +151,13 @@ generated: { by: claude-code/web, at: 2026-11-25T09:30:00Z }
   is rejected: nothing is gained over the standards. The research of
   2026-11-24 also found version 0.5.27, a Bun runtime and the license
   SSPL-1.0.
-* Whether this goes to `main` or onto the v3 branch ([v3](/ops/v3.md)) is
-  O30.
+* **[E]** Where each piece goes ([v3](/ops/v3.md), O30, owner,
+  2026-11-25): the cached points and highscore to `main`, as a refactor;
+  the events, parts, ETags and updates in place to the v3 branch with a
+  switch of the admin (off: the poll only); the expected price of the
+  marketplace and the intent of the „alles“ buttons to `main`, since they
+  fix silent errors; the forms with `basedOn` and „Übernehmen“ (O31) and
+  the [Guild log](/features/guild-log.md) to v3.
 
 # Not pursued [V]
 
