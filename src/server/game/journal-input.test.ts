@@ -37,6 +37,7 @@ const KINDS: Record<string, Kinds> = {
       'to',
       'ships',
       'cargo',
+      'cargoAll',
       'pct',
       'hold',
       'stay',

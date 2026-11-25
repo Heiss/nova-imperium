@@ -15,6 +15,8 @@ vi.mock('../logic/game.ts', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../logic/game.ts')>()),
   cargoMax: vi.fn(() => ({ m: 1, c: 2, d: 3 })),
   cargoOne: vi.fn(() => 7),
+  // The preview of the fields of an intent (#407): here what the buttons set.
+  cargoPreview: vi.fn((_p: unknown, f: { cargo: unknown }) => f.cargo),
   fleetPreview: vi.fn(() => null),
 }));
 vi.mock('../../core/settle.ts', () => ({ settle: vi.fn(() => ({ id: 'p' })) }));
@@ -136,6 +138,8 @@ describe('the cargo', () => {
     const ctx = fakeCtx();
     acts(ctx).cmax!({});
     expect(fleetForm.cargo).toEqual({ m: '1', c: '2', d: '3' });
+    // The server computes them again at the launch (#407).
+    expect(fleetForm.cargoAll).toBe('even');
     expect(ctx.setInput).not.toHaveBeenCalled();
     expect(calc).toHaveBeenCalledTimes(1);
   });
@@ -144,7 +148,22 @@ describe('the cargo', () => {
     const ctx = fakeCtx();
     acts(ctx).cone!({ k: 'c' });
     expect(fleetForm.cargo).toEqual({ m: '10', c: '7', d: '3' });
+    expect(fleetForm.cargoAll).toEqual(['c']);
     expect(calc).toHaveBeenCalledTimes(1);
+  });
+
+  it('sends the intent of the buttons, and shows what the server will load (#407)', async () => {
+    forgetForms();
+    fleetForm.ships = { fighter: '1' };
+    const ctx = fakeCtx();
+    acts(ctx).cone!({ k: 'd' });
+    acts(ctx).cone!({ k: 'm' });
+    expect(fleetForm.cargoAll).toEqual(['d', 'm']);
+    await acts(ctx).send!({});
+    expect(ctx.actHere).toHaveBeenCalledWith(
+      'send',
+      expect.objectContaining({ cargoAll: ['d', 'm'] }),
+    );
   });
 });
 

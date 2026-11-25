@@ -8,6 +8,7 @@ import { isShip } from '../../core/catalog.ts';
 import {
   distance,
   fleetSlots,
+  capacity,
   fleetSpeed,
   flightMs,
   fuelFor,
@@ -60,6 +61,11 @@ import { isProtected, pointsMap } from './points.ts';
 import { roundRules } from './round.ts';
 import { inVacation } from './vacation.ts';
 import type { ServerFeature } from './feature.ts';
+import {
+  cargoIntentOf,
+  loadableStock,
+  resolveCargo,
+} from '../../core/cargo-fill.ts';
 
 /**
  * The picked ships, each at most as many as stand on the place; what is no
@@ -323,6 +329,19 @@ function chosenStay(
 }
 
 /** The fuel of the launch: the flight, and the holding time of a Halten (#55, D2). */
+/**
+ * The cargo of the launch with the intent of the „alles“ buttons (#407): the
+ * rule of the browser (core/cargo-fill.ts) on what the planet can load now,
+ * whole units and Promethium after the fuel; without a cargo of the mission
+ * nothing.
+ */
+function withIntent(p: Planet, x: Plan, fuel: number, raw: unknown): Resources {
+  const intent = cargoIntentOf(raw);
+  if (!intent || !missionRules(x.mission)!.cargo) return x.cargo;
+  const stock = loadableStock(p.res, fuel);
+  return resolveCargo(stock, capacity(x.ships), x.cargo, intent);
+}
+
 const launchFuel = (x: Plan, holds: boolean, dist: number): number =>
   fuelFor(x.ships, dist, x.pct) + (holds ? holdFuel(x.ships, x.hours) : 0);
 
@@ -361,7 +380,7 @@ export const send: Handler<'send'> = (ctx, u, d, event) => {
   const t = ctx.now();
   const p = mine(ctx, u, d.planet);
   const x = plan(ctx, u, p, d);
-  const { mission, ships, dest, to, targetOwner, cargo, pct, stay } = x;
+  const { mission, ships, dest, to, targetOwner, pct, stay } = x;
   const holds = missionRules(mission)!.holds;
   const dist = distance(p, dest);
   const ms = flightMs(
@@ -379,6 +398,9 @@ export const send: Handler<'send'> = (ctx, u, d, event) => {
     toC: dest,
     flight: ms,
   });
+  // The „alles“ buttons ask for amounts the server computes on its stock of
+  // now, after the fuel (#407); a field typed by hand stays its number.
+  const cargo = withIntent(p, x, fuel, d.cargoAll);
   refuse(cargoError(ships, cargo, p.res.d, fuel));
   takeOff(p, ships, cargo, fuel);
   ctx.planets.save(p);

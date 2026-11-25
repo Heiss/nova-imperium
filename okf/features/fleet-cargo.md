@@ -41,13 +41,33 @@ Psikristall, then Promethium without the fuel, up to the capacity
 * **[V]** The buttons under the fields are small buttons (`button.small`),
   so they are reached with the keyboard and carry their accessible names;
   the even one stays a link like the other links of the form.
-* **[E]** No change on the server: the send keeps its checks.
+* **[E]** No change on the server: the send keeps its checks. Replaced by
+  #407 (owner, 2026-11-25, O31): the buttons send the intent, and the server
+  computes the amounts from its state at the launch.
+* **[V]** (#407) One rule in `src/core/cargo-fill.ts` for the browser and
+  the server: `fillEvenly`, `fillOne` and `resolveCargo`. The action `send`
+  carries `cargoAll`: `even` for „alles (gleichmäßig)“, or the resources
+  whose „alles“ was pressed in the order of the clicks; `cargo` keeps the
+  numbers as the preview. The server computes those fields on what the
+  planet can load at the launch (whole units, Promethium after the fuel of
+  the launch) and the capacity of the ships, the typed fields first, then
+  the fields of the intent in their order; a mission without cargo loads
+  nothing; an intent it cannot read is ignored. A field typed by hand is a
+  number again; typing after the even fill makes all three numbers (the
+  player changed what it showed). An „alles“ after the even fill keeps the
+  other two as numbers. The preview follows the form: when ships, target,
+  speed or stock change, the fields of the intent are computed again.
+* **[E]** (#407, checked first) Before #407 a typed amount above the stock
+  was cut silently for Adamant and Psikristall and refused for Promethium
+  („Nicht genug Promethium für Treibstoff und Ladung.“); typed numbers keep
+  this.
 
 # Code
 
-* `src/client/logic/game.ts`: `cargoMax` (even, through `fillEvenly` and
-  `loadable`) and `cargoOne`, pure functions with unit tests in
-  `game.test.ts`.
+* `src/core/cargo-fill.ts` (#407): the rule, with unit tests in
+  `cargo-fill.test.ts`; `src/client/logic/game.ts`: `cargoMax`, `cargoOne`
+  and `cargoPreview` on the stock and fuel of the form;
+  `src/server/game/fleet-actions.ts`: `withIntent` at the launch.
 * `src/client/views/fleet.ts` renders the fields with their buttons
   (`data-act="cone"`, `data-k`), `src/client/fleet-acts.ts` fills the field
   and updates the preview (out of `main.ts`, ratchet #242); the class `.cargo` in `style.css` puts each button

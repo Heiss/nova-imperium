@@ -4,6 +4,7 @@ import { dt } from './format.ts';
 import {
   buildState,
   cargoMax,
+  cargoPreview,
   arrivalLine,
   cargoOne,
   fleetEnd,
@@ -388,6 +389,21 @@ describe('fleet form', () => {
         'd',
       ),
     ).toBe(9997);
+  });
+  // The preview of the form (#407): the fields of the „alles“ buttons by the
+  // rule of the server, the others as typed.
+  it('previews the cargo the server loads for the intent of the form', () => {
+    const stock = rich(1e6, 1e6, 1e6 + 3);
+    const typed = { ...form, cargo: { m: 1000, c: 2000, d: 0 } };
+    expect(cargoPreview(stock, typed)).toEqual({ m: 1000, c: 2000, d: 0 });
+    expect(cargoPreview(stock, { ...typed, cargoAll: 'even' })).toEqual(
+      cargoMax(stock, typed),
+    );
+    expect(cargoPreview(stock, { ...typed, cargoAll: ['d'] })).toEqual({
+      m: 1000,
+      c: 2000,
+      d: 7000,
+    });
   });
   it('loads nothing when the other fields take the holds or no ship flies', () => {
     const over = { ...form, cargo: { m: 0, c: 20000, d: 0 } };
