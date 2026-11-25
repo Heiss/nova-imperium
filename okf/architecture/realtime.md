@@ -36,18 +36,32 @@ generated: { by: claude-code/web, at: 2026-11-25T09:30:00Z }
   the points and highscore categories of every player on every call. The
   bytes are harmless; the time of the server is the cost.
 * **[E]** First, and on its own: the points and highscore categories of
-  all players are computed in one pass, at most every 10 s, and every call
-  in between takes the stored result (owner, 2026-11-25). A cache that
-  only a write empties is not enough: a building, a research or a unit of
-  the shipyard is finished when a planet is read (`settle`), so points
-  change with time and without a write. The display is at most 10 s old,
-  near the live statistics of the classic game: owiki.de, „Punkte“, has
-  them since version 0.78c, and up to 0.78b computed three times a day.
-  **[V]** A check of an action that needs points (noob protection) keeps
-  computing them exactly, for the two players it concerns only.
+  all players are computed in one pass, a number of times a day that the
+  admin sets in the admin panel, and every call in between takes the
+  stored result (owner, 2026-11-25). Default: 3 times a day, as owiki.de,
+  „Punkte“, has it up to version 0.78b (00:05, 08:05 and 16:05 server
+  time; live statistics only since 0.78c). 0 means live. A cache that only
+  a write empties is not enough: a building, a research or a unit of the
+  shipyard is finished when a planet is read (`settle`), so points change
+  with time and without a write.
+  * **[V]** The setting is an entry of the registry of the round settings
+    (`ROUND_SETTINGS`, `live: true`, so also a row of the universe
+    settings): „Highscore-Aktualisierungen pro Tag (0 = Echtzeit)“, 0 to
+    24. N times a day means every 24/N hours, the first at 00:05 server
+    time, as in 0.78b.
+  * **[V]** „Live“ (0) means one pass at most every 10 s, not one per call,
+    as the requirement of weak hardware asks.
+  * **[V]** The pass runs in the clock of the server at its time, so the
+    points are those of that moment, as in 0.78b („was zum Zeitpunkt der
+    Aktualisierung vorhanden ist“). The highscore shows „Stand: {Uhrzeit}“.
+  * **[V]** A check of an action that needs points (noob protection) keeps
+    computing them exactly, for the two players it concerns only; the
+    expeditions (#93) take the stored points. **[U]** Whether 0.78b
+    protected by the stored points or by the current ones was not checked.
   * Measured with the setup above (20 players): `pointsMap` and
-    `categoryScores` took about 15 and 18.6 ms, 34 ms together, so a pass
-    every 10 s costs about 0.3 % of one core, whatever the number of tabs.
+    `categoryScores` took about 15 and 18.6 ms, 34 ms together; three
+    passes a day cost nothing worth naming, one every 10 s about 0.3 % of
+    one core.
   * Built in #405, target `main`.
 * **[E]** The parts that are the same for every player are built once and
   sent to all (owner, 2026-11-25): `galaxy` (`state.ts`: its builder ignores
@@ -56,7 +70,7 @@ generated: { by: claude-code/web, at: 2026-11-25T09:30:00Z }
   and served as these bytes, or as 304. Caddy leaves a response that
   already has `Content-Encoding` as it is (`encode.go`, v2.11.9).
   **[V]** `galaxy` also changes with time (the activity markers of #229),
-  so it follows the same bound of 10 s. Built with the parts in #408, on
+  so its version moves at most every 10 s. Built with the parts in #408, on
   the v3 branch.
 * **[E]** The problems to solve, in this order: the load of the full state
   every 4 s per tab, the redraw of the client, and the delay of up to 4 s
