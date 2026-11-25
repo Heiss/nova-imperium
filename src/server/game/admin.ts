@@ -74,6 +74,7 @@ function newRound(ctx: Ctx, rules: RoundRules): void {
     // (#221): a planet id is its place, so an old choice must not come back.
     x.mainPlanet = null;
     x.mainSwitched = null;
+    x.mainLockEnd = null;
     // A new round ends every vacation with a notice (#223, D3).
     const away = x.vacation !== null;
     x.vacation = null;

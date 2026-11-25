@@ -69,7 +69,7 @@ function page(
   };
   const v = {
     s: { me: { id: me }, guilds: own, admin: over.admin ? {} : null },
-    ui: { guild: over.shown === undefined ? 'g1' : over.shown },
+    ui: { params: { guild: over.shown === undefined ? 'g1' : over.shown } },
   } as unknown as V;
   return guildsPage(v);
 }
@@ -137,7 +137,7 @@ describe('the directory', () => {
     expect(page('u_ada', [], {}, { shown: 'nowhere' }).kind).toBe('directory');
     const none = guildsPage({
       s: { me: { id: 'u_a' }, guilds: null },
-      ui: { guild: 'g1' },
+      ui: { params: { guild: 'g1' } },
     } as unknown as V);
     expect(none).toEqual({
       kind: 'directory',

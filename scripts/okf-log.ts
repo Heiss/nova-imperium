@@ -151,7 +151,9 @@ export function parseEntry(name: string, content: string): LogEntry {
   const when = entryDate(name, nameDate, fields.get('date'));
   const kind = checkKeys(name, fields);
   const issues = issueList(name, fields.get('issues'));
-  const text = m.groups.body!.trim().replace(/\s*\n\s*/g, ' ');
+  // Each run of white space with a line break becomes one space. The match
+  // starts only where a run starts, so it stays linear (#367).
+  const text = m.groups.body!.trim().replace(/(?<!\s)\s*\n\s*/g, ' ');
   if (!text) throw new Error(`${name}: the text is empty`);
   if (issues.join() !== textIssues(text).join())
     throw new Error(

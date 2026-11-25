@@ -16,6 +16,7 @@ import {
   mainPlanetOf,
   mainPlanetView,
 } from './main-planet.ts';
+import { universe } from './context.ts';
 import { roundRules } from './round.ts';
 import { stateFor } from './state.ts';
 
@@ -49,6 +50,53 @@ type Shown = {
 };
 const shown = (ctx: TestCtx, selected?: unknown) =>
   stateFor(ctx, anna(ctx), selected) as unknown as Shown;
+
+describe('the lock set during the round (#366, owner, 2026-11-22)', () => {
+  /** The admin sets the lock in the universe settings of the running round. */
+  const setLock = (ctx: TestCtx, days: number) =>
+    runAction(ctx, 'u_Anna', {
+      type: 'settings',
+      settings: { ...universe(ctx), roundMainLock: days },
+    });
+
+  it('keeps the end of a running lock when the setting changes', () => {
+    const ctx = world();
+    choose(ctx, 'p2_3_7');
+    const end = START + 1 + 7 * DAY_MS;
+    const before = universe(ctx);
+    setLock(ctx, 1);
+    expect(roundRules(ctx).mainLock).toBe(1);
+    // The audit of a change keeps the universe before and after it
+    // (src/server/http/app.ts): the lock is part of it, old and new.
+    expect(before).toMatchObject({ roundMainLock: 7 });
+    expect(universe(ctx)).toMatchObject({ roundMainLock: 1 });
+    expect(anna(ctx).mainLockEnd).toBe(end);
+    expect(shown(ctx).mainLock).toBe(end);
+    ctx.clock.t = START + 2 * DAY_MS;
+    expect(() => choose(ctx, 'p1_1_5')).toThrow(
+      'Der Hauptplanet ist gesperrt.',
+    );
+    setLock(ctx, 30);
+    expect(shown(ctx).mainLock).toBe(end);
+  });
+
+  it('leaves a lock that is over over, whatever the setting becomes', () => {
+    const ctx = world();
+    choose(ctx, 'p2_3_7');
+    ctx.clock.t = START + 8 * DAY_MS;
+    setLock(ctx, 30);
+    expect(shown(ctx).mainLock).toBeNull();
+    expect(choose(ctx, 'p1_1_5')).toBe('Heim ist jetzt dein Hauptplanet.');
+  });
+
+  it('gives a switch after the change the days of the round then', () => {
+    const ctx = world();
+    setLock(ctx, 2);
+    choose(ctx, 'p2_3_7');
+    expect(anna(ctx).mainLockEnd).toBe(START + 1 + 2 * DAY_MS);
+    expect(shown(ctx).mainLock).toBe(START + 1 + 2 * DAY_MS);
+  });
+});
 
 describe('choosing the main planet', () => {
   it('is the first planet without a choice, unlocked', () => {
@@ -114,6 +162,9 @@ describe('choosing the main planet', () => {
     expect(() => choose(ctx, undefined)).toThrow(MAIN_ERROR.unknown);
     expect(() => choose(ctx, 'p1_1_5')).toThrow(MAIN_ERROR.same);
     expect(anna(ctx)).toMatchObject({ mainPlanet: null, mainSwitched: null });
+    // A player without any planet has no main planet to compare with.
+    addUser(ctx, 'Cleo');
+    expect(() => choose(ctx, 'p1_1_5', 'u_Cleo')).toThrow(MAIN_ERROR.unknown);
     expect(MAIN_ERROR).toEqual({
       unknown: 'Das ist keiner deiner Planeten.',
       moon: 'Ein Mond kann nicht Hauptplanet sein.',

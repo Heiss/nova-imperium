@@ -1,0 +1,95 @@
+name: Next image
+
+# The moving image tag "next" always holds the newest state of main (owner,
+# 2026-11-23, #387): after every green CI push run on main it is built for
+# linux/amd64 and linux/arm64. VERSION holds the short commit only, and the
+# image carries the OCI label org.opencontainers.image.revision with the
+# full commit; the game shows no version for it (src/server/news.ts accepts
+# CalVer only). It replaces the release candidates (rc-image.yml, the
+# numbers <version>-rc.<N>) of 2026-11-12. A test server runs it with
+# NOVA_VERSION=next; the releases are <version>, latest and stable
+# (release.yml).
+on:
+  # Safe here: runs only after a successful CI push run on main of this
+  # repository, checks out that commit of main, and may only write packages.
+  workflow_run: # zizmor: ignore[dangerous-triggers]
+    workflows: [CI]
+    branches: [main]
+    types: [completed]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: next-image
+  cancel-in-progress: false
+
+jobs:
+  image:
+    name: Image next
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write # GHCR
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+
+      - name: Version and image name
+        id: v
+        env:
+          SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          owner="${GITHUB_REPOSITORY_OWNER,,}"
+          echo "image=ghcr.io/${owner}/nova-imperium" >> "$GITHUB_OUTPUT"
+          short=$(git rev-parse --short "$SHA")
+          # The short commit only: the game shows no version for it.
+          printf '%s\n' "$short" > VERSION
+          echo "Image next of $short"
+
+      # A late run of an older push does not move "next" back: only the
+      # current head of main gets it. Runs do not overlap (concurrency).
+      - name: Is this still the head of main?
+        id: head
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          current=$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)
+          if [ "$current" = "$SHA" ]; then
+            echo "next=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "next=false" >> "$GITHUB_OUTPUT"
+            echo "main moved on to $current: \"next\" stays where it is."
+          fi
+
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+        if: steps.head.outputs.next == 'true'
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+        if: steps.head.outputs.next == 'true'
+
+      - name: Log in to GHCR
+        if: steps.head.outputs.next == 'true'
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push next
+        if: steps.head.outputs.next == 'true'
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          target: app
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.v.outputs.image }}:next
+          labels: org.opencontainers.image.revision=${{ github.event.workflow_run.head_sha }}

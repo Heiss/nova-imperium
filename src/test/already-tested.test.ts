@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   type Api,
   decide,
+  isMetadata,
   greenRuns,
   type Job,
   JOBS,
@@ -36,6 +37,7 @@ const ciRun = (fields: Partial<WorkflowRun> = {}): WorkflowRun => ({
   status: 'completed',
   conclusion: 'success',
   head_sha: HEAD,
+  head_branch: 'main',
   repository: { full_name: REPO },
   head_repository: { full_name: REPO },
   ...fields,
@@ -78,10 +80,39 @@ interface World {
   trees?: Record<string, string>;
   /** The annotations of a job by its id; a job without an entry has none. */
   notes?: Record<number, unknown>;
+  /** The files the push changed against its parent (#387), with the old name of a moved one. */
+  changed?: (string | { filename: string; previous_filename: string })[];
+  /** The push runs of the parent. */
+  parentRuns?: unknown;
 }
+
+/** The parent of the pushed commit (#387). */
+const PARENT = 'p0';
+/** The reason the parent proves nothing when the push changed code. */
+const CODE_CHANGE = `the push changes more than VERSION, CHANGELOG.md, changes/ against its parent ${PARENT}`;
 
 /** The id of „Detect changes“ in the recorded jobs. */
 const DETECT_ID = 'Detect changes'.length;
+
+/** The answers about the parent of the pushed commit (#387), or undefined. */
+function parentAnswer(
+  path: string,
+  changed: World['changed'] & object,
+  parentRuns: unknown,
+): unknown {
+  if (path === `repos/${REPO}/commits/${PUSHED}`)
+    return { parents: [{ sha: PARENT }] };
+  if (path === `repos/${REPO}/compare/${PARENT}...${PUSHED}`)
+    return {
+      files: changed.map((f) => (typeof f === 'string' ? { filename: f } : f)),
+    };
+  if (
+    path ===
+    `repos/${REPO}/actions/workflows/ci.yml/runs?event=push&head_sha=${PARENT}&per_page=100`
+  )
+    return parentRuns;
+  return undefined;
+}
 
 /** The recorded answers of the API; a path it does not know fails. */
 const api =
@@ -91,8 +122,12 @@ const api =
     jobs = { 100: { jobs: FULL } },
     trees = { [PUSHED]: TREE, [HEAD]: TREE },
     notes = {},
+    changed = ['src/core/x.ts'],
+    parentRuns = { workflow_runs: [] },
   }: World = {}): Api =>
   (path) => {
+    const fromParent = parentAnswer(path, changed, parentRuns);
+    if (fromParent !== undefined) return fromParent;
     if (path === `repos/${REPO}/commits/${PUSHED}/pulls?per_page=100`)
       return pulls;
     if (
@@ -258,6 +293,209 @@ describe('a push that merged one pull request (#342)', () => {
   });
 });
 
+describe('a push that changes only the metadata files (#387, owner, 2026-11-24)', () => {
+  /** The pull request of a release: its green run ran no expensive job. */
+  const release = (): World => ({
+    jobs: {
+      100: {
+        jobs: FULL.map((j) =>
+          Object.values(JOBS).includes(j.name as never) ||
+          j.name.startsWith('Mutation')
+            ? { ...j, conclusion: 'skipped' }
+            : j,
+        ),
+      },
+    },
+    changed: ['VERSION', 'CHANGELOG.md', 'changes/a.md'],
+    parentRuns: {
+      workflow_runs: [
+        ciRun({ id: 200, event: 'push', head_sha: PARENT }),
+        ciRun({
+          id: 150,
+          event: 'push',
+          head_sha: PARENT,
+          conclusion: 'failure',
+        }),
+      ],
+    },
+  });
+  /** The jobs of the green push run of the parent: two proven there, the rest green. */
+  const parentJobs = FULL.map((j) =>
+    j.name === JOBS.e2e || j.name === JOBS.compose
+      ? { ...j, conclusion: 'skipped' }
+      : j,
+  );
+
+  it('takes over every job the green push run of its parent succeeded in or skipped with a proof, and names it', () => {
+    const world = release();
+    world.jobs![200] = { jobs: parentJobs };
+    const { proofs } = decide(PUSHED, 'main', REPO, api(world));
+    expect(Object.keys(proofs).filter((k) => proofs[k as never])).toEqual(
+      Object.keys(JOBS),
+    );
+    expect(proofs.check).toBe(
+      `CI run 200 of the parent ${PARENT}, job "${JOBS.check}" succeeded (${job(JOBS.check).html_url}); the push changes only VERSION, CHANGELOG.md, changes/`,
+    );
+    expect(proofs.e2e).toContain('was proven there');
+  });
+
+  it('runs a job that failed or was cancelled in the push run of the parent', () => {
+    const world = release();
+    world.jobs![200] = {
+      jobs: parentJobs.map((j) =>
+        j.name === JOBS.check ? { ...j, conclusion: 'failure' } : j,
+      ),
+    };
+    const { proofs, reasons } = decide(PUSHED, 'main', REPO, api(world));
+    expect(proofs.check).toBe('');
+    expect(reasons).toContain(
+      `"${JOBS.check}" did not succeed in the push run 200 of the parent`,
+    );
+  });
+
+  it('runs everything without a green push run of the parent', () => {
+    for (const runs of [
+      [],
+      [
+        ciRun({
+          id: 200,
+          event: 'push',
+          head_sha: PARENT,
+          conclusion: 'failure',
+        }),
+      ],
+      [
+        ciRun({
+          id: 200,
+          event: 'push',
+          head_sha: PARENT,
+          status: 'in_progress',
+          conclusion: null,
+        }),
+      ],
+      [ciRun({ id: 200, event: 'pull_request', head_sha: PARENT })],
+      [ciRun({ id: 200, event: 'push', head_sha: 'other' })],
+      [
+        ciRun({
+          id: 200,
+          event: 'push',
+          head_sha: PARENT,
+          repository: { full_name: 'fork/game' },
+        }),
+      ],
+      [
+        ciRun({
+          id: 200,
+          event: 'push',
+          head_sha: PARENT,
+          path: '.github/workflows/mutation.yml',
+        }),
+      ],
+    ]) {
+      const world = { ...release(), parentRuns: { workflow_runs: runs } };
+      world.jobs![200] = { jobs: parentJobs };
+      expect(proven(world)).toEqual([]);
+    }
+  });
+
+  it('runs everything when any other file changed, nothing changed, or the list of changes may be cut off', () => {
+    for (const changed of [
+      ['VERSION', 'src/server/news.ts'],
+      ['changes.md'],
+      [],
+      Array.from({ length: 300 }, (_, i) => `changes/f${i}.md`),
+    ]) {
+      const world = { ...release(), changed };
+      world.jobs![200] = { jobs: parentJobs };
+      expect(proven(world)).toEqual([]);
+    }
+  });
+
+  it('runs everything when a file moved from the code into changes/ (CodeRabbit 4679061304)', () => {
+    const world = {
+      ...release(),
+      changed: [
+        'VERSION',
+        {
+          filename: 'changes/news.ts',
+          previous_filename: 'src/server/news.ts',
+        },
+      ],
+    };
+    world.jobs![200] = { jobs: parentJobs };
+    expect(proven(world)).toEqual([]);
+    // A file moved inside the metadata files is still metadata.
+    const inside = {
+      ...release(),
+      changed: [
+        { filename: 'changes/b.md', previous_filename: 'changes/a.md' },
+      ],
+    };
+    inside.jobs![200] = { jobs: parentJobs };
+    expect(proven(inside)).toEqual(Object.keys(JOBS));
+  });
+
+  it('takes no push run of the parent on another branch (CodeRabbit 4679061297)', () => {
+    const world = {
+      ...release(),
+      parentRuns: {
+        workflow_runs: [
+          ciRun({
+            id: 200,
+            event: 'push',
+            head_sha: PARENT,
+            head_branch: 'hotfix/x',
+          }),
+        ],
+      },
+    };
+    world.jobs![200] = { jobs: parentJobs };
+    expect(proven(world)).toEqual([]);
+  });
+
+  it('keeps the proofs of the pull request when the parent cannot be looked up', () => {
+    // The pull request proves every job but the mutation jobs.
+    const world: World = {
+      jobs: {
+        100: {
+          jobs: FULL.map((j) =>
+            j.name === JOBS.mutation ? { ...j, conclusion: 'failure' } : j,
+          ),
+        },
+      },
+    };
+    const fails: Api = (path) => {
+      if (path.includes('/compare/')) throw new Error('HTTP 500');
+      return api(world)(path);
+    };
+    const { proofs, reasons } = decide(PUSHED, 'main', REPO, fails);
+    expect(
+      Object.entries(proofs)
+        .filter(([, p]) => p)
+        .map(([k]) => k),
+    ).toEqual(['check', 'e2e', 'compose', 'site']);
+    expect(reasons.at(-1)).toBe('cannot look up the parent: HTTP 500');
+  });
+
+  it('knows the metadata files and nothing else', () => {
+    for (const f of [
+      'VERSION',
+      'CHANGELOG.md',
+      'changes/a.md',
+      'changes/README.md',
+    ])
+      expect(isMetadata(f), f).toBe(true);
+    for (const f of [
+      'changes.md',
+      'docs/VERSION',
+      'CHANGELOG.md.bak',
+      'src/changes/a.ts',
+      'version',
+    ])
+      expect(isMetadata(f), f).toBe(false);
+  });
+});
+
 describe('a push that proves nothing runs everything', () => {
   const nothing = (world: World): string[] =>
     decide(PUSHED, 'main', REPO, api(world)).reasons;
@@ -265,6 +503,7 @@ describe('a push that proves nothing runs everything', () => {
   it('without a pull request, a direct push', () => {
     expect(nothing({ pulls: [] })).toEqual([
       `${PUSHED} is the merge of no pull request into main`,
+      CODE_CHANGE,
     ]);
     expect(proven({ pulls: [] })).toEqual([]);
   });
@@ -272,6 +511,7 @@ describe('a push that proves nothing runs everything', () => {
   it('with two pull requests for one commit', () => {
     expect(nothing({ pulls: [pull(), pull({ number: 8 })] })).toEqual([
       `${PUSHED} is the merge of 2 pull requests`,
+      CODE_CHANGE,
     ]);
   });
 
@@ -299,6 +539,7 @@ describe('a push that proves nothing runs everything', () => {
       expect(proven({ runs: { workflow_runs: [other] } })).toEqual([]);
       expect(nothing({ runs: { workflow_runs: [other] } })).toEqual([
         `pull request #7: no green CI run of its head ${HEAD}`,
+        CODE_CHANGE,
       ]);
     }
   });
@@ -312,7 +553,7 @@ describe('a push that proves nothing runs everything', () => {
       expect(proven({ runs: { workflow_runs: [other] } })).toEqual([]);
   });
 
-  it('with the cheap run of the draft release pull request: its gate is red on purpose (#147)', () => {
+  it('with a red run whose expensive jobs were skipped', () => {
     const cheap = FULL.map((j) =>
       Object.values(JOBS).includes(j.name as never) ||
       j.name.startsWith('Mutation')

@@ -26,19 +26,17 @@ description: 'The job that checks the workflows and the tests of the shell of th
   The `workflow_run` trigger of `tag.yml` is accepted on purpose: it runs
   only after a successful CI push run on `main` or `hotfix/**` of this
   repository and checks out the head branch of that run (`main` or
-  `hotfix/**`), never pull request code. So is the `pull_request_target`
-  trigger of `release-ready.yml` (#147): it runs the workflow of `main`,
-  checks out nothing, and only adds and removes a label on the release
-  pull request of `main`.
+  `hotfix/**`), never pull request code. (`release-ready.yml` with its
+  `pull_request_target` trigger of #147 is gone with #387, 2026-11-23.)
 
 * **[V]** `src/test/ci-release.test.ts` (#147) runs the shell of „Detect
   changes“ and of the CI Gate from `ci.yml` with bash and the inputs GitHub
-  would give: the cheap run of the draft release pull request of `main`,
-  its gate failing on purpose, every check required in every other release
-  pull request, and every other pull request unchanged; it also checks that
-  `ci.yml` keeps its event types and runs the step of `release-ready.yml`
-  with a stub `gh`: label without the hotfix marker, refusal (draft and
-  comment, no label) with it, nothing when the body cannot be read.
+  would give. Since #387: a release pull request (of `main` or of a hotfix
+  branch) that changes only `VERSION`, `CHANGELOG.md` and `changes/` gets
+  no expensive job, one that changes any other file fails „Detect
+  changes“, and the gate refuses an expensive job in it; every other pull
+  request is unchanged, and `ci.yml` keeps its event types and names no
+  draft and no label of a full run.
   `src/test/release-pr.test.ts` runs `scripts/release-pr.sh` in a
   throwaway repository with a stub `gh`: the release pull request of
   `main` is never marked ready, and its body carries the marker exactly

@@ -17,11 +17,12 @@ export const clientViews = [
     key: 'achievements',
     mount: mountAchievements,
     fresh: true,
+    // The rewards only while achievements or daily rewards are on.
+    offered: (round) => round.achievements || round.daily,
     menu: {
       order: 140,
       label: (round) =>
         round.achievements ? 'Achievements' : 'Tagesbelohnung',
-      show: (round) => round.achievements || round.daily,
     },
   },
 ] satisfies readonly ClientView[];

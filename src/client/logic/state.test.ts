@@ -20,7 +20,7 @@ describe('the client state', () => {
   it('has the interface state of a fresh page', () => {
     expect(newUi()).toEqual({
       view: 'overview',
-      guild: null,
+      params: {},
       gal: 1,
       sys: 1,
       ft: null,

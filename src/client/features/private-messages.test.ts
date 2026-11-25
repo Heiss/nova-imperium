@@ -153,6 +153,31 @@ describe('answer', () => {
     expect(done).toHaveBeenCalledExactlyOnceWith(true);
   });
 
+  it('hands a refusal of a message to the dialog instead of a note (#349)', async () => {
+    const refused = vi.fn();
+    const actOwn = vi.fn(async () => false);
+    const ctx = fakeCtx({ actOwn: actOwn as never });
+    const done = vi.fn();
+    await answer(
+      ctx,
+      {
+        call: ['sendPrivateMessage', { name: 'Niemand', text: 'Hallo' }],
+        quiet: false,
+        refused,
+        done,
+      },
+      () => true,
+    );
+    expect(actOwn).toHaveBeenCalledExactlyOnceWith(
+      refused,
+      'sendPrivateMessage',
+      { name: 'Niemand', text: 'Hallo' },
+    );
+    expect(ctx.act).not.toHaveBeenCalled();
+    expect(ctx.quiet).not.toHaveBeenCalled();
+    expect(done).toHaveBeenCalledExactlyOnceWith(false);
+  });
+
   it('asks before a deletion and a report, and sends nothing when the player says no', async () => {
     const asked: string[] = [];
     for (const call of [

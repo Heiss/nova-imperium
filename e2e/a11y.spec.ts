@@ -11,6 +11,7 @@ import {
   seed,
   uniqueName,
   withWebPush,
+  optionsSection,
 } from './helpers.ts';
 
 // Automated accessibility check (axe, WCAG 2.1 A and AA), as in muffelblog. It
@@ -329,6 +330,7 @@ test.describe('accessibility (axe)', () => {
     await withWebPush(page);
     await register(page, uniqueName('AxePush'));
     await nav(page, 'help');
+    await optionsSection(page, 'Gerät');
     const found: string[] = [];
     const box = page.getByRole('checkbox', { name: 'Servernachrichten' });
     await expect(box).toBeChecked();

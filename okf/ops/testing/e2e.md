@@ -109,3 +109,27 @@ description: 'Playwright E2E tests: the acceptance criteria of a pull request, s
   the shared places found so far (a test reads its own row). The CI could
   run one fixed seed next to the normal run; that costs another run of the
   suite.
+
+* **[E]** A pull request into `main` runs the complete E2E suite, split over
+  several jobs; the release pull request does not run it (owner,
+  2026-11-23, 64a, #387, #372). **[V]** Four jobs „E2E tests (part N)“
+  (taken as recommended: the number and the shares by measurement), each
+  with its own servers and data on its own runner, each running the spec
+  files of its part (`scripts/e2e-shards.ts files <N>`); the job „E2E tests
+  (browser)“ needs all four, so the CI Gate and the proofs of a push (#342)
+  see one job as before. The plan `e2e/shards.json` puts the longest file
+  first into the part with the least time (`scripts/e2e-shards.ts plan
+  <report.json>` from a JSON report of Playwright); a spec file it does not
+  know runs in the part its name hashes to, so a new spec runs in exactly
+  one job without a change of the workflow until the next plan places it
+  by its time. Measured on 2026-11-24 (all 286 tests green, one worker): 83
+  spec files, 37.7 minutes in all, 9.4 minutes per part with four parts
+  (12.6 with three); each job adds its installation and build. Every part ran
+  against its own servers and passed (66, 68, 76 and 76 tests), which shows
+  that no spec depends on a spec of another part; part 3 ran with part 4
+  beside it on one machine of four cores first, and there one test of
+  `e2e/error-log.spec.ts` („a late answer to a report closes no dialog
+  opened since“) waited 30 s for its answer of `/api/errors` and failed,
+  then passed alone with the whole part [U: a load-dependent wait, to watch
+  in CI].  A failed part keeps its report as
+  the artifact `playwright-report-part-<N>`.

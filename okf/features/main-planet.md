@@ -66,6 +66,20 @@ Issue #221, part of the Classic features (#222). The owner's request of
   guild switch (#191) changed only there; the choice is part of the audit
   entry of the round reset. The lock runs in real time, not with the speed
   of the universe.
+* **[E]** The lock can also be set during the round (#366, owner,
+  2026-11-22): `roundMainLock` is `live`, so it is a row of the tab
+  „Universum“ under the heading „Hauptplanet“ and changes in the running
+  round; „Neue Runde“ still offers it. Its change is part of the audit entry
+  of the settings (the universe before and after it).
+* **[E]** A change counts only for later switches; a running lock keeps its
+  end (owner, 2026-11-22): the end is stored at the switch, in the column
+  `users.main_lock_end` (migration `20261124T1114-main-lock-end`), and
+  `mainOf` takes it instead of computing it from the current setting.
+  **[V]** The migration gives every lock that exists at the upgrade the end
+  it has by the rule before (the switch plus the days of the round then, 7
+  without a setting), so nothing changes for a player at the upgrade; a
+  lock that has already ended stays ended whatever the setting becomes. A
+  new round clears the end with the choice.
 * **[V]** The rules are pure functions in `src/core/main-planet.ts`
   (patterns, section 7): `canBeMain`, `mainOf` (D6), `mainLockEnd`,
   `mainLocked` (the lock holds while now < end) and `mainSwitchError`

@@ -46,6 +46,13 @@ export const MOST_IDLE = 3;
 
 /** A line of „Achtung“ or „Bereit“; a link opens the view that fixes it. */
 export interface CardItem {
+  /**
+   * The key of the line in its card (#369): the id of the fleet or the
+   * place, or the kind of a line that stands once. The text is no key: two
+   * fleets of one player from one place, or a planet named like its moon,
+   * read the same.
+   */
+  key: string;
   text: string;
   /** The countdown of an attack. */
   due?: Countdown;
@@ -91,11 +98,13 @@ export function attentionItems(v: V): CardItem[] {
     ),
   );
   const items: CardItem[] = incoming.slice(0, MOST_ATTACKS).map((f) => ({
+    key: `fleet:${f.id}`,
     text: `${MISSION[f.mission]} von ${nameOf(s.players, f.owner)} ${coords(f.fromC)}`,
     due: countdown(fleetEnd(f), now),
   }));
   if (incoming.length > MOST_ATTACKS)
     items.push({
+      key: 'more-fleets',
       text: `und ${incoming.length - MOST_ATTACKS} weitere Flotten`,
       link: { view: 'fleet', label: 'Zur Flotte' },
     });
@@ -103,6 +112,7 @@ export function attentionItems(v: V): CardItem[] {
   const missing = Math.ceil(pr.eUse - pr.eProd);
   if (missing > 0)
     items.push({
+      key: 'energy',
       text: `Zu wenig Energie: es fehlen ${fmt(missing)}`,
       link: { view: 'buildings', label: 'Zu den Gebäuden' },
     });
@@ -120,11 +130,15 @@ function idleItems({ s }: V): CardItem[] {
     return p ? [{ id, text: `${placeName(p)} ${coords(p)}` }] : [];
   });
   const items: CardItem[] = places.slice(0, MOST_IDLE).map((p) => ({
+    key: `idle:${p.id}`,
     text: `Bauschleife leer: ${p.text}`,
     select: { id: p.id, label: 'Wechseln' },
   }));
   if (places.length > MOST_IDLE)
-    items.push({ text: `und ${places.length - MOST_IDLE} weitere` });
+    items.push({
+      key: 'more-idle',
+      text: `und ${places.length - MOST_IDLE} weitere`,
+    });
   return items;
 }
 
@@ -135,12 +149,14 @@ export function readyItems(v: V): CardItem[] {
   const reward = rewardHint(s);
   if (reward)
     items.push({
+      key: 'reward',
       text: reward,
       link: { view: 'achievements', label: 'Abholen' },
     });
   const fresh = unread(s.reports, s.me.readAt);
   if (fresh)
     items.push({
+      key: 'unread',
       text:
         fresh === 1
           ? '1 ungelesene Nachricht'

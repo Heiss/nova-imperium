@@ -10,7 +10,7 @@ import type { Ui, V } from '../views/common.ts';
 /** The interface state before the address and the storage of this device are read. */
 export const newUi = (): Ui => ({
   view: 'overview',
-  guild: null,
+  params: {},
   gal: 1,
   sys: 1,
   ft: null,

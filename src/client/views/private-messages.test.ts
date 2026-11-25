@@ -6,7 +6,7 @@
 import { readFileSync } from 'node:fs';
 import { readable } from 'svelte/store';
 import { render } from 'svelte/server';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { stripComments } from '../../test/markup.ts';
 import type {
   InboxRow,
@@ -14,11 +14,13 @@ import type {
   SentList,
   Thread,
 } from '../logic/private-messages.ts';
+import { forgetDrafts, keepDraft } from '../logic/pm-compose.ts';
 import type { GameState } from '../logic/types.ts';
 import type { V } from './common.ts';
 import { ANEW, MOUNTED } from './mount.ts';
 import MessagesTabs from './MessagesTabs.svelte';
 import PmCompose from './PmCompose.svelte';
+import PmDialog from './PmDialog.svelte';
 import PmSent from './PmSent.svelte';
 import PmSettings from './PmSettings.svelte';
 import PmThread from './PmThread.svelte';
@@ -281,6 +283,24 @@ describe('an open conversation', () => {
     expect(out.match(/neu/g)).toHaveLength(1);
   });
 
+  it('shows the line breaks of a message as text, in an element that keeps them (option 1a)', () => {
+    const out = html(PmThread, {
+      row: row(),
+      initial: thread({
+        lines: [{ ...lines[0]!, text: 'Zeile <b>eins</b>\nZeile zwei' }],
+      }),
+    });
+    expect(out).toContain(
+      '<span class="chat-text">Zeile &lt;b>eins&lt;/b>\nZeile zwei</span>',
+    );
+    expect(out).not.toContain('<br />Zeile zwei');
+    const css = readFileSync(
+      new URL('../static/style.css', import.meta.url),
+      'utf8',
+    );
+    expect(css).toMatch(/\.chat-text \{\s*white-space: pre-wrap;/);
+  });
+
   it('offers „Melden“ on a received message only, „Löschen“ on every one', () => {
     const out = html(PmThread, { row: row(), initial: thread() });
     expect(out.match(/>Melden</g)).toHaveLength(1);
@@ -448,5 +468,95 @@ describe('no load without a click (Q32, Q33, #335)', () => {
     expect(sources['MessagesTabs.svelte']).toMatch(
       /function select[\s\S]*?sent\?\.reload\(\)/,
     );
+  });
+});
+
+describe('the dialog of a message (#349, variant C)', () => {
+  afterEach(forgetDrafts);
+
+  it('„Neue Nachricht“ opens a modal dialog titled by its button; the form is there only while it is open', () => {
+    const out = html(PmDialog, { names: ['Bert'] });
+    expect(out).toMatch(
+      /<button[^>]*aria-haspopup="dialog"[^>]*>Neue Nachricht</,
+    );
+    expect(out).toMatch(
+      /<dialog[^>]*id="pm-compose"[^>]*aria-labelledby="pm-compose-title"/,
+    );
+    expect(out).not.toContain('id="pm-to"');
+    expect(out).not.toContain('id="pm-text"');
+  });
+
+  it('„Antworten“ opens the dialog „Antworten“', () => {
+    const out = html(PmDialog, { to: 'Bert' });
+    expect(out).toMatch(/<button[^>]*aria-haspopup="dialog"[^>]*>Antworten</);
+    expect(out).toMatch(
+      /<dialog[^>]*id="pm-reply"[^>]*aria-labelledby="pm-reply-title"/,
+    );
+  });
+
+  it('has a text of eight lines with the count „n / 1000“, „Abbrechen“ and „Senden“', () => {
+    const out = html(PmCompose, { names: [] });
+    expect(out).toMatch(/<textarea[^>]*id="pm-text"[^>]*rows="8"/);
+    expect(out).toMatch(/<textarea[^>]*aria-describedby="pm-text-count"/);
+    expect(out).toMatch(/id="pm-text-count"[^>]*>0 \/ 1000</);
+    expect(out).toMatch(
+      />Abbrechen<\/button>\s*<button type="submit"[^>]*>Senden</,
+    );
+  });
+
+  it('offers the quick choice: „Zuletzt geschrieben:“ and „Freunde:“, each button described by its label and pressed when chosen', () => {
+    keepDraft(undefined, { to: 'Dirk', text: '' });
+    const out = html(PmCompose, {
+      quick: { recent: ['Bert', '<i>Cora</i>'], friends: ['Dirk'] },
+    });
+    expect(out).toContain('id="pm-quick-recent">Zuletzt geschrieben:<');
+    expect(out).toContain('id="pm-quick-friends">Freunde:<');
+    expect(
+      out.match(/aria-describedby="pm-quick-recent" aria-pressed="false"/g),
+    ).toHaveLength(2);
+    expect(out).toMatch(
+      /aria-describedby="pm-quick-friends" aria-pressed="true"[^>]*>Dirk</,
+    );
+    expect(out).toContain('&lt;i>Cora&lt;/i>');
+    expect(out.indexOf('Zuletzt geschrieben:')).toBeLessThan(
+      out.indexOf('Freunde:'),
+    );
+    const none = html(PmCompose, {});
+    // A refusal shows only after a send (#349): none when the dialog opens.
+    expect(none).not.toContain('role="alert"');
+    expect(none).not.toContain('Zuletzt geschrieben:');
+    expect(none).not.toContain('Freunde:');
+  });
+
+  it('starts from the draft: what was typed before is there again (decision 3)', () => {
+    keepDraft(undefined, { to: 'Bert', text: 'Hallo <b>Bert</b>' });
+    keepDraft('Cora', { to: '', text: 'Antwort' });
+    const fresh = html(PmCompose, {});
+    expect(fresh).toMatch(/id="pm-to"[^>]*value="Bert"/);
+    expect(fresh).toContain('Hallo &lt;b>Bert&lt;/b></textarea>');
+    expect(fresh).toContain('>17 / 1000<');
+    expect(html(PmCompose, { to: 'Cora' })).toContain('>Antwort</textarea>');
+    expect(html(PmCompose, { to: 'Dora' })).toContain('></textarea>');
+  });
+
+  it('shows the reply as „An {Name}“ with „Letzte Nachricht von {Name}“ quoted, escaped (decision 5)', () => {
+    const out = html(PmCompose, { to: '<i>Bert</i>', quote: '<b>Hallo</b>' });
+    expect(out).toContain('An <b>&lt;i>Bert&lt;/i></b>');
+    expect(out).toContain('Letzte Nachricht von &lt;i>Bert&lt;/i>');
+    expect(out).toContain('&lt;b>Hallo&lt;/b>');
+    expect(out).not.toContain('id="pm-to"');
+    const unquoted = html(PmCompose, { to: 'Bert' });
+    expect(unquoted).not.toContain('Letzte Nachricht von');
+  });
+
+  it('quotes the last message received in an open conversation', () => {
+    expect(html(PmThread, { row: row(), initial: thread() })).not.toContain(
+      'Letzte Nachricht von',
+    );
+    const source = readFileSync(
+      new URL('PmThread.svelte', import.meta.url),
+      'utf8',
+    );
+    expect(source).toContain('quote={lastReceived(lines)?.text}');
   });
 });

@@ -3,7 +3,7 @@
 // script decides.
 //
 //   node scripts/trivy-gate.ts <image.json>              every hole blocks
-//        (release pull requests, hotfixes, pushes)
+//        (the release image, hotfixes, pushes)
 //   node scripts/trivy-gate.ts <image.json> <base.json>  only holes the
 //        base branch's image does not have block (other pull requests), so
 //        two pull requests that each fix one of two holes do not block

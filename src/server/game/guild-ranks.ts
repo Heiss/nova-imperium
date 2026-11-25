@@ -36,6 +36,7 @@ import type {
 } from '../db/repos/guilds.ts';
 import type { Handler } from './actions.ts';
 import { fail, str, type Ctx } from './context.ts';
+import { GUILDS_OFF } from './round.ts';
 import { rankEvent } from './guild-events.ts';
 import type { ServerFeature } from './feature.ts';
 
@@ -274,7 +275,9 @@ export function rankState(a: Actor, players: GuildPlayer[]) {
 }
 
 export const serverFeature = {
-  guildActions: {
+  enabled: (round) => round.guilds,
+  off: GUILDS_OFF,
+  actions: {
     createGuildRank,
     renameGuildRank,
     setGuildRankRights,

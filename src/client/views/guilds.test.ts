@@ -57,7 +57,9 @@ function view(
     guilds: state,
     admin: over.admin ? {} : null,
   } as unknown as GameState;
-  return normalize(guildsView({ s, ui: { guild: 'g1' } } as unknown as V));
+  return normalize(
+    guildsView({ s, ui: { params: { guild: 'g1' } } } as unknown as V),
+  );
 }
 
 const message = (over: Partial<GuildChat['messages'][number]> = {}) => ({
@@ -323,7 +325,9 @@ describe('rank names in the guild view (#277)', () => {
       guilds: state,
       admin: null,
     } as unknown as GameState;
-    return normalize(guildsView({ s, ui: { guild: 'g1' } } as unknown as V));
+    return normalize(
+      guildsView({ s, ui: { params: { guild: 'g1' } } } as unknown as V),
+    );
   }
 
   it('limits the inputs to 24 characters and still shows an older, longer name in full', () => {

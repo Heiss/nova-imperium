@@ -1,11 +1,15 @@
 // The header with the resources and the side menu stay in view while the
-// page scrolls (#193). On the desktop the header sticks with its logo line
-// above the top of the screen, so it gets slimmer while scrolled and is full
-// again at the top; the menu sticks right below what stays of it. The CSS
+// page scrolls (#193). On the desktop the header sticks with the space above
+// the planet choice above the top of the screen, so it gets slimmer while
+// scrolled and is full again at the top; the menu sticks right below what
+// stays of it. While scrolled only the logo goes: the planet choice,
+// „Kommandant …“ and „Logout“ (#pinfo) stay as a line above the resources
+// (owner, 2026-11-21, #348); the logo keeps its place, unseen, so nothing
+// moves [V]. The CSS
 // (style.css, „Sticky header“) needs two lengths that depend on how the
 // header wraps, so they are measured here and set as custom properties:
 // --head-h, the full height of the header, and --head-hide, how much of it
-// goes above the screen (the logo line). The keyboard focus keeps clear of
+// goes above the screen (down to the line of #pinfo). The keyboard focus keeps clear of
 // the header through scroll-padding-top, from the same lengths. Two classes
 // of <html> tell the CSS the rest: `head-line` (the header is one line, the
 // logo beside the resources) and `scrolled` (the page is not at its top); on
@@ -16,8 +20,12 @@
 interface HeaderBox {
   /** The full height of the header, its border included. */
   height: number;
+  /** The top of the logo: the space of the header above its first line. */
+  logoTop: number;
   /** The bottom of the logo. */
   logoBottom: number;
+  /** The top of the planet choice, „Kommandant …“ and „Logout“ (#pinfo). */
+  pinfoTop: number;
   /** The top of the resource bar. */
   resourcesTop: number;
 }
@@ -28,12 +36,14 @@ export const stacked = (box: HeaderBox): boolean =>
 
 /**
  * The custom properties of the header. When the logo has a line of its own
- * above the resources, everything down to the bottom of the logo goes above
- * the screen, so the resources keep the space between the lines; when the
- * logo stands beside the resources, the header is one line and nothing goes.
+ * above the resources, the header goes above the screen down to the space it
+ * keeps above #pinfo, the same as above the logo at the top (#348): the
+ * planet choice stays in view, the logo, unseen while scrolled, takes no
+ * line of its own. When the logo stands beside the resources, the header is
+ * one line and nothing goes.
  */
 export function headerLengths(box: HeaderBox): Record<string, string> {
-  const hide = stacked(box) ? box.logoBottom : 0;
+  const hide = stacked(box) ? Math.max(0, box.pinfoTop - box.logoTop) : 0;
   return {
     '--head-h': `${Math.round(box.height)}px`,
     '--head-hide': `${Math.round(hide)}px`,
@@ -49,6 +59,7 @@ interface Measured {
 interface HeaderPage<E extends Measured> {
   header: E;
   logo: E;
+  pinfo: E;
   resources: E;
   setProperty: (name: string, value: string) => void;
   observe: (target: E, measure: () => void) => void;
@@ -68,7 +79,9 @@ export function keepHeaderInView<E extends Measured>(
     const logo = page.logo.getBoundingClientRect();
     const box = {
       height: head.height,
+      logoTop: logo.top - head.top,
       logoBottom: logo.top + logo.height - head.top,
+      pinfoTop: page.pinfo.getBoundingClientRect().top - head.top,
       resourcesTop: page.resources.getBoundingClientRect().top - head.top,
     };
     for (const [name, value] of Object.entries(headerLengths(box)))

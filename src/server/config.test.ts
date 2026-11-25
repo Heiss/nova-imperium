@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { loadConfig, NUMBERS, SECRETS, SETTINGS } from './config.ts';
+import { fast, HOSTILE, sameOn } from '../test/redos.ts';
 
 const noFile: (path: string) => string = () => {
   throw new Error('no file');
@@ -203,5 +204,26 @@ describe('configuration', () => {
     expect(SETTINGS).toContain('NOVA_PUBLIC_URL');
     for (const n of Object.values(NUMBERS)) expect(SETTINGS).toContain(n.name);
     for (const s of SECRETS) expect(SETTINGS).toContain(s);
+  });
+});
+
+describe('the slashes at the end of the public address in linear time (#367)', () => {
+  const PATH = 'https://game.example.org/p';
+
+  it('are removed as the expression without the start of a run removed them', () => {
+    const OLD = /\/+$/;
+    sameOn(['/', 'a', '//'], (rest) => {
+      expect(errors({ NOVA_PUBLIC_URL: `${PATH}${rest}` })).toEqual([
+        `NOVA_PUBLIC_URL: an http(s) address without a path, got "${`${PATH}${rest}`.replace(OLD, '')}".`,
+      ]);
+    });
+    expect(
+      ok({ NOVA_PUBLIC_URL: 'https://game.example.org///' }).publicUrl,
+    ).toBe('https://game.example.org');
+  });
+
+  it('reads many slashes before the end fast (before: about 2 s)', () => {
+    const url = `https://game.example.org${'/'.repeat(HOSTILE)}a`;
+    expect(fast(() => errors({ NOVA_PUBLIC_URL: url }))).toHaveLength(1);
   });
 });

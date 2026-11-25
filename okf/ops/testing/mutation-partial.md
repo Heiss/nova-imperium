@@ -20,18 +20,17 @@ description: 'A pull request mutates only what it changes: when the jobs start, 
   when the pull request it merged passed its own mutation jobs, complete or
   partial, on the identical tree; owner, 2026-11-21, O23); a push that runs it also keeps
   the shard caches and the weights current, after a proven one the nightly
-  run does. The release pull request of a hotfix
-  branch changes only `CHANGELOG.md`, `VERSION` and `changes/`, so it
-  compares with the release tag the hotfix branch starts from, with the
-  same rules as above: a hotfix that changes a mutated file, a test or the
-  mutation configuration runs the mutation jobs, and so does one whose
-  lockfile changes a version of the test tool chain; other dependency or
-  `Dockerfile` changes do not. When no release tag lies below the base
-  of such a release pull request, „Detect changes“ fails, as the
-  migration check does (owner, 2026-11-13). The release pull request of
-  `main` runs the complete mutation run in its full run only, after it is
-  marked „Ready for review“; its draft runs no mutation job (owner,
-  2026-11-13 and 2026-11-14, #147, see
+  run does. Until #387 the release pull request of a hotfix
+  branch compared with the release tag the hotfix branch starts from, with the
+  same rules as above (a hotfix that changed a mutated file, a test or the
+  mutation configuration ran the mutation jobs, and so did one whose
+  lockfile changed a version of the test tool chain; other dependency or
+  `Dockerfile` changes did not; without a release tag below the base
+  „Detect changes“ failed, owner, 2026-11-13), and the release pull request of
+  `main` ran the complete mutation run in its full run only, after it was
+  marked „Ready for review“, its draft no mutation job (owner,
+  2026-11-13 and 2026-11-14, #147). Since #387 a release pull request runs
+  no mutation job (it changes only the metadata files, owner, 2026-11-23, see
   [Branching and release](/ops/branching-release.md)). Risk: a change
   that alters the results without touching these files is found by the
   nightly complete run only, up to a day later. Stryker's incremental mode would not notice
@@ -52,11 +51,12 @@ description: 'A pull request mutates only what it changes: when the jobs start, 
   branch (base `hotfix/*`), the mutation tests run for the files of the
   `mutate` globs that it changes and for the source of each test file it
   changes, in one job „Mutation tests (changed files)“ without shards. The
-  complete run in 12 shards (6 until 2026-11-20) stays for pushes to `main` and `hotfix/**`, the
-  release pull requests, the pull requests into a hotfix branch and the
-  nightly run, with their caches, weights and plan state. The owner accepts
+  complete run in 12 shards (6 until 2026-11-20) stays for pushes to `main` and `hotfix/**`,
+  the pull requests into a hotfix branch and the
+  nightly run, with their caches, weights and plan state (the release pull
+  requests ran it too until #387). The owner accepts
   that a pull request which lowers the score of a file it does not touch is
-  found only at night or in the release pull request; unit tests and E2E
+  found only at night (until #387 also in the release pull request); unit tests and E2E
   stay complete in every pull request. The nightly run opens or updates the
   issue „Mutation floor missed on main“ when its gate fails, so that such a
   drop is seen the next morning (below).
@@ -104,9 +104,9 @@ description: 'A pull request mutates only what it changes: when the jobs start, 
   configuration changed at the same time, `mutation-standard.json`
   (`newFile`, `security`, `securityTarget`) included. `mutation-floors.txt`
   stays a mutation configuration for the complete runs: the pull request
-  into a hotfix branch, the release pull request of a hotfix branch and the
+  into a hotfix branch and the
   takeover of #167 (`reason` of `scripts/mutation-changes.ts`) run as
-  before. A lowered floor is not refused by anything today (the file is
+  before (so did the release pull request of a hotfix branch until #387). A lowered floor is not refused by anything today (the file is
   checked by `src/test/mutation-floorfile.test.ts` for its form only, and
   the people who write floors never lower one): it joins the partial set
   and is checked against its new, lower value. Nothing was built against it.
@@ -197,8 +197,8 @@ description: 'A pull request mutates only what it changes: when the jobs start, 
   and `index.ts` in a run of five files: three files in the report). The
   report is kept as the artifact `mutation-partial-report` for 7 days. The
   CI Gate requires the job when the output is `partial` and refuses
-  `partial` in a push, a release pull request and a pull request into a
-  hotfix branch. A head that only merged `main` runs the partial job again
+  `partial` in a push and a pull request into a hotfix branch; since #387
+  it refuses any mutation job in a release pull request. A head that only merged `main` runs the partial job again
   (no takeover, #167 applies to the complete run only): it is short. Cost:
   without the incremental file every mutant of a changed file runs, and the
   dry run of the whole test suite (about 3 minutes on a loaded machine)

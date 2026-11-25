@@ -5,6 +5,7 @@
 // TabBar.svelte and MoreList.svelte only render what this module computes.
 import type { Ui } from '../views/common.ts';
 import { menu, type MenuEntry, phoneMenu } from '../views/index.ts';
+import { offered } from '../views/offered.ts';
 import { catalogKind } from './catalog-list.ts';
 import { unread } from './game.ts';
 import { menuHints } from './menu-hints.ts';
@@ -82,15 +83,7 @@ export function navigation(
   };
 }
 
-/** A view the player cannot open now: admin, rewards or guilds that are off. */
+/** A view the player cannot open now: one that is not offered (#373); before the first state every view is open. */
 export function hiddenView(view: string, state: GameState | null): boolean {
-  if (view === 'admin') return !!state && !state.me.admin;
-  if (view === 'achievements') return !rewardsAvailable(state);
-  // No guild view in a round with guilds off (#191).
-  if (view === 'guilds') return !!state && !state.round.guilds;
-  return false;
-}
-
-function rewardsAvailable(state: GameState | null): boolean {
-  return !state || state.round.achievements || state.round.daily;
+  return !!state && !offered(view, state.round, state.me.admin);
 }

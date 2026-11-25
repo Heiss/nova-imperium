@@ -102,6 +102,7 @@ test.describe('error log and problem reports (#126)', () => {
     const name = uniqueName('Melder');
     await register(page, name);
     await nav(page, 'help');
+    await optionsSection(page, 'Weiteres');
     const form = page.locator('#reportform');
     await expect(form).toContainText('Seite: help');
     await expect(form).toContainText(/Letzter Vorgang: [0-9a-f-]{36}/);
@@ -248,6 +249,7 @@ test.describe('error log and problem reports (#126)', () => {
     await page.keyboard.press('Escape');
     await expect(dialog).toHaveCount(0);
     await nav(page, 'help');
+    await optionsSection(page, 'Konto');
     await page.click('[data-act=deleteAccount]');
     const other = page.locator('#deleteaccountform');
     await expect(other).toBeVisible();

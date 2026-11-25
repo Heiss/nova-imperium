@@ -93,8 +93,12 @@ export function reportProblem(report: unknown): string | undefined {
   return undefined;
 }
 
-const SCORE_LINE =
-  /(\S+): (\d+(?:\.\d+)?) % \(killed \d+, timeout \d+, survived \d+, no coverage \d+, errors \d+\)\s*$/;
+/**
+ * A line of the score table. The file name starts only where a word starts,
+ * so a long word without the table after it costs linear time (#367).
+ */
+export const SCORE_LINE =
+  /(?<!\S)(\S+): (\d+(?:\.\d+)?) % \(killed \d+, timeout \d+, survived \d+, no coverage \d+, errors \d+\)\s*$/;
 
 /**
  * The scores of a file in the log of the gate step of a complete run (the

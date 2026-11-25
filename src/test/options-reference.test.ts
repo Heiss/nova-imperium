@@ -55,7 +55,8 @@ const sbox = (section: string, title: string, body: string): string =>
   );
 
 const SWITCH =
-  '<div class="seg phone-only" role="group" aria-label="Bereich">' +
+  // On every width since #356 (owner, 2026-11-22).
+  '<div class="seg opt-seg" role="group" aria-label="Bereich">' +
   [
     ['Spiel', true],
     ['Runde', false],

@@ -5,6 +5,7 @@
 import type { V } from './common.ts';
 import { assembleMounts } from './assemble.ts';
 import type { Mounted } from './contract.ts';
+import { offered } from './offered.ts';
 import { CLIENT_VIEWS } from './views.gen.ts';
 
 export type { Mounted };
@@ -32,8 +33,13 @@ export const mountsAnew = (
   list: boolean,
 ): boolean => ANEW.has(view) || (fresh && (list || FRESH.has(view)));
 
-/** Mounts the component of the view; any other view gets the overview. */
+/** Mounts the component of the view; any other view, or one not offered (#373), gets the overview. */
 export function mountView(view: string, target: HTMLElement, v: V): Mounted {
-  const name = Object.hasOwn(MOUNT, view) ? view : 'overview';
-  return { view: name, ...MOUNT[name]!(target, v) };
+  // An explicit check before the call: the name comes from the address
+  // (CodeQL js/unvalidated-dynamic-method-call on #395).
+  const own = Object.hasOwn(MOUNT, view) ? MOUNT[view] : undefined;
+  const shown =
+    typeof own === 'function' && offered(view, v.s.round, v.s.me.admin);
+  const mount = shown ? own : MOUNT.overview!;
+  return { view: shown ? view : 'overview', ...mount(target, v) };
 }

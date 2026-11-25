@@ -4,10 +4,10 @@
 // planet of the research view; rewards, the Endzeit gift and the fields
 // stay with the first planet (`planets.home()`, owner, 2026-11-16, D1).
 // The rules are those of src/core/main-planet.ts (patterns, section 7).
-import type { RoundRules } from '../../core/round.ts';
 import {
   type Main,
   type MainPlanetError,
+  mainLockEnd,
   mainLocked,
   mainOf,
   mainSwitchError,
@@ -20,16 +20,12 @@ import { roundRules } from './round.ts';
 import type { ServerFeature, StatePart } from './feature.ts';
 import type { StateShape } from '../../core/state/main-planet.ts';
 
-/** The main planet of `u` and the end of the lock of the last switch. */
-export const mainPlanetOf = (
-  ctx: Ctx,
-  u: User,
-  rules: RoundRules = roundRules(ctx),
-): Main<Planet> =>
+/** The main planet of `u` and the end of the lock of the last switch, as stored at it (#366). */
+export const mainPlanetOf = (ctx: Ctx, u: User): Main<Planet> =>
   mainOf(
     u.mainPlanet === null ? null : ctx.planets.get(u.mainPlanet),
     u.id,
-    { switched: u.mainSwitched, days: rules.mainLock },
+    u.mainLockEnd,
     () => ctx.planets.home(u.id),
   );
 
@@ -85,6 +81,9 @@ const chooseMainPlanet: Handler<'mainPlanet'> = (ctx, u, d) => {
   if (error) return fail(MAIN_ERROR[error]);
   u.mainPlanet = target!.id;
   u.mainSwitched = ctx.now();
+  // The end with the days of the round now: a later change of the setting
+  // counts only for later switches (owner, 2026-11-22, #366).
+  u.mainLockEnd = mainLockEnd(u.mainSwitched, roundRules(ctx).mainLock);
   ctx.players.save(u);
   return `${target!.name} ist jetzt dein Hauptplanet.`;
 };

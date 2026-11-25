@@ -950,8 +950,6 @@ describe('mutation shards: static mutants run again (#201)', () => {
 describe('mutation shards: the incremental run in the workflows (#201)', () => {
   const workflow = (name: string): string[] =>
     readFileSync(`.github/workflows/${name}`, 'utf8').split('\n');
-  const incremental = "if: ${{ !startsWith(github.head_ref, 'release/') }}";
-
   it('removes the static results right before the incremental run of a shard', () => {
     const ci = workflow('ci.yml');
     const drop = ci.indexOf('      - name: Static mutants run again');
@@ -959,13 +957,13 @@ describe('mutation shards: the incremental run in the workflows (#201)', () => {
     expect(drop).toBeGreaterThan(
       ci.indexOf('      - name: Configuration of this shard'),
     );
+    // Every shard of ci.yml runs incrementally: a release pull request runs
+    // no mutation job since #387, so no complete run of its own is left.
     expect(ci.slice(drop, run)).toEqual([
       '      - name: Static mutants run again',
-      `        ${incremental}`,
       '        run: node scripts/mutation-shards.ts drop-static',
     ]);
-    expect(ci.slice(run + 1, run + 3)).toEqual([
-      `        ${incremental}`,
+    expect(ci.slice(run + 1, run + 2)).toEqual([
       '        run: pnpm test:mutation reports/stryker-shard.config.json',
     ]);
     expect(ci.filter((l) => l.includes('drop-static'))).toHaveLength(1);

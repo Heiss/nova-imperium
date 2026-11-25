@@ -169,7 +169,7 @@ universe settings) and their ranges are not decided yet.
   | (base values) | Universum | the name of the tab |
   | achievements | Tagesbelohnung und Erfolge | the Lexicanum page |
   | guild-chat | Gilden | the menu, the Lexicanum, the changelog |
-  | main-planet | Hauptplanet | the changelog, the box of „Optionen“ |
+  | main-planet | Hauptplanet | the changelog, the box of „Optionen“; a row of „Universum“ too since #366 (2026-11-22) |
   | abandon | Kolonie aufgeben | the changelog |
   | activity | Aktivität | the labels of its settings; the Lexicanum page „Sichtbarkeit und Aktivität“ |
   | holding | Wache stellen | the changelog |

@@ -55,6 +55,7 @@ export const clientViews = [
     key: 'admin',
     mount: mountAdmin,
     fresh: true,
-    menu: { order: 180, label: 'Admin', show: (_, admin) => admin },
+    offered: (_, admin) => admin,
+    menu: { order: 180, label: 'Admin' },
   },
 ] satisfies readonly ClientView[];

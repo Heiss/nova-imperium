@@ -14,6 +14,7 @@ import {
   parseEntry,
   readLog,
 } from '../../scripts/okf-log.ts';
+import { fast, HOSTILE, sameOn } from './redos.ts';
 
 const root = path.resolve(import.meta.dirname, '../..');
 
@@ -403,5 +404,27 @@ describe('okf/log', () => {
   it('holds only well-formed entries, and okf/log.md is gone (D3)', () => {
     expect(checkLog(path.join(root, 'okf/log'))).toEqual([]);
     expect(readLog(path.join(root, 'okf/log')).length).toBeGreaterThan(0);
+  });
+});
+
+describe('the text of an entry in linear time (#367)', () => {
+  const read = (body: string) =>
+    parseEntry(
+      '2026-11-14-a.md',
+      `---\ntype: log-entry\ndate: 2026-11-14\nkind: Code\n---\n${body}`,
+    );
+
+  it('joins the lines as the expression before did', () => {
+    const OLD = /\s*\n\s*/g;
+    sameOn(['a', ' ', '\t', '\n', '\r', '\r\n', '\u00a0', '\u2028'], (body) => {
+      const text = body.replace(/\r\n/g, '\n').trim().replace(OLD, ' ');
+      if (text) expect(read(body).text).toBe(text);
+      else expect(() => read(body)).toThrow('the text is empty');
+    });
+  });
+
+  it('reads a long run of white space without a line break fast (before: about 3 s)', () => {
+    const body = `a${'\t'.repeat(HOSTILE)}b`;
+    expect(fast(() => read(body)).text).toBe(body);
   });
 });
