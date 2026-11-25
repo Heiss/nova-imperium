@@ -107,7 +107,9 @@ gave `0`). Own pull request after #395 (98a).
   drawn as SVG from the modules of `qrcode-generator` 2.0.4 (MIT, one
   maintainer, no dependencies, a signature of the registry but no npm
   provenance attestation; pinned exactly), not as HTML of the library.
-* **[E]** The changelog fragment of #401 (owner, 2026-11-25, 136a), art
-  geändert, in `changes/anmeldung-zweiter-faktor.md`.
+* **[E]** The changelog of #401 (owner, 2026-11-25, 136a, split by 144a
+  for the limit of 300 characters): the mail code, art geändert, in
+  `changes/anmeldung-code-sofort.md`; the authenticator app, art neu, in
+  `changes/authenticator-app.md`.
 * **[E]** `src/server/http/login-code.ts` is a security file of
   `mutation-standard.json` (coordinator, 2026-11-25).
