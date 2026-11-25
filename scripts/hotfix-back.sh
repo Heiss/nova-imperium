@@ -25,19 +25,28 @@ fail() {
 }
 
 # Builds hotfix-back/<name> from origin/main with origin/<hotfix> merged in
-# and pushes it; the branch of the hotfix is only read.
+# and pushes it; the branch of the hotfix is only read. Every step fails
+# on its own, also where `set -e` is off (inside `if` in rebuild). The merge
+# commit has the release identity, so it works on a runner without one.
 build() {
   hotfix=$1
   back="hotfix-back/${hotfix#hotfix/}"
-  git fetch --quiet origin main "$hotfix"
-  git switch --quiet --detach origin/main
-  if ! git merge --quiet --no-ff --no-edit \
-    -m "Merge $hotfix back into main" "origin/$hotfix" > /dev/null 2>&1; then
+  git fetch --quiet origin main "$hotfix" ||
+    fail "Could not fetch main and $hotfix; $back stays as it is."
+  git switch --quiet --detach origin/main ||
+    fail "Could not check out main; $back stays as it is."
+  if ! said=$(git -c user.name='Nova Imperium Release' \
+    -c user.email='nova-imperium-release@users.noreply.github.com' \
+    merge --quiet --no-ff --no-edit \
+    -m "Merge $hotfix back into main" "origin/$hotfix" 2>&1); then
     conflicts=$(git diff --name-only --diff-filter=U | tr '\n' ' ')
-    git merge --abort
+    git merge --abort 2> /dev/null || true
+    [ -n "$conflicts" ] ||
+      fail "$hotfix could not be merged into main: $said. $back stays as it is."
     fail "$hotfix does not merge into main cleanly: conflict in ${conflicts% }. $back and its pull request stay as they are; merge it by hand."
   fi
-  git push --quiet --force origin "HEAD:refs/heads/$back"
+  git push --quiet --force origin "HEAD:refs/heads/$back" ||
+    fail "Could not push $back; it and its pull request stay as they were."
   printf '%s\n' "$back"
 }
 
@@ -57,8 +66,12 @@ case "${1:-}" in
   rebuild)
     # Each branch on its own: a conflict in one leaves the others rebuilt.
     failed=
-    for back in $(gh pr list --base main --state open --json headRefName \
-      --jq '.[].headRefName | select(startswith("hotfix-back/"))'); do
+    # Every open pull request, not the first 30; a failed listing is an
+    # error, an empty one is nothing to do.
+    backs=$(gh pr list --base main --state open --limit 1000 --json headRefName \
+      --jq '.[].headRefName | select(startswith("hotfix-back/"))') ||
+      fail 'Could not list the open pull requests into main.'
+    for back in $backs; do
       if (build "hotfix/${back#hotfix-back/}" > /dev/null); then
         printf 'Rebuilt %s from the new main.\n' "$back"
       else

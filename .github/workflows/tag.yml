@@ -111,7 +111,12 @@ jobs:
           gh workflow run release-pr.yml --ref main -f rebuild=true
           # The merge-back comes from hotfix-back/<name>, the current main
           # with the hotfix merged in, never from the hotfix branch, which
-          # its ruleset keeps unchanged (owner, 2026-11-25, 111a).
+          # its ruleset keeps unchanged (owner, 2026-11-25, 111a). The script
+          # comes from main: a hotfix cut from an older release has none.
           case "$BRANCH" in
-            hotfix/sec-*) GH_TOKEN="$APP_TOKEN" sh scripts/hotfix-back.sh open "$BRANCH" "$version" ;;
+            hotfix/sec-*)
+              git fetch --quiet origin main
+              git show origin/main:scripts/hotfix-back.sh > "$RUNNER_TEMP/hotfix-back.sh"
+              GH_TOKEN="$APP_TOKEN" sh "$RUNNER_TEMP/hotfix-back.sh" open "$BRANCH" "$version"
+              ;;
           esac

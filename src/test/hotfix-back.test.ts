@@ -32,6 +32,15 @@ const ENV = {
   GIT_CONFIG_NOSYSTEM: '1',
 };
 
+const NO_IDENTITY = {
+  PATH: process.env.PATH,
+  HOME: join(root, 'empty-home'),
+  GIT_CONFIG_GLOBAL: '/dev/null',
+  GIT_CONFIG_NOSYSTEM: '1',
+  EMAIL: '',
+};
+mkdirSync(NO_IDENTITY.HOME);
+
 // Writes down every call; "pr list" answers OPEN_PR (the number of an open
 // merge-back) or BACKS (the heads of the open merge-backs, one per line).
 const bin = join(root, 'bin');
@@ -41,6 +50,9 @@ writeFileSync(
   [
     '#!/bin/sh',
     'printf \'%s\\n\' "$*" >> "$GH_CALLS"',
+    'case "$*" in',
+    '  "pr list --base"*) if [ -n "${GH_FAIL:-}" ]; then exit 1; fi ;;',
+    'esac',
     'case "$*" in',
     '  "pr list --head"*) printf \'%s\' "${OPEN_PR:-}" ;;',
     '  "pr list --base"*) printf \'%s\' "${BACKS:-}" ;;',
@@ -101,7 +113,12 @@ function moveMain(repo: Repo, file: string, text: string): void {
 }
 
 /** Runs the script; its exit code, output, error and the gh calls. */
-function run(repo: Repo, args: string[], env: Record<string, string> = {}) {
+function run(
+  repo: Repo,
+  args: string[],
+  env: Record<string, string> = {},
+  bare = false,
+) {
   const calls = join(root, `${repo.dir.split('/').pop()}-${Date.now()}.calls`);
   let code = 0;
   let out: string;
@@ -110,7 +127,9 @@ function run(repo: Repo, args: string[], env: Record<string, string> = {}) {
     out = execFileSync('sh', ['scripts/hotfix-back.sh', ...args], {
       cwd: repo.dir,
       env: {
-        ...ENV,
+        // A runner without a Git identity: no author or committer, an empty
+        // home and no global or system configuration.
+        ...(bare ? NO_IDENTITY : ENV),
         PATH: `${bin}:${process.env.PATH}`,
         GH_CALLS: calls,
         ...env,
@@ -251,13 +270,79 @@ describe('the merge-back of a released hotfix (owner, 2026-11-25, 111a)', () => 
 
   it('is started by tag.yml after the release of a security hotfix and rebuilt by release-pr.yml on a push to main', () => {
     const tag = readFileSync('.github/workflows/tag.yml', 'utf8');
+    // The script comes from main, not from the checkout of the hotfix
+    // branch, which may predate it (CodeRabbit on #413).
     expect(tag).toContain(
-      'hotfix/sec-*) GH_TOKEN="$APP_TOKEN" sh scripts/hotfix-back.sh open "$BRANCH" "$version" ;;',
+      'git show origin/main:scripts/hotfix-back.sh > "$RUNNER_TEMP/hotfix-back.sh"',
     );
+    expect(tag).toContain(
+      'GH_TOKEN="$APP_TOKEN" sh "$RUNNER_TEMP/hotfix-back.sh" open "$BRANCH" "$version"',
+    );
+    expect(tag).not.toContain('sh scripts/hotfix-back.sh');
     expect(tag).not.toContain('--head "$BRANCH"');
     const pr = readFileSync('.github/workflows/release-pr.yml', 'utf8');
     expect(pr).toMatch(
       /- name: Rebuild the merge-back of a released hotfix\n {8}if: \$\{\{ !cancelled\(\) && github\.event_name == 'push' && github\.ref_name == 'main' \}\}\n {8}env:\n {10}GH_TOKEN: \$\{\{ steps\.app\.outputs\.token \}\}\n {8}run: sh scripts\/hotfix-back\.sh rebuild\n/,
+    );
+  });
+
+  it('merges with the release identity on a runner that has none (CodeRabbit on #413)', () => {
+    const repo = repository('no-identity');
+    const { code, err } = run(
+      repo,
+      ['open', 'hotfix/sec-x', '26.11.1'],
+      {},
+      true,
+    );
+    expect(err).toBe('');
+    expect(code).toBe(0);
+    repo.git('fetch', '-q', 'origin');
+    expect(
+      repo.git(
+        'log',
+        '-1',
+        '--format=%an <%ae>|%cn',
+        'origin/hotfix-back/sec-x',
+      ),
+    ).toBe(
+      'Nova Imperium Release <nova-imperium-release@users.noreply.github.com>|Nova Imperium Release',
+    );
+  });
+
+  it('reports a refused push as a failure and prints no „Rebuilt“', () => {
+    const repo = repository('refused');
+    run(repo, ['open', 'hotfix/sec-x', '26.11.1']);
+    moveMain(repo, 'later.txt', 'main moved\n');
+    // From now on the remote refuses the branch of the merge-back.
+    const hook = join(root, 'refused.git', 'hooks', 'pre-receive');
+    writeFileSync(
+      hook,
+      '#!/bin/sh\nwhile read old new ref; do case "$ref" in refs/heads/hotfix-back/*) exit 1 ;; esac; done\n',
+    );
+    chmodSync(hook, 0o755);
+    const { code, out, err } = run(repo, ['rebuild'], {
+      BACKS: 'hotfix-back/sec-x\n',
+    });
+    expect(code).toBe(1);
+    expect(out).not.toContain('Rebuilt');
+    expect(err).toContain(
+      '::error::Could not push hotfix-back/sec-x; it and its pull request stay as they were.',
+    );
+  });
+
+  it('fails when the open pull requests cannot be listed, and asks for all of them', () => {
+    const repo = repository('no-list');
+    const failed = run(repo, ['rebuild'], { GH_FAIL: '1' });
+    expect(failed.code).toBe(1);
+    expect(failed.err).toContain(
+      '::error::Could not list the open pull requests into main.',
+    );
+    // An empty list is nothing to do; the listing asks for every pull request.
+    const empty = run(repo, ['rebuild']);
+    expect(empty.code).toBe(0);
+    expect(empty.out).toBe('');
+    expect(empty.gh.find((c) => c.startsWith('pr list --base'))).toContain(
+      '--limit 1000',
     );
   });
 });
