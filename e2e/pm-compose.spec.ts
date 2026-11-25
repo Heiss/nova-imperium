@@ -219,10 +219,12 @@ async function dialogFlow(page: Page, browser: Browser): Promise<void> {
   const sentAt = Date.now();
   await expect(compose).toBeHidden();
   const thread = page.locator('#pm-thread');
-  // The server takes the line break out of the text (`clean`, unchanged by
-  // #349): both lines arrive.
-  await expect(thread.getByRole('log')).toContainText('Zeile eins');
-  await expect(thread.getByRole('log')).toContainText('Zeile zwei');
+  // The message keeps its line break (option 1a) and shows it.
+  const sent = thread.getByRole('log').locator('.chat-text').last();
+  // innerText as the page draws it; toHaveText would read a break as a space.
+  await expect
+    .poll(() => sent.evaluate((e) => (e as HTMLElement).innerText))
+    .toBe('Zeile eins\nZeile zwei');
   await open.click();
   await expect(page.locator('#pm-to')).toHaveValue('');
   await expect(text).toHaveValue('');
@@ -287,11 +289,11 @@ test('the dialog of a message on a phone fills the screen (#349) @phone', async 
 });
 
 /**
- * A send still on its way while the dialog is closed, opened again and a new
- * text typed: its answer neither drops the new draft nor closes the dialog
- * opened since (CodeRabbit on #395).
+ * While a send is on its way, „Abbrechen“ is locked and Escape does nothing
+ * (owner, 2026-11-25, 85a); after the answer, a success or a refusal, both
+ * work again.
  */
-async function raceFlow(page: Page, browser: Browser): Promise<void> {
+async function lockFlow(page: Page, browser: Browser): Promise<void> {
   const problems = watch(page);
   await register(page, uniqueName('Eile'));
   const bert = await player(page, browser, 'Ziel');
@@ -299,60 +301,74 @@ async function raceFlow(page: Page, browser: Browser): Promise<void> {
   await page.getByRole('tab', { name: /^Posteingang/ }).click();
   const open = page.getByRole('button', { name: 'Neue Nachricht' });
   const compose = dialogOf(page, 'pm-compose');
+  const cancel = compose.getByRole('button', { name: 'Abbrechen' });
+  const send = compose.getByRole('button', { name: 'Senden', exact: true });
 
   // The send waits until it is let go.
   let release = (): void => {};
   const held = new Promise<void>((resolve) => (release = resolve));
+  let holding = true;
   await page.route('**/api/action', async (route) => {
-    if ((route.request().postData() ?? '').includes('sendPrivateMessage'))
+    if (
+      holding &&
+      (route.request().postData() ?? '').includes('sendPrivateMessage')
+    )
       await held;
     await route.continue();
   });
   await open.click();
   await compose.locator('#pm-to').fill(bert.name);
-  await compose.locator('#pm-text').fill('Erste Fassung');
-  await compose.getByRole('button', { name: 'Senden', exact: true }).click();
-  // Closed while the message is on its way, opened again, typed anew.
-  await compose.getByRole('button', { name: 'Abbrechen' }).click();
+  await compose.locator('#pm-text').fill('Unterwegs');
+  await send.click();
+  await expect(cancel).toBeDisabled();
+  await compose.locator('#pm-text').focus();
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(300);
+  await expect(compose).toBeVisible();
+  await expect(compose.locator('#pm-text')).toHaveValue('Unterwegs');
+
+  // The success closes the dialog; opened again, everything works.
+  holding = false;
+  release();
   await expect(compose).toBeHidden();
   await open.click();
-  await expect(compose).toBeVisible();
-  await compose.locator('#pm-text').fill('Zweite Fassung');
-  const answered = page.waitForResponse((r) => r.url().endsWith('/api/action'));
-  release();
-  await answered;
-  // The dialog opened since stays, with its text (the answer had time to
-  // close it).
-  await page.waitForTimeout(500);
-  await expect(compose).toBeVisible();
-  await expect(compose.locator('#pm-text')).toHaveValue('Zweite Fassung');
-  await expect(compose.locator('#pm-to')).toHaveValue(bert.name);
-  // The new text is still the draft at the next opening.
+  await expect(cancel).toBeEnabled();
+  await expect(compose.locator('#pm-text')).toHaveValue('');
   await page.keyboard.press('Escape');
   await expect(compose).toBeHidden();
+
+  // A refusal unlocks too: „Abbrechen“ works and so does Escape.
   await open.click();
-  await expect(compose.locator('#pm-text')).toHaveValue('Zweite Fassung');
-  // Sent without a race, the draft goes and the dialog closes, as before
-  // (after the shortest gap between two messages).
+  await compose.locator('#pm-to').fill(uniqueName('Niemand'));
+  await compose.locator('#pm-text').fill('Ins Leere');
   await page.waitForTimeout(GAP_MS);
-  await compose.getByRole('button', { name: 'Senden', exact: true }).click();
+  await send.click();
+  await expect(compose.getByRole('alert')).toHaveText(
+    'Spieler nicht gefunden.',
+  );
+  await expect(cancel).toBeEnabled();
+  await cancel.click();
   await expect(compose).toBeHidden();
   await open.click();
-  await expect(compose.locator('#pm-text')).toHaveValue('');
+  await expect(compose).toBeVisible();
+  await compose.locator('#pm-text').focus();
+  await page.keyboard.press('Escape');
+  await expect(compose).toBeHidden();
   await bert.close();
   expect(problems.problems).toEqual([]);
 }
 
-test('a send answered after the dialog was closed and opened again keeps the new draft (#349)', async ({
+test('„Abbrechen“ and Escape are locked while a message is on its way (#349, 85a)', async ({
   page,
   browser,
 }) => {
-  await raceFlow(page, browser);
+  await lockFlow(page, browser);
 });
 
-test('a send answered after the dialog was closed and opened again keeps the new draft, on a phone (#349) @phone', async ({
+test('„Abbrechen“ and Escape are locked while a message is on its way, on a phone (#349, 85a) @phone', async ({
   page,
   browser,
 }) => {
-  await raceFlow(page, browser);
+  await lockFlow(page, browser);
 });

@@ -283,6 +283,24 @@ describe('an open conversation', () => {
     expect(out.match(/neu/g)).toHaveLength(1);
   });
 
+  it('shows the line breaks of a message as text, in an element that keeps them (option 1a)', () => {
+    const out = html(PmThread, {
+      row: row(),
+      initial: thread({
+        lines: [{ ...lines[0]!, text: 'Zeile <b>eins</b>\nZeile zwei' }],
+      }),
+    });
+    expect(out).toContain(
+      '<span class="chat-text">Zeile &lt;b>eins&lt;/b>\nZeile zwei</span>',
+    );
+    expect(out).not.toContain('<br />Zeile zwei');
+    const css = readFileSync(
+      new URL('../static/style.css', import.meta.url),
+      'utf8',
+    );
+    expect(css).toMatch(/\.chat-text \{\s*white-space: pre-wrap;/);
+  });
+
   it('offers „Melden“ on a received message only, „Löschen“ on every one', () => {
     const out = html(PmThread, { row: row(), initial: thread() });
     expect(out.match(/>Melden</g)).toHaveLength(1);

@@ -120,10 +120,27 @@ the owner chose it and answered its open questions on 2026-11-21/22.
   component keeps the draft on every key, so it stays over the poll, a
   switch of the tab of „Nachrichten“, „Abbrechen“ and Escape. The server is
   unchanged: no new rule, no new route.
-* **[U]** The server takes control characters out of every text (`clean` of
-  `src/server/game/context.ts`), the line break included: a message typed on
-  two lines arrives as one line without a space between them. Keeping the
-  line breaks needs a change of the server, which #349 does not make.
+* **[E]** A message keeps its line breaks (owner, 2026-11-25, 84a). **[V]**
+  How: `cleanLines` of `src/server/game/context.ts` for the text of a
+  private message only: `\r\n` and `\r` become `\n`, `\n` stays, every
+  other control character goes, no limit of breaks in a row; the 1000
+  characters count each break. Every other text (`clean`, the guild chat
+  included) still loses its breaks. The thread, the quote and „Gesendet“
+  show the breaks (`.chat-text`, `white-space: pre-wrap`, escaped text, no
+  `{@html}`); the preview of the inbox and the admin's table of reported
+  messages show a break as a space. Nothing else shows or sends the text:
+  the push has a fixed text, there is no mail, the journal keeps only the
+  length, the audit log only ids, the error log and its export hold no
+  private message, the round archive holds none, the JSON of the state
+  escapes it.
+* **[E]** While a message is on its way, „Abbrechen“ is locked and Escape
+  does nothing (owner, 2026-11-25, 85a); after the answer, a success or a
+  refusal, both work again. **[V]** How: `PmCompose` hands its busy state to
+  `PmDialog` (`bind:busy`), which ignores Escape and every other request to
+  close while it is set. The guard against a late answer (only the draft
+  that was sent is dropped, and an answer after the dialog closed closes
+  nothing) stays as it is (owner, 85a). E2E: `e2e/pm-compose.spec.ts`
+  with a held send, desktop and phone.
 * **[V]** A refusal while the dialog is open shows inside the dialog
   (coordinator, 2026-11-24, #349): a line with `role="alert"` above the
   buttons with the server's refusal text unchanged („Spieler nicht

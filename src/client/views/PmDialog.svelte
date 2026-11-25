@@ -3,7 +3,8 @@
   // „Neue Nachricht“ of the inbox, or „Antworten“ below an open conversation,
   // opens a native modal <dialog> (focus trap, Escape and the backdrop come
   // with it) titled like the button. „Abbrechen“ and Escape close it and the
-  // focus goes back to the button; what was typed stays as the draft
+  // focus goes back to the button, except while a send is on its way (owner,
+  // 2026-11-25, 85a); what was typed stays as the draft
   // (logic/pm-compose.ts). The form is there only while the dialog is open,
   // so it starts from the draft each time. On a phone the dialog fills the
   // screen (style.css).
@@ -31,6 +32,18 @@
   } = $props();
 
   let open = $state(false);
+  // A send on its way locks „Abbrechen“ and Escape (owner, 2026-11-25, 85a).
+  let busy = $state(false);
+
+  /** Escape asks nothing while a send is on its way. */
+  function key(event: KeyboardEvent): void {
+    if (busy && event.key === 'Escape') event.preventDefault();
+  }
+
+  /** Any other way to close the dialog is refused too while it sends. */
+  function cancelling(event: Event): void {
+    if (busy) event.preventDefault();
+  }
   let dialog = $state<HTMLDialogElement>();
   let opener = $state<HTMLButtonElement>();
 
@@ -60,6 +73,8 @@
   aria-labelledby="{id}-title"
   bind:this={dialog}
   onclose={closed}
+  onkeydown={key}
+  oncancel={cancelling}
 >
   {#if open}
     <h3 id="{id}-title">{title}</h3>
@@ -68,6 +83,7 @@
       {quick}
       {to}
       {quote}
+      bind:busy
       cancel={() => dialog?.close()}
       sent={(name) => {
         dialog?.close();

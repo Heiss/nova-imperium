@@ -33,6 +33,7 @@
     quote,
     sent = () => {},
     cancel = () => {},
+    busy = $bindable(false),
   }: {
     /** The names offered for the recipient. */
     names?: string[];
@@ -46,6 +47,11 @@
     sent?: (to: string) => void;
     /** „Abbrechen“: closes the dialog, the draft stays. */
     cancel?: () => void;
+    /**
+     * While a send is on its way: „Abbrechen“ and Escape are locked (owner,
+     * 2026-11-25, 85a); the dialog reads it.
+     */
+    busy?: boolean;
   } = $props();
 
   // The draft of this dialog when it opened; the component keeps it from then on.
@@ -53,7 +59,6 @@
   const start = draftOf(to);
   let recipient = $state(start.to);
   let text = $state(start.text);
-  let busy = $state(false);
   let refusal = $state('');
   let toField = $state<HTMLInputElement>();
   // Whether this dialog is still open: a send that answers after the dialog
@@ -195,7 +200,9 @@
   </div>
   {#if refusal}<p class="pm-refusal" role="alert">{refusal}</p>{/if}
   <div class="pm-buttons">
-    <button type="button" onclick={cancel}>{PM_DIALOG_LABELS.cancel}</button>
+    <button type="button" disabled={busy} onclick={cancel}
+      >{PM_DIALOG_LABELS.cancel}</button
+    >
     <button type="submit" disabled={busy}
       >{reply ? PM_LABELS.reply : PM_LABELS.send}</button
     >
