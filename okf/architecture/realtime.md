@@ -154,8 +154,15 @@ generated: { by: claude-code/web, at: 2026-11-25T09:30:00Z }
     environment variable, by default the heartbeat. **[E]** Name
     `NOVA_EVENT_RETRY`.
   * The page shows when it has no connection. **[E]** Two states: the
-    events are cut but requests still pass (the slow poll takes over), and
-    the server cannot be reached at all. While the server cannot be
+    events are cut but requests still pass, and the server cannot be
+    reached at all. While the events are cut, the page polls every 15 s and
+    stops as soon as the stream is back (owner, 2026-11-25, #409). The texts
+    of #409 are confirmed: „Live-Aktualisierung unterbrochen – die Seite
+    fragt alle 15 s nach.“, „Keine Verbindung zum Server. Aktionen werden
+    erst wieder gesendet, wenn die Verbindung zurück ist.“, the notice „Der
+    Server ist für {n} Konten ausgelegt, es gibt {m}. Bitte
+    NOVA_EVENT_STREAMS erhöhen.“ and the switch „Live-Aktualisierung
+    (Server-Sent Events)“. While the server cannot be
     reached, clicks are not sent and not kept for later: the buttons wait
     and the drafts of the forms stay (O27). Sent later, a command would act
     on a state the player no longer sees, and without a key per action a
