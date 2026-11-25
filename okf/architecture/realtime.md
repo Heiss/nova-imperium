@@ -53,8 +53,10 @@ generated: { by: claude-code/web, at: 2026-11-25T09:30:00Z }
   chosen: JSON Patch deltas of the full state (they keep the full build on
   the server and leave a gap to repair after a lost connection) and
   GraphQL per component (a schema layer and a new surface for DoS for
-  little gain over parts cut along the views). **[V]** The answer of an
-  action carries the parts it changed. Until the parts are built, step 4
+  little gain over parts cut along the views). **[E]** The answer of an
+  action carries the parts it changed, with their new ETags: one request,
+  and the state right after the action (owner, 2026-11-25); other players
+  learn of it by their own events. Until the parts are built, step 4
   of the request flow in [System architecture](/architecture/system.md)
   (the answer carries the new state of the player) describes the game.
 * **[E]** ETags where they help, not everywhere (owner, 2026-11-25): for
@@ -84,9 +86,11 @@ generated: { by: claude-code/web, at: 2026-11-25T09:30:00Z }
     the part, who and when. It is one row per field, overwritten, so it
     does not grow with the changes; it gives the „who, what, when“ of the
     line and the refusal.
-  * The stamp is written in the repository method of its field, one place
-    per field, with a guard test; a change by the server itself carries the
-    actor „System“ [V].
+  * **[E]** The stamp is written in the repository method of its field, one
+    place per field, so every way that writes the field stamps it (an
+    action, a new round, the switch that dissolves the guilds); a guard test
+    fails for a write method without it. A change no person made carries
+    the actor „System“ (owner, 2026-11-25).
   * Not chosen: sending the original values (a comparison of values that
     the normalisation of the server breaks: the profile is trimmed, the tag
     upper-cased, tag and name compared with `COLLATE NOCASE`; and no „who“
