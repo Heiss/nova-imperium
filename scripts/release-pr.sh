@@ -15,8 +15,9 @@
 #
 #   sh scripts/release-pr.sh check
 #        the CI of a release head (release/<BASE>, every push to it): refuses
-#        a version another release branch or a tag already holds, and for
-#        main a released hotfix that is not merged back, so the CI Gate
+#        a version another release branch or a tag already holds, one not
+#        newer than the newest tag (never retroactive, owner 2026-11-25,
+#        108), and for main a released hotfix that is not merged back, so the CI Gate
 #        itself refuses what the draft only marks (CodeRabbit on #395). It
 #        reads the refs of the checkout and changes nothing.
 set -eu
@@ -32,6 +33,20 @@ case "$base" in
   *) fail "Releases come from main or hotfix/*, not $base." ;;
 esac
 branch="release/$base"
+
+# Never a release after a newer one (owner, 2026-11-25, 108): gaps in the
+# numbers are allowed, a version at or below the newest CalVer tag is not.
+# The same two functions are in scripts/release-pr.sh and scripts/release.sh
+# (each is tested alone, copied into a repository of its own).
+calver_sort() { sort -t. -k1,1n -k2,2n -k3,3n; }
+newest_tag() {
+  git tag --list '[0-9]*.[0-9]*.[0-9]*' |
+    grep -E '^[0-9]{2}\.([1-9]|1[0-2])\.(0|[1-9][0-9]*)$' | calver_sort | tail -n 1
+}
+# Whether CalVer $1 is strictly newer than CalVer $2, part by part as numbers.
+newer_than() {
+  [ "$1" != "$2" ] && [ "$(printf '%s\n%s\n' "$1" "$2" | calver_sort | tail -n 1)" = "$1" ]
+}
 
 # The release branch other than ours that holds <version> in its VERSION.
 taken_by() {
@@ -72,6 +87,11 @@ if [ "${1:-}" = check ]; then
   unmerged=$(unmerged_hotfixes)
   if [ -n "$unmerged" ]; then
     printf '::error::Released hotfix not in %s yet:%s; this release would drop its fix from stable.\n' "$base" "$unmerged"
+    refused=1
+  fi
+  newest=$(newest_tag)
+  if [ -n "$newest" ] && ! newer_than "$version" "$newest"; then
+    printf '::error::%s is not newer than the newest release %s: a release is never published after a newer one. Recovery: rebuild the release pull request from %s, which takes the next free version, or a new release pull request on the owner'"'"'s word.\n' "$version" "$newest" "$base"
     refused=1
   fi
   [ -z "$refused" ] || exit 1

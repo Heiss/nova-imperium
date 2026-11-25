@@ -513,6 +513,20 @@ and one CI run (26.11.24; #347 for 26.11.25).
   holds its version or while its version is a tag already; the CI Gate
   requires „Detect changes“. Once the hotfix is merged back and the release
   head rebuilt, it passes again (`src/test/release-guards.test.ts`).
+  **[E]** Never a release after a newer one (owner, 2026-11-25, 108): gaps
+  in the numbers are allowed (26.11.26, kept by an old release pull request
+  when a security hotfix took 26.11.27, is skipped and the next release is
+  26.11.28), but a version at or below the newest CalVer tag is never
+  released, a hotfix release included. **[V]** Checked twice, each part of
+  YY.M.MICRO as a number (26.11.9 before 26.11.10, 26.9 before 26.10, 26.12
+  before 27.1): the CI of a release head (`release-pr.sh check`) refuses it
+  and names the newest tag and the way out (the release pull request is
+  rebuilt from its base and takes the next free version, or a new one on
+  the owner's word), and `release.sh` tags no such version, so a merge
+  that slipped past the gate is neither tagged nor published and no alias
+  moves. The two scripts carry the same small comparison (each is tested
+  alone); tests in `src/test/release-guards.test.ts` and
+  `src/test/release-tag.test.ts`.
   **[E]** A double failure is accepted (owner, 2026-11-25, 82a): when a
   rebuild fails after its push and setting the pull request back to draft
   fails as well, the pull request keeps the new head with the title and

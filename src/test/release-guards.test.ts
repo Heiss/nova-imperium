@@ -157,3 +157,86 @@ describe('the CI of a release head (CodeRabbit on #395)', () => {
     expect(changes).toContain('- name: The release head is releasable');
   });
 });
+
+describe('a release is never published after a newer one (owner, 2026-11-25, 108)', () => {
+  /** main with the tags <tags> and a release head whose VERSION is <head>; the check's code and output. */
+  function versions(name: string, tags: string[], head: string) {
+    const dir = join(root, name);
+    mkdirSync(join(dir, 'scripts'), { recursive: true });
+    const git = (...args: string[]) =>
+      execFileSync('git', args, { cwd: dir, env: ENV, encoding: 'utf8' });
+    git('init', '-q', '-b', 'main');
+    copyFileSync(
+      join(ROOT, 'scripts/release-pr.sh'),
+      join(dir, 'scripts/release-pr.sh'),
+    );
+    for (const tag of tags) {
+      version(dir, tag);
+      git('add', '-A');
+      git('commit', '-q', '-m', `Release ${tag}`);
+      git('tag', '-a', tag, '-m', tag);
+    }
+    version(dir, head);
+    git('add', '-A');
+    // --allow-empty: a head equal to the newest tag changes nothing.
+    git('commit', '-q', '--allow-empty', '-m', `Release ${head}`);
+    try {
+      const out = execFileSync('sh', ['scripts/release-pr.sh', 'check'], {
+        cwd: dir,
+        env: { ...ENV, BASE: 'main' },
+        encoding: 'utf8',
+        stdio: 'pipe',
+      });
+      return { code: 0, out };
+    } catch (error) {
+      const e = error as { status: number; stdout: string };
+      return { code: e.status, out: e.stdout };
+    }
+  }
+  const refusal = (head: string, newest: string) =>
+    `::error::${head} is not newer than the newest release ${newest}: a release is never published after a newer one. Recovery: rebuild the release pull request from main, which takes the next free version, or a new release pull request on the owner's word.`;
+
+  it('refuses a version below the newest tag: the 26.11.26 of an old release head after the hotfix 26.11.27', () => {
+    const { code, out } = versions(
+      'below',
+      ['26.11.25', '26.11.27'],
+      '26.11.26',
+    );
+    expect(code).toBe(1);
+    expect(out).toContain(refusal('26.11.26', '26.11.27'));
+  });
+
+  it('refuses a version equal to the newest tag', () => {
+    const { code, out } = versions(
+      'equal',
+      ['26.11.25', '26.11.27'],
+      '26.11.27',
+    );
+    expect(code).toBe(1);
+    expect(out).toContain(refusal('26.11.27', '26.11.27'));
+  });
+
+  it('compares each part as a number, not as text, also over a month and a year', () => {
+    const cases: [string[], string, boolean][] = [
+      [['26.11.9'], '26.11.10', true],
+      [['26.11.10'], '26.11.9', false],
+      [['26.9.5'], '26.10.0', true],
+      [['26.10.0'], '26.9.6', false],
+      [['26.12.3'], '27.1.0', true],
+      [['27.1.0'], '26.12.4', false],
+      // The newest of several tags counts, whatever order they were made in.
+      [['26.11.30', '26.11.4'], '26.11.5', false],
+    ];
+    cases.forEach(([tags, head, passes], i) => {
+      const { code, out } = versions(`numbers-${i}`, tags, head);
+      expect(code, `${tags.join(',')} then ${head}`).toBe(passes ? 0 : 1);
+      if (!passes)
+        expect(out).toContain(`${head} is not newer than the newest release`);
+    });
+  });
+
+  it('lets the next version pass, gaps included', () => {
+    expect(versions('next', ['26.11.27'], '26.11.28').code).toBe(0);
+    expect(versions('gap', ['26.11.25'], '26.11.28').code).toBe(0);
+  });
+});

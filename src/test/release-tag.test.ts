@@ -115,3 +115,81 @@ describe('the tag of a release whose version a hotfix took first (O25)', () => {
     );
   });
 });
+
+describe('the tag of a version not newer than every release (owner, 2026-11-25, 108)', () => {
+  /** main with the tags <tags> on a side branch and its own release commit of <release>; the exit code and the error. */
+  function tagging(name: string, tags: string[], release: string) {
+    const dir = join(root, name);
+    const origin = join(root, `${name}.git`);
+    mkdirSync(join(dir, 'scripts'), { recursive: true });
+    const git = (...args: string[]) =>
+      execFileSync(REAL_GIT, args, {
+        cwd: dir,
+        env: { PATH: process.env.PATH, ...ENV },
+        encoding: 'utf8',
+      }).trim();
+    execFileSync(REAL_GIT, ['init', '-q', '--bare', origin]);
+    git('init', '-q', '-b', 'main');
+    git('remote', 'add', 'origin', origin);
+    copyFileSync(
+      join(ROOT, 'scripts/release.sh'),
+      join(dir, 'scripts/release.sh'),
+    );
+    const version = (v: string) =>
+      writeFileSync(join(dir, 'VERSION'), `${v}\n`);
+    version('26.1.0');
+    git('add', '-A');
+    git('commit', '-q', '-m', 'Start');
+    git('switch', '-q', '-c', 'hotfix/x');
+    for (const tag of tags) {
+      version(tag);
+      git('commit', '-q', '-am', `Release ${tag}`);
+      git('tag', '-a', tag, '-m', tag);
+    }
+    git('switch', '-q', 'main');
+    writeFileSync(join(dir, 'feature.txt'), `${name}\n`);
+    version(release);
+    git('add', '-A');
+    git('commit', '-q', '-m', `Release ${release} (#9)`);
+    git('push', '-q', 'origin', 'main', 'hotfix/x', '--tags');
+    const commit = git('rev-parse', 'HEAD');
+    try {
+      execFileSync('sh', ['scripts/release.sh', '--dry-run'], {
+        cwd: dir,
+        env: {
+          PATH: `${bin}:${process.env.PATH}`,
+          ...ENV,
+          NOVA_RELEASE_EXPECTED_SHA: commit,
+          NOVA_RELEASE_BRANCH: 'main',
+        },
+        encoding: 'utf8',
+        stdio: 'pipe',
+      });
+      return { code: 0, err: '' };
+    } catch (error) {
+      const e = error as { status: number; stderr: string };
+      return { code: e.status, err: e.stderr };
+    }
+  }
+
+  it('tags no version below the newest release: the merged 26.11.26 after the hotfix 26.11.27', () => {
+    const { code, err } = tagging('tag-below', ['26.11.27'], '26.11.26');
+    expect(code).toBe(1);
+    expect(err).toContain(
+      '26.11.26 is not newer than the newest release 26.11.27: this release is not tagged, a release is never published after a newer one. Recovery: a new release pull request of main on the owner\'s word (workflow "Release pull request"), which takes the next free version.',
+    );
+  });
+
+  it('compares each part as a number, also over a month and a year', () => {
+    expect(tagging('tag-9-10', ['26.11.9'], '26.11.10').code).toBe(0);
+    expect(tagging('tag-10-9', ['26.11.10'], '26.11.9').code).toBe(1);
+    expect(tagging('tag-month', ['26.10.0'], '26.9.6').code).toBe(1);
+    expect(tagging('tag-year', ['27.1.0'], '26.12.4').code).toBe(1);
+    expect(tagging('tag-next', ['26.12.3'], '27.1.0').code).toBe(0);
+  });
+
+  it('tags the next version, gaps included', () => {
+    expect(tagging('tag-next-28', ['26.11.27'], '26.11.28').code).toBe(0);
+    expect(tagging('tag-gap', ['26.11.25'], '26.11.28').code).toBe(0);
+  });
+});
