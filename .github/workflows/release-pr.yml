@@ -62,3 +62,11 @@ jobs:
           REBUILD_ONLY: ${{ inputs.rebuild || false }}
           GH_TOKEN: ${{ steps.app.outputs.token }}
         run: sh scripts/release-pr.sh
+      # main moved: every open merge-back of a released hotfix is built again
+      # from the new main, so it stays up to date and mergeable (owner,
+      # 2026-11-25, 111a); also when the release pull request failed above.
+      - name: Rebuild the merge-back of a released hotfix
+        if: ${{ !cancelled() && github.event_name == 'push' && github.ref_name == 'main' }}
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+        run: sh scripts/hotfix-back.sh rebuild

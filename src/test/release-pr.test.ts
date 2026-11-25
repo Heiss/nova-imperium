@@ -254,4 +254,24 @@ describe('release-pr.sh for main', () => {
       'gh workflow run release-pr.yml --ref main -f rebuild=true',
     );
   });
+
+  it('rebuilds the release pull request of main after a squashed merge-back of a hotfix (116a)', () => {
+    const repo = repository('squashed-back');
+    hotfix(repo);
+    commit(repo, 'changes/neu.md', 'Neue Funktion (#1)');
+    // The merge-back of the hotfix, squashed into main.
+    repo.git('merge', '-q', '--squash', 'hotfix/x');
+    repo.git(
+      'commit',
+      '-q',
+      '-m',
+      'Sicherheits-Hotfix 26.11.1 zurück nach main (#4)',
+    );
+    const { calls, code } = release(repo, 'push', 'false', { open: '7' });
+    expect(code).toBe(0);
+    expect(calls).toContain(
+      'pr edit 7 --title Release 26.11.2 --body-file release-body.md',
+    );
+    expect(undone(calls)).toEqual([]);
+  });
 });
