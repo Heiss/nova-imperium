@@ -52,7 +52,9 @@ export function parseFragment(name: string, content: string): Fragment {
   const kind = /^art:\s*(\S+)\s*$/m.exec(m.groups.head!)?.[1];
   if (!KINDS.includes(kind as Kind))
     throw new Error(`${name}: "art" must be one of ${KINDS.join(', ')}`);
-  const text = m.groups.body!.trim().replace(/\s*\n\s*/g, ' ');
+  // Each run of white space with a line break becomes one space. The match
+  // starts only where a run starts, so it stays linear (#367).
+  const text = m.groups.body!.trim().replace(/(?<!\s)\s*\n\s*/g, ' ');
   if (!text) throw new Error(`${name}: the text is empty`);
   if (text.length > MAX_TEXT)
     throw new Error(`${name}: the text has more than ${MAX_TEXT} characters`);

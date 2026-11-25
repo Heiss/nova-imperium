@@ -13,6 +13,7 @@ import {
   searchDocs,
 } from './docs.ts';
 import { defaultState } from './state.ts';
+import { fast, HOSTILE, sameOn } from '../../test/redos.ts';
 import type { Block, EntryLexicon, LexState, PageDef } from './types.ts';
 
 const meta = (o: Partial<ArticleMeta> = {}): ArticleMeta => ({
@@ -345,5 +346,19 @@ describe('the texts of a written page as they read', () => {
       'Erster',
       'Ein Wort',
     ]);
+  });
+});
+
+describe('the first sentence in linear time (#367)', () => {
+  it('is the one the unanchored expression found', () => {
+    const OLD = /.*?[.!?](?=\s)/s;
+    sameOn(['a', '.', '!', '?', ' ', '\n', '5'], (text) => {
+      expect(firstSentence(text)).toBe(OLD.exec(text)?.[0] ?? text);
+    });
+  });
+
+  it('reads a text of marks without a space fast (before: about 5 s)', () => {
+    const text = '.'.repeat(HOSTILE);
+    expect(fast(() => firstSentence(text))).toBe(text);
   });
 });

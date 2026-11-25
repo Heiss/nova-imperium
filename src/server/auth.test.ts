@@ -2,6 +2,7 @@ import { scryptSync } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import * as auth from './auth.ts';
 import { addUser, testConfig, testCtx } from './test-helpers.ts';
+import { fast, HOSTILE, sameOn } from '../test/redos.ts';
 
 const cfg = testConfig();
 const DAY = 86400000;
@@ -191,5 +192,20 @@ describe('login and sessions', () => {
     auth.endSession(ctx, t2);
     auth.endSession(ctx, undefined);
     expect(auth.sessionUser(ctx, t2)).toBeNull();
+  });
+});
+
+describe('the address of an invitation in linear time (#367)', () => {
+  it('is checked as the expression with two open runs checked it', () => {
+    const OLD = /^[^\s@<>"',;]+@[^\s@<>"',;]+\.[^\s@<>"',;]+$/;
+    sameOn(['a', '.', '@', ' ', ',', 'b'], (email) => {
+      expect(auth.EMAIL.test(email)).toBe(OLD.test(email));
+    });
+  });
+
+  it('checks a domain of many dots fast (before: about 3 s)', () => {
+    expect(fast(() => auth.EMAIL.test(`a@${'.'.repeat(HOSTILE)}@`))).toBe(
+      false,
+    );
   });
 });

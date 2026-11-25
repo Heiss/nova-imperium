@@ -74,6 +74,7 @@ pnpm lint:dead       # knip: unused files, exports, dependencies
 pnpm lint:dupes      # jscpd: copied code
 pnpm lint:deps       # dependency-cruiser: import rules
 pnpm lint            # ESLint incl. complexity ≤ 10, cognitive ≤ 10, depth ≤ 4, functions ≤ 50 lines
+pnpm lint:redos      # ReDoS lint: no regular expression of polynomial time (tests: exponential), cached; own CI job
 pnpm format:check    # Prettier
 pnpm typecheck       # svelte-check (TypeScript and Svelte)
 pnpm test:coverage   # Vitest; blocks below 90 % lines / 85 % branches

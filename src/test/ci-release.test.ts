@@ -415,6 +415,7 @@ describe('CI Gate', () => {
     SECURITY: 'success',
     MIGRATIONS: 'success',
     WORKFLOWS: 'success',
+    REDOS: 'success',
     CODEQL: 'success',
     FRAGMENTS: 'success',
     CHECK: 'success',
@@ -473,6 +474,7 @@ describe('CI Gate', () => {
       ['CODEQL', 'CodeQL'],
       ['FRAGMENTS', 'Changelog fragments'],
       ['WORKFLOWS', 'Workflow lint'],
+      ['REDOS', 'ReDoS lint'],
     ] as const) {
       const { code, out } = evaluate({
         ...skipped,

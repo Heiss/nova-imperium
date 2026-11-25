@@ -11,8 +11,11 @@ import type { RoundReset } from './db/round-reset.ts';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 // A value after a name that hints at a secret: password=…, "token": "…".
-const SECRET_FIELD =
-  /(?<![\w-])([\w-]*(?:passwor[dt]|passwd|pw|kennwort|token|secret|session|cookie|salt|hash|code|challenge|auth|e-?mail)[\w-]*)(["']?\s*[:=]\s*)("[^"]*"|'[^']*'|[^\s,;&}"')\]]+)/gi;
+// The name is the whole run of name characters, with a hint somewhere in it
+// (the lookahead): `[\w-]*hint[\w-]*` tried every hint of a long name and
+// took quadratic time (#367).
+export const SECRET_FIELD =
+  /(?<![\w-])((?=[\w-]*?(?:passwor[dt]|passwd|pw|kennwort|token|secret|session|cookie|salt|hash|code|challenge|auth|e-?mail))[\w-]+)(["']?\s*[:=]\s*)("[^"]*"|'[^']*'|[^\s,;&}"')\]]+)/gi;
 const EMAIL =
   /(?<![^\s@<>()[\]"',;:/\\])[^\s@<>()[\]"',;:/\\]+@[^\s@<>()[\]"',;:/\\]+\.[^\s@<>()[\]"',;:/\\]+/g;
 // Starts only at the beginning of a run of token characters, so it stays linear.

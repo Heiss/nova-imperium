@@ -29,6 +29,7 @@ changes need; a release pull request runs only the cheap checks. One job,
 | Secrets and dependencies                     | gitleaks over the whole history (exceptions in `.gitleaksignore`); `pnpm audit --prod --audit-level high`.                                                                                                                                                                                                                                                                                                                                                                            | Always.                                                                       |
 | Migrations append-only                       | No released migration was moved, removed or changed, compared with the base of the pull request, the previous tip of the branch, or for a new hotfix branch the release tag it starts from (`.github/scripts/migrations-gate.mjs`).                                                                                                                                                                                                                                                   | Always.                                                                       |
 | Workflow lint                                | actionlint (syntax, expressions, shell) and zizmor (security, for example unpinned actions or persisted credentials) over `.github/workflows`.                                                                                                                                                                                                                                                                                                                                        | Always.                                                                       |
+| ReDoS lint                                   | `pnpm lint:redos`: the rule `redos/no-vulnerable` of `eslint-plugin-redos` (`eslint.redos.config.js`) over every file `eslint .` covers; a polynomial or exponential regular expression in production code or `scripts/`, an exponential one in tests, and a check that times out (30 s) fail. The ESLint cache is kept per lockfile and configuration.                                                                                                                               | Always.                                                                       |
 | CodeQL                                       | `security-extended` queries over JavaScript and TypeScript; a finding of security severity 7.0 or more, or of level „error“, fails (`.github/scripts/codeql-gate.mjs`).                                                                                                                                                                                                                                                                                                               | Always: the ruleset of `main` waits for a CodeQL result of the exact commit.  |
 | Documentation website                        | Prettier over `website/`, the entries of the update log in `okf/log/` (`scripts/okf-log.ts check`), its tests (`pnpm test`, `node:test`), then the build of this site from `website/`, `okf/` and `docs/`; every internal link and anchor must resolve.                                                                                                                                                                                                                               | When the website or its sources change.                                       |
 | CI Gate                                      | Evaluates every job above (next section).                                                                                                                                                                                                                                                                                                                                                                                                                                             | Always, also when a job failed or was skipped.                                |
@@ -67,7 +68,7 @@ its base:
 The gate runs with `if: always()` and fails unless:
 
 1. „Detect changes“, „Secrets and dependencies“, „Migrations append-only“,
-   „Workflow lint“ and „CodeQL“ succeeded – for every change,
+   „Workflow lint“, „ReDoS lint“ and „CodeQL“ succeeded – for every change,
    documentation included;
 2. on a push, all outputs are true – pushes run the full suite, and a job
    is skipped only with its proof (next section); in the nightly run, all
@@ -241,6 +242,9 @@ The published release is scanned again every hour by the workflow
   dependencies of the game.
 - **CodeQL** runs the `security-extended` queries with the full analysis on
   pull requests and `main` alike.
+- **ReDoS lint**: no regular expression that takes polynomial time (in
+  tests: exponential time) on a hostile input; a finding is fixed by
+  rewriting the expression, with a test that it behaves as before (#367).
 - **Workflow lint**: every action is pinned to a commit hash with its
   version as a comment, and checkouts keep no credentials unless the job
   pushes.

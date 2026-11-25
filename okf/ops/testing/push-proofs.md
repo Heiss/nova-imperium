@@ -37,8 +37,8 @@ description: 'When a push to main or a hotfix branch skips a job that succeeded 
   over the result of its head before, #167, note `reuse`, was tested on
   another tree and proves none, nor does a run without the note),
   „Docker image and Compose stack“, „Documentation website“. The cheap jobs
-  (secrets and dependencies, migrations, workflow lint, CodeQL, the change
-  detection) run on every push.
+  (secrets and dependencies, migrations, workflow lint, ReDoS lint since
+  #367, CodeQL, the change detection) run on every push.
 * **[V]** It fails closed: no pull request (a direct push), two of them, one
   not merged or into another branch, no green run, a run of a fork or of
   another workflow, a red, cancelled or running run, a different tree, an answer of another shape and every error of the API prove nothing,

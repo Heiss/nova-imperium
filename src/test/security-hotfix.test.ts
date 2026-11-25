@@ -16,7 +16,9 @@ import {
   severityOf,
   stillVulnerable,
   type TrivyReport,
+  yamlKey,
 } from '../../scripts/security-hotfix.ts';
+import { fast, HOSTILE, sameOn } from './redos.ts';
 import { parseFragment } from '../../scripts/changelog.ts';
 
 const DIGEST = `sha256:${'a'.repeat(64)}`;
@@ -624,5 +626,22 @@ describe('security hotfix: apply', () => {
     expect(f.text).toBe(
       'Sicherheitsupdate: eine bekannte Lücke in einer verwendeten Komponente ist geschlossen.',
     );
+  });
+});
+
+describe('the key of a YAML line in linear time (#367)', () => {
+  it('is read as the expression with `[^:]*?` before `\\s*:` read it', () => {
+    const OLD = /^\s+(?:'([^']+)'|"([^"]+)"|([^\s'"#][^:]*?))\s*:/;
+    sameOn([' ', '\t', 'a', ':', "'", '"', '#', 'b c'], (line) => {
+      expect(yamlKey(line)).toBe(
+        OLD.exec(line)
+          ?.slice(1)
+          .find((key) => key !== undefined),
+      );
+    });
+  });
+
+  it('reads a long run of spaces without a colon fast (before: about 3 s)', () => {
+    expect(fast(() => yamlKey(` a${' '.repeat(HOSTILE)}b`))).toBeUndefined();
   });
 });

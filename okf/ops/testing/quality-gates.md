@@ -1,7 +1,7 @@
 ---
 type: Policy
 title: 'Quality gates'
-description: 'Mutation standard per file, coverage, ESLint complexity and code hygiene that block in the CI.'
+description: 'Mutation standard per file, coverage, ESLint complexity, the ReDoS lint and code hygiene that block in the CI.'
 ---
 
 # Quality gates
@@ -61,6 +61,31 @@ description: 'Mutation standard per file, coverage, ESLint complexity and code h
   (sonarjs) ≤ 10, nesting ≤ 4, functions ≤ 50 lines (tests are free of the
   length rule). The dense code of version 1 was rebuilt into small functions;
   no place is exempted.
+
+* **[E]** ReDoS lint (owner, 2026-11-25, 80a/81a, #367): the rule
+  `redos/no-vulnerable` of `eslint-plugin-redos` (recheck, MIT, pinned
+  exactly) runs over every file `eslint .` covers and blocks in its own CI
+  job „ReDoS lint“, which runs for every change and which the CI Gate
+  requires like „Workflow lint“. In production code and `scripts/` a
+  polynomial or exponential expression is a finding; in tests
+  (`**/*.test.ts`, `e2e/**`, `src/test/**`) only an exponential one. A
+  timeout of the check is a finding too. A finding is fixed by rewriting
+  the expression, with a test that it behaves as before and a hostile
+  input that is now fast; a disable comment only for a proven false
+  positive. The ten findings of 2026-11-25 were rewritten so (#367).
+  **[V]** How it is built: `eslint.redos.config.js` enables only this rule,
+  with the TypeScript parser and the ignores of `eslint.config.js`, so
+  `pnpm lint` keeps its speed; `pnpm lint:redos` runs it with the ESLint
+  cache (`--cache-strategy content`, in
+  `node_modules/.cache/eslint-redos/`), which the CI job keeps with
+  `actions/cache` per lockfile and ESLint configuration. The timeout per
+  expression is 30 s (`timeout`, `ignoreErrors: false`): the slowest check
+  of the tree of 2026-11-25 took 3.2 to 3.6 s (850 checks, about 100 s in
+  all, measured locally on 4 cores with recheck's native binary), so the
+  timeout leaves about eight times that. The tests of a rewritten
+  expression compare it with the old one on many generated texts
+  (`src/test/redos.ts`) and bound a hostile text of 50,000 characters to
+  100 ms, which the old ones took 0.8 to 5 s for.
 
 * **[E]** Code hygiene blocks in the job „Lint, types, unit tests …“
   (owner, 2026-11-11): knip (`knip.json`: no unused files, exports or

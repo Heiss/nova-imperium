@@ -11,6 +11,7 @@ import {
   section,
   sectionOf,
 } from '../../scripts/changelog.ts';
+import { fast, HOSTILE, sameOn } from './redos.ts';
 
 const f = (name: string, kind: Fragment['kind'], text: string): Fragment => ({
   name,
@@ -160,5 +161,24 @@ describe('fragment check', () => {
         [],
       ),
     ).toContain('src/client/c.ts, …)');
+  });
+});
+
+describe('the text of a fragment in linear time (#367)', () => {
+  it('joins the lines as the expression before did', () => {
+    const OLD = /\s*\n\s*/g;
+    sameOn(['a', ' ', '\t', '\n', '\r', '\r\n', '\u00a0', '\u2028'], (body) => {
+      const text = body.replace(/\r\n/g, '\n').trim().replace(OLD, ' ');
+      const read = () => parseFragment('a.md', `---\nart: neu\n---\n${body}`);
+      if (text) expect(read().text).toBe(text);
+      else expect(read).toThrow('a.md: the text is empty');
+    });
+  });
+
+  it('reads a long run of white space without a line break fast (before: about 3 s)', () => {
+    const body = `a${'\t'.repeat(HOSTILE)}b`;
+    expect(() =>
+      fast(() => parseFragment('a.md', `---\nart: neu\n---\n${body}`)),
+    ).toThrow(`more than ${MAX_TEXT} characters`);
   });
 });

@@ -4,12 +4,65 @@
 /** A piece of a text: plain words, or a link to an article. */
 export type Segment = { text: string } | { text: string; link: string };
 
-const LINK = /\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g;
 const VALUE = /\{(\w+)\}/g;
+
+/** A link of a text: where it starts and ends, its id and its own text. */
+interface Link {
+  start: number;
+  end: number;
+  id: string;
+  text?: string;
+}
+
+/**
+ * Where the leftmost link of <part> starts, or -1. <part> holds no „]“ and
+ * a „]]“ follows it: the link is „[[“, then the id, neither empty nor
+ * starting with „|“, and then perhaps „|“ and a text that is not empty
+ * (#285).
+ */
+function linkStart(part: string): number {
+  // The id starts before the end of <part>; when <part> ends with „|“, it
+  // starts before another „|“, or the text after the id would be empty.
+  const limit = part.endsWith('|')
+    ? part.lastIndexOf('|', part.length - 2)
+    : part.length;
+  for (
+    let at = part.indexOf('[[');
+    at >= 0 && at + 2 < limit;
+    at = part.indexOf('[[', at + 1)
+  )
+    if (part[at + 2] !== '|') return at;
+  return -1;
+}
+
+/**
+ * The links of a text in order, as /\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g
+ * finds them: a link ends at the first „]“ after its „[[“, and a second „]“
+ * must follow. The text is read once from the left; that expression tried
+ * every „[[“ up to the next „]“ again and took quadratic time on a text of
+ * many „[[“ without „]]“ (#367).
+ */
+function links(text: string): Link[] {
+  const out: Link[] = [];
+  let from = 0;
+  for (let close = text.indexOf(']'); close >= 0;) {
+    const part = text.slice(from, close);
+    const at = text[close + 1] === ']' ? linkStart(part) : -1;
+    if (at >= 0) {
+      const [id, ...rest] = part.slice(at + 2).split('|');
+      const own = rest.length > 0 ? { text: rest.join('|') } : {};
+      out.push({ start: from + at, end: close + 2, id: id!, ...own });
+    }
+    // After a link its second „]“ starts the next part, which is empty.
+    from = close + 1;
+    close = text.indexOf(']', from);
+  }
+  return out;
+}
 
 /** The ids of the articles a text links to, in order. */
 export const linkTargets = (text: string): string[] =>
-  [...text.matchAll(LINK)].map((m) => m[1]!);
+  links(text).map((l) => l.id);
 
 /** The names of the values a text holds, in order. */
 export const valueNames = (text: string): string[] =>
@@ -37,11 +90,10 @@ export function segments(
 ): Segment[] {
   const out: Segment[] = [];
   let at = 0;
-  for (const m of text.matchAll(LINK)) {
-    if (m.index > at) out.push({ text: text.slice(at, m.index) });
-    const id = m[1]!;
-    out.push({ text: m[2] ?? title(id) ?? id, link: id });
-    at = m.index + m[0].length;
+  for (const l of links(text)) {
+    if (l.start > at) out.push({ text: text.slice(at, l.start) });
+    out.push({ text: l.text ?? title(l.id) ?? l.id, link: l.id });
+    at = l.end;
   }
   if (at < text.length) out.push({ text: text.slice(at) });
   return out;

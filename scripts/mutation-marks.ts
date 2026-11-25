@@ -33,9 +33,15 @@ export interface Mark {
  * restore); other text does not count. Stryker reads the text of a comment
  * with `^\s?Stryker (disable|restore)` (directive-bookkeeper.js of
  * @stryker-mutator/instrumenter); this is wider (any case, more space, a
- * line of a block comment), so the guard misses none.
+ * line of a block comment), so the guard misses none. Read from the line
+ * without its trailing white space (directiveOf): `.*?` before `\s*$` took
+ * quadratic time on a long run of spaces (#367).
  */
-const DIRECTIVE = /^[\s*]*Stryker\s+((?:disable|restore)\b.*?)\s*$/i;
+const DIRECTIVE = /^[\s*]*Stryker\s+((?:disable|restore)\b.*)$/i;
+
+/** The directive of one comment line (without its trailing space), or undefined. */
+export const directiveOf = (content: string): string | undefined =>
+  DIRECTIVE.exec(content.trimEnd())?.[1];
 
 /** The one allowed form: one line, named mutators, a reason. */
 const ALLOWED =
@@ -77,8 +83,8 @@ export function marksIn(file: string, text: string): Mark[] {
         : body.slice(2, -2);
     const first = text.slice(0, range.pos).split('\n').length;
     return inner.split('\n').flatMap((content, index) => {
-      const found = DIRECTIVE.exec(content);
-      return found ? [{ file, line: first + index, text: found[1]! }] : [];
+      const found = directiveOf(content);
+      return found ? [{ file, line: first + index, text: found }] : [];
     });
   });
 }

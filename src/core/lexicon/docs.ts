@@ -93,9 +93,11 @@ export const partTexts = (a: ArticleMeta): string[] =>
 /**
  * The first sentence of a text as it reads: up to the first full stop,
  * „!“ or „?“ that a space follows; the whole text when there is none.
+ * Anchored at the start: the search from every later position took
+ * quadratic time on a text without such a mark (#367).
  */
 export const firstSentence = (text: string): string =>
-  /.*?[.!?](?=\s)/s.exec(text)?.[0] ?? text;
+  /^.*?[.!?](?=\s)/s.exec(text)?.[0] ?? text;
 
 /** Whether an article has the section „Was die Stufen bringen“. */
 export const hasEffect = (a: ArticleMeta): boolean =>
