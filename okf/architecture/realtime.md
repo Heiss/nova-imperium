@@ -35,9 +35,29 @@ generated: { by: claude-code/web, at: 2026-11-25T09:30:00Z }
   three quarters of it in `pointsMap` and `categoryScores`, which compute
   the points and highscore categories of every player on every call. The
   bytes are harmless; the time of the server is the cost.
-* **[E]** First, and on its own: the points and highscore categories are
-  kept between calls and computed again only when they can have changed
-  (owner, 2026-11-25).
+* **[E]** First, and on its own: the points and highscore categories of
+  all players are computed in one pass, at most every 10 s, and every call
+  in between takes the stored result (owner, 2026-11-25). A cache that
+  only a write empties is not enough: a building, a research or a unit of
+  the shipyard is finished when a planet is read (`settle`), so points
+  change with time and without a write. The display is at most 10 s old,
+  near the live statistics of the classic game: owiki.de, „Punkte“, has
+  them since version 0.78c, and up to 0.78b computed three times a day.
+  **[V]** A check of an action that needs points (noob protection) keeps
+  computing them exactly, for the two players it concerns only.
+  * Measured with the setup above (20 players): `pointsMap` and
+    `categoryScores` took about 15 and 18.6 ms, 34 ms together, so a pass
+    every 10 s costs about 0.3 % of one core, whatever the number of tabs.
+  * Built in #405, target `main`.
+* **[E]** The parts that are the same for every player are built once and
+  sent to all (owner, 2026-11-25): `galaxy` (`state.ts`: its builder ignores
+  the player), `players`, the universe and the rules of the round. Each is
+  built, turned into JSON and compressed (gzip, brotli) once per version
+  and served as these bytes, or as 304. Caddy leaves a response that
+  already has `Content-Encoding` as it is (`encode.go`, v2.11.9).
+  **[V]** `galaxy` also changes with time (the activity markers of #229),
+  so it follows the same bound of 10 s. Built with the parts in #408, on
+  the v3 branch.
 * **[E]** The problems to solve, in this order: the load of the full state
   every 4 s per tab, the redraw of the client, and the delay of up to 4 s
   for the guild chat, private messages and attacks.
@@ -75,17 +95,21 @@ generated: { by: claude-code/web, at: 2026-11-25T09:30:00Z }
   * Any change of the part by someone else since `basedOn` refuses the
     whole save, also when it touched other fields, because a value can
     depend on another one (two admins, one raising costs while the other
-    lowers prices on the old costs). The refusal names what changed, who
-    and when. The safest choice first; if its UX turns out bad, a finer one
-    is looked for later (owner, 2026-11-25).
+    lowers prices on the old costs). The change is found by the version
+    of the part: `basedOn` against the current version, also for a change
+    from the same person in another tab. The refusal names each changed
+    field with its last change, who and when. The safest choice first; if
+    its UX turns out bad, a finer one is looked for later (owner,
+    2026-11-25).
   * A change by someone else that arrives while the form is open shows
     as a line such as „Anna hat Marktgebühr 5 → 3 geändert [Übernehmen]“.
     Only „Übernehmen“ moves `basedOn` on; the client never moves it by
     itself, or the check would be worthless.
   * Every editable field keeps a stamp of its last change: the version of
     the part, who and when. It is one row per field, overwritten, so it
-    does not grow with the changes; it gives the „who, what, when“ of the
-    line and the refusal.
+    does not grow with the changes. It gives the „who, what, when“ of the
+    line and the refusal, for the last change of each field only; it is
+    not a history and does not decide the refusal.
   * **[E]** The stamp is written in the repository method of its field, one
     place per field, so every way that writes the field stamps it (an
     action, a new round, the switch that dissolves the guilds); a guard test

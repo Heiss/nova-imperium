@@ -274,5 +274,6 @@ may pass on a right its holder lacks.
 * **[E]** A further right „Protokoll lesen“ for the [Guild log](/features/guild-log.md)
   (owner, 2026-11-25). The rights of a rank, its name and the guild profile
   are saved as in [Data exchange and realtime](/architecture/realtime.md):
-  a save holds all or nothing, and any change of the rank by someone else
-  since the form was read refuses it until „Übernehmen“ (O31).
+  a save holds all or nothing, and any change of the saved part by someone
+  else since the form was read refuses it until „Übernehmen“ (O31). The saved
+  part is a rank (its rights or name) or the guild profile.
