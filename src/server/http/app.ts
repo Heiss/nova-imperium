@@ -32,7 +32,9 @@ import { adminRoutes } from './admin.ts';
 import { errorRoutes } from './errors.ts';
 import { playtimeRoutes } from './playtime.ts';
 import { loadStatic } from './static.ts';
-import { beginLogin, loginCodeRoutes } from './login-code.ts';
+import { hasAuthenticator } from '../authenticator.ts';
+import { authenticatorRoutes } from './authenticator.ts';
+import { beginAppLogin, beginLogin, loginCodeRoutes } from './login-code.ts';
 import type { News } from '../news.ts';
 
 export interface AppDeps {
@@ -138,6 +140,25 @@ async function sendReset(d: AppDeps, email: unknown): Promise<void> {
   });
 }
 
+/** „Passwort vergessen“: the link goes by mail in the background. */
+function forgotReply(d: AppDeps, email: unknown): Reply {
+  if (!d.mailer)
+    throw new GameError(
+      'Passwort-Wiederherstellung per E-Mail ist nicht eingerichtet.',
+    );
+  setImmediate(() => {
+    void sendReset(d, email).catch((error: unknown) => {
+      d.log?.('Password reset mail failed');
+      noteServerError(
+        d.ctx,
+        { action: 'mail', error, version: d.news?.version },
+        d.log,
+      );
+    });
+  });
+  return { json: { ok: true } };
+}
+
 function passwordRoutes(d: AppDeps, guard: Guard): Record<string, Handler> {
   const { ctx, cfg } = d;
   const minimum = cfg.passwordMinLength;
@@ -148,25 +169,18 @@ function passwordRoutes(d: AppDeps, guard: Guard): Record<string, Handler> {
   return {
     'POST /api/password/forgot': ({ req, body }) => {
       guard(req);
-      if (!d.mailer)
-        throw new GameError(
-          'Passwort-Wiederherstellung per E-Mail ist nicht eingerichtet.',
-        );
-      setImmediate(() => {
-        void sendReset(d, body.email).catch((error: unknown) => {
-          d.log?.('Password reset mail failed');
-          noteServerError(
-            ctx,
-            { action: 'mail', error, version: d.news?.version },
-            d.log,
-          );
-        });
-      });
-      return { json: { ok: true } };
+      return forgotReply(d, body.email);
     },
     'POST /api/password/reset': ({ req, body }) => {
       guard(req);
-      security.resetPassword(ctx, body.token, body.password, minimum);
+      // With an authenticator app its code too (104, #401).
+      security.resetPassword(
+        ctx,
+        body.token,
+        body.password,
+        minimum,
+        body.code,
+      );
       return signedOut();
     },
     'POST /api/password/change': (call) => {
@@ -314,15 +328,21 @@ function loginRoutes(
     'POST /api/login': ({ req, body, requestId }) => {
       guard(req);
       const actor = ctx.players.byName(str(body.name, 20))?.id;
-      const action = cfg.emailLoginCodes ? 'loginPassword' : 'login';
+      // An account with an authenticator app is asked for its code whatever
+      // the setting says, and never for a mail code (102a, #401).
+      const app = actor !== undefined && hasAuthenticator(ctx, actor);
+      const second = app || cfg.emailLoginCodes;
+      const action = second ? 'loginPassword' : 'login';
       const user = audited(
         ctx,
         { category: 'account', action, actor, requestId },
         () => auth.login(ctx, body.name, body.password),
       );
-      return cfg.emailLoginCodes
-        ? beginLogin(d, user, requestId, body.remember !== false)
-        : enter(user, body.remember !== false);
+      const remember = body.remember !== false;
+      if (app) return beginAppLogin(d, user, remember);
+      return second
+        ? beginLogin(d, user, requestId, remember)
+        : enter(user, remember);
     },
     ...loginCodeRoutes(d, guard, enter),
   };
@@ -656,6 +676,7 @@ export function createApp(d: AppDeps): {
   const errors = errorRoutes(d, (call) => sessionUserOf(d.ctx, call));
   const table = Object.entries({
     ...accountRoutes(d, guard),
+    ...authenticatorRoutes(d, guard, (call) => sessionUserOf(d.ctx, call)),
     ...gameRoutes(d, guard, actions),
     ...pushRoutes(d),
     ...errors.routes,

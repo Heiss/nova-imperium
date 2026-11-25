@@ -4,14 +4,15 @@
 // main.ts (`authform`, `forgotform`, `resetform`, `codeform`, the acts
 // `forgot`, `authback`, `authswitch`, `passkeyLogin`) and read the fields
 // (`#a_name`, `#a_pw`, `#a_planet`, `#a_gal`, `#remember-login`,
-// `#recovery_email`, `#pw_next`, `#login_code`).
+// `#recovery_email`, `#pw_next`, `#reset_code`, `#login_code`).
 import type { Ui } from '../views/common.ts';
 
 /** The screen of `ui.auth`: the login, the registration with an invitation, or one of the steps. */
 export type AuthPage =
   | { kind: 'forgot' }
-  | { kind: 'reset'; minLength: number | undefined }
+  | { kind: 'reset'; minLength: number | undefined; app: boolean }
   | { kind: 'code' }
+  | { kind: 'app' }
   | { kind: 'login' }
   | {
       kind: 'register';
@@ -24,12 +25,14 @@ export type AuthPage =
 
 /** The screen for the state of the login; the registration only with a checked invitation. */
 export function authPage(
-  ui: Pick<Ui, 'auth' | 'invite' | 'passwordMinLength'>,
+  ui: Pick<Ui, 'auth' | 'invite' | 'passwordMinLength' | 'resetApp'>,
 ): AuthPage {
   const minLength = ui.passwordMinLength;
   if (ui.auth === 'forgot') return { kind: 'forgot' };
-  if (ui.auth === 'reset') return { kind: 'reset', minLength };
+  if (ui.auth === 'reset')
+    return { kind: 'reset', minLength, app: ui.resetApp === true };
   if (ui.auth === 'code') return { kind: 'code' };
+  if (ui.auth === 'app') return { kind: 'app' };
   if (ui.auth === 'register' && ui.invite !== null)
     return {
       kind: 'register',

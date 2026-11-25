@@ -1,4 +1,5 @@
 import { DAY } from '../audit.ts';
+import { hasAuthenticator } from '../authenticator.ts';
 import { botCheckOf } from './bot-check.ts';
 import type { Ctx } from './context.ts';
 import { suspension } from './moderation.ts';
@@ -71,6 +72,8 @@ export function playerDetail(ctx: Ctx, uid: string) {
     suspension: suspension(ctx, uid) ?? null,
     // The check of #181 and its hints, for the admin only (an admin read).
     botCheck: botCheckOf(ctx, uid),
+    // Whether the player has an authenticator app, for its reset (#401).
+    totp: hasAuthenticator(ctx, uid),
     planets: planetsOf(ctx, uid),
     // The days with active time or an action: the sums of the player's own view.
     days: dayTable(ctx, uid).filter((d) => d.activeMs > 0 || d.actions > 0),

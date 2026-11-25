@@ -6,6 +6,11 @@ import {
   passwordMatches,
   validatePassword,
 } from './auth.ts';
+import {
+  hasAuthenticator,
+  takeAppCode,
+  WRONG_APP_CODE,
+} from './authenticator.ts';
 import { NUMBERS } from './config.ts';
 import type { User } from './db/repos/players.ts';
 import { fail, type Ctx } from './game/context.ts';
@@ -99,28 +104,69 @@ export function changePassword(
   ctx.tx(() => replacePassword(ctx, user, String(next ?? ''), minimum));
 }
 
+/** The account of a live reset link: known, not expired, not used up. */
+function resetUserOf(ctx: Ctx, token: unknown): User | null {
+  const record = ctx.db
+    .prepare(
+      "SELECT user_id FROM account_tokens WHERE token_hash = ? AND purpose = 'reset' AND expires > ? AND attempts < ?",
+    )
+    .get(hashToken(String(token ?? '')), ctx.now(), CODE_ATTEMPTS) as
+    Pick<AccountToken, 'user_id'> | undefined;
+  return (record && ctx.players.get(record.user_id)) ?? null;
+}
+
+/** Whether the page of a reset link asks for the code of the app (text 6, 104). */
+export const resetNeedsApp = (ctx: Ctx, token: unknown): boolean => {
+  const user = resetUserOf(ctx, token);
+  return user !== null && hasAuthenticator(ctx, user.id);
+};
+
+/**
+ * The new password of a reset link. With an authenticator app the link alone
+ * sets none: the code of the app is asked too, a wrong one counts like a
+ * wrong mail code, and the app stays (104, #401).
+ */
 export function resetPassword(
   ctx: Ctx,
   token: unknown,
   next: unknown,
   minimum: number = NUMBERS.passwordMinLength.def,
+  appCode?: unknown,
 ): void {
+  const user = resetUserOf(ctx, token);
+  if (!user) return fail('Dieser Link ist ungültig oder abgelaufen.');
+  const password = String(next ?? '');
+  if (hasAuthenticator(ctx, user.id)) {
+    // A code is taken only for a password that will be set.
+    validatePassword(password, minimum);
+    if (!ctx.tx(() => takeAppCode(ctx, user.id, appCode))) {
+      ctx.db
+        .prepare(
+          "UPDATE account_tokens SET attempts = attempts + 1 WHERE token_hash = ? AND purpose = 'reset'",
+        )
+        .run(hashToken(String(token ?? '')));
+      return fail(WRONG_APP_CODE);
+    }
+  }
   ctx.tx(() => {
-    const record = ctx.db
-      .prepare(
-        "SELECT user_id FROM account_tokens WHERE token_hash = ? AND purpose = 'reset' AND expires > ?",
-      )
-      .get(hashToken(String(token ?? '')), ctx.now()) as
-      Pick<AccountToken, 'user_id'> | undefined;
-    const user = record && ctx.players.get(record.user_id);
-    if (!user) return fail('Dieser Link ist ungültig oder abgelaufen.');
-    replacePassword(ctx, user, String(next ?? ''), minimum);
+    replacePassword(ctx, user, password, minimum);
     ctx.db.prepare('DELETE FROM passkeys WHERE user_id = ?').run(user.id);
   });
 }
 
 /** Six digits, the code of a sign-in mail. */
 const newCode = (): string => String(randomInt(1_000_000)).padStart(6, '0');
+
+/**
+ * A sign-in that waits for the code of the authenticator app (102a, #401):
+ * the challenge of the browser as for a mail code, but no mail code (its
+ * `code_hash` is empty), so the code of the app is the only way in.
+ */
+export function issueAppLogin(ctx: Ctx, uid: string): string {
+  const challenge = newToken();
+  saveToken(ctx, uid, 'login', challenge, CODE_LIFE, null);
+  return challenge;
+}
 
 export function issueLoginCode(
   ctx: Ctx,
@@ -144,9 +190,7 @@ function verifyCode(ctx: Ctx, challenge: string, code: string): User | null {
   const hash = hashToken(challenge);
   const record = liveLogin(ctx, challenge);
   if (!record) return null;
-  const expected = Buffer.from(record.code_hash ?? '', 'hex');
-  const actual = Buffer.from(hashToken(challenge + code), 'hex');
-  if (expected.length !== actual.length || !timingSafeEqual(expected, actual)) {
+  if (!codeFits(ctx, record, challenge, code)) {
     ctx.db
       .prepare(
         'UPDATE account_tokens SET attempts = attempts + 1 WHERE token_hash = ?',
@@ -157,6 +201,24 @@ function verifyCode(ctx: Ctx, challenge: string, code: string): User | null {
   ctx.db.prepare('DELETE FROM account_tokens WHERE token_hash = ?').run(hash);
   return ctx.players.get(record.user_id);
 }
+
+/** The code of the mail, or of the app for a sign-in without a mail code. */
+function codeFits(
+  ctx: Ctx,
+  record: AccountToken,
+  challenge: string,
+  code: string,
+): boolean {
+  if (record.code_hash === null) return takeAppCode(ctx, record.user_id, code);
+  const expected = Buffer.from(record.code_hash, 'hex');
+  const actual = Buffer.from(hashToken(challenge + code), 'hex');
+  return expected.length === actual.length && timingSafeEqual(expected, actual);
+}
+
+/** Whether the sign-in of this browser waits for the code of the app (102a). */
+export const appLoginPending = (ctx: Ctx, challenge: unknown): boolean =>
+  typeof challenge === 'string' &&
+  liveLogin(ctx, challenge)?.code_hash === null;
 
 /** A live sign-in by mail code: the challenge is known, not used, not expired, not used up. */
 function liveLogin(
@@ -200,7 +262,8 @@ export function resendLoginCode(
   const now = ctx.now();
   const record = liveLogin(ctx, c);
   const user = record && ctx.players.get(record.user_id);
-  if (!record || !user)
+  // A sign-in with the app has no mail code and no way out by mail (102a).
+  if (!record || !user || record.code_hash === null)
     return fail('Der Anmeldecode ist ungültig oder abgelaufen.');
   // The code was sent when its ten minutes began.
   if (now < record.expires - CODE_LIFE + RESEND_AFTER) return null;

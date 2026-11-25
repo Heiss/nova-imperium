@@ -772,19 +772,19 @@ describe('account audit and replies', () => {
       mailer: async (m) => void mails.push(m),
     });
     const pending = async () => (await call('GET', '/api/login/pending')).json;
-    expect(await pending()).toEqual({ pending: false });
+    expect(await pending()).toEqual({ pending: false, app: false });
     const begun = await call('POST', '/api/login', {
       name: 'Anna',
       password: 'secret1',
     });
     expect(begun.set).toMatch(/; Max-Age=600; Secure$/);
-    expect(await pending()).toEqual({ pending: true });
+    expect(await pending()).toEqual({ pending: true, app: false });
     const cancelled = await call('POST', '/api/login/cancel', {});
     expect(cancelled.json).toEqual({ ok: true });
     expect(cancelled.set).toBe(
       'nova_login=; HttpOnly; Path=/api/login; SameSite=Lax; Max-Age=0; Secure',
     );
-    expect(await pending()).toEqual({ pending: false });
+    expect(await pending()).toEqual({ pending: false, app: false });
   });
 
   it('ends a cancelled sign-in on the server too (#401)', async () => {

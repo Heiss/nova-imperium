@@ -26,10 +26,20 @@ describe('the screen of the login', () => {
     expect(authPage(state({ auth: 'reset', passwordMinLength: 10 }))).toEqual({
       kind: 'reset',
       minLength: 10,
+      app: false,
     });
     expect(authPage(state({ auth: 'reset' }))).toEqual({
       kind: 'reset',
       minLength: undefined,
+      app: false,
+    });
+    // The code of the authenticator app (#401): at the sign-in (text 5) and
+    // on the page of a reset link of an account with one (text 6, 104).
+    expect(authPage(state({ auth: 'app' }))).toEqual({ kind: 'app' });
+    expect(authPage(state({ auth: 'reset', resetApp: true }))).toEqual({
+      kind: 'reset',
+      minLength: undefined,
+      app: true,
     });
   });
 

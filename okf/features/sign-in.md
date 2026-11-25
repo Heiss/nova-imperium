@@ -32,9 +32,11 @@ gave `0`). Own pull request after #395 (98a).
   nothing, as the button only comes after 30 s. An unknown, used, expired or
   used-up challenge is refused like a wrong code. The client shows the
   button 30 s after the code form opened and again 30 s after each ask.
-* **[E]** The texts of the owner (125a), of which this step builds the hint
-  „Wir haben dir einen Code per E-Mail geschickt.“ and the button „Code
-  erneut senden“ (text 3).
+* **[E]** The texts of the owner (125a): 1 the mail, 2 the link in another
+  browser, 3 the hint „Wir haben dir einen Code per E-Mail geschickt.“ and
+  the button „Code erneut senden“, 5 the sign-in step of the app, 6 its field
+  on the reset page, 7 the admin's button and question are built; 4, the box
+  „Authenticator-App“, waits for the open texts below.
 * **[E]** The code is the second factor; the mail carries the code and a
   link that signs in only the browser in which the sign-in was started (95a),
   with text 1 of the owner. **[E]** The cookie `nova_login` is the one path
@@ -68,3 +70,33 @@ gave `0`). Own pull request after #395 (98a).
   node:crypto (SHA-1, 6 digits, 30 s, ±1 step, five attempts, a used step
   refused again); the QR code by `qrcode-generator` on the client after the
   supply-chain check, pinned exactly.
+* **[V]** Built so far (2026-11-25): `totp.ts` (RFC 6238, tested with the
+  vectors of RFC 4226 appendix D and RFC 6238 appendix B), the table `totp`
+  of migration 20261125T2000-totp (secret, confirmed, created, last step,
+  attempts; gone with the account, kept across rounds), `authenticator.ts`
+  and the routes `POST /api/totp/setup|confirm|remove`,
+  `POST /api/password/reset/check`, `POST /api/admin/totp-reset`.
+  * Setup: „Einrichten“ gives the otpauth address and the secret once; the
+    first code confirms it within ten minutes, five wrong codes end it; a
+    second setup while one is set up is refused.
+  * Sign-in (102a): with an app the password asks for its code on the same
+    challenge and cookie as the mail code, with no mail code in it, so
+    neither a mail nor „Code erneut senden“ exists for it; the answer is
+    `{ app: true }` and the step „Code aus der Authenticator-App“ with
+    „Anmelden“ (text 5), also after a reload. A code is taken once: its time
+    step must come after the last one taken.
+  * Removal: the password („Das bisherige Passwort ist falsch.“) and a code.
+  * Reset (104): `reset/check` tells the page of the link to show the field
+    „Code aus der Authenticator-App“ (text 6); the link alone sets no
+    password, a wrong code counts against the link (five), a password that
+    would be refused takes no code, the app stays.
+  * Admin (103c): the record of the player says whether an app is set up;
+    „Authenticator-App zurücksetzen“ with the question of text 7, audited as
+    `admin.write` / `totpReset`.
+  * The state says `me.totp` yes or no; the secret is in no audit entry,
+    error entry or state (tested).
+* **[U]** Open with the owner (2026-11-25): the labels and button of the
+  setup form, the label of the secret as text, the text of a wrong app code
+  (until then the text of a wrong mail code), success notes, the status line
+  of the box, and the changelog fragment. The box of „Optionen“ waits for
+  them, and `qrcode-generator` with it.

@@ -102,6 +102,31 @@ describe('the login', () => {
     );
   });
 
+  it('asks for the code of the authenticator app when the server asks for it (102a, #401)', async () => {
+    const ctx = fakeCtx({ api: vi.fn(async () => ({ app: true })) });
+    await forms(ctx).authform!();
+    expect(client.ui.auth).toBe('app');
+    expect(ctx.apply).not.toHaveBeenCalled();
+    fields['#login_code'] = { value: '654321' };
+    const code = fakeCtx({
+      api: vi.fn(async () => ({ state: state() })),
+      apply: vi.fn(),
+    });
+    await forms(code).codeform!();
+    expect(code.api).toHaveBeenCalledWith('/api/login/code', {
+      code: '654321',
+    });
+    expect(client.ui.auth).toBeNull();
+  });
+
+  it('ends the sign-in with the app when going back to the login (#401)', async () => {
+    client.ui.auth = 'app';
+    const ctx = fakeCtx({ api: vi.fn(async () => ({ ok: true })) });
+    await acts(ctx).authback!();
+    expect(ctx.api).toHaveBeenCalledWith('/api/login/cancel', {});
+    expect(client.ui.auth).toBe('login');
+  });
+
   it('shows a refusal as a note and stays on the screen', async () => {
     const ctx = fakeCtx({
       api: vi.fn(async () => {
@@ -183,25 +208,33 @@ describe('the screens', () => {
     expect(ctx.render).toHaveBeenCalledTimes(3);
   });
 
-  it('forgets the reset link when going back to the login', () => {
+  it('forgets the reset link when going back to the login', async () => {
     Object.assign(login, { resetToken: 't' });
     client.ui.auth = 'reset';
     const ctx = fakeCtx();
-    acts(ctx).authback!();
+    await acts(ctx).authback!();
     expect(login).toMatchObject({ resetToken: null });
     expect(client.ui.auth).toBe('login');
     // No sign-in by code was under way.
     expect(ctx.api).not.toHaveBeenCalled();
   });
 
-  it('ends the sign-in under way when going back from the code step (#401)', () => {
+  it('ends the sign-in under way when going back from the code step, then shows the login (#401)', async () => {
     client.ui.auth = 'code';
+    let answer: () => void = () => undefined;
     const ctx = fakeCtx({
-      api: vi.fn(async () => {
-        throw new Error('weg');
-      }),
+      api: vi.fn(
+        () =>
+          new Promise<Record<string, unknown>>((_, refuse) => {
+            answer = () => refuse(new Error('weg'));
+          }),
+      ),
     });
-    acts(ctx).authback!();
+    const back = acts(ctx).authback!();
+    // The login waits for the answer of the server.
+    expect(client.ui.auth).toBe('code');
+    answer();
+    await back;
     expect(ctx.api).toHaveBeenCalledWith('/api/login/cancel', {});
     expect(client.ui.auth).toBe('login');
     // A failed cancel is no note: the cookie ends with its ten minutes.
@@ -240,6 +273,21 @@ describe('the new password', () => {
     expect(ctx.toast).toHaveBeenCalledWith(
       'Passwort gespeichert. Melde dich mit deinem neuen Passwort an.',
     );
+  });
+
+  it('sends the code of the app with the new password when the account has one (104, #401)', async () => {
+    login.resetToken = 'tok';
+    client.ui.resetApp = true;
+    fields['#pw_next'] = { value: 'neu12345' };
+    fields['#reset_code'] = { value: '123456' };
+    const ctx = fakeCtx();
+    await forms(ctx).resetform!();
+    expect(ctx.api).toHaveBeenCalledWith('/api/password/reset', {
+      password: 'neu12345',
+      token: 'tok',
+      code: '123456',
+    });
+    client.ui.resetApp = false;
   });
 
   it('changes the password of the options with the old one and refuses two different new ones without a request', async () => {

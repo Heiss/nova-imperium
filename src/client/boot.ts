@@ -37,7 +37,15 @@ function openReset(): boolean {
   login.resetToken = token;
   client.game = null;
   ui.auth = 'reset';
+  ui.resetApp = false;
   render(true);
+  // With an authenticator app the page asks for its code too (104, #401).
+  void api('/api/password/reset/check', { token })
+    .then((j) => {
+      ui.resetApp = j.app === true;
+      render(true);
+    })
+    .catch(() => undefined);
   return true;
 }
 
@@ -63,10 +71,11 @@ async function openCodeLink(): Promise<boolean> {
   }
 }
 
-/** A sign-in that waits for its code shows the code step again after a reload (129a). */
-async function pendingSignIn(): Promise<boolean> {
+/** A sign-in that waits for its code shows its step again after a reload (129a). */
+async function pendingSignIn(): Promise<'code' | 'app' | null> {
   const j = await api('/api/login/pending').catch(() => null);
-  return j?.pending === true;
+  if (j?.pending !== true) return null;
+  return j.app === true ? 'app' : 'code';
 }
 
 /** The token of an invitation link in the address, if there is one. */
@@ -105,7 +114,7 @@ export async function boot(): Promise<void> {
     homeSystem(ui, client.game);
   } catch {
     if (invite) await openInvite(invite);
-    else if (await pendingSignIn()) ui.auth = 'code';
+    else ui.auth = await pendingSignIn();
     ui.auth ??= 'login';
   }
   session.booting = false;

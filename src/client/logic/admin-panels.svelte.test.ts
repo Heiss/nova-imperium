@@ -23,6 +23,7 @@ import {
   refreshMessageReports,
   setMoon,
   switchBotCheck,
+  resetTotp,
   showErrors,
   showEvents,
 } from './admin-panels.svelte.ts';
@@ -356,6 +357,20 @@ describe('the record of a player', () => {
     await switchBotCheck('u9', true);
     expect(panels.notice).toBe('Spieler nicht gefunden.');
     expect(urls()).toEqual(['bot-check']);
+  });
+
+  it('resets the authenticator app of the player and reads the record again (#401)', async () => {
+    await resetTotp('u1');
+    expect(calls[0]).toEqual({
+      url: '/api/admin/totp-reset',
+      body: { player: 'u1' },
+    });
+    expect(urls().slice(1)).toEqual(['stats', 'player']);
+    answers['totp-reset'] = () => new Error('Spieler nicht gefunden.');
+    calls = [];
+    await resetTotp('u9');
+    expect(panels.notice).toBe('Spieler nicht gefunden.');
+    expect(urls()).toEqual(['totp-reset']);
   });
 
   it('shows a refusal and does not read the record again', async () => {

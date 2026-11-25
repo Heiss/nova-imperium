@@ -7,11 +7,14 @@ import {
   loginByCode,
   mail,
   mailCli,
+  nav,
   registerByMail,
   uniqueName,
   watch,
 } from './helpers.ts';
-import { E2E_MAIL_URL } from './env.ts';
+import { E2E_MAILBOX, E2E_MAIL_URL } from './env.ts';
+import { mailsTo } from './mail.ts';
+import { hotp, stepOf, unbase32 } from '../src/server/totp.ts';
 
 test.describe('accounts by mail (#68)', () => {
   test('a login needs the code from the mail; a wrong code is refused', async ({
@@ -86,7 +89,7 @@ test.describe('accounts by mail (#68)', () => {
     };
     /** The link of the newest mail, on this server; not `old`. */
     const newestLink = async (old = 'none'): Promise<string> => {
-      const code = old.replace(/\D/g, '') || 'x';
+      const code = /#code=(\d{6})/.exec(old)?.[1] ?? 'x';
       const [, path] = await mail(
         emailOf(name),
         new RegExp(`Link an: http://[^/]+(/#code=(?!${code})\\d{6})\\. `),
@@ -143,6 +146,110 @@ test.describe('accounts by mail (#68)', () => {
     await expect(page.locator('.auth .hd')).toHaveText('Login');
     await page.reload();
     await expect(page.locator('.auth .hd')).toHaveText('Login');
+    expect(w.problems).toEqual([]);
+  });
+
+  test('an authenticator app replaces the mail code, a reset link asks for it, the admin resets it (97b, 102a, 103c, 104, #401)', async ({
+    page,
+    browser,
+  }) => {
+    const w = watch(page);
+    const name = uniqueName('App');
+    await registerByMail(page, name);
+    await loginByCode(page, name);
+    // The setup by its routes; its box in „Optionen“ waits for the texts of
+    // the owner.
+    const post = async (url: string, data: object) =>
+      (
+        await page.request.post(`${E2E_MAIL_URL}${url}`, {
+          data,
+          headers: { origin: E2E_MAIL_URL },
+        })
+      ).json();
+    const { secret } = (await post('/api/totp/setup', {})) as {
+      secret: string;
+    };
+    const key = unbase32(secret)!;
+    // Codes of the step before, of now and of the next: each one taken only
+    // once and after the last one (the window is one step each way).
+    const code = (steps: number) => hotp(key, stepOf(Date.now()) + steps);
+    expect(await post('/api/totp/confirm', { code: code(-1) })).toEqual({
+      ok: true,
+    });
+    await post('/api/logout', {});
+
+    // The sign-in asks for the code of the app and sends no mail (102a).
+    const mails = mailsTo(E2E_MAILBOX, emailOf(name)).length;
+    await page.goto(E2E_MAIL_URL);
+    await page.fill('#a_name', name);
+    await page.fill('#a_pw', 'ein-sicheres-testpasswort');
+    await page.click('button[type=submit]');
+    await expect(page.locator('.auth .hd')).toHaveText(
+      'Code aus der Authenticator-App',
+    );
+    await page.getByLabel('Code aus der Authenticator-App').fill(code(0));
+    await page.getByRole('button', { name: 'Anmelden' }).click();
+    await expect(page.locator('h2')).toContainText('Übersicht');
+    expect(mailsTo(E2E_MAILBOX, emailOf(name))).toHaveLength(mails);
+
+    // „Passwort vergessen“: the page of the link asks for the code too (104).
+    await post('/api/logout', {});
+    await page.goto(E2E_MAIL_URL);
+    await page.getByRole('button', { name: 'Passwort vergessen?' }).click();
+    await page.getByLabel('Hinterlegte E-Mail-Adresse').fill(emailOf(name));
+    await page.getByRole('button', { name: 'Link anfordern' }).click();
+    const [link] = await mail(emailOf(name), /http:\S+#reset=[\w-]{43}/);
+    await page.goto('about:blank');
+    await page.goto(link);
+    const appCode = page.getByLabel('Code aus der Authenticator-App');
+    await expect(appCode).toBeVisible();
+    await page.getByLabel('Neues Passwort').fill('ein-neues-testpasswort');
+    await appCode.fill(code(1));
+    await page.getByRole('button', { name: 'Passwort speichern' }).click();
+    await expect(lastToast(page)).toContainText(
+      'Passwort gespeichert. Melde dich mit deinem neuen Passwort an.',
+    );
+    // The app stays after the reset.
+    await page.fill('#a_name', name);
+    await page.fill('#a_pw', 'ein-neues-testpasswort');
+    await page.click('button[type=submit]');
+    await expect(page.locator('.auth .hd')).toHaveText(
+      'Code aus der Authenticator-App',
+    );
+
+    // The admin resets the app (103c, text 7).
+    const desk = await browser.newContext();
+    const admin = await desk.newPage();
+    const boss = uniqueName('Wart');
+    await registerByMail(admin, boss);
+    mailCli('admin', boss);
+    await loginByCode(admin, boss);
+    await nav(admin, 'admin');
+    await admin.getByRole('tab', { name: 'Spieler', exact: true }).click();
+    await admin
+      .locator('[data-admin=stats]')
+      .getByRole('button', { name, exact: true })
+      .click();
+    const question: string[] = [];
+    admin.once('dialog', (d) => {
+      question.push(d.message());
+      void d.accept();
+    });
+    await admin
+      .getByRole('button', { name: 'Authenticator-App zurücksetzen' })
+      .click();
+    await expect(
+      admin.getByRole('button', { name: 'Authenticator-App zurücksetzen' }),
+    ).toHaveCount(0);
+    expect(question).toEqual([
+      `Danach kann sich ${name} wieder mit Passwort und E-Mail-Code anmelden.`,
+    ]);
+    mailCli('unadmin', boss);
+    await desk.close();
+
+    // Back to the password and the mail code.
+    await page.getByRole('button', { name: 'Zurück zum Login' }).click();
+    await loginByCode(page, name, 'ein-neues-testpasswort');
     expect(w.problems).toEqual([]);
   });
 

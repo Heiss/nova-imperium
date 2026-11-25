@@ -54,6 +54,8 @@ export interface PlayerDetail {
   planets: PlayerPlanet[];
   /** „Automatisierung prüfen“ and its hints (#181): since when on, or null. */
   botCheck?: BotCheck;
+  /** Whether the player has an authenticator app, for its reset (#401). */
+  totp?: boolean;
 }
 export interface Order {
   kind: string;

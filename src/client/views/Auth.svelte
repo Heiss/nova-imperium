@@ -45,13 +45,36 @@
   <input id="recovery_email" type="email" autocomplete="email" required />
 {/snippet}
 
-{#snippet resetInput(minLength: number | undefined)}
+{#snippet resetInput(minLength: number | undefined, app: boolean)}
   <label for="pw_next">Neues Passwort</label>
   <input
     id="pw_next"
     type="password"
     autocomplete="new-password"
     minlength={minLength}
+    required
+  />
+  {#if app}
+    <!-- With an authenticator app its code too (text 6, 104, #401). -->
+    <label for="reset_code">Code aus der Authenticator-App</label>
+    <input
+      id="reset_code"
+      inputmode="numeric"
+      autocomplete="one-time-code"
+      pattern="[0-9]{'{6}'}"
+      required
+    />
+  {/if}
+{/snippet}
+
+{#snippet appInput()}
+  <!-- The sign-in of an account with an authenticator app (text 5, #401). -->
+  <label for="login_code">Code aus der Authenticator-App</label>
+  <input
+    id="login_code"
+    inputmode="numeric"
+    autocomplete="one-time-code"
+    pattern="[0-9]{'{6}'}"
     required
   />
 {/snippet}
@@ -87,7 +110,8 @@
   )}
 {:else if page.kind === 'reset'}
   {@const minLength = page.minLength}
-  {#snippet input()}{@render resetInput(minLength)}{/snippet}
+  {@const app = page.app}
+  {#snippet input()}{@render resetInput(minLength, app)}{/snippet}
   {@render step(
     'Neues Passwort festlegen',
     'resetform',
@@ -96,6 +120,13 @@
   )}
 {:else if page.kind === 'code'}
   {@render step('Anmeldecode', 'codeform', 'Anmelden', codeInput)}
+{:else if page.kind === 'app'}
+  {@render step(
+    'Code aus der Authenticator-App',
+    'codeform',
+    'Anmelden',
+    appInput,
+  )}
 {:else}
   {@const reg = page.kind === 'register'}
   <div class="box auth">

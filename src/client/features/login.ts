@@ -33,8 +33,11 @@ function continueLogin(
   ctx: ClientCtx,
   reply: Record<string, unknown>,
 ): boolean {
-  if (!reply.loginRequired && reply.code !== true) return false;
-  client.ui.auth = reply.code === true ? 'code' : 'login';
+  if (!reply.loginRequired && reply.code !== true && reply.app !== true)
+    return false;
+  // The code of the authenticator app, or of the mail (102a, #401).
+  client.ui.auth =
+    reply.app === true ? 'app' : reply.code === true ? 'code' : 'login';
   client.ui.invite = null;
   ctx.render(true);
   if (reply.loginRequired) ctx.toast('Konto erstellt. Melde dich jetzt an.');
@@ -122,7 +125,11 @@ async function submitPassword(ctx: ClientCtx, reset: boolean): Promise<void> {
     await ctx.api(reset ? '/api/password/reset' : '/api/password/change', {
       password,
       ...(reset
-        ? { token: login.resetToken }
+        ? {
+            token: login.resetToken,
+            // The code of the app, if the account has one (104, #401).
+            ...(client.ui.resetApp ? { code: val('#reset_code') } : {}),
+          }
         : { current: val('#pw_current'), confirmation }),
     });
     client.game = null;
@@ -145,10 +152,12 @@ const showAuth =
 export const clientFeature = {
   acts: (ctx) => ({
     forgot: showAuth(ctx, () => 'forgot'),
-    authback: () => {
-      // Back from the code step, the sign-in under way ends (#401).
-      if (client.ui.auth === 'code')
-        void ctx.api('/api/login/cancel', {}).catch(() => undefined);
+    authback: async () => {
+      // Back from the code step, the sign-in under way ends (#401). The
+      // login shows only after the answer: its cleared cookie must not come
+      // after the cookie of a new sign-in begun at once.
+      if (client.ui.auth === 'code' || client.ui.auth === 'app')
+        await ctx.api('/api/login/cancel', {}).catch(() => undefined);
       login.resetToken = null;
       showAuth(ctx, () => 'login')();
     },

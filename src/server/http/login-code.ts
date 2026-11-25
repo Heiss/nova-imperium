@@ -107,6 +107,15 @@ export function beginLogin(
   };
 }
 
+/** The password was right and the account has an app: its code (text 5, 102a). */
+export function beginAppLogin(d: AppDeps, u: User, remember: boolean): Reply {
+  const challenge = security.issueAppLogin(d.ctx, u.id);
+  return {
+    json: { app: true },
+    cookie: loginCookie(d.cfg, { challenge, remember }),
+  };
+}
+
 /**
  * The code, typed or from the link (`link: true`). A link without the cookie
  * of the sign-in was opened in another browser (text 2); a link whose code
@@ -169,7 +178,9 @@ export function loginCodeRoutes(
   return {
     'POST /api/login/code': (call) => {
       guard(call.req);
-      on();
+      // The code of an app is asked for whatever the setting says (102a): a
+      // browser with a sign-in under way gets the answer of its code.
+      if (!signInOf(call)) on();
       return codeReply(d, call, enter);
     },
     'POST /api/login/resend': (call) => {
@@ -178,11 +189,15 @@ export function loginCodeRoutes(
       return resendReply(d, call);
     },
     // A reload of the code step keeps the sign-in (129a).
-    'GET /api/login/pending': (call) => ({
-      json: {
-        pending: security.loginPending(d.ctx, signInOf(call)?.challenge),
-      },
-    }),
+    'GET /api/login/pending': (call) => {
+      const challenge = signInOf(call)?.challenge;
+      return {
+        json: {
+          pending: security.loginPending(d.ctx, challenge),
+          app: security.appLoginPending(d.ctx, challenge),
+        },
+      };
+    },
     'POST /api/login/cancel': (call) => {
       security.cancelLogin(d.ctx, signInOf(call)?.challenge);
       return { json: { ok: true }, cookie: loginCookie(d.cfg, null) };

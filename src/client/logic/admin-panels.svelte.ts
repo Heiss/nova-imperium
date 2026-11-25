@@ -234,6 +234,13 @@ export const switchBotCheck = (player: string, on: boolean): Promise<void> =>
     await loadPlayers();
   });
 
+/** „Authenticator-App zurücksetzen“ for the open record (#401, 103c), then the record again. */
+export const resetTotp = (player: string): Promise<void> =>
+  run(async () => {
+    await call('totp-reset', { player });
+    await loadPlayers();
+  });
+
 /** A moderation of the open record (revoke the sessions, ban, unban), then the record again. */
 export const moderate = (values: Record<string, unknown>): Promise<void> =>
   run(async () => {
