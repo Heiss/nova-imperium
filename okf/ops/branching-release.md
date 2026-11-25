@@ -498,8 +498,20 @@ and one CI run (26.11.24; #347 for 26.11.25).
   „hotfix-anlegen“, creation only) and the pull request `sec-fix/<id>` into
   it; that pull request and the release pull request of `hotfix/sec-*`
   merge themselves when the CI Gate is green (`gh pr merge --auto`). The
-  owner merges `hotfix/sec-*` back into `main`; `tag.yml` opens that pull
-  request. While a released hotfix is not merged back, the release pull
+  owner merges `hotfix/sec-*` back into `main`. **[E]** The pull request of
+  that merge-back does not come from the hotfix branch (owner, 2026-11-25,
+  111a): the ruleset of `hotfix/**` lets only a pull request change it, and
+  the ruleset of `main` wants an up-to-date branch and a linear history, so
+  such a pull request could neither be updated nor merged once `main` moved
+  (#402, replaced by #403). **[V]** `tag.yml` builds `hotfix-back/<name>`,
+  the current `main` with the hotfix merged in, and opens the pull request
+  from it (`scripts/hotfix-back.sh open`); `release-pr.yml` builds every
+  open one again from the new `main` after each push to `main`
+  (`hotfix-back.sh rebuild`). The hotfix branch itself is never changed. A
+  conflict stops the job with the files named, and the branch and its pull
+  request stay as they were. After the squash, `release-pr.sh` counts the
+  hotfix as merged back (`VERSION` held its tag). Tests:
+  `src/test/hotfix-back.test.ts`. While a released hotfix is not merged back, the release pull
   request of `main` stays a draft (`scripts/release-pr.sh`; its body says
   so with its marker, #147; since #387 the same run creates it as a draft
   and marks it ready only when no released hotfix waits and no other

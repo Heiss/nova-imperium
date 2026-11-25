@@ -1,0 +1,8 @@
+---
+type: log-entry
+date: 2026-11-25T18:00
+kind: Decision and code
+issues: [402, 403]
+---
+
+The merge-back of a released hotfix comes from a branch of its own (owner, 2026-11-25, 111a): the pull request from the hotfix branch itself could neither be updated (the ruleset of `hotfix/**`) nor merged (the ruleset of `main` wants an up-to-date branch and a linear history) once `main` moved (#402, replaced by #403 by hand). `tag.yml` now builds `hotfix-back/<name>`, the current `main` with the hotfix merged in, and opens the pull request from it; `release-pr.yml` builds every open one again after each push to `main`. The hotfix branch is never changed; a conflict stops the job with the files named and leaves the branch and its pull request as they were. `scripts/hotfix-back.sh`; tests in `src/test/hotfix-back.test.ts` (built from `main` and the hotfix, built again after `main` moved, the conflict, no second pull request, the hotfix branch unchanged, counted as merged back after a squash, the two workflows).
