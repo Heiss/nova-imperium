@@ -284,9 +284,26 @@ export function completeLogin(
   const user = ctx.tx(() =>
     verifyCode(ctx, String(challenge ?? ''), String(code ?? '').trim()),
   );
-  if (!user) return fail('Der Anmeldecode ist ungültig oder abgelaufen.');
-  return user;
+  if (user) return user;
+  // A sign-in with the app has the text of the app, also once its attempts
+  // are used up (owner, 2026-11-25, 137a).
+  return fail(
+    appLogin(ctx, challenge)
+      ? WRONG_APP_CODE
+      : 'Der Anmeldecode ist ungültig oder abgelaufen.',
+  );
 }
+
+/** Whether a challenge was a sign-in with the app, used up or not. */
+const appLogin = (ctx: Ctx, challenge: unknown): boolean =>
+  typeof challenge === 'string' &&
+  (
+    ctx.db
+      .prepare(
+        "SELECT code_hash FROM account_tokens WHERE token_hash = ? AND purpose = 'login'",
+      )
+      .get(hashToken(challenge)) as { code_hash: string | null } | undefined
+  )?.code_hash === null;
 
 export function purgeAccountTokens(ctx: Ctx): void {
   ctx.db

@@ -34,9 +34,9 @@ gave `0`). Own pull request after #395 (98a).
   button 30 s after the code form opened and again 30 s after each ask.
 * **[E]** The texts of the owner (125a): 1 the mail, 2 the link in another
   browser, 3 the hint „Wir haben dir einen Code per E-Mail geschickt.“ and
-  the button „Code erneut senden“, 5 the sign-in step of the app, 6 its field
-  on the reset page, 7 the admin's button and question are built; 4, the box
-  „Authenticator-App“, waits for the open texts below.
+  the button „Code erneut senden“, 4 the box „Authenticator-App“, 5 the
+  sign-in step of the app, 6 its field on the reset page, 7 the admin's
+  button and question.
 * **[E]** The code is the second factor; the mail carries the code and a
   link that signs in only the browser in which the sign-in was started (95a),
   with text 1 of the owner. **[E]** The cookie `nova_login` is the one path
@@ -95,8 +95,19 @@ gave `0`). Own pull request after #395 (98a).
     `admin.write` / `totpReset`.
   * The state says `me.totp` yes or no; the secret is in no audit entry,
     error entry or state (tested).
-* **[U]** Open with the owner (2026-11-25): the labels and button of the
-  setup form, the label of the secret as text, the text of a wrong app code
-  (until then the text of a wrong mail code), success notes, the status line
-  of the box, and the changelog fragment. The box of „Optionen“ waits for
-  them, and `qrcode-generator` with it.
+* **[E]** The texts of the box and the notes (owner, 2026-11-25, 137a): the
+  setup field „Code aus der Authenticator-App“ with the button „Einrichten“;
+  the secret as text after „Schlüssel zur manuellen Eingabe:“; a wrong code
+  of the app, also after too many, „Der Code der Authenticator-App ist
+  ungültig.“; the notes „Authenticator-App eingerichtet.“, „Authenticator-App
+  entfernt.“ and „Authenticator-App von {Name} zurückgesetzt.“; while set up
+  the box shows „Eingerichtet.“ next to „Entfernen“. **[V]** The box stands
+  in „Konto“ between „Passwort ändern“ and „Passkeys“; the removal asks with
+  the labels „Passwort“ and „Code aus der Authenticator-App“. The QR code is
+  drawn as SVG from the modules of `qrcode-generator` 2.0.4 (MIT, one
+  maintainer, no dependencies, a signature of the registry but no npm
+  provenance attestation; pinned exactly), not as HTML of the library.
+* **[E]** The changelog fragment of #401 (owner, 2026-11-25, 136a), art
+  geändert, in `changes/anmeldung-zweiter-faktor.md`.
+* **[E]** `src/server/http/login-code.ts` is a security file of
+  `mutation-standard.json` (coordinator, 2026-11-25).

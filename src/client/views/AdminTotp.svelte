@@ -18,7 +18,7 @@
             `Danach kann sich ${record.person.name} wieder mit Passwort und E-Mail-Code anmelden.`,
           )
         )
-          void resetTotp(record.person.id);
+          void resetTotp(record.person.id, record.person.name);
       }}>Authenticator-App zurücksetzen</button
     >
   </section>

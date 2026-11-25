@@ -35,6 +35,8 @@ interface Me {
   admin: boolean;
   /** When the vacation mode started (#223); null outside of it. */
   vacation: number | null;
+  /** Whether an authenticator app is set up (#401); never its secret. */
+  totp: boolean;
 }
 
 export type ClientFleet = Pick<

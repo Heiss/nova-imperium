@@ -12,7 +12,8 @@ import { start } from '../../test/http.ts';
 const NEXT = 'ein-neues-passwort-1';
 
 const tick = () => new Promise((r) => setImmediate(r));
-const WRONG = 'Der Anmeldecode ist ungültig oder abgelaufen.';
+const WRONG = 'Der Code der Authenticator-App ist ungültig.';
+const MAIL_WRONG = 'Der Anmeldecode ist ungültig oder abgelaufen.';
 
 async function anna(cfg: { emailLoginCodes?: boolean } = {}) {
   const mails: Mail[] = [];
@@ -194,7 +195,9 @@ describe('the sign-in with the app (text 5, 102a)', () => {
       // No way out by mail.
       s.ctx.clock.t += 30_000;
       expect((await s.call('POST', '/api/login/resend', {})).json).toEqual({
-        error: emailLoginCodes ? WRONG : 'Anmeldecodes sind nicht aktiviert.',
+        error: emailLoginCodes
+          ? MAIL_WRONG
+          : 'Anmeldecodes sind nicht aktiviert.',
       });
       await tick();
       expect(s.mails).toEqual([]);

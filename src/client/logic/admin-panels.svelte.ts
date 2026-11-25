@@ -29,6 +29,8 @@ export interface PanelDeps {
   signedOut: (error: unknown) => never;
   /** Saves the ZIP of the errors of a time range. */
   download: (body: object) => Promise<void>;
+  /** A note that goes away by itself (#401: the reset of an app). */
+  toast: (msg: string) => void;
 }
 
 let deps: PanelDeps | null = null;
@@ -234,10 +236,11 @@ export const switchBotCheck = (player: string, on: boolean): Promise<void> =>
     await loadPlayers();
   });
 
-/** „Authenticator-App zurücksetzen“ for the open record (#401, 103c), then the record again. */
-export const resetTotp = (player: string): Promise<void> =>
+/** „Authenticator-App zurücksetzen“ for the open record (#401, 103c), a note, then the record again. */
+export const resetTotp = (player: string, name: string): Promise<void> =>
   run(async () => {
     await call('totp-reset', { player });
+    deps!.toast(`Authenticator-App von ${name} zurückgesetzt.`);
     await loadPlayers();
   });
 

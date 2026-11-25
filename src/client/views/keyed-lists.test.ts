@@ -251,6 +251,8 @@ const LISTS: Record<string, Record<string, Verdict>> = {
   },
   'SurveyReport.svelte': { label: constant('distinct literal labels') },
   'TabBar.svelte': { 'link.view': constant('view keys (registry.test.ts)') },
+  // The rows and the modules of a row of the QR code of #401.
+  'TotpBox.svelte': { r: index, c: index },
   'UnitTable.svelte': { i: index },
 };
 
@@ -455,6 +457,7 @@ const LOOPS: Record<string, string[]> = {
   ],
   'SurveyReport.svelte': ['body.rows as [label, value] (label)'],
   'TabBar.svelte': ['nav.tabs as link (link.view)'],
+  'TotpBox.svelte': ['modules as row, r (r)', 'row as dark, c (c)'],
   'UnitTable.svelte': ['rows as row, i (i)'],
 };
 

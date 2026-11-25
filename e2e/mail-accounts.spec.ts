@@ -1,5 +1,6 @@
 // Accounts by mail (#68, #272): the login code and „Passwort vergessen“, on
 // the second server with the mail sink (e2e/env.ts, e2e/mail.ts).
+import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import {
   emailOf,
@@ -8,6 +9,7 @@ import {
   mail,
   mailCli,
   nav,
+  optionsSection,
   registerByMail,
   uniqueName,
   watch,
@@ -157,26 +159,44 @@ test.describe('accounts by mail (#68)', () => {
     const name = uniqueName('App');
     await registerByMail(page, name);
     await loginByCode(page, name);
-    // The setup by its routes; its box in „Optionen“ waits for the texts of
-    // the owner.
-    const post = async (url: string, data: object) =>
-      (
-        await page.request.post(`${E2E_MAIL_URL}${url}`, {
-          data,
-          headers: { origin: E2E_MAIL_URL },
-        })
-      ).json();
-    const { secret } = (await post('/api/totp/setup', {})) as {
-      secret: string;
-    };
+    // The setup in „Optionen“ → „Konto“ (text 4, 137a).
+    await nav(page, 'help');
+    await optionsSection(page, 'Konto');
+    const box = page.locator('.box', {
+      has: page.getByText('Authenticator-App', { exact: true }),
+    });
+    await expect(box).toContainText(
+      'Scanne den QR-Code mit deiner Authenticator-App und gib den angezeigten Code ein. Danach brauchst du bei jeder Anmeldung mit Passwort den Code aus der App; eine E-Mail mit Code kommt dann nicht mehr.',
+    );
+    await box.getByRole('button', { name: 'Einrichten' }).click();
+    await expect(box.getByRole('img', { name: 'QR-Code' })).toBeVisible();
+    await expect(box).toContainText('Schlüssel zur manuellen Eingabe:');
+    const found = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+      .analyze();
+    expect(found.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+    const secret = (await box.locator('[data-totp=secret]').textContent())!;
     const key = unbase32(secret)!;
     // Codes of the step before, of now and of the next: each one taken only
     // once and after the last one (the window is one step each way).
     const code = (steps: number) => hotp(key, stepOf(Date.now()) + steps);
-    expect(await post('/api/totp/confirm', { code: code(-1) })).toEqual({
-      ok: true,
+    await box.getByLabel('Code aus der Authenticator-App').fill('000000');
+    await box.getByRole('button', { name: 'Einrichten' }).click();
+    await expect(lastToast(page)).toContainText(
+      'Der Code der Authenticator-App ist ungültig.',
+    );
+    await box.getByLabel('Code aus der Authenticator-App').fill(code(-1));
+    await box.getByRole('button', { name: 'Einrichten' }).click();
+    await expect(lastToast(page)).toContainText(
+      'Authenticator-App eingerichtet.',
+    );
+    await expect(box.locator('[data-totp=status]')).toHaveText('Eingerichtet.');
+    await expect(box.getByRole('button', { name: 'Entfernen' })).toBeVisible();
+    const out = await page.request.post(`${E2E_MAIL_URL}/api/logout`, {
+      data: {},
+      headers: { origin: E2E_MAIL_URL },
     });
-    await post('/api/logout', {});
+    expect(out.status()).toBe(200);
 
     // The sign-in asks for the code of the app and sends no mail (102a).
     const mails = mailsTo(E2E_MAILBOX, emailOf(name)).length;
@@ -193,7 +213,11 @@ test.describe('accounts by mail (#68)', () => {
     expect(mailsTo(E2E_MAILBOX, emailOf(name))).toHaveLength(mails);
 
     // „Passwort vergessen“: the page of the link asks for the code too (104).
-    await post('/api/logout', {});
+    const outAgain = await page.request.post(`${E2E_MAIL_URL}/api/logout`, {
+      data: {},
+      headers: { origin: E2E_MAIL_URL },
+    });
+    expect(outAgain.status()).toBe(200);
     await page.goto(E2E_MAIL_URL);
     await page.getByRole('button', { name: 'Passwort vergessen?' }).click();
     await page.getByLabel('Hinterlegte E-Mail-Adresse').fill(emailOf(name));

@@ -15,12 +15,8 @@ import { newSecret, otpauthUri, verifyTotp } from './totp.ts';
 const SETUP_LIFE = 10 * 60_000;
 const ATTEMPTS = 5;
 
-/**
- * [U] The owner has not given a text for a wrong code of the app yet
- * (question to the owner, 2026-11-25); until then the text of a wrong mail
- * code.
- */
-export const WRONG_APP_CODE = 'Der Anmeldecode ist ungültig oder abgelaufen.';
+/** A wrong code of the app, also after too many (owner, 2026-11-25, 137a). */
+export const WRONG_APP_CODE = 'Der Code der Authenticator-App ist ungültig.';
 /** A request the page does not send: a setup while one is set up. */
 const REFUSED = 'Anfrage abgelehnt.';
 

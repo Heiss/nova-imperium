@@ -258,7 +258,14 @@ describe('the tabs and the invitations', () => {
       api: ctx.api,
       signedOut: ctx.signedOut,
       download: expect.any(Function),
+      toast: expect.any(Function),
     });
+    // The note of the reset of an app (#401) is a note of the frame.
+    const { toast } = vi.mocked(panel.bindAdminPanel).mock.calls[0]![0];
+    toast('Authenticator-App von Anna zurückgesetzt.');
+    expect(ctx.toast).toHaveBeenCalledWith(
+      'Authenticator-App von Anna zurückgesetzt.',
+    );
     expect(listeners.keydown).toContain(panel.adminTabKey);
   });
 

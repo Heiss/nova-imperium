@@ -57,18 +57,22 @@ const api = vi.fn(async (url: string, body: unknown = {}) => {
 /** Lets the calls on their way finish. */
 const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
 
+let toast: ReturnType<typeof vi.fn<(msg: string) => void>>;
+
 const urls = () => calls.map((c) => c.url.replace('/api/admin/', ''));
 
 beforeEach(() => {
   calls = [];
   answers = { events: () => eventPage() };
   download = vi.fn(async () => undefined);
+  toast = vi.fn<(msg: string) => void>();
   bindAdminPanel({
     api,
     signedOut: (e) => {
       throw new Error(String(e));
     },
     download,
+    toast,
   });
   forgetAdminPanel();
 });
@@ -360,16 +364,21 @@ describe('the record of a player', () => {
   });
 
   it('resets the authenticator app of the player and reads the record again (#401)', async () => {
-    await resetTotp('u1');
+    await resetTotp('u1', 'Anna');
     expect(calls[0]).toEqual({
       url: '/api/admin/totp-reset',
       body: { player: 'u1' },
     });
+    expect(toast).toHaveBeenCalledWith(
+      'Authenticator-App von Anna zurückgesetzt.',
+    );
     expect(urls().slice(1)).toEqual(['stats', 'player']);
     answers['totp-reset'] = () => new Error('Spieler nicht gefunden.');
     calls = [];
-    await resetTotp('u9');
+    toast.mockClear();
+    await resetTotp('u9', 'Niemand');
     expect(panels.notice).toBe('Spieler nicht gefunden.');
+    expect(toast).not.toHaveBeenCalled();
     expect(urls()).toEqual(['totp-reset']);
   });
 

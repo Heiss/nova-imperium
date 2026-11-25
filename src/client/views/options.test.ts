@@ -63,6 +63,8 @@ describe('the sections of „Optionen“', () => {
       ['Rundenarchiv', 'round'],
       ['Darstellung', 'device'],
       ['Passwort ändern', 'account'],
+      // The authenticator app (#401).
+      ['Authenticator-App', 'account'],
       ['Passkeys', 'account'],
       ['App installieren', 'device'],
       ['Benachrichtigungen', 'device'],
@@ -71,7 +73,7 @@ describe('the sections of „Optionen“', () => {
       ['Account löschen', 'account'],
     ]);
     // No box without a section: it would show in every section.
-    expect(html.match(/<div class="box"/g)).toHaveLength(13);
+    expect(html.match(/<div class="box"/g)).toHaveLength(14);
     expect(html).toContain('<p data-sec="other">Tempo, Größe');
     // Every section has a box, so none of the five buttons shows an empty page.
     const used = new Set(boxes(html).map(([, section]) => section));
