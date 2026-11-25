@@ -46,6 +46,10 @@ the muffelblog bundle whose rules this project follows:
   (see [Languages](/ops/language.md)).
 * **[E]** Data in SQLite (better-sqlite3), normalized tables (see
   [SQLite](/data/sqlite.md)).
+* **[E]** The game runs on weak hardware shared with other services, such
+  as an Intel Celeron J4104 (owner, 2026-11-25): about 20 players today, and
+  more where others run it, since it is open source. The work of the server
+  per player counts ([Data exchange and realtime](/architecture/realtime.md)).
 * **[E]** Operation with Docker Compose, Caddy in front, behind the
   operator's reverse proxy (see [Docker](/architecture/docker.md)).
 * **[E]** Registration only by invitation (see [Invitations](/features/invitations.md)).

@@ -42,6 +42,10 @@ them, are in [Design patterns](/architecture/patterns.md) (owner,
    due (in time order), then the action. All or nothing.
 4. The answer carries the new state of the player.
 
+**[E]** How the data reach the browser, and the move to Server-Sent
+Events: [Data exchange and realtime](/architecture/realtime.md) (owner,
+2026-11-25).
+
 # The clock
 
 * **[E]** Like version 1, a timer lands due fleets every second, also while
