@@ -1,7 +1,7 @@
 ---
 type: Architecture
 title: '16. Svelte views register themselves'
-description: 'A view exports clientViews (key, mount or html, anew or fresh, menu entry, glyph, tab, offered) from its own module; mount.ts, index.ts and the navigation name no view (#317, #352, #373); the boxes of „Optionen“ register themselves the same way (#378).'
+description: 'A view exports clientViews (key, mount or html, anew or fresh, menu entry, glyph, tab, offered) from its own module; mount.ts, index.ts and the navigation name no view (#317, #352, #373); a feature switched off for the round is hidden, its Lexicanum page too (#404); the boxes of „Optionen“ register themselves the same way (#378).'
 ---
 
 # 16. Svelte views register themselves (#317)
@@ -45,6 +45,42 @@ description: 'A view exports clientViews (key, mount or html, anew or fresh, men
   rule. `registry.test.ts` checks for every view and round that the menu,
   the tabs and the address follow the rule, and that the navigation, the
   address, the mount and `index.ts` name none of these views.
+* **[E]** A feature switched off for the round is hidden, not shown as
+  closed (#404; owner, 2026-11-25): (112a) the marketplace gets its rule
+  and every switch of the round is swept, so a player sees a switched-off
+  feature nowhere: not in the menu, the tabs, a link, a mark or a card of
+  the overview, and a guard test checks that every switch has its rule;
+  (113a) the Lexicanum page of a switched-off feature is not listed and not
+  reached by its address or a link, it falls back like an unknown article;
+  (114a) the admin sees the same as every player, and the switch stays in
+  the admin tab „Universum“. **[V]** „Marktplatz“ says `offered: marketOpen`
+  (`round.marketOn === 1`); „Gilden“ and „Achievements“ take their rule as
+  a function of the core too (`guildsOn` of `core/guild-chat.ts`,
+  `rewardsOn` of `core/achievements.ts`). The switches are read from the
+  registry of the round settings (a `switch`, or a number from 0 to 1, as a
+  live switch is kept); `src/client/views/round-switches.test.ts` maps each
+  to the views it turns off (`achievements` and `daily` to „Achievements“,
+  `guilds` to „Gilden“, `marketOn` to „Marktplatz“) or names why it turns
+  off none (`colonyResearch`: the research Kolonialverwaltung, a catalog
+  entry the research list already leaves out, #237, catalog entries being
+  #375; `expeditionSpeed`: a rule of the stay, no feature), and fails for a
+  new switch until it is mapped, for a mapped view without a rule, and for
+  a rule that does not hide the view while all its switches are off or
+  hides it while one is on, for a player and the admin alike; with every
+  switch on every view is offered, as before. The page of a feature in the
+  Lexicanum carries the very function of its view (`PageDef.offered`; the
+  guard checks the identity), because `logic/lexicanum.ts` is reached from
+  the views and may not import `views/offered.ts` (a cycle);
+  `opens(v)` of `logic/lexicanum.ts` leaves a hidden page out of the lists,
+  „Begriffe A–Z“, the start page and its counts, the other articles of its
+  kind, „Siehe auch“ and the search, keeps the words of a link to it as
+  plain text, and `page()` answers its address with the start page, as for
+  an unknown id. An open view of a feature switched off during the round
+  falls back to the overview at the next state (`apply` of `sync.ts` asks
+  `gameView`, `sync.test.ts`). The menu marks and the cards of the overview
+  need no rule of their own: a mark stands on a menu entry only, and the
+  only card linking such a view („Abholen“) shows a reward the server sends
+  only while it is on.
 * **[E]** A view declares its own address parameters (#379; owner,
   2026-11-22, #351: a refactor of the v3 foundation without a change of
   behaviour, for the deep links of the star map, #160). **[V]** The member

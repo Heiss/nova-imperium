@@ -22,6 +22,7 @@ import {
   listId,
   missionShips,
   moveMark,
+  opens,
   page,
   searchHits,
   type Section,
@@ -827,5 +828,174 @@ describe('what an article holds and what it leaves out', () => {
     expect(
       viewBlock({ t: 'table', caption: 'C', head: [], rows: [] }),
     ).toMatchObject({ caption: 'C' });
+  });
+});
+
+describe('the page of a feature switched off for the round (#404; owner, 2026-11-25, 113a, 114a)', () => {
+  /** The view of a player, or the admin, in a round with these values. */
+  const inRound = (round: Record<string, unknown>, admin = false): V => {
+    const v = view();
+    return {
+      ...v,
+      s: {
+        ...v.s,
+        round: { ...v.s.round, ...round },
+        me: { ...v.s.me, admin },
+      },
+    };
+  };
+  const ids = (p: ReturnType<typeof page>): string[] =>
+    p.t === 'list'
+      ? p.items.map((i) => i.id)
+      : p.t === 'start'
+        ? p.boxes.flatMap((b) => b.items.map((i) => i.id))
+        : [];
+  const linked = (a: ArticleView): string[] =>
+    a.sections.flatMap((s) =>
+      s.blocks.flatMap((b) => {
+        if (b.t === 'links') return b.items.map((i) => i.id);
+        if (b.t === 'text')
+          return b.parts.flatMap((p) => ('link' in p ? [p.link] : []));
+        if (b.t === 'facts')
+          return b.items.flatMap((i) =>
+            i.parts.flatMap((p) => ('link' in p ? [p.link] : [])),
+          );
+        return [];
+      }),
+    );
+  const hits = (query: string, v: V): string[] =>
+    flatHits(searchHits(query, opens(v))).map((h) => h.id);
+
+  /** The switch, its value off, the page it hides, and an article that links it. */
+  const CASES = [
+    {
+      off: { marketOn: 0 },
+      id: 'rule-market',
+      from: 'faq-resources',
+      query: 'Marktplatz',
+    },
+    {
+      off: { guilds: false },
+      id: 'rule-guilds',
+      from: 'rule-allies',
+      query: 'Gilden',
+    },
+    {
+      off: { achievements: false, daily: false },
+      id: 'rule-rewards',
+      from: 'faq-resources',
+      query: 'Tagesbelohnung',
+    },
+  ] as const;
+
+  it('lists the page, finds it, links it and opens it while the feature is on, as before', () => {
+    for (const { id, from, query } of CASES) {
+      const v = inRound({});
+      expect(opens(v)(id), id).toBe(true);
+      expect(ids(page(listId('rule'), v)), id).toContain(id);
+      expect(ids(page(AZ, v)), id).toContain(id);
+      expect(ids(page('', v)), id).toContain(id);
+      expect(page(id, v).t, id).toBe('article');
+      expect(art(from, v).siblings.length, id).toBeGreaterThan(0);
+      expect(linked(art(from, v)), id).toContain(id);
+      expect(hits(query, v), id).toContain(id);
+    }
+  });
+
+  it('hides it for every player and the admin while the feature is off: not listed, found or linked, and its address falls back like an unknown one', () => {
+    for (const { off, id, from, query } of CASES)
+      for (const admin of [false, true]) {
+        const v = inRound(off, admin);
+        expect(opens(v)(id), id).toBe(false);
+        expect(ids(page(listId('rule'), v)), id).not.toContain(id);
+        expect(ids(page(AZ, v)), id).not.toContain(id);
+        expect(ids(page('', v)), id).not.toContain(id);
+        expect(page(id, v)).toEqual(page('nope', v));
+        expect(articleView(id, v), id).toBeNull();
+        const other = art(from, v);
+        expect(
+          other.siblings.map((s) => s.id),
+          id,
+        ).not.toContain(id);
+        expect(linked(other), id).not.toContain(id);
+        expect(hits(query, v), id).not.toContain(id);
+        // Every other article stays.
+        expect(page(AZ, v)).toMatchObject({ t: 'list' });
+        expect(ids(page(AZ, v))).toHaveLength(ARTICLES.length - 1);
+      }
+  });
+
+  it('keeps the words of a link to a hidden page, as plain text', () => {
+    const v = inRound({ guilds: false });
+    const text = blocks(art('rule-allies', v), 'guard')
+      .flatMap((b) => (b.t === 'text' ? b.parts : []))
+      .find((p) => p.text === 'Gilden');
+    expect(text).toEqual({ text: 'Gilden' });
+  });
+
+  it('counts only the articles shown in the tiles of the start page', () => {
+    const v = inRound({ marketOn: 0, guilds: false });
+    const p = page('', v);
+    if (p.t !== 'start') throw new Error(p.t);
+    expect(p.tiles[0]!.note).toBe(
+      `${ARTICLES.filter((a) => a.kind === 'building').length} Einträge`,
+    );
+    expect(p.boxes.find((b) => b.kind === 'rule')!.items).toHaveLength(
+      ARTICLES.filter((a) => a.kind === 'rule').length - 2,
+    );
+  });
+
+  it('turns a link of a table and of a list to a hidden article into plain words', () => {
+    const hidden = (id: string) => id !== 'x';
+    expect(
+      viewBlock(
+        {
+          t: 'table',
+          head: ['a'],
+          rows: [
+            {
+              cells: [
+                { text: 'X', link: 'x' },
+                { text: 'Y', link: 'y' },
+              ],
+            },
+          ],
+        },
+        hidden,
+      ),
+    ).toEqual({
+      t: 'table',
+      head: ['a'],
+      rows: [{ cells: [{ text: 'X' }, { text: 'Y', link: 'y' }] }],
+    });
+    expect(
+      viewBlock({ t: 'links', items: [{ id: 'x' }, { id: 'spy' }] }, hidden),
+    ).toEqual({ t: 'links', items: [{ id: 'spy', text: 'Auspex-Lehre' }] });
+    expect(
+      viewBlock({ t: 'text', text: 'Mit [[x|X]] und [[probe]].' }, hidden),
+    ).toEqual({
+      t: 'text',
+      parts: [
+        { text: 'Mit ' },
+        { text: 'X' },
+        { text: ' und ' },
+        { text: 'Spähschädel', link: 'probe' },
+        { text: '.' },
+      ],
+    });
+  });
+
+  it('leaves out a group of the search whose hits are all hidden', () => {
+    const all = searchHits('Auspex');
+    expect(all.length).toBeGreaterThan(1);
+    const ids = new Set(all[0]!.hits.map((h) => h.id));
+    expect(searchHits('Auspex', (id) => !ids.has(id))).toEqual(all.slice(1));
+    expect(searchHits('Auspex', () => false)).toEqual([]);
+  });
+
+  it('opens every article while the round offers every view, an unknown id too', () => {
+    const v = inRound({});
+    expect(ARTICLES.every((a) => opens(v)(a.id))).toBe(true);
+    expect(opens(v)('nope')).toBe(true);
   });
 });

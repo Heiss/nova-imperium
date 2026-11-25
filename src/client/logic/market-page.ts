@@ -1,7 +1,9 @@
 // The page „Marktplatz“ (#171, okf/features/marketplace.md) of the view
 // state, as the component Market renders it (#118): the notice while the
 // market is closed or the planet has no Handelsposten, else the form of the
-// market; the fields of the form are the state of logic/market-form.svelte.ts
+// market. A round with the market off does not offer the view at all (#404;
+// owner, 2026-11-25, 112a: hidden, not shown as closed), so in the game the
+// closed notice stands only for a state without the market's prices; the fields of the form are the state of logic/market-form.svelte.ts
 // (#332). The words are drafts [V] from the issue; the refusals are those of
 // src/core/market-text.ts. The preview is MarketPreview.svelte (#337).
 import type { Market } from '../../core/market.ts';

@@ -101,7 +101,9 @@ einer runde (de-)aktivieren“.
   the members, applications, ranks and rights with each guild.
 * `stateFor` sends `guilds: null` while off, and `round.guilds` always.
 * Client: `menu()` adds „Gilden“ only when `round.guilds`; `gameView`
-  turns the guild view into the overview; `roundDialog` has the checkbox
+  turns the guild view into the overview (the rule `guildsOn` of the view,
+  #373); the Lexicanum page „Gilden“ (`rule-guilds`) is hidden by the same
+  rule while guilds are off, a link to it is plain text (#404); `roundDialog` has the checkbox
   `round-guilds` with the warning `round-guilds-note`; `doReset` sends it.
   `deleteAccountBox(round)` and `deleteAccountDialog(round)` in
   `src/client/views/misc.ts` add the sentence about a led guild only when

@@ -1,5 +1,5 @@
 // The view „Marktplatz“ (#171), as the component Market renders it (#118,
-// bundle 7): the closed notice, the missing Handelsposten, the form with its
+// bundle 7): hidden in a round with it off (#404), the missing Handelsposten, the form with its
 // preview, the menu entry, and the places of the settings in the dialog
 // „Neue Runde“ and the admin panel.
 import { render } from 'svelte/server';
@@ -13,6 +13,7 @@ import { draft } from '../logic/market-form.svelte.ts';
 import type { GameState } from '../logic/types.ts';
 import type { V } from './common.ts';
 import { menu } from './index.ts';
+import { offered } from './offered.ts';
 import MarketPreview from './MarketPreview.svelte';
 import {
   adminMarkup as admin,
@@ -57,10 +58,15 @@ describe('the view „Marktplatz“', () => {
     expect(items).toContainEqual({ view: 'market', label: 'Marktplatz' });
   });
 
-  it('says that the market is closed in a round with it off (the issue)', () => {
-    expect(market(view({ marketOn: 0 }))).toBe(
-      '<h2>Marktplatz</h2><div class="notice">Der Marktplatz ist in dieser Runde geschlossen.</div>',
-    );
+  it('is hidden in a round with it off, not shown as closed (#404; owner, 2026-11-25, 112a)', () => {
+    const off = view({ marketOn: 0 }).s.round;
+    for (const admin of [false, true]) {
+      expect(menu(admin, off)).not.toContainEqual(
+        expect.objectContaining({ view: 'market' }),
+      );
+      expect(offered('market', off, admin)).toBe(false);
+      expect(offered('market', view().s.round, admin)).toBe(true);
+    }
   });
 
   it('says that the planet needs a Handelsposten, and where it is built', () => {

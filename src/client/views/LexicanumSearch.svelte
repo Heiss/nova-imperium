@@ -7,8 +7,10 @@
     groupTitle,
     hitsLabel,
     moveMark,
+    opens,
     searchHits,
   } from '../logic/lexicanum.ts';
+  import { client } from '../logic/state.svelte.ts';
   import { openArticle } from './lexicanum-nav.ts';
 
   let query = $state('');
@@ -16,7 +18,9 @@
   let mark = $state(-1);
   let field: HTMLInputElement | undefined = $state();
 
-  const groups = $derived(searchHits(query));
+  // No article the player does not see (#404).
+  const v = $derived(client.shown);
+  const groups = $derived(searchHits(query, v ? opens(v) : undefined));
   const hits = $derived(flatHits(groups));
   const shown = $derived(open && query.trim() !== '');
 

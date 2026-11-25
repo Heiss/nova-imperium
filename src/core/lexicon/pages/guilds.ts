@@ -5,6 +5,7 @@
 import {
   CHAT_HISTORY,
   CHAT_INTERVAL,
+  guildsOn,
   MAX_CHAT_TEXT,
 } from '../../guild-chat.ts';
 import {
@@ -87,6 +88,8 @@ const chatSection = (): PageSection =>
 
 export const page: PageDef = {
   id: 'rule-guilds',
+  // Hidden in a round without guilds, as its view (#404).
+  offered: guildsOn,
   kind: 'rule',
   title: 'Gilden',
   line: 'Wie eine Gilde beitritt und arbeitet, welche Ränge und Rechte es gibt, was der Chat erlaubt und wie Freundschaften entstehen.',
