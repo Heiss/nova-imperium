@@ -13,6 +13,7 @@ okf_version: "0.2"
 * [System architecture](/architecture/system.md) - components, request flow, the game clock
 * [Design patterns](/architecture/patterns.md) - catalog components, economy events, missions, repositories, Svelte components, feature folders, migration order
 * [Checks of the server actions](/architecture/action-checks.md) - audit of #214, where each action checks, what the browser repeats, where they disagree, the follow-up pull requests
+* [Data exchange and realtime](/architecture/realtime.md) - polling of the full state today, Server-Sent Events decided, requirements on the proxies, Cobalt27 rejected
 * [Docker operation](/architecture/docker.md) - services, volumes, secrets, hardening
 * [SQLite storage](/data/sqlite.md) - schema, migrations, transactions, backup
 
