@@ -1,5 +1,19 @@
 # Neuigkeiten
 
+## Version 26.11.28 – 25.11.2026
+
+### Geändert
+
+- Was in einer Runde abgeschaltet ist, etwa der Marktplatz, verschwindet jetzt ganz aus Menü und Lexicanum, statt als geschlossen angezeigt zu werden.
+- Admin: Die Sperre nach einem Wechsel des Hauptplaneten lässt sich jetzt auch während der Runde im Tab „Universum“ ändern. Sie gilt für spätere Wechsel; eine laufende Sperre behält ihr Ende.
+- Neue Nachrichten und Antworten schreibst du jetzt in einem eigenen Fenster mit großem Textfeld; Enter macht eine neue Zeile, Strg+Enter sendet. Ein angefangener Text bleibt bis zum Neuladen erhalten.
+- „Optionen“ zeigt jetzt auch am Computer oben die Bereiche „Spiel“, „Runde“, „Konto“, „Gerät“ und „Weiteres“ und darunter nur die Kästen des gewählten Bereichs, wie auf dem Handy.
+- Beim Scrollen am Computer bleiben die Planetenauswahl, der Kommandant und „Logout“ oben sichtbar; nur das Logo verschwindet.
+
+### Behoben
+
+- Übersicht: Die Karten „Achtung“ und „Bereit“ zeigen auch dann alles, wenn zwei Angriffe desselben Spielers vom selben Ort kommen oder ein Planet so heißt wie sein Mond.
+
 ## Version 26.11.27 – 25.11.2026
 
 ### Behoben
