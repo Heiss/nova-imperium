@@ -120,16 +120,16 @@ generated: { by: claude-code/web, at: 2026-11-25T09:30:00Z }
   * The total is an environment variable, 100 by default. It must allow at
     least 2 streams per account; when it does not, the admin panel says so
     at the invitations, that the server holds more accounts than it
-    carries, with the request to raise the number. **[V]** Name
+    carries, with the request to raise the number. **[E]** Name
     `NOVA_EVENT_STREAMS`; it counts the accounts and the open invitations.
-  * The heartbeat is an environment variable, 30 s by default. **[V]** Name
+  * The heartbeat is an environment variable, 30 s by default. **[E]** Name
     `NOVA_EVENT_HEARTBEAT`. It must stay below the shortest idle timeout of
     the proxies in front; the operator texts say so.
   * After an error the browser connects again at the interval the server
     sends in `retry:`, not at the browser's own. The interval is an
-    environment variable, by default the heartbeat. **[V]** Name
+    environment variable, by default the heartbeat. **[E]** Name
     `NOVA_EVENT_RETRY`.
-  * The page shows when it has no connection. **[V]** Two states: the
+  * The page shows when it has no connection. **[E]** Two states: the
     events are cut but requests still pass (the slow poll takes over), and
     the server cannot be reached at all. While the server cannot be
     reached, clicks are not sent and not kept for later: the buttons wait
