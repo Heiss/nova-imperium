@@ -1,5 +1,11 @@
 # Neuigkeiten
 
+## Version 26.11.27 – 25.11.2026
+
+### Behoben
+
+- Sicherheitsupdate: eine bekannte Lücke in einer verwendeten Komponente ist geschlossen.
+
 ## Version 26.11.25 – 22.11.2026
 
 ### Neu
