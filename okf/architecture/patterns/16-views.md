@@ -81,6 +81,14 @@ description: 'A view exports clientViews (key, mount or html, anew or fresh, men
   need no rule of their own: a mark stands on a menu entry only, and the
   only card linking such a view („Abholen“) shows a reward the server sends
   only while it is on.
+  **[E]** (owner, 2026-11-25) (122a) the answer „Wie bekomme ich mehr
+  Rohstoffe?“ of the Lexicanum has no row „Tauschen“ while the marketplace
+  is off and no row „Belohnungen“ while both rewards are off
+  (`faq-resources.ts`, `pages.blocks.test.ts`); (123a) „Dieses Universum“
+  keeps every row, it states the settings of the round; (121a, 124a) the
+  catalog entries Handelsposten and Kolonialverwaltung are hidden with
+  #375, not here. **[V]** The closed branch of the page „Marktplatz“ stays
+  until #375, though no player reaches it now.
 * **[E]** A view declares its own address parameters (#379; owner,
   2026-11-22, #351: a refactor of the v3 foundation without a change of
   behaviour, for the deep links of the star map, #160). **[V]** The member
