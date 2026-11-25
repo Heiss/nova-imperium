@@ -12,7 +12,9 @@ import {
   recordReport,
   recordServerError,
   scrub,
+  SECRET_FIELD,
 } from './error-log.ts';
+import { fast, HOSTILE, sameOn } from '../test/redos.ts';
 import { GameError } from './game/context.ts';
 import { addUser, testCtx, type TestCtx } from './test-helpers.ts';
 
@@ -477,5 +479,41 @@ describe('retention and account deletion', () => {
     recordServerError(ctx, { action: 'x', error: 'y', player: anna.id });
     deleteAccount(ctx, anna, 'secret1');
     expect(rows(ctx)).toMatchObject([{ player: bert.id, report: 'b' }]);
+  });
+});
+
+describe('the fields that hint at secrets in linear time (#367)', () => {
+  it('are found as the expression with a hint between two open runs found them', () => {
+    const OLD =
+      /(?<![\w-])([\w-]*(?:passwor[dt]|passwd|pw|kennwort|token|secret|session|cookie|salt|hash|code|challenge|auth|e-?mail)[\w-]*)(["']?\s*[:=]\s*)("[^"]*"|'[^']*'|[^\s,;&}"')\]]+)/gi;
+    sameOn(
+      [
+        'pw',
+        'PW',
+        'token',
+        'e-mail',
+        'mail',
+        'a',
+        '-',
+        '_',
+        '=',
+        ':',
+        ' ',
+        '"',
+        "'",
+        ',',
+        'x',
+      ],
+      (text) => {
+        expect(text.replace(SECRET_FIELD, '$1$2[redacted]')).toBe(
+          text.replace(OLD, '$1$2[redacted]'),
+        );
+      },
+    );
+  });
+
+  it('reads a long name of many hints fast (before: about 1.4 s)', () => {
+    const text = 'pw'.repeat(HOSTILE / 2);
+    expect(fast(() => scrub(text))).toBe('[token]');
   });
 });

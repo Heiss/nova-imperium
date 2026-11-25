@@ -1,5 +1,6 @@
 import type { RoundRules } from '../../core/round.ts';
 import {
+  assembleAddress,
   assembleGlyphs,
   assembleHtml,
   assembleMenu,
@@ -8,6 +9,7 @@ import {
 import type { V } from './common.ts';
 import type { MenuItem } from './contract.ts';
 import { glyph } from './glyph.ts';
+import { offered } from './offered.ts';
 import { CLIENT_VIEWS } from './views.gen.ts';
 
 // The menu, the tab bar and the glyphs are put together from the `clientViews`
@@ -22,6 +24,10 @@ export interface MenuEntry {
   label: string;
 }
 
+/** The address parameters of every view that has some (#379). */
+export const ADDRESS: Readonly<Record<string, readonly string[]>> =
+  assembleAddress(CLIENT_VIEWS);
+
 /** The entries of all views in the order of their numbers. */
 const MENU = assembleMenu(CLIENT_VIEWS);
 
@@ -29,7 +35,7 @@ const labelOf = (item: MenuItem, round: RoundRules): string =>
   typeof item.label === 'function' ? item.label(round) : item.label;
 
 export function menu(admin: boolean, round: RoundRules): (MenuEntry | '-')[] {
-  return MENU.filter((item) => item.show?.(round, admin) ?? true).flatMap(
+  return MENU.filter((item) => offered(item.view, round, admin)).flatMap(
     (item) => [
       ...(item.divider ? (['-'] as const) : []),
       { view: item.view, label: labelOf(item, round) },
@@ -54,9 +60,10 @@ export function phoneMenu(items: (MenuEntry | '-')[]): {
   const entries = items.filter((i): i is MenuEntry => i !== '-');
   const isTab = (i: MenuEntry): boolean => TAB_VIEWS.includes(i.view);
   return {
-    tabs: TABS.map((tab) => {
-      const entry = entries.find((i) => i.view === tab.view)!;
-      return { ...entry, label: tab.label ?? entry.label };
+    // A tab of a view that is not offered is not in the menu: no tab (#373).
+    tabs: TABS.flatMap((tab) => {
+      const entry = entries.find((i) => i.view === tab.view);
+      return entry ? [{ ...entry, label: tab.label ?? entry.label }] : [];
     }),
     more: entries.filter((i) => !isTab(i)),
   };

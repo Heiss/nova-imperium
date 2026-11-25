@@ -25,7 +25,11 @@ function markRead(): void {
 
 /** The member saw the chat of its guild: the mark on „Gilden“ goes (#169). */
 function seeChat(): void {
-  const id = chatToSee(client.game!, client.ui.view, client.ui.guild ?? null);
+  const id = chatToSee(
+    client.game!,
+    client.ui.view,
+    client.ui.params.guild ?? null,
+  );
   if (id === null || seePending) return;
   seePending = true;
   setTimeout(() => {

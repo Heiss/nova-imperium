@@ -26,10 +26,10 @@ Docker Compose.
 - [Contributing](contributing.md): issues, clarification with the owner,
   changelog fragments, labels and code style.
 - [Git workflow](git-workflow.md): branches, the pull request flow, squash
-  merges, the release pull request, release candidates, hotfixes and
+  merges, the release pull request, the image `next`, hotfixes and
   Renovate, with diagrams.
 - [CI and checks](ci.md): every job of the CI, how the CI Gate decides,
-  mutation tests, Trivy, gitleaks, CodeQL and CodeRabbit.
+  mutation tests, Trivy, gitleaks, CodeQL, the nightly runs and CodeRabbit.
 - [Automation](automation.md): how the workflows trigger each other and
   what each of them produces.
 - [Operations](/docs/operations.md): reverse proxy, backup, updates and

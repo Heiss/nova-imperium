@@ -1,9 +1,9 @@
 <script lang="ts">
   // „Posteingang“ (#226), from privatePage() of logic/private-messages.ts: the
   // conversations as previews (the newest message each, Q32), the open one with
-  // „Antworten“, and the settings. The component owns which conversation is
-  // open and whether the form „Neue Nachricht“ is shown, so the poll of the
-  // state never closes them. A conversation loads its newest page when the
+  // „Antworten“, and the settings. „Neue Nachricht“ opens the dialog of a
+  // message (#349) with the quick choice of the recipient. The component owns
+  // which conversation is open, so the poll of the state never closes it. A conversation loads its newest page when the
   // player opens it: from the click on its name, or from sending to it, never
   // from a redraw. The buttons ask features/private-messages.ts through
   // `pmCall`.
@@ -15,16 +15,20 @@
     type PrivatePage,
     type Thread,
   } from '../logic/private-messages.ts';
-  import PmCompose from './PmCompose.svelte';
+  import type { QuickChoice } from '../logic/pm-compose.ts';
+  import PmDialog from './PmDialog.svelte';
   import PmSettings from './PmSettings.svelte';
   import PmThread from './PmThread.svelte';
 
   // `lock`: on the lock screen of the vacation mode (owner, 2026-11-21, Q28) a
   // player reads and replies; there is no new message, no recipient list and
   // no settings there.
-  let { page, lock = false }: { page: PrivatePage; lock?: boolean } = $props();
+  let {
+    page,
+    quick,
+    lock = false,
+  }: { page: PrivatePage; quick?: QuickChoice; lock?: boolean } = $props();
 
-  let composing = $state(false);
   let open = $state<string | null>(null);
   /** The open conversation once its action answered; `id` tells one opening from the next. */
   let loaded = $state<{ key: string; id: number; thread: Thread } | null>(null);
@@ -75,21 +79,11 @@
 <div bind:this={root}>
   {#if !lock}<div class="box">
       <div class="bd">
-        <button
-          type="button"
-          aria-expanded={composing}
-          aria-controls="pm-compose"
-          onclick={() => (composing = !composing)}>{PM_LABELS.compose}</button
-        >
-        {#if composing}
-          <PmCompose
-            names={page.names}
-            sent={(to) => {
-              composing = false;
-              void openConversation(to);
-            }}
-          />
-        {/if}
+        <PmDialog
+          names={page.names}
+          {quick}
+          sent={(to) => void openConversation(to)}
+        />
       </div>
     </div>{/if}
   <div class="box">

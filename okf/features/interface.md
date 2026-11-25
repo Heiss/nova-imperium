@@ -121,6 +121,19 @@ generated: { by: claude-code/web, at: 2026-11-10T19:00:00Z }
   scrolls.
 * **[E]** D2: while scrolled the header gets slimmer: the logo line hides,
   the resources stay (owner, 2026-11-14).
+* **[E]** The planet choice stays in view (owner, 2026-11-21, #348; it
+  changes D2 for a header of two lines): while scrolled only the logo goes;
+  the planet choice („Aktiver Planet“, `#planet_select`), „Kommandant …“ and
+  „Logout“ (`#pinfo`) stay as a line above the resources. A one-line header
+  and the phone stay as they were. **[V]** (the look was not decided, #348
+  [U]) The logo keeps its place, unseen while scrolled (`visibility:
+  hidden`), so nothing moves and the page does not jump; `--head-hide`
+  ends where the header keeps above `#pinfo` as much space as above the
+  logo at the top (`pinfoTop - logoTop`), so `#pinfo` keeps its place
+  beside the unseen logo. E2E: `e2e/sticky-header.spec.ts` at 1,100 px
+  (logo hidden, planet choice, „Kommandant …“ and „Logout“ in view above
+  the resources, the planet changed while scrolled, the menu below the
+  header, the focus clear of it); it fails without the change.
 * **[E]** D1, changed (owner, 2026-11-14): the phone stays as it is (its
   header is already sticky); the observation in Firefox on Android is taken
   as a short glitch, with no reproduction and no Firefox test project.
@@ -135,8 +148,9 @@ generated: { by: claude-code/web, at: 2026-11-10T19:00:00Z }
   `src/client/logic/sticky-header.ts` measures them (when the client
   starts and whenever the header or the resource bar changes size) and
   sets `--head-h` and `--head-hide`. When the logo has a line of its own
-  above the resources, everything down to the bottom of the logo goes
-  above the screen (measured at 1,100 px: 128 px full, 72 px scrolled).
+  above the resources, everything down to the bottom of the logo went
+  above the screen (measured at 1,100 px: 128 px full, 72 px scrolled);
+  since #348 only the space above `#pinfo` goes (see above).
 * **[E]** One-line header (owner, 2026-11-17): on a header that fits one line
   (full width, short name; the logo stands beside the resources, measured at
   1,280 px with a short player name: 72 px) the logo becomes **smaller**
@@ -319,17 +333,28 @@ Up to 760 px only; the desktop stays as it is (D6).
 * **[E]** „Hilfe & Optionen“ in sections (proposal of the issue, kept by the
   owner as [V], 2026-11-14). The page is called „Optionen“ since the rules
   moved to the Lexicanum (#288), so no section is called „Hilfe“.
-* **[V]** Up to 760 px a switch of five buttons („Spiel“, „Runde“, „Konto“,
-  „Gerät“, „Weiteres“; `div.seg.phone-only`, `aria-pressed`) shows one section
+* **[E]** The switch is on every width (owner, 2026-11-22, #356; it replaces
+  D6 of #189 for this page). Since then the desktop shows one section at a
+  time too, with the same pattern as a phone (`div.seg.opt-seg`, a group of
+  buttons with `aria-pressed`, reached by the keyboard and named for a
+  screen reader as before); the switch looks like the switches of a phone.
+  **[U]** The names and the grouping of the sections stay the proposal [V]
+  of #189, and whether the chosen section is kept over a reload or in the
+  address, or which section a link from elsewhere opens, is open; today the
+  section lives for the session and a reload starts with „Spiel“. No link
+  of the game opens a box of „Optionen“ directly; the E2E flows choose the
+  section first on every width (`optionsSection` in `e2e/helpers.ts`).
+* **[V]** A switch of five buttons („Spiel“, „Runde“, „Konto“,
+  „Gerät“, „Weiteres“; `aria-pressed`) shows one section
   of the page; „Spiel“ is the first. Spiel: the box „Optionen“ and
   „Hauptplanet“; Runde: „Urlaubsmodus“, „Meine Aktivität & Spielzeit“ and
   „Rundenarchiv“; Konto: „Passwort ändern“, „Passkeys“ and „Account löschen“;
   Gerät: „Darstellung“, „App installieren“, „Benachrichtigungen“ and
   „Browser-Benachrichtigungen“; Weiteres: „Problem melden“ and the line with
-  the link „Dieses Universum“. Above 760 px every box shows as before.
+  the link „Dieses Universum“. Above 760 px every box showed until #356.
 * **[V]** How: `Box.svelte` takes an optional `section` and writes
   `data-sec`; the boxes stand in one `div.opt[data-section]`; the CSS hides
-  the boxes of the other sections on a phone (`logic/phone-options.ts`, the
+  the boxes of the other sections (on every width since #356) (`logic/phone-options.ts`, the
   section lives in `logic/phone-options.svelte.ts` for the session; a reload
   starts with „Spiel“). Every id, `data-act` and form stays in the page
   whichever section is shown, so a feature that fills `#own-activity` or

@@ -61,6 +61,19 @@ export const clean = (v: unknown): string =>
     .trim();
 export const str = (v: unknown, max: number): string => clean(v).slice(0, max);
 
+// eslint-disable-next-line no-control-regex
+const CONTROL_BUT_BREAK = /[\u0000-\u0009\u000b-\u001f\u007f]/g;
+/**
+ * A text of several lines (the text of a private message, option 1a of the
+ * owner's decision 84): "\r\n" and "\r" become "\n", the line breaks stay,
+ * every other control character goes, trimmed. No limit of breaks in a row.
+ */
+export const cleanLines = (v: unknown): string =>
+  String(v ?? '')
+    .replace(/\r\n?/g, '\n')
+    .replace(CONTROL_BUT_BREAK, '')
+    .trim();
+
 export const coords = (c: Coords): string => `[${c.g}:${c.s}:${c.p}]`;
 export const fmt = (n: number): string =>
   Math.floor(n || 0).toLocaleString('de-DE');

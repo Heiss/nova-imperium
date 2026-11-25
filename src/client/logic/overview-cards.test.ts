@@ -155,6 +155,7 @@ describe('Achtung', () => {
   it('names an attack, its sender, origin and arrival', () => {
     expect(attentionItems(view({ fleets: [fleet()] }))).toEqual([
       {
+        key: `fleet:${fleet().id}`,
         text: `${MISSION.attack} von Feind [1:3:7]`,
         due: countdown(5000, 1000),
       },
@@ -204,6 +205,14 @@ describe('Achtung', () => {
     expect(item!.text).toBe(`${MISSION.attack} von Unbekannt [1:3:7]`);
   });
 
+  it('keys two attacks of one player from one place apart, though their lines read the same (#369)', () => {
+    const items = attentionItems(
+      view({ fleets: [fleet({ id: 'f1' }), fleet({ id: 'f2', arr: 6000 })] }),
+    );
+    expect(items[0]!.text).toBe(items[1]!.text);
+    expect(new Set(items.map((i) => i.key)).size).toBe(items.length);
+  });
+
   it('lists the attacks by their arrival and counts those beyond the most', () => {
     const fleets = Array.from({ length: MOST_ATTACKS + 2 }, (_, i) =>
       fleet({ id: `f${i}`, arr: 9000 - i * 100 }),
@@ -215,6 +224,7 @@ describe('Achtung', () => {
       countdown(9000 - (MOST_ATTACKS + 1) * 100, 1000),
     );
     expect(items.at(-1)).toEqual({
+      key: 'more-fleets',
       text: 'und 2 weitere Flotten',
       link: { view: 'fleet', label: 'Zur Flotte' },
     });
@@ -233,6 +243,7 @@ describe('Achtung', () => {
     // Without a Sonnenkathedrale a mine uses energy and nothing makes it.
     const [item] = attentionItems(view({ P: { b: { metal: 10 } } }));
     expect(item).toMatchObject({
+      key: 'energy',
       link: { view: 'buildings', label: 'Zu den Gebäuden' },
     });
     expect(item!.text).toMatch(/^Zu wenig Energie: es fehlen [\d.]+$/);
@@ -271,19 +282,20 @@ describe('Bereit', () => {
       );
     const link = { view: 'achievements', label: 'Abholen' };
     expect(open({ daily })).toEqual([
-      { text: 'Tagesbelohnung abholbar', link },
+      { key: 'reward', text: 'Tagesbelohnung abholbar', link },
     ]);
     expect(open({ daily: { ...daily!, claimed: true } })).toEqual([]);
     const both = open({ daily, progress });
     expect(both[0]!.text).toBe('Erfolg und Tagesbelohnung abholbar');
     const one = open({ progress });
-    expect(one).toEqual([{ text: 'Erfolg abholbar', link }]);
+    expect(one).toEqual([{ key: 'reward', text: 'Erfolg abholbar', link }]);
   });
 
   it('counts the messages newer than the last reading', () => {
     const reports = [report('a', 100), report('b', 200), report('c', 300)];
     expect(readyItems(view({ reports, readAt: 200 }))).toEqual([
       {
+        key: 'unread',
         text: '1 ungelesene Nachricht',
         link: { view: 'messages', label: 'Lesen' },
       },
@@ -344,10 +356,20 @@ describe('Bereit: an empty build queue on another place', () => {
   it('names a place with its position and a button that selects it', () => {
     expect(readyItems(view({ galaxy, idle: ['p1_2_3'] }))).toEqual([
       {
+        key: 'idle:p1_2_3',
         text: 'Bauschleife leer: Kolonie [1:2:3]',
         select: { id: 'p1_2_3', label: 'Wechseln' },
       },
     ]);
+  });
+
+  it('keys a planet named like its moon apart from the moon, though their lines read the same (#369)', () => {
+    const twins = [place(8, 'X (Mond)'), place(8, 'X', 'moon')];
+    const items = readyItems(
+      view({ galaxy: twins, idle: ['p1_2_8', 'm1_2_8'] }),
+    );
+    expect(items[0]!.text).toBe(items[1]!.text);
+    expect(new Set(items.map((i) => i.key)).size).toBe(items.length);
   });
 
   it('words a moon with „(Mond)“', () => {
@@ -368,8 +390,14 @@ describe('Bereit: an empty build queue on another place', () => {
       'Bauschleife leer: Dritte [1:2:5]',
       'und 1 weitere',
     ]);
-    // The rest line has no button.
+    // The rest line has no button, and a key of its own (#369).
     expect(four[3]!.select).toBeUndefined();
+    expect(four.map((i) => i.key)).toEqual([
+      'idle:p1_2_3',
+      'idle:m1_2_4',
+      'idle:p1_2_5',
+      'more-idle',
+    ]);
     expect(
       lines(['p1_2_3', 'm1_2_4', 'p1_2_5', 'p1_2_6', 'p1_2_7']).at(-1),
     ).toBe('und 2 weitere');

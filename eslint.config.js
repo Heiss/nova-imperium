@@ -5,25 +5,26 @@ import sonarjs from 'eslint-plugin-sonarjs';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
+/** The files `eslint .` skips; eslint.redos.config.js skips the same (#367). */
+export const ignores = [
+  '**/dist/**',
+  '**/node_modules/**',
+  '**/playwright-report/**',
+  '**/test-results/**',
+  'okf/**',
+  // The documentation website has its own package and checks (ci.yml).
+  'website/**',
+  'coverage/**',
+  'reports/**',
+  '.stryker-tmp/**',
+  'data/**',
+  'src/test/legacy/**',
+  // Agent worktrees inside the checkout hold other branches.
+  '.claude/worktrees/**',
+];
+
 export default defineConfig(
-  {
-    ignores: [
-      '**/dist/**',
-      '**/node_modules/**',
-      '**/playwright-report/**',
-      '**/test-results/**',
-      'okf/**',
-      // The documentation website has its own package and checks (ci.yml).
-      'website/**',
-      'coverage/**',
-      'reports/**',
-      '.stryker-tmp/**',
-      'data/**',
-      'src/test/legacy/**',
-      // Agent worktrees inside the checkout hold other branches.
-      '.claude/worktrees/**',
-    ],
-  },
+  { ignores },
   js.configs.recommended,
   tseslint.configs.recommended,
   {

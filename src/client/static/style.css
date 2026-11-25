@@ -203,8 +203,8 @@ main {
 }
 /* Sticky header (#193): on the desktop the header with the resources and
    the side menu stay in view while the page scrolls. The header sticks with
-   its logo line above the screen, so it is slimmer while scrolled and full
-   at the top; the menu sticks below the rest of it and scrolls on its own
+   the space above #pinfo above the screen and the logo unseen (#348), so it
+   is slimmer while scrolled and full at the top; the menu sticks below the rest of it and scrolls on its own
    when it is taller than the screen. --head-h (the full height) and
    --head-hide (the logo line) come from logic/sticky-header.ts. The menu no
    longer reaches down the page, so #app paints its column. The phone keeps
@@ -235,6 +235,13 @@ html {
   }
   html.head-line.scrolled .logo small {
     font-size: 11px;
+  }
+  /* A header of two lines: while scrolled only the logo goes, the planet
+     choice, „Kommandant …“ and „Logout“ stay above the resources (owner,
+     2026-11-21, #348). The logo keeps its place unseen, so nothing moves;
+     --head-hide ends just above #pinfo [V]. */
+  html.scrolled:not(.head-line) header .logo {
+    visibility: hidden;
   }
   nav#menu {
     position: sticky;
@@ -1501,6 +1508,93 @@ dialog.sheet::backdrop {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* The dialog of a message (#349, variant C of the design study): wider than
+   the dialogs of today; on a phone it fills the screen. */
+.pm-dialog {
+  width: min(560px, calc(100vw - 32px));
+  max-width: 560px;
+  max-height: calc(100dvh - 32px);
+  padding: 16px;
+  color: var(--txt);
+  background: var(--box);
+  border: 1px solid var(--gold);
+  border-radius: 6px;
+}
+.pm-dialog::backdrop {
+  background: rgb(0 0 0 / 0.6);
+}
+.pm-dialog h3 {
+  margin-top: 0;
+}
+.pm-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 10px;
+}
+.pm-field input {
+  max-width: 260px;
+}
+.pm-field textarea {
+  width: 100%;
+  resize: vertical;
+  line-height: 1.35;
+}
+.pm-count {
+  align-self: flex-end;
+  font-size: 13px;
+}
+.pm-quick,
+.pm-to {
+  margin: 8px 0 0;
+}
+.pm-quote {
+  margin: 10px 0 0;
+  padding: 6px 10px;
+  border-left: 3px solid var(--line);
+  background: var(--box-2);
+}
+/* A refusal of the server inside the dialog, as the error note looks. */
+.pm-refusal {
+  margin: 10px 0 0;
+  padding: 6px 10px;
+  border: 1px solid var(--red);
+  border-radius: 4px;
+  background: #3a1410;
+}
+.pm-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+@media (max-width: 760px) {
+  .pm-dialog {
+    width: 100%;
+    max-width: none;
+    height: 100dvh;
+    max-height: none;
+    margin: 0;
+    padding: calc(12px + env(safe-area-inset-top)) 16px 16px;
+    border: 0;
+    border-radius: 0;
+  }
+  .pm-dialog[open] {
+    display: flex;
+    flex-direction: column;
+  }
+  .pm-dialog .pm-form {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+  }
+  .pm-dialog .pm-body {
+    flex: 1;
+  }
+  .pm-dialog textarea {
+    flex: 1;
+  }
+}
 
 /* The Lexicanum (#285): the page, the side panel and the shared article
    (layout of the design study #287). */
@@ -1968,6 +2062,65 @@ table.lx-t {
 .phone-only {
   display: none;
 }
+/* The switches: the four lists and their filter on a phone (#189), the
+   sections of „Optionen“ on every width (#356; owner, 2026-11-22: it replaces
+   D6 of #189 for this page). The switch of „Optionen“ shows the boxes of one
+   section; a box with no section is not part of the switch. */
+.seg {
+  margin: 0 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--box);
+}
+.seg > a,
+.seg > button {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: grid;
+  place-items: center;
+  min-height: 44px;
+  padding: 0 4px;
+  color: var(--dim);
+  font: 600 13px var(--head);
+  letter-spacing: 0.02em;
+  text-align: center;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.seg > a + a,
+.seg > button + button {
+  border-left: 1px solid var(--line);
+}
+.seg > a:hover {
+  text-decoration: none;
+}
+.seg > .on {
+  color: var(--gold-hi);
+  background: var(--box-2);
+  box-shadow: inset 0 -3px 0 var(--gold);
+}
+/* The focus ring of a switch, the chosen button too, drawn inside: the
+   switch clips what lies outside its buttons (CodeRabbit on #395). */
+.seg > a:focus-visible,
+.seg > button:focus-visible {
+  outline-offset: -3px;
+}
+.opt-seg {
+  display: flex;
+}
+.opt > [data-sec] {
+  display: none;
+}
+.opt[data-section='game'] > [data-sec='game'],
+.opt[data-section='round'] > [data-sec='round'],
+.opt[data-section='account'] > [data-sec='account'],
+.opt[data-section='device'] > [data-sec='device'],
+.opt[data-section='other'] > [data-sec='other'] {
+  display: block;
+}
 /* The short label „▲ 5“ of a level button (#189) is for the eye on a phone
    only; the desktop shows the full text. */
 .sh {
@@ -1999,55 +2152,6 @@ table.lx-t {
   }
   .item .act button:has(.sh) {
     position: relative;
-  }
-  .seg {
-    margin: 0 0 10px;
-    border: 1px solid var(--line);
-    border-radius: 6px;
-    overflow: hidden;
-    background: var(--box);
-  }
-  .seg > a,
-  .seg > button {
-    flex: 1 1 auto;
-    min-width: 0;
-    display: grid;
-    place-items: center;
-    min-height: 44px;
-    padding: 0 4px;
-    color: var(--dim);
-    font: 600 13px var(--head);
-    letter-spacing: 0.02em;
-    text-align: center;
-    background: none;
-    border: 0;
-    border-radius: 0;
-    box-shadow: none;
-  }
-  .seg > a + a,
-  .seg > button + button {
-    border-left: 1px solid var(--line);
-  }
-  .seg > a:hover {
-    text-decoration: none;
-  }
-  .seg > .on {
-    color: var(--gold-hi);
-    background: var(--box-2);
-    box-shadow: inset 0 -3px 0 var(--gold);
-    outline: 0;
-  }
-  /* „Optionen“ in sections (Options.svelte): the switch shows the boxes of one
-     section; a box with no section is not part of the switch. */
-  .opt > [data-sec] {
-    display: none;
-  }
-  .opt[data-section='game'] > [data-sec='game'],
-  .opt[data-section='round'] > [data-sec='round'],
-  .opt[data-section='account'] > [data-sec='account'],
-  .opt[data-section='device'] > [data-sec='device'],
-  .opt[data-section='other'] > [data-sec='other'] {
-    display: block;
   }
   /* The filter. */
   .catalog[data-filter='open'] > .item[data-phase='locked'],

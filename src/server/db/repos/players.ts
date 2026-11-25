@@ -34,6 +34,11 @@ export interface User {
   mainPlanet: string | null;
   /** When the main planet was last switched, which starts the lock (#221). */
   mainSwitched: number | null;
+  /**
+   * When the lock of the last switch ends, stored at the switch (#366,
+   * owner, 2026-11-22): a later change of the setting does not move it.
+   */
+  mainLockEnd: number | null;
   /** When the vacation mode started (#223); null outside of it. */
   vacation: number | null;
 }
@@ -90,6 +95,7 @@ class SqlitePlayers implements Players {
       rq: researchQueueOf(r),
       mainPlanet: r.main_planet as string | null,
       mainSwitched: r.main_switched as number | null,
+      mainLockEnd: r.main_lock_end as number | null,
       vacation: r.vacation as number | null,
     };
   }
@@ -123,16 +129,17 @@ class SqlitePlayers implements Players {
     this.db
       .prepare(
         `INSERT INTO users (id, name, email, salt, pw_hash, admin, probes, explain_mode, level_table, read_at, created,
-           rq_key, rq_lvl, rq_start, rq_end, rq_cost_m, rq_cost_c, rq_cost_d, rq_planet, main_planet, main_switched, vacation)
+           rq_key, rq_lvl, rq_start, rq_end, rq_cost_m, rq_cost_c, rq_cost_d, rq_planet, main_planet, main_switched, main_lock_end, vacation)
          VALUES (@id, @name, @email, @salt, @pw, @admin, @probes, @explain, @levelTable, @readAt, @created,
-           @rq_key, @rq_lvl, @rq_start, @rq_end, @rq_cost_m, @rq_cost_c, @rq_cost_d, @rq_planet, @mainPlanet, @mainSwitched, @vacation)
+           @rq_key, @rq_lvl, @rq_start, @rq_end, @rq_cost_m, @rq_cost_c, @rq_cost_d, @rq_planet, @mainPlanet, @mainSwitched, @mainLockEnd, @vacation)
          ON CONFLICT(id) DO UPDATE SET name = excluded.name, email = excluded.email,
            salt = excluded.salt, pw_hash = excluded.pw_hash, admin = excluded.admin,
            probes = excluded.probes, explain_mode = excluded.explain_mode, level_table = excluded.level_table, read_at = excluded.read_at, rq_key = excluded.rq_key,
            rq_lvl = excluded.rq_lvl, rq_start = excluded.rq_start, rq_end = excluded.rq_end,
            rq_cost_m = excluded.rq_cost_m, rq_cost_c = excluded.rq_cost_c, rq_cost_d = excluded.rq_cost_d,
            rq_planet = excluded.rq_planet, main_planet = excluded.main_planet,
-           main_switched = excluded.main_switched, vacation = excluded.vacation`,
+           main_switched = excluded.main_switched, main_lock_end = excluded.main_lock_end,
+           vacation = excluded.vacation`,
       )
       .run({
         ...u,

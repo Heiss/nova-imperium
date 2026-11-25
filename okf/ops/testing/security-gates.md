@@ -15,8 +15,9 @@ description: 'gitleaks, pnpm audit and the other security gates, and what to do 
 * **[E]** Security gates: gitleaks over the whole history, `pnpm audit --prod`
   (high blocks), CodeQL `security-extended` (severity ≥ 7.0 and every result of level
   „error“ block, `.github/scripts/codeql-gate.mjs`), Trivy on
-  the image (holes with a fix: in a release pull request, a pull request into
-  and a push to `hotfix/**` high and critical block; other pull requests
+  the image (holes with a fix: in a pull request into
+  and a push to `hotfix/**` high and critical block, in a release pull
+  request too until #387, which builds no image since then; other pull requests
   block on the critical holes they bring in, compared with the image of the
   base branch; a push to `main` blocks on every critical hole; owner
   2026-11-12). CodeQL runs for every pull

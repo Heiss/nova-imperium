@@ -2,7 +2,7 @@
 // A view key, a menu number, a tab number or a glyph defined twice stops the
 // start with both files named, so no view silently replaces another.
 import type { V } from './common.ts';
-import type { ClientView, MenuItem, Mount, Tab } from './contract.ts';
+import type { ClientView, MenuItem, Mount, Offered, Tab } from './contract.ts';
 
 /** The modules as the generated list gives them: `[name in this folder, clientViews]`. */
 export type Listed = readonly (readonly [string, readonly ClientView[]])[];
@@ -14,7 +14,7 @@ interface Owned<T> {
 }
 
 /** Everything of one kind, each key once; with a key twice both files are named. */
-function collect<T>(
+export function collect<T>(
   kind: string,
   entries: readonly (readonly [string, string, T])[],
 ): Map<string, Owned<T>> {
@@ -127,3 +127,31 @@ export const assembleGlyphs = (listed: Listed): Record<string, string> =>
       declared(listed, 'glyph').map((d) => [d.view.key, d.file, d.value]),
     ),
   );
+
+/** The rules of the views that are not always offered, by view key (#373). */
+export const assembleOffered = (listed: Listed): ReadonlyMap<string, Offered> =>
+  // A Map: the name of a view comes from the address, and a plain object
+  // would answer `constructor` or `hasOwnProperty` with a function of its
+  // prototype (CodeQL js/unvalidated-dynamic-method-call on #395).
+  new Map(
+    [
+      ...collect(
+        'offered',
+        declared(listed, 'offered').map((d) => [d.view.key, d.file, d.value]),
+      ),
+    ].map(([key, owned]) => [key, owned.value]),
+  );
+
+/** The address parameters of the views that have some, by view key; each name belongs to one view (#379). */
+export function assembleAddress(
+  listed: Listed,
+): Record<string, readonly string[]> {
+  const found = declared(listed, 'address');
+  collect(
+    'address parameter',
+    found.flatMap((d) =>
+      d.value.map((name) => [name, d.file, d.view.key] as const),
+    ),
+  );
+  return Object.fromEntries(found.map((d) => [d.view.key, d.value]));
+}

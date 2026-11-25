@@ -28,7 +28,7 @@ tasks).
     of the CI are `feature` too [V].
   The milestones `next release` and `planned release` are no longer used
   by the loop.
-* **[V]** Conditions on the labels: „Make the release ready“ when no open
+* **[V, replaced by #387 on 2026-11-23]** Conditions on the labels: „Make the release ready“ when no open
   issue has `ready`, `in progress` or `in review` and the release pull
   request is open; „Plan the release“ when none has those labels and no
   release pull request is open. A merged release closes the release pull
@@ -67,13 +67,36 @@ tasks).
   proposals from the open issues; **infrastructure first**, features after
   it (owner, 2026-11-12). The chosen issues get the label `ready`
   (owner, 2026-11-14; before, they formed the milestone `next release`).
-* **[E]** When no issue of the release is open any more and the release pull
+* **[E, replaced by #387 on 2026-11-23]** When no issue of the release is open any more and the release pull
   request is green with its candidate image, the loop tells the owner. The
   owner merges the release pull request; that is the release (owner,
   2026-11-12, [Branching and release](/ops/branching-release.md)). The loop
   **stops** once the owner has merged it, not when it has told the owner
   (owner, 2026-11-13, #149; replaces „tells the owner and stops“); since
   2026-11-23 only after its tag and its merged retrospective [V] (below).
+* **[E]** Nightly failures first (owner, 2026-11-23, #387): every night a
+  complete run on `main` (`ci.yml` on its schedule: the unit suite, the E2E
+  suite, the image with the Compose stack and the upgrade test;
+  `mutation.yml`: the complete mutation run; `migrations-nightly.yml`: the
+  migration property tests). The loop first looks at the nightly results
+  and fixes a failure through a pull request into `main` before it starts
+  other work. **[U]** What the loop does when a nightly failure cannot be
+  traced to one merge (open on #387); until then it tells the owner.
+* **[E]** The release after #387 (owner, 2026-11-23 and 2026-11-24): the
+  step „Release“ comes when no open issue has `ready`, `in progress` or
+  `in review`. A release pull request is created only on the owner's word:
+  when none is open, the loop asks the owner whether to release now and on
+  yes starts the workflow „Release pull request“ on `main` by hand
+  (`workflow_dispatch`); otherwise it plans the next release. The release
+  pull request changes only `VERSION`, `CHANGELOG.md` and `changes/` and
+  runs no expensive job; the loop checks its texts, waits for its green CI
+  Gate and the run of „Release pull request“ of the current `main` commit,
+  and tells the owner. A push to `main` rebuilds it in minutes; the loop
+  checks it again and tells the owner again. No draft, no „Ready for
+  review“, no full run and no candidate image any more; it is a draft only
+  while another release branch holds its version or a released hotfix is
+  not merged back [V] ([Branching and release](/ops/branching-release.md)).
+  This replaces the bullets marked „replaced by #387“ below and above.
 * **[E]** Before every release the loop asks the owner for the export of
   the error log of the live server since the last release (the download
   of the admin tab „Fehler“, [Error log](/features/error-log.md)) and
@@ -122,7 +145,7 @@ tasks).
     is merged; a missing retrospective of another release does not stop
     it.
   * open details: O25 in [Open points](/open-points.md).
-* **[E]** The release pull request of `main` is a draft with the cheap run
+* **[E, replaced by #387 on 2026-11-23]** The release pull request of `main` is a draft with the cheap run
   after every rebuild; its CI Gate is red on purpose (owner, 2026-11-13 and
   2026-11-14, #147, [Branching and release](/ops/branching-release.md)).
   In the step „Make the release ready“ the loop checks the single cheap
@@ -131,7 +154,7 @@ tasks).
   run and for the candidate image, then tells the owner. A rebuild during
   the wait (a push to `main`) sets it back to draft: the loop marks it
   ready again.
-* **[E]** No merge freeze (owner, 2026-11-13, #149): every merge into
+* **[E, replaced by #387 on 2026-11-23]** No merge freeze (owner, 2026-11-13, #149): every merge into
   `main` while the release pull request is open, not only a security
   merge, rebuilds it and sets it back to draft, and its last full run no
   longer counts. The loop keeps running after „Make the release ready“
@@ -151,7 +174,7 @@ tasks).
   (#149). The owner decided this first with the milestone („stays open
   until the release is merged“); with labels the open release pull
   request takes its place.
-* **[E]** The loop marks the release pull request ready only after the
+* **[E, replaced by #387 on 2026-11-23]** The loop marks the release pull request ready only after the
   run of „Release pull request“ for the current `main` commit has
   completed successfully: a rebuild still running would push a new head
   after the ready mark and leave it ready without a full run (CodeRabbit
@@ -162,11 +185,11 @@ tasks).
   (seven days or the session) before the release is merged, it tells the
   owner, who starts `/loop` again; the new loop finds the state on GitHub
   (owner, 2026-11-14).
-* **[E]** While a released hotfix is not merged back, „Ready for review“
+* **[E, replaced by #387 on 2026-11-23]** While a released hotfix is not merged back, „Ready for review“
   is refused: „Release ready“ sets the pull request back to draft and
   comments why (owner, 2026-11-14, #147); the loop does not mark it ready
   then.
-* **[V]** The loop does not mark it ready while the last run of „Release
+* **[V, replaced by #387 on 2026-11-23]** The loop does not mark it ready while the last run of „Release
   pull request“ failed (a version held by another release branch): before
   #147 the workflow kept it a draft, now only the draft that every rebuild
   has shows it.

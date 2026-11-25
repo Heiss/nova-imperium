@@ -8,9 +8,11 @@ import {
   main,
   raise,
   reportProblem,
+  SCORE_LINE,
   summary,
   type Deps,
 } from '../../scripts/mutation-floors.ts';
+import { fast, HOSTILE, sameOn } from './redos.ts';
 
 const m = (...statuses: string[]) => statuses.map((status) => ({ status }));
 
@@ -478,5 +480,27 @@ describe('mutation-floors.ts', () => {
     } finally {
       error.mockRestore();
     }
+  });
+});
+
+describe('a line of the score table in linear time (#367)', () => {
+  const TABLE = ' % (killed 1, timeout 0, survived 2, no coverage 0, errors 0)';
+
+  it('is read as the expression without the start of a word read it', () => {
+    const OLD =
+      /(\S+): (\d+(?:\.\d+)?) % \(killed \d+, timeout \d+, survived \d+, no coverage \d+, errors \d+\)\s*$/;
+    sameOn(
+      ['a.ts', 'x', ':', ' ', ': ', '5', '.5', TABLE, '\r', '\t'],
+      (line) => {
+        expect(SCORE_LINE.exec(line)?.slice()).toEqual(OLD.exec(line)?.slice());
+      },
+    );
+  });
+
+  it('reads a long word without the table fast (before: about 2 s)', () => {
+    const line = `${'0'.repeat(HOSTILE)}0)`;
+    expect(() =>
+      fast(() => logScores(`${line}\nTotal mutation score: 5 %`)),
+    ).toThrow('no log of the gate step');
   });
 });

@@ -1,7 +1,7 @@
 // The account boxes of the lock screen of the vacation mode, still HTML
 // (views/vacation-lock.ts), and the dialog „Account löschen“.
 import type { RoundRules } from '../../core/round.ts';
-import { deleteAccountText } from '../logic/options.ts';
+import { deleteAccountText } from '../logic/delete-account.ts';
 import { pushKindsHTML, shownPushOff } from '../logic/push-options.ts';
 import type { GameState } from '../logic/types.ts';
 import { box, type Ui } from './common.ts';

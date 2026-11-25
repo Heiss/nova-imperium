@@ -16,6 +16,9 @@ export interface Mounted {
 /** Mounts a Svelte view into the target. */
 export type Mount = (target: HTMLElement, v: V) => Omit<Mounted, 'view'>;
 
+/** Whether a view is offered in the round, to an admin or a player (#373). */
+export type Offered = (round: RoundRules, admin: boolean) => boolean;
+
 /** The place of a view in the menu (the sidebar, and „Mehr“ of a phone). */
 export interface MenuItem {
   /**
@@ -29,8 +32,6 @@ export interface MenuItem {
   order: number;
   /** The German label; a function when it depends on the round. */
   label: string | ((round: RoundRules) => string);
-  /** Shown only when this holds (default: always); the admin entry needs `admin`. */
-  show?: (round: RoundRules, admin: boolean) => boolean;
   /** A divider line before the entry. */
   divider?: boolean;
 }
@@ -60,6 +61,17 @@ export interface ClientView {
    * Only with `mount`, never with `anew`.
    */
   fresh?: boolean;
+  /**
+   * Whether the view is offered (default: always): a view that is not has no
+   * menu entry, no tab and no address, and is not mounted (#373). The one
+   * rule for the menu, the tabs, the address and the fallback of the mount.
+   */
+  offered?: Offered;
+  /**
+   * The parameters of its address (`&name=…`, #379), in the order `go` takes
+   * their values: kept on its own address only, dropped on every other.
+   */
+  address?: readonly string[];
   /** The entry in the menu; a view without one is reached by a link only. */
   menu?: MenuItem;
   /** The line icon (an `<svg>` string) of the menu entry and the tab. */

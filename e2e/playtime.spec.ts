@@ -53,6 +53,7 @@ test.describe('the play time (#231, #232)', () => {
     await register(page, name);
     // The interaction: a click on the page makes it active.
     await nav(page, 'help');
+    await optionsSection(page, 'Runde');
     await expect(sum(page, 'Heute (UTC)')).toBeVisible();
     await page.getByRole('button', { name: 'Aktualisieren' }).click();
     await hide(page);
@@ -89,6 +90,7 @@ test.describe('the play time (#231, #232)', () => {
     const second = uniqueName('SpielerZwei');
     await register(page, first);
     await nav(page, 'help');
+    await optionsSection(page, 'Runde');
     await expect(sum(page, 'Heute (UTC)')).toBeVisible();
     await hide(page);
     await expect(async () => {
@@ -103,6 +105,7 @@ test.describe('the play time (#231, #232)', () => {
     const wo = watch(other);
     await register(other, second);
     await nav(other, 'help');
+    await optionsSection(other, 'Runde');
     await expect(sum(other, 'Heute (UTC)')).toHaveText('0 Min.');
     await expect(sum(other, 'Alle Runden')).toHaveText('0 Min.');
 
@@ -131,6 +134,7 @@ test.describe('the play time (#231, #232)', () => {
     const name = uniqueName('SpielzeitAxe');
     await register(page, name);
     await nav(page, 'help');
+    await optionsSection(page, 'Runde');
     await optionsSection(page, 'Runde');
     await expect(sum(page, 'Heute (UTC)')).toBeVisible();
     await expect(box(page)).toContainText(/Erfasst seit/);
@@ -170,6 +174,7 @@ test.describe('the play time (#231, #232)', () => {
     await page.click('[data-act=build][data-k=metal]');
     await expect(page.getByText('Ausbau auf Stufe 1')).toBeVisible();
     await nav(page, 'help');
+    await optionsSection(page, 'Runde');
     const today = box(page)
       .locator('tr')
       .filter({ has: page.getByRole('cell', { name: 'Heute', exact: true }) })

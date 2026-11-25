@@ -8,23 +8,36 @@ import {
 } from './address.ts';
 
 const HREF = 'https://nova.example/?view=guilds&guild=g1&a=spy#invite=x';
+/** The address parameters of today's views (#379: declared by guilds.ts and lexicanum.ts). */
+const TABLE = { guilds: ['guild'], lexicanum: ['a'] };
 
 describe('the address of a view (#163, #285)', () => {
   it('keeps the guild only for the guild view and drops the hash', () => {
-    expect(viewUrl(HREF, 'guilds', 'g2')).toBe('/?view=guilds&guild=g2');
-    expect(viewUrl(HREF, 'guilds')).toBe('/?view=guilds');
-    expect(viewUrl(HREF, 'buildings', 'g2')).toBe('/?view=buildings');
+    expect(viewUrl(HREF, 'guilds', { guild: 'g2' }, TABLE)).toBe(
+      '/?view=guilds&guild=g2',
+    );
+    expect(viewUrl(HREF, 'guilds', {}, TABLE)).toBe('/?view=guilds');
+    expect(viewUrl(HREF, 'buildings', { guild: 'g2' }, TABLE)).toBe(
+      '/?view=buildings',
+    );
   });
 
   it('holds the article only for the Lexicanum', () => {
     expect(LEXICANUM_VIEW).toBe('lexicanum');
-    expect(viewUrl(HREF, 'lexicanum', null, 'probe')).toBe(
+    expect(viewUrl(HREF, 'lexicanum', { a: 'probe' }, TABLE)).toBe(
       '/?view=lexicanum&a=probe',
     );
-    expect(viewUrl(HREF, 'lexicanum')).toBe('/?view=lexicanum');
-    expect(viewUrl(HREF, 'research', null, 'probe')).toBe('/?view=research');
+    expect(viewUrl(HREF, 'lexicanum', {}, TABLE)).toBe('/?view=lexicanum');
+    expect(viewUrl(HREF, 'research', { a: 'probe' }, TABLE)).toBe(
+      '/?view=research',
+    );
     expect(
-      viewUrl('https://n.example/x?view=help', 'lexicanum', null, 'a b'),
+      viewUrl(
+        'https://n.example/x?view=help',
+        'lexicanum',
+        { a: 'a b' },
+        TABLE,
+      ),
     ).toBe('/x?view=lexicanum&a=a+b');
   });
 

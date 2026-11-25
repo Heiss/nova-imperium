@@ -8,6 +8,7 @@ export const fakeCtx = (over: Partial<ClientCtx> = {}): ClientCtx => ({
   act: vi.fn(async () => true),
   actHere: vi.fn(async () => true),
   quiet: vi.fn(async () => true),
+  actOwn: vi.fn(async () => true),
   modal: vi.fn(),
   go: vi.fn(),
   render: vi.fn(),

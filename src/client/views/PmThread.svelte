@@ -1,7 +1,8 @@
 <script lang="ts">
   // One open conversation of „Posteingang“ (#226): its messages oldest first,
   // „Melden“ on each received message, „Löschen“ on each message (from the own
-  // view only), „Antworten“ unless the other account is deleted, and
+  // view only), „Antworten“ unless the other account is deleted (it opens the
+  // dialog of a message, #349, with the last message received quoted), and
   // „Unterhaltung löschen“ and „Blockieren“. Every text from a player is shown
   // as text. The buttons ask features/private-messages.ts through `pmCall`.
   //
@@ -26,7 +27,8 @@
     type InboxRow,
     type Thread,
   } from '../logic/private-messages.ts';
-  import PmCompose from './PmCompose.svelte';
+  import { lastReceived } from '../logic/pm-compose.ts';
+  import PmDialog from './PmDialog.svelte';
 
   const READ_DELAY_MS = 600;
 
@@ -139,7 +141,9 @@
         {/each}
       </ol>
     </div>
-    {#if !row.deleted}<PmCompose to={row.key} />{/if}
+    {#if !row.deleted}<p>
+        <PmDialog to={row.key} quote={lastReceived(lines)?.text} />
+      </p>{/if}
     <p>
       <button
         type="button"

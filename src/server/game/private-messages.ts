@@ -26,7 +26,7 @@ import type {
 } from '../db/repos/private-messages.ts';
 import { queuePush } from '../push-store.ts';
 import type { Answer, Handler } from './actions.ts';
-import { clean, type Ctx, fail, str } from './context.ts';
+import { cleanLines, type Ctx, fail, str } from './context.ts';
 import type { ServerFeature, StatePart } from './feature.ts';
 
 /** The text of the push: never the message or the sender (owner, 2026-11-21). */
@@ -44,12 +44,12 @@ const PM_TEXT = {
 
 const refuse = (code: PmError): never => fail(PM_ERROR_TEXT[code]);
 
-/** The text of a message: plain text without control characters, trimmed. */
+/** The text of a message: plain text with its line breaks and without other control characters, trimmed. */
 function pmText(value: unknown): string {
   if (typeof value !== 'string') return refuse('empty');
   // Every character takes at most two code units: longer is too long.
   if (value.length > 2 * MAX_PM_TEXT + 64) return refuse('length');
-  const text = clean(value);
+  const text = cleanLines(value);
   const error = pmTextError(text);
   return error ? refuse(error) : text;
 }

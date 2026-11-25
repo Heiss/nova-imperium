@@ -8,6 +8,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import {
+  cli,
   expectShownPlace,
   nav,
   ownArea,
@@ -117,3 +118,57 @@ test('the main planet is chosen in the options, locked and leads „zum Heimatsy
 test('the main planet on a phone @phone', async ({ page }) => {
   await mainPlanetFlow(page);
 });
+
+for (const tag of ['', ' @phone']) {
+  test(`the admin changes the lock in „Universum“ during the round, and „Neue Runde“ still offers it (#366)${tag}`, async ({
+    page,
+  }) => {
+    const w = watch(page);
+    const name = uniqueName('Sperre');
+    await register(page, name);
+    expect(cli('admin', name)).toContain(`${name} is now admin.`);
+    await page.reload();
+    await nav(page, 'admin');
+    await page.getByRole('tab', { name: 'Universum' }).click();
+    const panel = page.locator('#admin-panel-universe');
+    const group = panel.locator('details.settings-group').filter({
+      has: page.getByRole('heading', { name: 'Hauptplanet', exact: true }),
+    });
+    const lock = group.getByLabel(
+      'Sperre nach einem Wechsel des Hauptplaneten (Tage)',
+    );
+    const before = await lock.inputValue();
+    const next = before === '3' ? '4' : '3';
+    const save = async (value: string): Promise<void> => {
+      await lock.fill(value);
+      const saved = page.waitForResponse(
+        (r) =>
+          r.url().endsWith('/api/action') &&
+          (r.request().postDataJSON() as { type?: string } | null)?.type ===
+            'settings',
+      );
+      await panel
+        .getByRole('button', { name: 'Einstellungen speichern' })
+        .click();
+      expect((await saved).ok()).toBe(true);
+      await expect(lastToast(page)).toContainText('gespeichert');
+      await page.reload();
+      await nav(page, 'admin');
+      await page.getByRole('tab', { name: 'Universum' }).click();
+      await expect(lock).toHaveValue(value);
+    };
+    try {
+      await save(next);
+      // „Neue Runde“ still offers it, with the value of the round.
+      await panel.getByRole('button', { name: 'Neue Runde starten' }).click();
+      await expect(page.locator('#modal #round-main-lock')).toHaveValue(next);
+      await page.reload();
+      await nav(page, 'admin');
+      await page.getByRole('tab', { name: 'Universum' }).click();
+    } finally {
+      // The universe the other tests share gets its value back.
+      await save(before);
+    }
+    expect(w.problems).toEqual([]);
+  });
+}

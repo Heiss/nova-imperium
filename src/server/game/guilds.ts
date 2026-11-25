@@ -12,6 +12,7 @@ import type { Wire } from '../../core/actions.ts';
 import type { Handler } from './actions.ts';
 import type { Guild, GuildPlayer } from '../db/repos/guilds.ts';
 import { fail, str, type Ctx } from './context.ts';
+import { GUILDS_OFF } from './round.ts';
 import { chatState } from './guild-chat.ts';
 import { memberEvent, rankEvent } from './guild-events.ts';
 import {
@@ -217,7 +218,10 @@ export function guildState(
 }
 
 export const serverFeature = {
-  guildActions: {
+  // Guilds, with their chat and ranks, are one switch of the round (#191, #374).
+  enabled: (round) => round.guilds,
+  off: GUILDS_OFF,
+  actions: {
     createGuild,
     updateGuild,
     applyToGuild,
@@ -228,9 +232,7 @@ export const serverFeature = {
   state: {
     order: 110,
     keys: ['guilds'],
-    // No guild data while guilds are off in the round (#191).
-    build: (ctx, u, view) => ({
-      guilds: view.round.guilds ? guildState(ctx, u.id, view.pts) : null,
-    }),
+    // No guild data while guilds are off: `enabled` above (#191, #374).
+    build: (ctx, u, view) => ({ guilds: guildState(ctx, u.id, view.pts) }),
   } satisfies StatePart<StateShape>,
 } satisfies ServerFeature;

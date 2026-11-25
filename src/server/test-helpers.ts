@@ -159,6 +159,7 @@ export function addUser(
     rq: null,
     mainPlanet: null,
     mainSwitched: null,
+    mainLockEnd: null,
     vacation: null,
     ...over,
   };

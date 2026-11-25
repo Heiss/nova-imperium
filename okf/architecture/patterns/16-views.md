@@ -1,7 +1,7 @@
 ---
 type: Architecture
 title: '16. Svelte views register themselves'
-description: 'A view exports clientViews (key, mount or html, anew or fresh, menu entry, glyph, tab) from its own module; mount.ts and index.ts name no view (#317, #352).'
+description: 'A view exports clientViews (key, mount or html, anew or fresh, menu entry, glyph, tab, offered) from its own module; mount.ts, index.ts and the navigation name no view (#317, #352, #373); the boxes of „Optionen“ register themselves the same way (#378).'
 ---
 
 # 16. Svelte views register themselves (#317)
@@ -13,7 +13,8 @@ description: 'A view exports clientViews (key, mount or html, anew or fresh, men
   `ClientView` (`contract.ts`): `key`, `mount` (a Svelte view) or `html` (a
   view still drawn as a string), `anew` (mounted anew on every render) or
   `fresh` (mounted anew by a fresh render only, see below),
-  `menu` (`order`, `label`, `show`, `divider`), `glyph` and `tab`. The
+  `menu` (`order`, `label`, `divider`), `glyph`, `tab`, `offered` and
+  `address`. The
   menu order of today is data: the entries stand at 10 to 180 (see `MenuItem`
   in `contract.ts`), the tabs of a phone at 10 to 40. The list is the
   git-ignored `views.gen.ts` (`CLIENT_VIEWS`); `assemble.ts` puts the modules
@@ -28,6 +29,68 @@ description: 'A view exports clientViews (key, mount or html, anew or fresh, men
   glyph helper is `glyph.ts`. The menu, the labels, the glyphs and the tabs
   stay as they were (`index.test.ts` and `frame-reference.test.ts` check it).
 
+* **[E]** Whether a view is offered is one rule on the view (#373; owner,
+  2026-11-22, #351: a refactor of the v3 foundation without a change of
+  behaviour, in a normal release). **[V]** The member `offered(round,
+  admin)` of `ClientView` (default: always), put together by
+  `assembleOffered` and asked through `offered()` of `views/offered.ts`: a
+  view that is not offered has no menu entry (`menu()`), no tab
+  (`phoneMenu()` drops a tab without a menu entry), no address
+  (`hiddenView()` of `logic/navigation.ts`, so `gameView()` sends it to the
+  overview) and is not mounted (`mountView()` falls back to the overview).
+  Before the first state every view is open, as before. It replaces
+  `MenuItem.show` and the names admin, achievements and guilds that
+  `hiddenView()` kept by hand; „Admin“ (`admin`), „Gilden“ (`round.guilds`,
+  #191) and „Achievements“ (`round.achievements || round.daily`) carry their
+  rule. `registry.test.ts` checks for every view and round that the menu,
+  the tabs and the address follow the rule, and that the navigation, the
+  address, the mount and `index.ts` name none of these views.
+* **[E]** A view declares its own address parameters (#379; owner,
+  2026-11-22, #351: a refactor of the v3 foundation without a change of
+  behaviour, for the deep links of the star map, #160). **[V]** The member
+  `address` of `ClientView` lists the names (`&name=…`) in the order `go`
+  takes their values; `assembleAddress` collects them, each name for one
+  view (a name twice stops the start). `viewUrl` of `logic/address.ts` keeps
+  the parameters of the open view with a value and drops those of every
+  other view and the hash; `addressParams` reads them back.
+  `client.ui.params` holds those of the open view instead of `ui.guild`
+  (coordinator, 2026-11-24, option 1, [V]); `go(view, push, ...values)`,
+  the start (`ui-init.ts`) and „back“ (`routing.ts`) fill it without naming
+  a parameter. „Gilden“ declares `guild`, the Lexicanum `a` (it still reads
+  its article itself, `articleParam`). `address-today.test.ts` lists the
+  addresses of today, dropped cases too, and passed before and after the
+  change; `registry.test.ts` checks that the address, the routing and the
+  start name no parameter.
+* **[E]** The boxes of „Optionen“ register themselves (#378; owner,
+  2026-11-24: the option boxes only). **[V]** A module in
+  `src/client/views/options/` exports `optionBoxes`, a list of `OptionBox`
+  (`options/contract.ts`, declared with `optionBox()`): `key`, `order` (the
+  boxes of today stand at 10 to 140, see `OptionBox` in `contract.ts`),
+  `section` (the section of the phone switch, #189), `component` (the
+  Svelte component that draws the box with its `data-sec`), `data` (its part
+  of the page at the view state, moved out of `optionsPage()`) and `shown`
+  (default: always; „Benachrichtigungen“ only with push kinds). `data` and
+  `shown` with their part types are pure logic in
+  `src/client/logic/options/<box>.ts` (no Svelte, nothing of the views; they
+  read `OptionsState` of `logic/options/state.ts`), so they stay under
+  mutation testing as `logic/options.ts` was; the module in `views/options/`
+  only declares the box. The list is
+  the git-ignored `options/boxes.gen.ts` (`OPTION_BOXES`);
+  `assembleBoxes()` of `options/assemble.ts` puts the modules together in
+  their order and throws when a key or an order number exists twice, naming
+  both files; `options/boxes.ts` derives the page (`OptionsPage`,
+  `optionsPage()`, still exported by `logic/options.ts`) from the parts of
+  all boxes. `Options.svelte` keeps the switch and draws the boxes in their
+  order; it names no box, nor does `logic/options.ts`. The guard is
+  `src/client/views/options/boxes.test.ts` (key, order, section, members;
+  no key, order or field of the page twice; the clash messages; the
+  generated list, in `src/test/gen-option-boxes.test.ts`). The markup stays the same up to the white space between
+  the boxes and within a line of text (`options.test.ts`,
+  `options-reference.test.ts`). The census of the keyed lists
+  (`keyed-lists.test.ts`, #369) moved the loops of the choices, the main
+  planet and the push kinds to their box components with the same verdicts
+  and judges the new loop of the boxes by the guard (coordinator,
+  2026-11-24, [V]).
 * **[V]** A view mounted anew on every render loses the selection and the
   caret of a field the player is editing: the field is a new element, and
   `render.ts` gives the focus back by id only (#352; a selected number typed

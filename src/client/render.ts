@@ -28,6 +28,7 @@ import { type Mounted, MOUNTED, mountsAnew, mountView } from './views/mount.ts';
 import { $, keepChatScroll } from './dom.ts';
 import { rememberCompletions, renderCompletions } from './completions.ts';
 import { forgetForms } from './logic/form-state.svelte.ts';
+import { forgetDrafts } from './logic/pm-compose.ts';
 import { seeNews } from './news-seen.ts';
 import { urlOf } from './view-address.ts';
 import { runAfterRender } from './features/assemble.ts';
@@ -111,6 +112,8 @@ export function render(fresh = false): void {
     forgetAdminPanel();
     drafts.reset();
     forgetForms();
+    // The drafts of private messages stay until a reload or a logout (#349).
+    forgetDrafts();
     return renderLoggedOut(view);
   }
   if (renderGate(view, client.game, ui, unmountViews)) return;

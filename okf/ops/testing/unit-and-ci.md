@@ -24,9 +24,11 @@ description: 'The rules of muffelblog this project follows, which pushes run the
   (`main.ts`, `server.ts`, `config.ts`, `cli.ts`, `maintenance.ts` in
   `src/server/`) or `.github/workflows/ci.yml` – game code
   alone (for example `src/server/game/`) does not build the image – and
-  always in a release pull request and in a pull request into `hotfix/**`
-  (job „Detect changes“ in `.github/workflows/ci.yml`); the release pull
-  request of `main` only in its full run (#147). This replaces
+  always in a pull request into `hotfix/**`
+  (job „Detect changes“ in `.github/workflows/ci.yml`). Until #387 they also
+  ran in a release pull request, in that of `main` only in its full run
+  (#147); since #387 a release pull request runs no unit tests, E2E,
+  mutation, image or website (it changes only the metadata files). This replaces
   the earlier rule of round 1 that the whole suite runs on every pull
   request. The mutation tests run in a pull request only when it changes
   what they test (#146, below), and then only for the files it changes

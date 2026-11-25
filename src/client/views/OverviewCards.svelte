@@ -46,7 +46,7 @@
     <div class="card warn">
       <h3>Achtung</h3>
       <ul>
-        {#each cards.attention as item (item.text)}
+        {#each cards.attention as item (item.key)}
           <li>
             <span class="what bad">{item.text}</span>
             {#if item.due}<span class="when"><Due due={item.due} /></span>{/if}
@@ -60,7 +60,7 @@
     <div class="card go">
       <h3>Bereit</h3>
       <ul>
-        {#each cards.ready as item (item.text)}
+        {#each cards.ready as item (item.key)}
           <li>
             <span class="what">{item.text}</span>
             {@render link(item.link)}
