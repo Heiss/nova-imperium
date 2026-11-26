@@ -577,6 +577,21 @@ describe('overview page', () => {
     expect(overviewPage(alone).points).toBe('0 (Platz - von 1)');
   });
 
+  it('shows the own points without a place while the highscore shows nothing (#422, 182a)', () => {
+    const none = view({
+      players: {
+        u1: { name: 'Ich', points: 1500 },
+        u2: { name: 'Feind' },
+      } as never,
+    });
+    none.s = { ...none.s, round: { highscoreShows: 2 } } as never;
+    expect(overviewPage(none).points).toBe('1.500');
+    // „nur Gesamt“ keeps the place.
+    const total = view();
+    total.s = { ...total.s, round: { highscoreShows: 1 } } as never;
+    expect(overviewPage(total).points).toBe('1.500 (Platz 2 von 2)');
+  });
+
   it('has the fleets of everyone and the activities', () => {
     const v = view({
       fleets: [fleet({ owner: 'u2' })],

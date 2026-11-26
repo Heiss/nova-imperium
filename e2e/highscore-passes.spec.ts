@@ -140,3 +140,62 @@ test('the admin sets how Wirtschaft and Militär count, Anzahl by default; the h
   cli('unadmin', name);
   expect(w.problems).toEqual([]);
 });
+
+/** Sets „Highscore zeigt“ in the tab „Universum“ and saves (#422, 175a). */
+async function highscoreShows(page: Page, label: string): Promise<void> {
+  await nav(page, 'admin');
+  await page.getByRole('tab', { name: 'Universum' }).click();
+  await page
+    .locator('#admin-panel-universe')
+    .getByLabel('Highscore zeigt', { exact: true })
+    .selectOption({ label });
+  await page.getByRole('button', { name: 'Einstellungen speichern' }).click();
+  await expect(page.locator('.toast').last()).toContainText(
+    'Einstellungen gespeichert.',
+  );
+}
+
+test('„Highscore zeigt“: every category by default, Gesamt only, or nothing with the page hidden (#422, 175a to 182a)', async ({
+  page,
+}) => {
+  const w = watch(page);
+  const name = uniqueName('Sichtbar');
+  await register(page, name);
+  seed({ name, b: { metal: 15 } });
+  cli('admin', name);
+  await page.reload();
+  await nav(page, 'admin');
+  await page.getByRole('tab', { name: 'Universum' }).click();
+  const select = page
+    .locator('#admin-panel-universe')
+    .getByLabel('Highscore zeigt', { exact: true });
+  await expect(select.locator('option:checked')).toHaveText('alle Wertungen');
+  await expect(select.locator('option')).toHaveText([
+    'alle Wertungen',
+    'nur Gesamt',
+    'nichts',
+  ]);
+  try {
+    // „nur Gesamt“: the Gesamt button alone.
+    await highscoreShows(page, 'nur Gesamt');
+    await nav(page, 'highscore');
+    await expect(page.locator('[data-act=highscore]')).toHaveText(['Gesamt']);
+    // „nichts“: no menu entry, no page, the own points without a place.
+    await highscoreShows(page, 'nichts');
+    await expect(page.locator('#menu [data-v=highscore]')).toHaveCount(0);
+    await page.goto('/?view=highscore');
+    await expect(page.locator('h2')).not.toHaveText('Highscore');
+    await nav(page, 'overview');
+    const points = page
+      .locator('tr', { hasText: 'Punkte' })
+      .locator('td')
+      .last();
+    await expect(points).not.toContainText('Platz');
+    await expect(points).toHaveText(/^[\d.]+$/);
+  } finally {
+    await highscoreShows(page, 'alle Wertungen');
+  }
+  await expect(page.locator('#menu [data-v=highscore]')).toHaveCount(1);
+  cli('unadmin', name);
+  expect(w.problems).toEqual([]);
+});

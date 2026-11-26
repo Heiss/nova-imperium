@@ -116,3 +116,44 @@ number of ships could be read).
   * The round-rewind keeps its own words of the investment (Aufbau,
     Forschung, Flotte, Verteidigung), from its own facts.
 
+## „Highscore zeigt“ (#422, owner, 2026-11-26, 175a to 182a)
+
+* **[E]** A round setting „Highscore zeigt“ under „Highscore“ with „alle
+  Wertungen“ (0, default), „nur Gesamt“ (1) and „nichts“ (2); a change takes
+  effect at once (180a). Texts 181a.
+* **[E]** „nur Gesamt“ (177a): the state carries only the total, no
+  Wirtschaft or Militär; the highscore shows Gesamt only. The settings of
+  Wirtschaft and Militär stay without effect. Übersicht, Sternenkarte and
+  guild unchanged.
+* **[E]** „nichts“ (176a, 182a): the server sends no points, rank or
+  category of another player; the own points stay (Übersicht „Punkte: X“
+  without a place; the Lexikon hints as before). The Highscore page and its
+  menu entry are hidden, so is its „Stand“; the ranks of the Sternenkarte
+  and the points and point sums of the guilds go away. The final ranking and
+  the round end are computed in full.
+* **[E]** The „(n)“ stays in every mode (179a); the round archive shows
+  finished rounds in full (178a).
+* **[V]** As built:
+  * `core/highscore-passes.ts`: the setting (order 485, before „Wirtschaft
+    zählt nach“); `core/highscore-categories.ts`: `SHOWS`,
+    `highscoreShows` (an unknown value is „alle Wertungen“),
+    `highscoreOffered`.
+  * `server/game/state.ts` (`playersOf`): `points` of another player only
+    while the highscore shows something, `scores` only with every
+    category; `players[id].points` is optional in `core/state/frame.ts`.
+  * `server/game/guilds.ts`: with „nichts“ the members without points and
+    the guild without `score` and `average`, the list by tag
+    (`core/state/guilds.ts` optional fields).
+  * Client: the view „Highscore“ carries `offered: highscoreOffered` (menu,
+    tabs, address and mount hide it, for players and the admin alike);
+    `logic/highscore.ts` shows the Gesamt button alone with „nur Gesamt“;
+    `logic/overview.ts` drops the place; `logic/galaxy.ts` gives no rank and
+    `Galaxy.svelte` leaves out „(Platz …)“; `logic/guilds.ts`, `Guilds.svelte`
+    and `GuildMembers.svelte` leave out the columns and the box „Punkte“.
+  * Foreign points or ranks elsewhere in the client: none. The round archive
+    and its Rewind read archived rounds (178a, in full); the provisional
+    report of the running round and its drilldown are the admin's
+    („Rundenberichte“) and read the facts in full, so the admin sees all
+    points there [V]; the admin panels show no points.
+
+

@@ -5,7 +5,8 @@ import type { GuildRight } from '../guild-ranks.ts';
 interface GuildMember {
   id: string;
   name: string;
-  points: number;
+  /** None while the highscore shows nothing (#422, 182a). */
+  points?: number;
 }
 
 export interface Guild {
@@ -14,8 +15,9 @@ export interface Guild {
   name: string;
   html: string;
   members: GuildMember[];
-  score: number;
-  average: number;
+  /** The sums of the points of the members; none while the highscore shows nothing (182a). */
+  score?: number;
+  average?: number;
 }
 
 export interface GuildRank {

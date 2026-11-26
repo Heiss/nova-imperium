@@ -191,6 +191,18 @@ describe('the page of the highscore', () => {
     );
   });
 
+  it('shows Gesamt alone with „nur Gesamt“, whatever was chosen (#422, 177a)', () => {
+    const v = view([], 'military', 'u_Bert', {
+      ...round(),
+      highscoreShows: 1,
+    } as never);
+    const page = highscorePage(v);
+    expect(page.buttons).toEqual([
+      { key: 'total', label: 'Gesamt', pressed: true },
+    ]);
+    expect(page.rows.map((r) => r.points)).toEqual(['70', '60', '50']);
+  });
+
   it('shows the note of the mode the round sets for each category (168a)', () => {
     const note = (cat: HighscoreCategory, e: number, m: number) =>
       highscorePage(view([], cat, 'u_Bert', round(e, m))).note;

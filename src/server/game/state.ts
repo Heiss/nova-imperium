@@ -36,6 +36,9 @@ import {
 import {
   type CategoryModes,
   categoryModes,
+  type HighscoreShows,
+  highscoreShows,
+  SHOWS,
 } from '../../core/highscore-categories.ts';
 import { assembleState } from './assemble.ts';
 import type { StatePart, StateView } from './feature.ts';
@@ -162,9 +165,11 @@ const shownScores = (
  */
 function playersOf(
   ctx: Ctx,
+  me: string,
   pass: ScorePass,
   limits: ActivityLimits,
   modes: CategoryModes,
+  shows: HighscoreShows,
 ) {
   // The points and the categories of the highscore, for every player (#78
   // D4), of the one pass of this state (#405); Wirtschaft and Militär only
@@ -177,8 +182,15 @@ function playersOf(
       x.id,
       {
         name: x.name,
-        points: pts[x.id] ?? 0,
-        scores: shownScores(scores[x.id], modes),
+        // What „Highscore zeigt“ lets through (#422, 175a to 177a, 182a):
+        // the own points always, another's only while the highscore shows
+        // something, Wirtschaft and Militär only with every category.
+        ...(x.id === me || shows !== SHOWS.none
+          ? { points: pts[x.id] ?? 0 }
+          : {}),
+        ...(shows === SHOWS.all
+          ? { scores: shownScores(scores[x.id], modes) }
+          : {}),
         // Who is in vacation mode, for the Sternenkarte (#223).
         ...(x.vacation !== null ? { vacation: true } : {}),
         ...(idle[x.id] ? { inactive: idle[x.id] } : {}),
@@ -266,8 +278,15 @@ const FRAME: readonly StatePart[] = [
   keyed(70, 'labs', (ctx, u) => ownLabs(ctx, u.id)),
   keyed(90, 'fleets', fleetsOf),
   keyed(100, 'reports', (ctx, u) => ctx.reports.ofPlayer(u.id)),
-  keyed(140, 'players', (ctx, _u, view) =>
-    playersOf(ctx, view.scores, view.limits, categoryModes(view.round)),
+  keyed(140, 'players', (ctx, u, view) =>
+    playersOf(
+      ctx,
+      u.id,
+      view.scores,
+      view.limits,
+      categoryModes(view.round),
+      highscoreShows(view.round),
+    ),
   ),
   // „Stand“ of the highscore: when the stored pass was made (#405).
   keyed(145, 'scoresAt', (_ctx, _u, view) => view.scores.at),

@@ -72,8 +72,11 @@ export interface GalaxyPlanet extends Coords {
 export interface Players {
   [id: string]: {
     name: string;
-    /** The total, also for the noob protection. */
-    points: number;
+    /**
+     * The total. None for another player while the highscore shows nothing
+     * (#422, 176a, 182a); the own points are always there.
+     */
+    points?: number;
     /**
      * Wirtschaft and Militär of the highscore (#422), each in the mode the
      * round sets now; the server always sends them, never the four

@@ -1,3 +1,5 @@
+import type { Guild as PublicGuild } from '../../core/state/guilds.ts';
+import { highscoreShows, SHOWS } from '../../core/highscore-categories.ts';
 import MarkdownIt from 'markdown-it';
 import {
   applyError,
@@ -165,18 +167,32 @@ const manageGuildMember: Handler<'manageGuildMember'> = (ctx, user, d) => {
 function publicGuild(
   g: Guild,
   players: GuildPlayer[],
-  points: Record<string, number>,
-) {
-  const members = players
-    .filter((p) => p.guild_id === g.id && p.status === 'member')
-    .map((p) => ({ id: p.id, name: p.name, points: points[p.id] ?? 0 }))
-    .sort((a, b) => b.points - a.points || a.name.localeCompare(b.name));
-  const score = members.reduce((sum, member) => sum + member.points, 0);
-  return {
+  points: Record<string, number> | null,
+): PublicGuild {
+  const base = {
     id: g.id,
     tag: g.tag,
     name: g.name,
     html: markdown.render(g.description),
+  };
+  const inGuild = players.filter(
+    (p) => p.guild_id === g.id && p.status === 'member',
+  );
+  // While the highscore shows nothing, no points of a member and no sum of
+  // them (#422, 182a): the members by name.
+  if (!points)
+    return {
+      ...base,
+      members: inGuild
+        .map((p) => ({ id: p.id, name: p.name }))
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    };
+  const members = inGuild
+    .map((p) => ({ id: p.id, name: p.name, points: points[p.id] ?? 0 }))
+    .sort((a, b) => b.points - a.points || a.name.localeCompare(b.name));
+  const score = members.reduce((sum, member) => sum + member.points, 0);
+  return {
+    ...base,
     members,
     score,
     average: members.length ? Math.floor(score / members.length) : 0,
@@ -199,7 +215,7 @@ function management(a: Actor, players: GuildPlayer[]) {
 export function guildState(
   ctx: Ctx,
   uid: string,
-  points: Record<string, number>,
+  points: Record<string, number> | null,
 ) {
   const all = ctx.guilds.all();
   const players = ctx.guilds.players();
@@ -208,7 +224,9 @@ export function guildState(
   return {
     directory: all
       .map((g) => publicGuild(g, players, points))
-      .sort((a, b) => b.score - a.score || a.tag.localeCompare(b.tag)),
+      .sort(
+        (a, b) => (b.score ?? 0) - (a.score ?? 0) || a.tag.localeCompare(b.tag),
+      ),
     own: own ? { id: own.guild_id, status: own.status } : null,
     management: inside ? management(inside, players) : null,
     ranks: inside ? rankState(inside, players) : null,
@@ -233,6 +251,13 @@ export const serverFeature = {
     order: 110,
     keys: ['guilds'],
     // No guild data while guilds are off: `enabled` above (#191, #374).
-    build: (ctx, u, view) => ({ guilds: guildState(ctx, u.id, view.pts) }),
+    // No points of the members while the highscore shows nothing (182a).
+    build: (ctx, u, view) => ({
+      guilds: guildState(
+        ctx,
+        u.id,
+        highscoreShows(view.round) === SHOWS.none ? null : view.pts,
+      ),
+    }),
   } satisfies StatePart<StateShape>,
 } satisfies ServerFeature;

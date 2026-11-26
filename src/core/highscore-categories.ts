@@ -96,3 +96,24 @@ export function addUnits(t: CategoryTally, units: Levels): void {
     c.value += (d.cost[0] + d.cost[1] + d.cost[2]) * n;
   }
 }
+
+/**
+ * What the highscore shows (175a): every category (0, the default), Gesamt
+ * only (1, 177a: no Wirtschaft or Militär is sent) or nothing (2, 176a,
+ * 182a: no points, rank or category of another player is sent; the own
+ * points stay). The final ranking is computed in full in every case.
+ */
+export const SHOWS = { all: 0, total: 1, none: 2 } as const;
+export type HighscoreShows = (typeof SHOWS)[keyof typeof SHOWS];
+
+/** What a round shows; an unknown or missing value is every category. */
+export const highscoreShows = (
+  round: Partial<{ highscoreShows: number }> | undefined,
+): HighscoreShows => {
+  const v = round?.highscoreShows;
+  return v === SHOWS.total || v === SHOWS.none ? v : SHOWS.all;
+};
+
+/** Whether the highscore is offered: not while it shows nothing (176a). */
+export const highscoreOffered = (round: Partial<{ highscoreShows: number }>) =>
+  highscoreShows(round) !== SHOWS.none;

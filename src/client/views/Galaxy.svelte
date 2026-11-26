@@ -100,8 +100,8 @@
 
 {#snippet owner(pl: GalaxyPlace)}<td
     >{pl.owner}
-    <span class="dim">(Platz {pl.rank})</span>{#if pl.inactivity}{' '}<span
-        class="dim">({pl.inactivity})</span
+    {#if pl.rank}<span class="dim">(Platz {pl.rank})</span
+      >{/if}{#if pl.inactivity}{' '}<span class="dim">({pl.inactivity})</span
       >{/if}{#if pl.protected}{' '}<span class="good" title="Noobschutz"
         >(n)</span
       >{/if}{#if pl.vacation}{' '}<span class="dim" title="Urlaubsmodus"

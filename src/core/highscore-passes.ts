@@ -34,6 +34,24 @@ export const roundSettings = [
     def: HIGHSCORE_PASSES.def,
     live: true,
   },
+  // What the highscore shows (#422, owner, 2026-11-26, 175a, 180a, 181a):
+  // every category, Gesamt only, or nothing; effective at once.
+  {
+    kind: 'number',
+    key: 'roundHighscoreShows',
+    name: 'highscoreShows',
+    label: 'Highscore zeigt',
+    order: 485,
+    min: 0,
+    max: 2,
+    def: 0,
+    choices: [
+      { value: 0, label: 'alle Wertungen' },
+      { value: 1, label: 'nur Gesamt' },
+      { value: 2, label: 'nichts' },
+    ],
+    live: true,
+  },
   // How Wirtschaft and Militär count (#422, owner, 2026-11-26, 166a, 167a):
   // by number or by the resources spent, each on its own, Anzahl by default.
   {

@@ -9,6 +9,8 @@ import {
   type HighscoreCategory,
   highscoreCategory,
   highscoreNote,
+  highscoreShows,
+  SHOWS,
 } from '../../core/highscore-categories.ts';
 import type { V } from '../views/common.ts';
 import { fmt } from './format.ts';
@@ -30,7 +32,7 @@ export function highscoreRanking(
       id,
       {
         name: x.name,
-        points: cat === 'total' ? x.points : (x.scores?.[cat] ?? 0),
+        points: cat === 'total' ? (x.points ?? 0) : (x.scores?.[cat] ?? 0),
       },
     ])
     .sort((a, b) => b[1].points - a[1].points);
@@ -70,11 +72,18 @@ export const highscoreStand = (at: number): string =>
 
 /** The page of the category the player chose (#78 D3); `points` is that of the category. */
 export function highscorePage(v: V): HighscorePage {
-  const cat = highscoreCategory(v.ui.highscore);
+  // „nur Gesamt“ (#422, 177a): Gesamt alone, without the other buttons.
+  const totalOnly = highscoreShows(v.s.round) === SHOWS.total;
+  const cat = totalOnly ? 'total' : highscoreCategory(v.ui.highscore);
+  const shown = (
+    Object.entries(HIGHSCORE_CATEGORIES) as [HighscoreCategory, string][]
+  ).filter(([key]) => !totalOnly || key === 'total');
   return {
-    buttons: (
-      Object.entries(HIGHSCORE_CATEGORIES) as [HighscoreCategory, string][]
-    ).map(([key, label]) => ({ key, label, pressed: key === cat })),
+    buttons: shown.map(([key, label]) => ({
+      key,
+      label,
+      pressed: key === cat,
+    })),
     rows: highscoreRanking(v.s.players, cat).map(([id, x], i) => {
       const home = homePlanetOf(v.s.galaxy, id);
       return {

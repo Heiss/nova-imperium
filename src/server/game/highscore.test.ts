@@ -10,6 +10,7 @@ import { addPlanet, addUser, testCtx } from '../test-helpers.ts';
 import { categoryScores } from './highscore.ts';
 import { pointsMap } from './points.ts';
 import { stateFor } from './state.ts';
+import { runAction } from './dispatch.ts';
 
 const fleet = (owner: string, ships: Record<string, number>): Fleet => ({
   id: `f_${owner}_${Object.keys(ships).join('_')}`,
@@ -254,5 +255,85 @@ describe('Wirtschaft and Militär in the state (#422)', () => {
     });
     // Gesamt does not change with the modes.
     expect(shown(ctx).points).toBe(pointsMap(ctx).u_Anna);
+  });
+});
+
+describe('„Highscore zeigt“ in the state (#422, 175a to 182a)', () => {
+  /** Anna and Bert with points; a guild of both. */
+  function world() {
+    const ctx = testCtx();
+    addUser(ctx, 'Anna', { research: { energy: 2 } });
+    addUser(ctx, 'Bert');
+    addPlanet(ctx, 'u_Anna', { b: { metal: 10 }, ships: { lf: 4 } });
+    addPlanet(ctx, 'u_Bert', { g: 1, s: 2, p: 6, b: { metal: 12 } });
+    runAction(ctx, 'u_Anna', {
+      type: 'createGuild',
+      name: 'Outer Rim',
+      tag: 'or',
+      description: '',
+    });
+    return ctx;
+  }
+  const state = (ctx: ReturnType<typeof world>) =>
+    JSON.parse(JSON.stringify(stateFor(ctx, ctx.players.get('u_Anna')!))) as {
+      players: Record<string, Record<string, unknown>>;
+      guilds: { directory: Record<string, unknown>[] };
+    };
+  const shows = (ctx: ReturnType<typeof world>, value: number) =>
+    ctx.admin.putSettings([['roundHighscoreShows', value]]);
+
+  it('sends every category by default', () => {
+    const ctx = world();
+    const s = state(ctx);
+    for (const id of ['u_Anna', 'u_Bert']) {
+      expect(s.players[id]).toHaveProperty('points');
+      expect(s.players[id]).toHaveProperty('scores');
+    }
+    expect(s.guilds.directory[0]).toHaveProperty('score');
+  });
+
+  it('sends the total only with „nur Gesamt“, and the guild as before (177a)', () => {
+    const ctx = world();
+    shows(ctx, 1);
+    const s = state(ctx);
+    expect(s.players.u_Bert).toEqual({
+      name: 'Bert',
+      points: pointsMap(ctx).u_Bert,
+    });
+    expect(s.players.u_Anna).not.toHaveProperty('scores');
+    expect(s.guilds.directory[0]).toMatchObject({
+      score: pointsMap(ctx).u_Anna,
+      members: [{ id: 'u_Anna', name: 'Anna', points: pointsMap(ctx).u_Anna }],
+    });
+  });
+
+  it('sends no points, rank or category of another player with „nichts“, the own points only (176a, 182a)', () => {
+    const ctx = world();
+    shows(ctx, 2);
+    const s = state(ctx);
+    expect(s.players.u_Bert).toEqual({ name: 'Bert' });
+    expect(s.players.u_Anna).toEqual({
+      name: 'Anna',
+      points: pointsMap(ctx).u_Anna,
+    });
+    // No points of the members and no sums of them in the guild.
+    expect(s.guilds.directory[0]).toEqual({
+      id: s.guilds.directory[0]!.id,
+      tag: 'OR',
+      name: 'Outer Rim',
+      html: '',
+      members: [{ id: 'u_Anna', name: 'Anna' }],
+    });
+    // The noob protection and the total stay computed in full.
+    expect(pointsMap(ctx).u_Bert).toBeGreaterThan(0);
+  });
+
+  it('takes effect at once, from the same pass', () => {
+    const ctx = world();
+    const at = state(ctx);
+    shows(ctx, 2);
+    expect(state(ctx).players.u_Bert).toEqual({ name: 'Bert' });
+    shows(ctx, 0);
+    expect(state(ctx).players.u_Bert).toEqual(at.players.u_Bert);
   });
 });

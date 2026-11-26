@@ -2,6 +2,7 @@
 // component Overview shows, without HTML: the fleet movements, the shown
 // place and what is being built, researched or ordered. The fleet movements
 // are also the list of the fleet view.
+import { highscoreShows, SHOWS } from '../../core/highscore-categories.ts';
 import { isFleet, MISSION } from '../../core/missions.ts';
 import { placeName } from '../../core/moon.ts';
 import { text } from '../../core/text.ts';
@@ -235,7 +236,11 @@ export function overviewPage(v: V): OverviewPage {
     type: moon ? 'Mond' : planetLook(P).name,
     temperature: `ca. ${P.temp - 40}°C bis ${P.temp}°C`,
     diameter: diameterLine(P, s.cfg),
-    points: `${fmt(s.players[me]?.points)} (Platz ${ranks(s.players)[me] ?? '-'} von ${Object.keys(s.players).length})`,
+    // The own points without a place while the highscore shows nothing (182a).
+    points:
+      highscoreShows(s.round) === SHOWS.none
+        ? fmt(s.players[me]?.points)
+        : `${fmt(s.players[me]?.points)} (Platz ${ranks(s.players)[me] ?? '-'} von ${Object.keys(s.players).length})`,
     time: dt(v.now),
     activities: activityRows(v),
     abandon: abandonOffered(P, s),

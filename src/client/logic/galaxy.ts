@@ -9,6 +9,7 @@
 // component draws (#337).
 import { canFly } from '../../core/catalog.ts';
 import { protectionOf } from '../../core/galaxy-shown.ts';
+import { highscoreShows, SHOWS } from '../../core/highscore-categories.ts';
 import { distance, fleetSpeed, flightMs } from '../../core/flight.ts';
 import { expeditionLevel } from '../../core/expedition.ts';
 import { MISSION } from '../../core/missions.ts';
@@ -86,6 +87,7 @@ export interface GalaxyPlace extends Coords {
   /** The words of the owner's inactivity (#229), empty without one. */
   inactivity: string;
   /** The place of the owner in the highscore, „-“ when unknown. */
+  /** The place in the highscore; empty while the highscore shows nothing (182a). */
   rank: string;
   /** The noob protection between the player and a foreign owner. */
   protected: boolean;
@@ -289,7 +291,7 @@ function place(
   v: V,
   pl: GalaxyPlanet,
   name: string,
-  rk: Record<string, number>,
+  rk: Record<string, number> | null,
   extra: GalaxyAction[] = [],
 ): GalaxyPlace {
   const { s } = v;
@@ -307,7 +309,8 @@ function place(
     mine,
     owner: nameOf(s.players, pl.owner),
     inactivity: inactivityNote(s.players[pl.owner]?.inactive),
-    rank: String(rk[pl.owner] ?? '-'),
+    // No rank while the highscore shows nothing (#422, 182a).
+    rank: rk ? String(rk[pl.owner] ?? '-') : '',
     // By the exact points of the server for the shown system (151a); none
     // until its list is there, never by the stored pass.
     protected:
@@ -378,7 +381,11 @@ function emptyRow(
 }
 
 /** The row of position `p` of the shown system. */
-function galaxyRow(v: V, p: number, rk: Record<string, number>): GalaxyRow {
+function galaxyRow(
+  v: V,
+  p: number,
+  rk: Record<string, number> | null,
+): GalaxyRow {
   const { s, ui } = v;
   const c = { g: ui.gal, s: ui.sys, p };
   const pl = s.galaxy.find((x) => x.id === placeId({ ...c, kind: 'planet' }));
@@ -465,7 +472,7 @@ const openSheet = (
 /** The Sternenkarte of the system `ui.gal`:`ui.sys`. */
 export function galaxyPage(v: V): GalaxyPage {
   const { s, ui } = v;
-  const rk = ranks(s.players);
+  const rk = highscoreShows(s.round) === SHOWS.none ? null : ranks(s.players);
   const rows = Array.from({ length: s.cfg.positions + 1 }, (_, i) =>
     galaxyRow(v, i + 1, rk),
   );

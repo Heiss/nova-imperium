@@ -136,3 +136,24 @@ describe('the switches of the round (#404)', () => {
       ).toBe(true);
   });
 });
+
+// „Highscore zeigt“ (#422, 175a, 176a) has three values, so it is no switch
+// of the list above; „nichts“ turns the Highscore off.
+describe('„Highscore zeigt“ (#422)', () => {
+  it('hides the Highscore with „nichts“ only, for every player and the admin', () => {
+    const rule = VIEWS.find((v) => v.key === 'highscore')!.offered!;
+    expect(typeof rule).toBe('function');
+    for (const admin of [false, true]) {
+      for (const shows of [0, 1])
+        expect(
+          rule(
+            { ...defaultRound(), highscoreShows: shows } as RoundRules,
+            admin,
+          ),
+        ).toBe(true);
+      expect(
+        rule({ ...defaultRound(), highscoreShows: 2 } as RoundRules, admin),
+      ).toBe(false);
+    }
+  });
+});

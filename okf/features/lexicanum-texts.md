@@ -875,6 +875,7 @@ code and here in the same pull request.
 * **[V]** Table: „Wie jede Wertung zählt“
 * **[V]** Table: „Wertung | Zählt“
 * **[V]** Text: „Die Gesamtwertung entscheidet über den Noobschutz.“
+* **[E]** Text (owner, 2026-11-26, 181a): „Der Admin kann die Highscore auf die Gesamtwertung beschränken oder ganz ausschalten.“
 * **[V]** Keywords: Punkte, Platz, Rangliste, Wertung, Statistik
 
 ### Marktplatz (`rule-market`)

@@ -43,6 +43,10 @@ const pointsSection = (): PageSection =>
     say(
       'Die Gesamtwertung entscheidet über den [[rule-protection|Noobschutz]].',
     ),
+    // The owner's sentence (2026-11-26, 181a, #422).
+    say(
+      'Der Admin kann die Highscore auf die Gesamtwertung beschränken oder ganz ausschalten.',
+    ),
   );
 
 export const page: PageDef = {

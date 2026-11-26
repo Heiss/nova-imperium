@@ -78,7 +78,7 @@ describe('the passes of the highscore (#405)', () => {
       { value: 0, label: 'Anzahl' },
       { value: 1, label: 'Rohstoffen' },
     ];
-    expect(roundSettings.slice(1)).toEqual([
+    expect(roundSettings.slice(2)).toEqual([
       {
         kind: 'number',
         key: 'roundHighscoreEconomy',
@@ -104,6 +104,25 @@ describe('the passes of the highscore (#405)', () => {
         live: true,
       },
     ]);
+  });
+
+  it('has the setting „Highscore zeigt“, every category by default (#422, 175a, 181a)', () => {
+    expect(roundSettings[1]).toEqual({
+      kind: 'number',
+      key: 'roundHighscoreShows',
+      name: 'highscoreShows',
+      label: 'Highscore zeigt',
+      order: 485,
+      min: 0,
+      max: 2,
+      def: 0,
+      choices: [
+        { value: 0, label: 'alle Wertungen' },
+        { value: 1, label: 'nur Gesamt' },
+        { value: 2, label: 'nichts' },
+      ],
+      live: true,
+    });
   });
 
   it('keeps a live pass 10 s', () => {
