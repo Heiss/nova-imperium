@@ -44,8 +44,7 @@ export interface CoarseValuation {
 export type Valuation = LegacyValuation | CoarseValuation;
 
 /** Whether a valuation is of the categories of #422 (else of the four of #78). */
-export const isCoarse = (v: Valuation): v is CoarseValuation =>
-  'modes' in v && typeof v.modes === 'object' && v.modes !== null;
+export const isCoarse = (v: Valuation): v is CoarseValuation => 'modes' in v;
 
 /** What stood on a planet or moon at the cutoff, as the game holds it. */
 export interface FinalPlace {
