@@ -286,12 +286,15 @@ function sheetOf(
     : null;
 }
 
+/** The places in the highscore by player; null while it shows nothing (#422, 182a). */
+type Ranks = Record<string, number> | null;
+
 /** A planet or a moon of a row, with its owner, rank and protection. */
 function place(
   v: V,
   pl: GalaxyPlanet,
   name: string,
-  rk: Record<string, number> | null,
+  rk: Ranks,
   extra: GalaxyAction[] = [],
 ): GalaxyPlace {
   const { s } = v;
@@ -381,11 +384,7 @@ function emptyRow(
 }
 
 /** The row of position `p` of the shown system. */
-function galaxyRow(
-  v: V,
-  p: number,
-  rk: Record<string, number> | null,
-): GalaxyRow {
+function galaxyRow(v: V, p: number, rk: Ranks): GalaxyRow {
   const { s, ui } = v;
   const c = { g: ui.gal, s: ui.sys, p };
   const pl = s.galaxy.find((x) => x.id === placeId({ ...c, kind: 'planet' }));
