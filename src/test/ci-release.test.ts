@@ -3,10 +3,11 @@
 // 2026-11-24, #387). The shell of "Detect changes" and of the CI Gate runs
 // here with the inputs GitHub would give it, as bash runs it in the
 // workflow; gh is a stub that writes down its calls.
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import {
   chmodSync,
   cpSync,
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -604,7 +605,7 @@ describe('CI Gate', () => {
   });
 });
 
-describe('gitleaks in ci.yml (owner, 2026-11-25, 143a)', () => {
+describe('gitleaks in ci.yml (owner, 2026-11-25, 143a; 2026-11-26, 153a)', () => {
   const job = CI.slice(
     CI.indexOf('  security:\n'),
     CI.indexOf('\n  # ', CI.indexOf('  security:\n')),
@@ -621,25 +622,75 @@ describe('gitleaks in ci.yml (owner, 2026-11-25, 143a)', () => {
       .join('\n');
   })();
 
-  /** Runs the step's script with a fake docker: the range gitleaks gets, and its command. */
-  function scan(env: Record<string, string>): { range: string; cmd: string } {
+  interface Scan {
+    /** The range gitleaks gets, and its command. */
+    range: string;
+    cmd: string;
+    /** The exit code of the step and what it printed. */
+    code: number;
+    out: string;
+    /** Whether the directory of the report is still there. */
+    kept: boolean;
+  }
+
+  /**
+   * Runs the step's script (with bash -e, as the runner does) and a fake
+   * docker: it writes `report` (none when null) into the directory
+   * mounted at /out, and ends with `exit`.
+   */
+  function scan(
+    env: Record<string, string>,
+    report: string | null = '[]',
+    exit = 0,
+  ): Scan {
     const dir = mkdtempSync(join(tmpdir(), 'gitleaks-'));
+    const temp = join(dir, 'runner-temp');
+    mkdirSync(temp);
     const bin = join(dir, 'docker');
     writeFileSync(
       bin,
-      '#!/bin/sh\nfor a in "$@"; do case "$a" in RANGE=*) echo "range:${a#RANGE=}";; esac; done\neval "last=\\${$#}"; echo "cmd:$last"\n',
+      [
+        '#!/bin/sh',
+        'prev=',
+        'for a in "$@"; do',
+        '  case "$a" in RANGE=*) echo "range:${a#RANGE=}";; esac',
+        '  if [ "$prev" = -v ]; then case "$a" in *:/out) out="${a%:/out}";; esac; fi',
+        '  prev="$a"',
+        'done',
+        'eval "last=\\${$#}"; echo "cmd:$last"',
+        'if [ -n "$FAKE_REPORT_SET" ]; then printf "%s" "$FAKE_REPORT" > "$out/report.json"; fi',
+        'exit "$FAKE_EXIT"',
+        '',
+      ].join('\n'),
     );
     chmodSync(bin, 0o755);
-    const out = execFileSync('sh', ['-c', script], {
-      env: { PATH: `${dir}:/usr/bin:/bin`, ...env },
+    const run = spawnSync('bash', ['-e', '-c', script], {
+      env: {
+        PATH: `${dir}:/usr/bin:/bin`,
+        RUNNER_TEMP: temp,
+        FAKE_EXIT: String(exit),
+        ...(report === null
+          ? {}
+          : { FAKE_REPORT_SET: '1', FAKE_REPORT: report }),
+        ...env,
+      },
       encoding: 'utf8',
     });
+    const kept = existsSync(join(temp, 'gitleaks'));
     rmSync(dir, { recursive: true, force: true });
+    const out = run.stdout + run.stderr;
     return {
-      range: /^range:(.*)$/m.exec(out)![1]!,
-      cmd: /^cmd:(.*)$/m.exec(out)![1]!,
+      range: /^range:(.*)$/m.exec(out)?.[1] ?? '',
+      cmd: /^cmd:(.*)$/m.exec(out)?.[1] ?? '',
+      code: run.status!,
+      out,
+      kept,
     };
   }
+
+  const PR = { EVENT: 'pull_request', BASE_SHA: 'b0', HEAD_SHA: 'h1' };
+  const PUSH = { EVENT: 'push', BASE_SHA: '', HEAD_SHA: '' };
+  const REPORT = '--report-format json --report-path /out/report.json';
 
   it('scans only the commits of a pull request, the range given as data', () => {
     expect(step).toContain('EVENT: ${{ github.event_name }}');
@@ -651,22 +702,84 @@ describe('gitleaks in ci.yml (owner, 2026-11-25, 143a)', () => {
     );
     // No expression of the event inside the script itself.
     expect(script).not.toContain('${{');
-    const pr = scan({ EVENT: 'pull_request', BASE_SHA: 'b0', HEAD_SHA: 'h1' });
+    const pr = scan(PR);
     expect(pr.range).toBe('b0..h1');
     expect(pr.cmd).toContain(
-      'gitleaks git . --log-opts="$RANGE" --redact --verbose --no-banner',
+      `gitleaks git . --log-opts="$RANGE" --redact --no-banner ${REPORT}`,
     );
+    expect(pr.code).toBe(0);
   });
 
-  it('scans the whole history of all refs for a push and the nightly run, redacted and verbose', () => {
+  it('scans the whole history of all refs for a push and the nightly run, redacted, not verbose', () => {
     for (const EVENT of ['push', 'schedule']) {
-      const run = scan({ EVENT, BASE_SHA: '', HEAD_SHA: '' });
+      const run = scan({ ...PUSH, EVENT });
       expect(run.range).toBe('');
       expect(run.cmd).toContain(
-        'else gitleaks git . --redact --verbose --no-banner; fi',
+        `else gitleaks git . --redact --no-banner ${REPORT}; fi`,
       );
+      expect(run.code).toBe(0);
     }
     expect(step.match(/--redact/g)).toHaveLength(2);
+    expect(step).not.toContain('--verbose');
+  });
+
+  // The fields gitleaks writes for a finding (its JSON report).
+  const finding = (file: string) => ({
+    RuleID: 'generic-api-key',
+    Description: 'Generic API Key',
+    StartLine: 7,
+    EndLine: 7,
+    Match: 'MATCH-TEXT',
+    Secret: 'SECRET-TEXT',
+    Line: 'LINE-TEXT',
+    File: file,
+    Commit: 'c0ffee1',
+    Author: 'A',
+    Email: 'a@b.de',
+    Message: 'MESSAGE-TEXT',
+    Fingerprint: 'c0ffee1:src/a.ts:generic-api-key:7',
+  });
+
+  it('prints a finding by its rule, file, line and commit only, and fails with the code of gitleaks, for both events', () => {
+    const report = JSON.stringify([finding('src/a.ts')]);
+    for (const env of [PR, PUSH]) {
+      const run = scan(env, report, 1);
+      expect(run.code).toBe(1);
+      expect(run.out).toContain('"generic-api-key" "src/a.ts":7 "c0ffee1"');
+      for (const text of ['MATCH', 'SECRET', 'LINE-TEXT', 'MESSAGE', 'a@b.de'])
+        expect(run.out).not.toContain(text);
+      // The report is deleted, also when the step fails.
+      expect(run.kept).toBe(false);
+    }
+    // Another code of gitleaks stays the code of the step.
+    expect(scan(PR, '[]', 2).code).toBe(2);
+    // A finding fails the step even if gitleaks ended with 0.
+    expect(scan(PR, report, 0).code).toBe(1);
+  });
+
+  it('keeps a file name on its line, so it cannot be a workflow command', () => {
+    const run = scan(PR, JSON.stringify([finding('a\n::error::x')]), 1);
+    expect(run.out).toContain('"a\\n::error::x"');
+    expect(run.out).not.toMatch(/^::error::x/m);
+  });
+
+  it('fails without a readable report, and passes on an empty one', () => {
+    for (const report of [null, '', 'not json', '{}']) {
+      const run = scan(PR, report, 0);
+      expect(run.code, String(report)).toBe(1);
+      expect(run.out).toContain('::error::gitleaks wrote no readable report');
+      expect(run.kept).toBe(false);
+    }
+    const clean = scan(PUSH, '[]', 0);
+    expect(clean.code).toBe(0);
+    expect(clean.out).not.toContain('gitleaks found');
+    expect(clean.kept).toBe(false);
+  });
+
+  it('uploads no report', () => {
+    expect(job).not.toContain('upload-artifact');
+    expect(step).toContain('-v "$out:/out"');
+    expect(step).toContain('out="$RUNNER_TEMP/gitleaks"');
   });
 });
 
