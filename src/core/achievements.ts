@@ -158,6 +158,15 @@ export const roundSettings = [
   },
 ] as const satisfies readonly RoundSetting[];
 
+/**
+ * Whether the round has achievements or daily rewards: the one rule of the
+ * view „Achievements“ (#373) and of its page in the Lexicanum (#404).
+ */
+export const rewardsOn = (round: {
+  achievements: boolean;
+  daily: boolean;
+}): boolean => round.achievements || round.daily;
+
 export interface AchievementState {
   progress: Record<string, number>;
   claimed: string[];

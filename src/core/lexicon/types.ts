@@ -101,6 +101,14 @@ export interface PageDef {
   /** Further articles for „Siehe auch“. */
   seeAlso?: readonly string[];
   /**
+   * Whether the page is offered in the round (default: always): the page of
+   * a feature that the round can switch off takes the rule of the feature's
+   * view, the same function (`offered` of its `ClientView`), and is hidden
+   * with it, for every player and the admin (#404; owner, 2026-11-25, 113a,
+   * 114a). src/client/views/round-switches.test.ts checks it.
+   */
+  offered?: (round: RoundRules) => boolean;
+  /**
    * The states the review list shows the page in, where the page changes
    * with the player's own state (#289): together they show every text the
    * page can hold. Without them the default state of a new player.

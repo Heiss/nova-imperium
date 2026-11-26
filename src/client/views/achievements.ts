@@ -1,3 +1,4 @@
+import { rewardsOn } from '../../core/achievements.ts';
 import { achievementsPage } from '../logic/achievements.ts';
 import Achievements from './Achievements.svelte';
 import type { ClientView } from './contract.ts';
@@ -18,7 +19,7 @@ export const clientViews = [
     mount: mountAchievements,
     fresh: true,
     // The rewards only while achievements or daily rewards are on.
-    offered: (round) => round.achievements || round.daily,
+    offered: rewardsOn,
     menu: {
       order: 140,
       label: (round) =>

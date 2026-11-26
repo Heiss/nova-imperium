@@ -112,7 +112,21 @@ pull request.
   (the lowest fee) and at the base price; shown in the universe settings
   below the table. A set that is warned about can gain; the admin may save it.
 * **[V]** The view „Marktplatz“ after „Rohstoffe“ in the menu, under „Mehr“ on
-  a phone; closed while the market is off.
+  a phone.
+* **[E]** While the market is off it is hidden, not shown as closed (#404;
+  owner, 2026-11-25, 112a to 114a): no „Marktplatz“ in the menu or under
+  „Mehr“, its address `?view=market` opens the overview, an open view falls
+  back to the overview at the next state, and its Lexicanum page
+  („Marktplatz“, `rule-market`) is not listed, found or linked and its
+  address opens the start page of the Lexicanum; the same for the admin,
+  whose switch „Marktplatz aktiv“ stays in „Universum“. **[V]** The rule is
+  `offered: marketOpen` of the view and of the page
+  ([16. Svelte views](/architecture/patterns/16-views.md)). The server keeps
+  its own switch: a trade while the market is off is refused with „Der
+  Marktplatz ist in dieser Runde geschlossen.“ (`CLOSED`, the code
+  `closed` of `trade`), and the state still carries the prices. The closed
+  notice of `marketPage` stays for a state without prices; in the game the
+  view is not mounted while the market is off.
 * **[V]** Existing universes start with the market on and the defaults;
   nobody has a Handelsposten there yet.
 

@@ -635,3 +635,46 @@ describe('the tables that mark the level of the player', () => {
     expect(marked('rule-expeditions', caption, at(3))).toEqual([]);
   });
 });
+
+describe('„Wie komme ich an mehr Rohstoffe?“ in a round with switches off (owner, 2026-11-25, 122a, #404)', () => {
+  const rows = (round: Record<string, number | boolean>) => {
+    const f = blocks('faq-resources', 'answer', state(round)).find(
+      (b) => b.t === 'facts',
+    );
+    if (f?.t !== 'facts') throw new Error('no facts');
+    return f.items.map((i) => i.label);
+  };
+
+  it('names the marketplace only while it is on', () => {
+    expect(rows({ marketOn: 1 })).toContain('Tauschen');
+    expect(rows({ marketOn: 0 })).not.toContain('Tauschen');
+    expect(
+      blocks('faq-resources', 'answer', state({ marketOn: 0 }))
+        .flatMap((b) => (b.t === 'facts' ? b.items.map((i) => i.text) : []))
+        .join(' '),
+    ).not.toContain('Marktplatz');
+  });
+
+  it('names the rewards while one of them is on, and not when both are off', () => {
+    expect(rows({ achievements: true, daily: false })).toContain('Belohnungen');
+    expect(rows({ achievements: false, daily: true })).toContain('Belohnungen');
+    expect(rows({ achievements: false, daily: false })).not.toContain(
+      'Belohnungen',
+    );
+  });
+
+  it('keeps the other rows in their order', () => {
+    expect(rows({ marketOn: 0, achievements: false, daily: false })).toEqual([
+      'Mehr fördern',
+      'Bergen',
+      'Erbeuten',
+    ]);
+    expect(rows({ marketOn: 1, achievements: true, daily: true })).toEqual([
+      'Mehr fördern',
+      'Tauschen',
+      'Bergen',
+      'Erbeuten',
+      'Belohnungen',
+    ]);
+  });
+});

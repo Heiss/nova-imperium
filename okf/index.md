@@ -13,6 +13,7 @@ okf_version: "0.2"
 * [System architecture](/architecture/system.md) - components, request flow, the game clock
 * [Design patterns](/architecture/patterns.md) - catalog components, economy events, missions, repositories, Svelte components, feature folders, migration order
 * [Checks of the server actions](/architecture/action-checks.md) - audit of #214, where each action checks, what the browser repeats, where they disagree, the follow-up pull requests
+* [Data exchange and realtime](/architecture/realtime.md) - polling of the full state today, Server-Sent Events decided, requirements on the proxies, Cobalt27 rejected
 * [Docker operation](/architecture/docker.md) - services, volumes, secrets, hardening
 * [SQLite storage](/data/sqlite.md) - schema, migrations, transactions, backup
 
@@ -45,6 +46,7 @@ okf_version: "0.2"
 * [Push settings per kind](/features/push-settings.md) - which kinds of Web Push a player gets, per account for all devices (#192)
 * [Guild ranks](/features/guild-ranks.md) - ranks with configurable rights, one Leitung, order, default rank, checked on the server (#163)
 * [Guilds on or off per round](/features/guild-switch.md) - one switch „Gilden (mit Chat)“ in the dialog „Neue Runde“, off deletes the guilds and the server refuses every guild action (#191)
+* [Guild log](/features/guild-log.md) - a page with the actions of the guild's management for the right „Protokoll lesen“, texts only as „geändert“, deleted each round, 500 entries (decided, not built)
 * [Guild chat](/features/guild-chat.md) - one chat per guild with three rights of the ranks, events of the server, a red mark on „Gilden“, 500 messages, deleted each round, read by the admin with an audit entry (#169)
 * [Vacation mode](/features/vacation-mode.md) - pause the account, production stops, everything protected, minimum duration per round (#223)
 * [Main planet](/features/main-planet.md) - the „Hauptplanet“ chosen in the options decides navigation and research, every switch locks it for a time set per round (#221)
