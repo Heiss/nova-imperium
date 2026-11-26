@@ -5,11 +5,15 @@
 // other text is a draft [V] for the owner to confirm in the pull request.
 import {
   type Market,
+  type Pair,
   type Quote,
+  RATIO_UNIT,
   RES_NAME,
   type Res,
   type TradeError,
+  got,
   remaining,
+  termsOf,
 } from './market.ts';
 
 /** A German number: 12345 → „12.345“. */
@@ -17,6 +21,19 @@ const de = (n: number): string => n.toLocaleString('de-DE');
 
 /** The name of a resource by its letter. */
 const nameOf = (res: unknown): string => RES_NAME[res as Res];
+
+/** The rate of a pair now: what 1.000 give, after the fee („Kurs“ of the preview). */
+export function rateText(m: Market, pair: Pair): string {
+  const [give, get] = [nameOf(pair[0]), nameOf(pair[1])];
+  return `${de(got(RATIO_UNIT, termsOf(m, pair)))} ${get} je ${de(RATIO_UNIT)} ${give}`;
+}
+
+/**
+ * The refusal of an exchange whose price got worse since the player saw it
+ * (#406, [V] of the issue): the rate now, to confirm again.
+ */
+export const priceChanged = (m: Market, pair: Pair): string =>
+  `Der Kurs hat sich geändert: jetzt ${rateText(m, pair)}. Bitte erneut bestätigen.`;
 
 /** The refusal in a round with the marketplace off (the issue, [V]). */
 export const CLOSED = 'Der Marktplatz ist in dieser Runde geschlossen.';
