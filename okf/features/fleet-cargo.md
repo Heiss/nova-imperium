@@ -50,7 +50,11 @@ Psikristall, then Promethium without the fuel, up to the capacity
   of the newest „alles“ under a field; `cargo` keeps the numbers as the
   preview. The server computes that field on what the planet can load at
   the launch (whole units, Promethium after the fuel of the launch) and the
-  capacity of the ships, up to the room the other fields leave; a mission
+  capacity of the ships, up to the room the other fields leave, each
+  counted as the launch takes it: Adamant and Psikristall at most their
+  stock, Promethium as typed (CodeRabbit on #421, so the preview and the
+  launch start from the same numbers; the form keeps the typed number); a
+  mission
   without cargo loads nothing; an intent it cannot read (also a list of more
   than one field) is ignored. A field typed by hand is a number again;
   typing after the even fill makes all three numbers (the player changed

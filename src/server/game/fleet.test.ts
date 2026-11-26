@@ -880,6 +880,20 @@ describe('the „alles“ buttons at the launch (#407)', () => {
     expect(c3.fleets.all()[0]!.cargo).toEqual({ m: 10, c: 20, d: 0 });
   });
 
+  it('computes the „alles“ field from a typed field over the stock as the launch takes it (CodeRabbit on #421)', () => {
+    const room = capacity({ lf: 10, sc: 2 });
+    const stock = { m: 500, c: 40_000, d: 0 };
+    // Adamant typed over the stock; „alles“ under Psikristall.
+    const typed = { m: 1000, c: 0, d: 0 };
+    const preview = resolveCargo(stock, room, typed, ['c']);
+    expect(preview).toEqual({ m: 1000, c: room - 500, d: 0 });
+    const { ctx, a } = setup();
+    shrink(ctx, a, { m: 500, c: 40_000 });
+    send(ctx, a, transport({ cargo: typed, cargoAll: ['c'] }));
+    // The launch cuts Adamant to its stock and loads the Psikristall shown.
+    expect(ctx.fleets.all()[0]!.cargo).toEqual({ m: 500, c: preview.c, d: 0 });
+  });
+
   it('ignores an intent it cannot read, and loads nothing for a mission without cargo', () => {
     const { ctx, a } = setup();
     send(ctx, a, transport({ cargo: { m: 10, c: 0, d: 0 }, cargoAll: 'all' }));

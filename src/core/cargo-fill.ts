@@ -42,7 +42,19 @@ export function fillEvenly(stock: Resources, room: number): Resources {
   return out;
 }
 
-/** „alles“ under a field: its resource up to the room the other fields leave. */
+/**
+ * What a typed field takes at the launch: Adamant and Psikristall at most
+ * the stock (the server cuts them), Promethium as typed (a field over the
+ * stock is refused with the fuel check). CodeRabbit on #421.
+ */
+const takes = (stock: Resources, cargo: Resources, k: Key): number =>
+  k === 'd' ? cargo[k] : Math.min(cargo[k], stock[k]);
+
+/**
+ * „alles“ under a field: its resource up to the room the other fields leave,
+ * each counted as the launch takes it, so the browser and the server start
+ * from the same numbers.
+ */
 export function fillOne(
   stock: Resources,
   room: number,
@@ -50,7 +62,7 @@ export function fillOne(
   key: Key,
 ): number {
   const others = CARGO_KEYS.reduce(
-    (sum, k) => (k === key ? sum : sum + cargo[k]),
+    (sum, k) => (k === key ? sum : sum + takes(stock, cargo, k)),
     0,
   );
   return Math.max(0, Math.min(stock[key], room - others));

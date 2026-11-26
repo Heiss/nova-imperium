@@ -50,6 +50,23 @@ describe('the „alles“ of one field (#240)', () => {
     expect(fillOne(r(500, 900, 500), 1000, r(300, 50, 200), 'c')).toBe(500);
     expect(fillOne(r(500, 900, 500), 400, r(300, 0, 200), 'c')).toBe(0);
   });
+
+  it('counts a typed Adamant or Psikristall over the stock as the stock, Promethium as typed (CodeRabbit on #421)', () => {
+    // The example of the review: room 10,500, Adamant typed 1,000 of 500.
+    const stock = r(500, 20_000, 20_000);
+    const typed = r(1000, 0, 0);
+    expect(fillOne(stock, 10_500, typed, 'c')).toBe(10_000);
+    expect(resolveCargo(stock, 10_500, typed, ['c'])).toEqual(
+      r(1000, 10_000, 0),
+    );
+    expect(fillOne(r(20_000, 300, 20_000), 10_500, r(0, 800, 0), 'd')).toBe(
+      10_200,
+    );
+    // Promethium over the stock counts as typed: the launch refuses it.
+    expect(fillOne(r(20_000, 20_000, 100), 10_500, r(0, 0, 800), 'm')).toBe(
+      9700,
+    );
+  });
 });
 
 describe('the intent of the buttons (#407)', () => {

@@ -406,9 +406,16 @@ describe('fleet form', () => {
     });
   });
   it('loads nothing when the other fields take the holds or no ship flies', () => {
+    // The holds hold 10,000; the other fields fill them within the stock.
+    const full = { ...form, cargo: { m: 0, c: 8000, d: 2000 } };
+    expect(cargoOne(p, full, 'm')).toBe(0);
+    expect(
+      cargoOne(p, { ...form, cargo: { m: 9000, c: 1000, d: 0 } }, 'd'),
+    ).toBe(0);
+    // Psikristall typed over its stock of 8,000 takes 8,000 at the launch,
+    // so Adamant gets the rest (CodeRabbit on #421).
     const over = { ...form, cargo: { m: 0, c: 20000, d: 0 } };
-    expect(cargoOne(p, over, 'm')).toBe(0);
-    expect(cargoOne(p, over, 'd')).toBe(0);
+    expect(cargoOne(p, over, 'm')).toBe(2000);
     expect(cargoOne(p, { ...form, ships: {} }, 'm')).toBe(0);
     expect(cargoOne(rich(1.9, 0, 1), form, 'm')).toBe(1);
     expect(cargoOne(rich(1.9, 0, 1), form, 'd')).toBe(0);
