@@ -45,6 +45,7 @@ export const INPUT: Readonly<Record<string, Spec>> = {
     to: 'keep',
     ships: 'keep',
     cargo: 'keep',
+    cargoAll: 'keep',
     pct: 'keep',
     hold: 'keep',
     stay: 'keep',

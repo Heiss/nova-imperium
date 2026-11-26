@@ -10,6 +10,7 @@
   // half-typed number is never written over. What the lists and the row of the
   // time show for that state is worked out by logic/fleet-choice.ts.
   import { HOLD_HOURS } from '../../core/holding.ts';
+  import { typedCargo } from '../../core/cargo-fill.ts';
   import { fleetForm } from '../logic/fleet-form.svelte.ts';
   import { hoursLabel } from '../logic/fleet-time.ts';
   import { QUICK_FIRST } from '../logic/fleet-target.ts';
@@ -287,8 +288,14 @@
                     type="number"
                     id="c_{field.key}"
                     value={fleetForm.cargo[field.key]}
-                    oninput={(e) =>
-                      (fleetForm.cargo[field.key] = e.currentTarget.value)}
+                    oninput={(e) => {
+                      fleetForm.cargo[field.key] = e.currentTarget.value;
+                      // Typed by hand, the field is a number again (#407).
+                      fleetForm.cargoAll = typedCargo(
+                        fleetForm.cargoAll,
+                        field.key,
+                      );
+                    }}
                     min="0"
                     placeholder="0"
                     aria-label={field.name}

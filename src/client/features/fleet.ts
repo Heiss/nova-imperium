@@ -14,6 +14,7 @@ import {
   arrivalLine,
   CARGO,
   cargoMax,
+  cargoPreview,
   cargoOne,
   type FleetForm,
   fleetPreview,
@@ -25,6 +26,7 @@ import { targetInfo } from '../logic/fleet-target.ts';
 import { client } from '../logic/state.svelte.ts';
 import { unionArrivalLine } from '../logic/union.ts';
 import type { ClientCtx, ClientFeature, Handler } from './contract.ts';
+import { askOne } from '../../core/cargo-fill.ts';
 
 /** The shown planet with its stock of this moment, for the cargo buttons. */
 const settledPlanet = (): Planet =>
@@ -75,6 +77,9 @@ function readFleetForm(): FleetForm {
     stay: stays ? clampInt(stay, 1, 1e6) : 1,
     pct: clampInt(fleetForm.speed ?? SPEEDS[0]!.value, 1, 10),
     cargo: cargoOf(),
+    // The fields the „alles“ buttons filled: the server computes them on its
+    // stock at the launch (#407).
+    ...(fleetForm.cargoAll && { cargoAll: fleetForm.cargoAll }),
   };
 }
 
@@ -126,11 +131,26 @@ function settleTime(): void {
   else fleetForm.stay = null;
 }
 
+/**
+ * The fields of the „alles“ buttons follow the form (#407): other ships, a
+ * farther target or a stock that grew change what the server will load, so
+ * the preview shows it again.
+ */
+function showIntent(): void {
+  const intent = fleetForm.cargoAll;
+  if (!intent) return;
+  const c = cargoPreview(settledPlanet(), readFleetForm());
+  // Only the fields of the buttons; a field typed by hand stays as typed.
+  for (const k of intent === 'even' ? CARGO : intent)
+    fleetForm.cargo[k] = String(c[k]);
+}
+
 function fleetCalc(): void {
   if (!$('#t_g') || !client.view || !client.game) return;
   settleKind();
   settleMission();
   settleTime();
+  showIntent();
   const f = readFleetForm();
   $('#t_info')!.innerHTML = targetInfo(client.game, f);
   const pv = fleetPreview(client.view.P, client.view.R, f, client.game.cfg);
@@ -189,11 +209,14 @@ const cargoActs = (): Record<string, Handler> => ({
   cmax: () => {
     const c = cargoMax(settledPlanet(), readFleetForm());
     for (const k of CARGO) fleetForm.cargo[k] = String(c[k]);
+    fleetForm.cargoAll = 'even';
     fleetCalc();
   },
   cone: (d) => {
     const k = d.k as keyof Resources;
     fleetForm.cargo[k] = String(cargoOne(settledPlanet(), readFleetForm(), k));
+    // Only this field stays computed; an earlier „alles“ keeps its number (159b).
+    fleetForm.cargoAll = askOne(k);
     fleetCalc();
   },
 });

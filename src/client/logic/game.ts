@@ -15,6 +15,13 @@ import {
   fuelFor,
   holdFuel,
 } from '../../core/flight.ts';
+import {
+  type CargoIntent,
+  fillEvenly,
+  fillOne,
+  loadableStock,
+  resolveCargo,
+} from '../../core/cargo-fill.ts';
 import { hoursPerLevel, stayDuration } from '../../core/expedition.ts';
 import { HOUR_MS, dueAt } from '../../core/holding.ts';
 import { missionRules } from '../../core/missions.ts';
@@ -84,6 +91,8 @@ export interface FleetForm {
   mission: string;
   pct: number;
   cargo: Resources;
+  /** What the „alles“ buttons asked for (#407); the server computes those fields again. */
+  cargoAll?: CargoIntent;
   /** The holding time of a Halten in hours (#55); only a Halten reads it. */
   hold?: number;
   /** The hours an expedition stays at its position (#93); only a mission that stays reads it, an hour when missing. */
@@ -181,44 +190,27 @@ export const CARGO: CargoKey[] = ['m', 'c', 'd'];
 function loadable(p: Planet, f: FleetForm): Resources {
   // Without ships the holds are empty, whatever the fuel.
   // The fuel of a Wache stellen includes its holding time (#55, D2).
-  const fuel = formFuel(f, distance(p, f.to));
-  return {
-    m: Math.floor(p.res.m),
-    c: Math.floor(p.res.c),
-    d: Math.max(0, Math.floor(p.res.d - fuel)),
-  };
+  return loadableStock(p.res, formFuel(f, distance(p, f.to)));
 }
 
-/**
- * Equal shares of the room (#240), the resource with the least stock first:
- * what it cannot fill goes to the others. A share is rounded up, so the room
- * is used fully when the stock allows.
- */
-function fillEvenly(stock: Resources, room: number): Resources {
-  const out = {} as Resources;
-  const order = [...CARGO].sort((a, b) => stock[a] - stock[b]);
-  order.forEach((k, i) => {
-    out[k] = Math.min(stock[k], Math.ceil(room / (order.length - i)));
-    room -= out[k];
-  });
-  return out;
-}
-
-/** „alles“ (#240): fills the holds evenly with the three resources. */
+/** „alles“ (#240): fills the holds evenly with the three resources (core/cargo-fill.ts). */
 export const cargoMax = (p: Planet, f: FleetForm): Resources =>
   fillEvenly(loadable(p, f), capacity(f.ships));
 
 /**
- * „alles“ under a field (#240): only that resource, up to the room the other
- * two fields leave; they stay as they are.
+ * The cargo the server will load for the form (#407): the fields of the
+ * „alles“ buttons computed again by the rule of the server, the others as
+ * typed; the preview of the fields.
  */
-export function cargoOne(p: Planet, f: FleetForm, key: CargoKey): number {
-  const others = CARGO.reduce(
-    (sum, k) => (k === key ? sum : sum + f.cargo[k]),
-    0,
-  );
-  return Math.max(0, Math.min(loadable(p, f)[key], capacity(f.ships) - others));
-}
+export const cargoPreview = (p: Planet, f: FleetForm): Resources =>
+  resolveCargo(loadable(p, f), capacity(f.ships), f.cargo, f.cargoAll ?? null);
+
+/**
+ * „alles“ under a field (#240): only that resource, up to the room the other
+ * two fields leave; they stay as they are (core/cargo-fill.ts).
+ */
+export const cargoOne = (p: Planet, f: FleetForm, key: CargoKey): number =>
+  fillOne(loadable(p, f), capacity(f.ships), f.cargo, key);
 
 const STEPS: Record<string, [number, number]> = {
   'g-': [-1, 0],
