@@ -1,7 +1,7 @@
 ---
 type: Policy
 title: 'Mutation runs of a pull request'
-description: 'A pull request mutates only what it changes: when the jobs start, the partial run, its floors and limit, and the nightly issue.'
+description: 'A pull request mutates only what it changes: when the jobs start, the partial run, its floors and parts, the nightly check, and the nightly issue.'
 ---
 
 # Mutation runs of a pull request
@@ -50,7 +50,8 @@ description: 'A pull request mutates only what it changes: when the jobs start, 
   is no release pull request (head `release/*`) and goes into no hotfix
   branch (base `hotfix/*`), the mutation tests run for the files of the
   `mutate` globs that it changes and for the source of each test file it
-  changes, in one job „Mutation tests (changed files)“ without shards. The
+  changes, in one job „Mutation tests (changed files)“ without shards
+  (since #370 in parts of about 12 files, below). The
   complete run in 12 shards (6 until 2026-11-20) stays for pushes to `main` and `hotfix/**`,
   the pull requests into a hotfix branch and the
   nightly run, with their caches, weights and plan state (the release pull
@@ -172,17 +173,19 @@ description: 'A pull request mutates only what it changes: when the jobs start, 
   writes nothing, because a floor never goes down and the tests are to be
   raised, not the report ignored. The floors of a complete run are then
   committed in their own commit; the pull request proves them in its run
-  (the partial rule above, a complete run above 12 files). A builder
+  (the partial rule above, at any size since #370). A builder
   records no floor and adds no line for a new file. `node
   scripts/mutation-gate.ts --update` is gone (it stops with this rule);
   the gate only checks.
 
 * **[V]** The job „Mutation tests (changed files)“ (`mutation-partial` in
-  `ci.yml`, #309): `needs: changes`, runs when the output `mutation` is
+  `ci.yml`, #309; since #370 the parts `mutation-partial-part` run Stryker
+  and this job merges their reports and checks them, see the parts above):
+  `needs: changes`, runs when the output `mutation` is
   `partial` and reads the list from the output `mutation-files`. It mutates
   every mutant of the files of the set with Stryker's incremental file
-  switched off (`scripts/mutation-partial.ts config` writes
-  `reports/stryker-partial.config.json`), restores and saves no cache (the
+  switched off (`scripts/mutation-partial.ts config <n>` writes
+  `reports/stryker-partial.config.json` for part n), restores and saves no cache (the
   shard caches `stryker-shard…`, the plan state `stryker-state-…`, the
   merged reports `stryker-report-…` and `stryker-weights-…` stay what the
   complete runs wrote, so a partial result never reaches a plan or a
@@ -204,24 +207,59 @@ description: 'A pull request mutates only what it changes: when the jobs start, 
   dry run of the whole test suite (about 3 minutes on a loaded machine)
   comes first.
 
-* **[V]** The limit of one job (the coordinator, 2026-11-19, #309): a
-  partial set of more than `PARTIAL_LIMIT` = 12 files (`scripts/mutation-partial.ts`,
-  counted after the sources of tests and the files of the floors are added,
-  so deleted files, documentation and tests without a source do not count)
-  gives the output `true`, the complete run in the shards with the check of
-  #167 for `reuse`, exactly as a change of the configuration does; the reason
-  is on stderr („N changed files are more than the limit of 12 for one job“).
-  Measured on 2026-11-19: the partial run of #281 (11 files, two of them
-  without mutants) took 9 minutes, that of #318 (33 files) ran more than 60
-  minutes without an end, and a bundle pull request of about 100 files would
-  be in the same job; the complete run takes about 60 minutes whatever the
-  set. 12 is the first number above the largest set known to be fast. It is
-  a count: a few big files (`catalog.ts` alone weighs a sixth of the whole
-  run) can be slower than many small ones. A limit by weight would need the
-  weights of the last complete run (the cache `stryker-state-…` or
-  `stryker-weights-…`, restored by the plan job, not in the repository) in
-  „Detect changes“, which today needs no cache and no dependencies; it is not
-  built.
+* **[E]** No limit of the size (owner, 2026-11-26, #370, 189a): a pull
+  request into `main` mutates only the files it changes, at any number of
+  files. The limit of 12 files of one job (`PARTIAL_LIMIT`, the coordinator,
+  2026-11-19, #309), above which the complete run ran, is gone: #424 ran
+  the complete run on 2026-11-26 for 13 files. A change of the mutation
+  configuration or of the test tool chain still runs the complete run in
+  the pull request (189a). The history of the limit: measured on
+  2026-11-19, the partial run of #281 (11 files, two of them without
+  mutants) took 9 minutes, that of #318 (33 files) more than 60 minutes
+  without an end, in one job.
+
+* **[E]** More than 12 changed files: the partial run is split over several
+  jobs, so it stays fast (owner, 2026-11-26, #370, 190a). **[V]** The
+  parts (`scripts/mutation-partial.ts parts`, tests in
+  `src/test/mutation-partial.test.ts`): one part for each 12 files begun
+  (`PART_FILES`), at most `SHARDS` (12), split by the measured weights as
+  the shards are (`weigh` and `split` of `scripts/mutation-shards.ts`): the
+  test time of the mutants in the weights of the last complete run, a file
+  they do not know as the mean file, without weights by the lines; whole
+  files, no line ranges, no part empty. A set of up to 12 files is one
+  part. „Detect changes“ restores the weights read only from the cache
+  `stryker-state-refs/heads/main-…` of the complete runs on `main` (the
+  nightly run writes it) and saves nothing, so a partial result still never
+  reaches a plan or a weight; it writes the plan as the output
+  `mutation-plan` and its numbers as `mutation-parts`. The matrix job
+  `mutation-partial-part`, „Mutation tests (changed files, part N of M)“,
+  runs Stryker on one part (`scripts/mutation-partial.ts config <n>`,
+  every mutant, no incremental file, no cache) and uploads its report. The
+  job `mutation-partial`, „Mutation tests (changed files)“ as before, merges
+  the reports (`scripts/mutation-partial.ts merge`: every part ran exactly
+  once with exactly its files, the check of the shards) into one report that
+  names all files of the plan as the files Stryker ran, and
+  `scripts/mutation-gate.ts --partial` checks it as before. The name of the
+  job stays, so the proof of a push (#342) and the takeover keep finding it.
+
+* **[E]** The complete run comes only from the nightly run on `main`
+  (`mutation.yml`), with one exception: while the last nightly complete run
+  on `main` is red or missing, pull requests run the complete run, until a
+  nightly run is green again (owner, 2026-11-26, #370, 194a via 197b).
+  **[V]** „The last nightly complete run“ is the newest completed run of
+  `mutation.yml`, event `schedule`, on `main`, of this repository; a
+  cancelled run does not count and a run still going is not completed, so
+  the newest completed one decides; it is green only when it succeeded.
+  `scripts/mutation-nightly.ts check` (tests in
+  `src/test/mutation-nightly.test.ts`) asks the API with the token of the
+  workflow (`GET .../actions/workflows/mutation.yml/runs?branch=main&event=schedule&status=completed`,
+  `actions: read`, which „Detect changes“ already had for #342) and counts
+  every error of the lookup as missing. „Detect changes“ asks it only in a
+  pull request into `main` whose partial set is not empty; when the run is
+  not green, the output is `true` (the complete run, with the check of #167
+  for `reuse`). It writes the line that names the run as the output
+  `mutation-nightly`, and the CI Gate prints it („Last nightly complete
+  mutation run: …“).
 
 * **[V]** The nightly issue (#309): `mutation.yml` had no notice of a failed
   gate (a failed scheduled run mails only the person who last changed the

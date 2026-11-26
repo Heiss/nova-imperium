@@ -82,7 +82,7 @@ description: 'Stryker mutation tests, the score that blocks, static mutants, the
 * **[E]** More shards and a split that does not trust a missing weight
   (owner, 2026-11-20, #309, #321; the owner decided both): the complete
   runs, in `mutation.yml` (nightly and „Run workflow“) and in the sharded
-  job of `ci.yml` (pull requests above 12 changed files, the release pull
+  job of `ci.yml` (pull requests above 12 changed files until #370, the release pull
   request until #387, #321), run in 12 shards instead of 6, and the plan weighs a file
   without a weight by the rule below. The change does not touch which tests
   run, a floor or the gate (the owner rejected changing the tests). Why:
