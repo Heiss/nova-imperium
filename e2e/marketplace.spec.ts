@@ -175,3 +175,57 @@ test('the admin switches the market off for the round and sees the warning', asy
   await nav(page, 'market');
   await expect(page.locator('#marketform')).toBeVisible();
 });
+
+test('a trade carries the price the player saw; another trade on the pair in between refuses it (#406)', async ({
+  page,
+  browser,
+}) => {
+  const { problems } = watch(page);
+  const anna = uniqueName('Kurs');
+  await register(page, anna);
+  seed({
+    name: anna,
+    b: { market: 1, robot: 4 },
+    res: { m: 5000, c: 100, d: 0 },
+    marketReset: true,
+  });
+  await page.reload();
+  await nav(page, 'market');
+  const form = page.locator('#marketform');
+  const preview = page.locator('#market-preview');
+  await expect(preview).toContainText('450 Psikristall je 1.000 Adamant');
+  await form.getByLabel('Menge').fill('1000');
+
+  // Bert trades the same pair from another browser meanwhile.
+  const other = await browser.newContext({ viewport: page.viewportSize() });
+  const bert = await other.newPage();
+  const name = uniqueName('Kurs');
+  await register(bert, name);
+  seed({ name, b: { market: 1, robot: 4 }, res: { m: 50000, c: 0, d: 0 } });
+  await bert.reload();
+  await nav(bert, 'market');
+  await bert.locator('#marketform').getByLabel('Menge').fill('20000');
+  await bert
+    .locator('#marketform')
+    .getByRole('button', { name: 'Tauschen' })
+    .click();
+  await expect(lastToast(bert)).toContainText('getauscht');
+  await other.close();
+
+  // Anna's click carries the price she saw: refused, with the rate of now,
+  // and her form shows it; nothing was exchanged.
+  await form.getByRole('button', { name: 'Tauschen' }).click();
+  const note = lastToast(page);
+  await expect(note).toContainText('Der Kurs hat sich geändert: jetzt ');
+  await expect(note).toContainText('. Bitte erneut bestätigen.');
+  const now = /jetzt (\d+ Psikristall je 1\.000 Adamant)\./.exec(
+    (await note.textContent())!,
+  )![1]!;
+  expect(now).not.toBe('450 Psikristall je 1.000 Adamant');
+  await expect(preview).toContainText(now);
+  await expect(form.getByLabel('Menge')).toHaveValue('1000');
+  // Confirmed again at the rate of now, it goes through.
+  await form.getByRole('button', { name: 'Tauschen' }).click();
+  await expect(lastToast(page)).toContainText('getauscht');
+  expect(problems).toEqual([]);
+});

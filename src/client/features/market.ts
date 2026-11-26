@@ -4,6 +4,7 @@
 // given, and „Tauschen“ sends the action trade. The form and its preview are
 // views/Market.svelte; the preview is painted by the component from the same
 // function the server uses.
+import { pairOf } from '../../core/market.ts';
 import { amountOf, fixed, marketOf, maxAmount } from '../logic/market.ts';
 import { draft } from '../logic/market-form.svelte.ts';
 import { client } from '../logic/state.svelte.ts';
@@ -15,17 +16,23 @@ const current = () =>
 
 /** The data-act handlers of the marketplace; its form is handled here too. */
 export const clientFeature = {
-  listen: ({ act }) => {
+  listen: ({ act, refresh }) => {
     document.addEventListener('submit', (e) => {
       if ((e.target as HTMLFormElement).id !== 'marketform') return;
       e.preventDefault();
       const d = fixed(draft);
+      const m = current();
+      const pair = pairOf(d.give, d.get);
       void act('trade', {
         give: d.give,
         get: d.get,
         amount: amountOf(d.amount),
-      }).then((done) => {
+        // The price the player sees in the preview (#406).
+        price: m && pair ? m.prices[pair] : 0,
+      }).then(async (done) => {
         if (done) draft.amount = '';
+        // A refusal, a changed price above all: the form shows the price now.
+        else await refresh();
       });
     });
   },
