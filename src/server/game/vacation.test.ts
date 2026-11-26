@@ -1001,7 +1001,19 @@ describe('the buddy list and the vacation mode (#227, #223)', () => {
 
 describe('the marketplace and the vacation mode (#171, #223)', () => {
   const trade = (ctx: TestCtx, uid = 'u_Anna', planet = 'p1_1_5') =>
-    act(ctx, 'trade', { give: 'm', get: 'c', amount: 1000, planet }, uid);
+    act(
+      ctx,
+      'trade',
+      // With the price the player sees (#406).
+      {
+        give: 'm',
+        get: 'c',
+        amount: 1000,
+        planet,
+        price: currentPrices(ctx).mc,
+      },
+      uid,
+    );
   const stock = (ctx: TestCtx, id = 'p1_1_5') => ctx.planets.get(id)!.res;
 
   /** Anna and Bert each with a Handelsposten and Adamant; Bert has moved the price. */

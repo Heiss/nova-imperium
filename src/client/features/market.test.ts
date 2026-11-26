@@ -10,7 +10,14 @@ import { clientFeature } from './market.ts';
 import { fakeCtx } from './test-ctx.ts';
 
 const BASE = 1_000_000;
-const PRICES = { mc: BASE, md: BASE, cm: BASE, cd: BASE, dm: BASE, dc: BASE };
+const PRICES = {
+  mc: BASE,
+  md: 987_654,
+  cm: BASE,
+  cd: BASE,
+  dm: BASE,
+  dc: BASE,
+};
 
 type Submit = (e: {
   target: { id: string };
@@ -56,12 +63,15 @@ describe('„Tauschen“', () => {
     clientFeature.listen!(ctx);
     Object.assign(draft, { give: 'm', get: 'd', amount: '1000' });
     expect(send().prevented).toBe(true);
+    // With the price of the pair the player sees (#406).
     expect(ctx.act).toHaveBeenCalledWith('trade', {
       give: 'm',
       get: 'd',
       amount: 1000,
+      price: 987_654,
     });
     await vi.waitFor(() => expect(draft.amount).toBe(''));
+    expect(ctx.refresh).not.toHaveBeenCalled();
     expect(draft).toMatchObject({ give: 'm', get: 'd' });
   });
 
@@ -74,17 +84,28 @@ describe('„Tauschen“', () => {
       give: 'c',
       get: 'm',
       amount: null,
+      price: BASE,
     });
   });
 
-  it('keeps the amount when the server refused', async () => {
+  it('keeps the amount when the server refused, and loads the price of now (#406)', async () => {
     const ctx = fakeCtx({ act: vi.fn(async () => false) });
     clientFeature.listen!(ctx);
     draft.amount = '77';
     send();
-    await Promise.resolve();
-    await Promise.resolve();
+    await vi.waitFor(() => expect(ctx.refresh).toHaveBeenCalledTimes(1));
     expect(draft.amount).toBe('77');
+  });
+
+  it('sends no price it cannot know, without a shown state', () => {
+    const ctx = fakeCtx();
+    clientFeature.listen!(ctx);
+    client.view = null;
+    send();
+    expect(ctx.act).toHaveBeenCalledWith(
+      'trade',
+      expect.objectContaining({ price: 0 }),
+    );
   });
 
   it('ignores the submit of another form', () => {

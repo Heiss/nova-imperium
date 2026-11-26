@@ -3,12 +3,19 @@
 // limit per UTC day, the cap by the free storage, a new round that starts
 // over, and the state the browser previews from.
 import { describe, expect, it } from 'vitest';
-import { DAY_MS, HOUR_MS, dayOf, priceAfter } from '../../core/market.ts';
+import {
+  DAY_MS,
+  HOUR_MS,
+  type Pair,
+  dayOf,
+  priceAfter,
+} from '../../core/market.ts';
 import type { AuditEntry } from '../audit.ts';
 import { addPlanet, addUser, type TestCtx, testCtx } from '../test-helpers.ts';
 import { runAction } from './dispatch.ts';
 import { currentPrices, marketOf } from './market.ts';
 import { stateFor } from './state.ts';
+import { rateText } from '../../core/market-text.ts';
 
 // 2026-11-18 12:00 UTC.
 const START = Date.UTC(2026, 10, 18, 12, 0);
@@ -31,13 +38,18 @@ function world(): TestCtx {
   return ctx;
 }
 
+/**
+ * An exchange as the browser sends it: with the price of the pair the
+ * player sees now (#406), unless `over` names another.
+ */
 const trade = (
   ctx: TestCtx,
   over: Record<string, unknown> = {},
   event?: AuditEntry,
   uid = 'u_Anna',
-) =>
-  runAction(
+) => {
+  const pair = `${String(over.give ?? 'm')}${String(over.get ?? 'c')}`;
+  return runAction(
     ctx,
     uid,
     {
@@ -46,10 +58,12 @@ const trade = (
       get: 'c',
       amount: 1000,
       planet: uid === 'u_Anna' ? 'p1_1_5' : 'p1_1_6',
+      price: currentPrices(ctx)[pair as Pair] ?? 1_000_000,
       ...over,
     },
     event,
   );
+};
 
 const stock = (ctx: TestCtx, id = 'p1_1_5') => ctx.planets.get(id)!.res;
 const refusal = (fn: () => unknown): string => {
@@ -516,5 +530,60 @@ describe('a new round and the state', () => {
       feeBase: 10,
       feeStep: 1,
     });
+  });
+});
+
+describe('the price the player saw (#406, O31)', () => {
+  it('lets an exchange at the shown price through', () => {
+    const ctx = world();
+    expect(trade(ctx, { price: 1_000_000 })).toMatch(/getauscht/);
+  });
+
+  it('refuses an exchange after another trade lowered the price, with the rate of now, and changes nothing', () => {
+    const ctx = world();
+    const seen = currentPrices(ctx).mc;
+    // Bert trades the same pair between the display and Anna's click.
+    trade(ctx, {}, undefined, 'u_Bert');
+    const prices = ctx.market.prices();
+    const before = { ...stock(ctx) };
+    const used = ctx.market.used('u_Anna', dayOf(ctx.now()));
+    const m = marketOf(
+      ctx,
+      ctx.players.get('u_Anna')!,
+      ctx.planets.get('p1_1_5')!,
+    );
+    expect(refusal(() => trade(ctx, { price: seen }))).toBe(
+      `Der Kurs hat sich geändert: jetzt ${rateText(m, 'mc')}. Bitte erneut bestätigen.`,
+    );
+    expect(stock(ctx)).toEqual(before);
+    expect(ctx.market.prices()).toEqual(prices);
+    expect(ctx.market.used('u_Anna', dayOf(ctx.now()))).toBe(used);
+    // Confirmed again at the price of now, it goes through.
+    expect(trade(ctx)).toMatch(/getauscht/);
+  });
+
+  it('lets an exchange through whose price only drifted back in the player’s favour', () => {
+    const ctx = world();
+    trade(ctx, {}, undefined, 'u_Bert');
+    const seen = currentPrices(ctx).mc;
+    ctx.clock.t += HOUR_MS;
+    expect(currentPrices(ctx).mc).toBeGreaterThan(seen);
+    expect(trade(ctx, { price: seen })).toMatch(/getauscht/);
+  });
+
+  it('compares the price before the own exchange moves it, and refuses one not sent', () => {
+    const ctx = world();
+    // The own amount lowers the price after the exchange, not before it.
+    expect(trade(ctx, { amount: 4000, price: 1_000_000 })).toMatch(/getauscht/);
+    expect(refusal(() => trade(ctx, { price: undefined }))).toMatch(
+      /^Der Kurs hat sich geändert: jetzt /,
+    );
+  });
+
+  it('keeps the other refusals first: a wrong amount says so, not a changed price', () => {
+    const ctx = world();
+    expect(
+      refusal(() => trade(ctx, { planet: 'p1_1_5', amount: 0, price: 1 })),
+    ).toBe('Bitte eine ganze Menge von mindestens 1 angeben.');
   });
 });

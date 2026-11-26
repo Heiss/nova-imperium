@@ -65,6 +65,20 @@ pull request.
   exchange it is at the base. The stored price is relative to the base, so a
   change of a ratio during the round applies at once, and a change of the
   drift time applies to the stored prices.
+* **[E]** The price the player saw (#406, owner, 2026-11-25, O31): the
+  action `trade` carries `price`, the price of the pair the form showed, in
+  millionths of the base; the server refuses any worse price, with no
+  tolerance, and nothing changes. **[V]** The price compared is the one
+  before the own exchange moves it; a lower price is worse (a test of the
+  formula checks it first: a lower price never gives more); the drift back
+  towards the base only ever helps, so only an exchange of someone else on
+  the same pair in between refuses. A price that is no whole number counts
+  as worse. The other refusals (closed, no Handelsposten, amount, stock,
+  storage, limit) come first. The refusal says „Der Kurs hat sich geändert:
+  jetzt <Kurs>. Bitte erneut bestätigen.“ with the rate of the preview
+  („<n> <Rohstoff> je 1.000 <Rohstoff>“), and after any refused exchange the
+  form loads the state of the shown place again, so the preview shows the
+  price of now and the amount stays.
 * **[E]** (owner, 2026-11-21, #346) 0 hours mean no recovery: the price of a
   pair stays where the last exchange left it until the round ends, and
   nothing else raises it (the reverse pair keeps its own price). The owner
