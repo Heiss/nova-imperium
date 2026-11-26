@@ -148,6 +148,7 @@ jobs:
           PR_BASE_REF: ${{ github.base_ref }}
           PR_HEAD: ${{ github.event.pull_request.head.sha }}
           HEAD_SHA: ${{ github.sha }}
+          BRANCH: ${{ github.ref_name }}
           GH_TOKEN: ${{ github.token }}
         run: |
           # The nightly run: everything but the mutation jobs, which
@@ -161,11 +162,18 @@ jobs:
             } >> "$GITHUB_OUTPUT"
             exit 0
           fi
+          # A push to main runs no mutation job: the result of the pull
+          # request counts (identical tree, #342), and without a proof the
+          # nightly complete run tests the tree (owner, 2026-11-26, #370,
+          # 195a and 200a; output "nightly"). A push to hotfix/** runs the
+          # complete run unless proven.
           if [ "$EVENT" = "push" ] || [ -z "$PR_BASE" ]; then
+            mutation=true
+            if [ "$EVENT" = "push" ] && [ "$BRANCH" = main ]; then mutation=nightly; fi
             {
               echo "code=true"
               echo "image=true"
-              echo "mutation=true"
+              echo "mutation=$mutation"
               echo "site=true"
             } >> "$GITHUB_OUTPUT"
             exit 0
@@ -1081,6 +1089,7 @@ jobs:
           PROOF_COMPOSE: ${{ needs.changes.outputs.proof-compose }}
           PROOF_SITE: ${{ needs.changes.outputs.proof-site }}
           EVENT: ${{ github.event_name }}
+          BRANCH: ${{ github.ref_name }}
           PR_HEAD: ${{ github.event.pull_request.head.sha }}
           HEAD_REF: ${{ github.head_ref }}
           BASE_REF: ${{ github.base_ref }}
@@ -1120,8 +1129,12 @@ jobs:
           require_success "ReDoS lint" "$REDOS"
           require_success "CodeQL" "$CODEQL"
 
-          if [ "$EVENT" = "push" ] && { [ "$CODE" != "true" ] || [ "$IMAGE" != "true" ] || [ "$MUTATED" != "true" ] || [ "$SITE_SOURCES" != "true" ]; }; then
-            echo "::error::Pushes to main and hotfix/* must run the full suite; a job is skipped only with its proof (#342)."
+          # A push to main runs no mutation job ("nightly", #370, 200a); a
+          # push to hotfix/** runs the complete run unless proven.
+          expected=true
+          if [ "$EVENT" = "push" ] && [ "$BRANCH" = main ]; then expected=nightly; fi
+          if [ "$EVENT" = "push" ] && { [ "$CODE" != "true" ] || [ "$IMAGE" != "true" ] || [ "$MUTATED" != "$expected" ] || [ "$SITE_SOURCES" != "true" ]; }; then
+            echo "::error::Pushes to main and hotfix/* must run the full suite (the mutation jobs: $expected); a job is skipped only with its proof (#342)."
             exit 1
           fi
           # The nightly run runs every job but the mutation jobs (#387).
@@ -1188,7 +1201,22 @@ jobs:
                 exit 1
               fi
               ;;
-            false) echo "No mutated file, test, mutation configuration or test tool chain changed: the mutation jobs run on every push to main and hotfix/** (unless proven on the identical tree) and every night." ;;
+            false) echo "No mutated file, test, mutation configuration or test tool chain changed: the mutation jobs run on every push to hotfix/** (unless proven on the identical tree) and every night." ;;
+            nightly)
+              if [ "$EVENT" != "push" ] || [ "$BRANCH" != main ]; then
+                echo "::error::Only a push to main leaves the mutation run to the nightly run."
+                exit 1
+              fi
+              if [ "$MUTATION_PLAN" != "skipped" ] || [ "$MUTATION_SHARDS" != "skipped" ] || [ "$MUTATION" != "skipped" ] || [ "$MUTATION_PARTIAL_PARTS" != "skipped" ] || [ "$MUTATION_PARTIAL" != "skipped" ]; then
+                echo "::error::A push to main runs no mutation job (#370)."
+                exit 1
+              fi
+              if [ -n "$PROOF_MUTATION" ]; then
+                echo "Mutation tests: no run on a push to main, the pull request proved this tree: $PROOF_MUTATION"
+              else
+                echo "Mutation tests: no run on a push to main and no proof of the pull request; the nightly complete run (mutation.yml) tests this tree (#370, 200a)."
+              fi
+              ;;
             reuse)
               if [ "$EVENT" != "pull_request" ] || [ "$MUTATION_PLAN" != "skipped" ] || [ "$MUTATION_SHARDS" != "skipped" ] || [ "$MUTATION" != "skipped" ]; then
                 echo "::error::A mutation result is taken over only in a pull request whose mutation jobs are skipped."

@@ -105,6 +105,24 @@ describe('Detect changes', () => {
     });
     expect(written).toBe('code=true\nimage=true\nmutation=true\nsite=true\n');
   });
+
+  it('leaves the mutation run of a push to main to the nightly run, not of a hotfix branch (#370, 200a)', () => {
+    const push = (BRANCH: string) =>
+      run({
+        EVENT: 'push',
+        PR_BASE: '',
+        PR_HEAD_REF: '',
+        PR_BASE_REF: '',
+        BRANCH,
+      }).written;
+    expect(push('main')).toBe(
+      'code=true\nimage=true\nmutation=nightly\nsite=true\n',
+    );
+    for (const branch of ['hotfix/26.11.28', 'mainline'])
+      expect(push(branch)).toBe(
+        'code=true\nimage=true\nmutation=true\nsite=true\n',
+      );
+  });
 });
 
 describe('Detect changes: the mutation jobs of a pull request (#309)', () => {
@@ -711,6 +729,74 @@ describe('CI Gate', () => {
     };
     expect(evaluate(push).code).toBe(0);
     expect(evaluate({ ...skipped, ...push }).code).toBe(1);
+  });
+
+  describe('a push to main runs no mutation job (#370, 195a, 200a)', () => {
+    const main = {
+      EVENT: 'push',
+      BRANCH: 'main',
+      HEAD_REF: '',
+      BASE_REF: '',
+      FRAGMENTS: 'skipped',
+      MUTATED: 'nightly',
+      MUTATION_PLAN: 'skipped',
+      MUTATION_SHARDS: 'skipped',
+      MUTATION: 'skipped',
+    };
+
+    it('passes without a proof and says that the nightly run tests the tree', () => {
+      const { code, out } = evaluate(main);
+      expect(code).toBe(0);
+      expect(out).toContain(
+        'Mutation tests: no run on a push to main and no proof of the pull request; the nightly complete run (mutation.yml) tests this tree (#370, 200a).',
+      );
+    });
+
+    it('names the proof of the pull request when there is one', () => {
+      const proof = 'CI run 9, job "Mutation tests (changed files)" (url)';
+      const { code, out } = evaluate({ ...main, PROOF_MUTATION: proof });
+      expect(code).toBe(0);
+      expect(out).toContain(
+        `Mutation tests: no run on a push to main, the pull request proved this tree: ${proof}`,
+      );
+    });
+
+    it('refuses a mutation job that ran on the push', () => {
+      for (const job of [
+        'MUTATION_PLAN',
+        'MUTATION_SHARDS',
+        'MUTATION',
+        'MUTATION_PARTIAL_PARTS',
+        'MUTATION_PARTIAL',
+      ]) {
+        const { code, out } = evaluate({ ...main, [job]: 'success' });
+        expect(code).toBe(1);
+        expect(out).toContain(
+          '::error::A push to main runs no mutation job (#370).',
+        );
+      }
+    });
+
+    it('refuses the complete run on a push to main, and "nightly" anywhere else', () => {
+      const complete = evaluate({ ...main, MUTATED: 'true' });
+      expect(complete.code).toBe(1);
+      expect(complete.out).toContain(
+        '::error::Pushes to main and hotfix/* must run the full suite (the mutation jobs: nightly)',
+      );
+      const hotfix = evaluate({ ...main, BRANCH: 'hotfix/x' });
+      expect(hotfix.code).toBe(1);
+      expect(hotfix.out).toContain('(the mutation jobs: true)');
+      const pr = evaluate({
+        MUTATED: 'nightly',
+        MUTATION_PLAN: 'skipped',
+        MUTATION_SHARDS: 'skipped',
+        MUTATION: 'skipped',
+      });
+      expect(pr.code).toBe(1);
+      expect(pr.out).toContain(
+        '::error::Only a push to main leaves the mutation run to the nightly run.',
+      );
+    });
   });
 });
 
