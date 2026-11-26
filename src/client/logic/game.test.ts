@@ -4,6 +4,7 @@ import { dt } from './format.ts';
 import {
   buildState,
   cargoMax,
+  cargoPreview,
   arrivalLine,
   cargoOne,
   fleetEnd,
@@ -381,10 +382,32 @@ describe('fleet form', () => {
       ),
     ).toBe(9997);
   });
+  // The preview of the form (#407): the fields of the „alles“ buttons by the
+  // rule of the server, the others as typed.
+  it('previews the cargo the server loads for the intent of the form', () => {
+    const stock = rich(1e6, 1e6, 1e6 + 3);
+    const typed = { ...form, cargo: { m: 1000, c: 2000, d: 0 } };
+    expect(cargoPreview(stock, typed)).toEqual({ m: 1000, c: 2000, d: 0 });
+    expect(cargoPreview(stock, { ...typed, cargoAll: 'even' })).toEqual(
+      cargoMax(stock, typed),
+    );
+    expect(cargoPreview(stock, { ...typed, cargoAll: ['d'] })).toEqual({
+      m: 1000,
+      c: 2000,
+      d: 7000,
+    });
+  });
   it('loads nothing when the other fields take the holds or no ship flies', () => {
+    // The holds hold 10,000; the other fields fill them within the stock.
+    const full = { ...form, cargo: { m: 0, c: 8000, d: 2000 } };
+    expect(cargoOne(p, full, 'm')).toBe(0);
+    expect(
+      cargoOne(p, { ...form, cargo: { m: 9000, c: 1000, d: 0 } }, 'd'),
+    ).toBe(0);
+    // Psikristall typed over its stock of 8,000 takes 8,000 at the launch,
+    // so Adamant gets the rest (CodeRabbit on #421).
     const over = { ...form, cargo: { m: 0, c: 20000, d: 0 } };
-    expect(cargoOne(p, over, 'm')).toBe(0);
-    expect(cargoOne(p, over, 'd')).toBe(0);
+    expect(cargoOne(p, over, 'm')).toBe(2000);
     expect(cargoOne(p, { ...form, ships: {} }, 'm')).toBe(0);
     expect(cargoOne(rich(1.9, 0, 1), form, 'm')).toBe(1);
     expect(cargoOne(rich(1.9, 0, 1), form, 'd')).toBe(0);
