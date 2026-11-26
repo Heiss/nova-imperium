@@ -78,13 +78,15 @@ export const articleHref = (id: string): string =>
  */
 export const stateUrl = (
   planet?: string,
-  open: { pm?: string; pmAfter?: number } = {},
+  open: { pm?: string; pmAfter?: number; galaxy?: string } = {},
 ): string => {
   const query = [
     ...(planet ? [`planet=${encodeURIComponent(planet)}`] : []),
     ...(open.pm !== undefined && open.pmAfter !== undefined
       ? [`pm=${encodeURIComponent(open.pm)}`, `pmAfter=${open.pmAfter}`]
       : []),
+    // The system of the open Sternenkarte (151a).
+    ...(open.galaxy ? [`galaxy=${encodeURIComponent(open.galaxy)}`] : []),
   ];
   return query.length ? `/api/state?${query.join('&')}` : '/api/state';
 };

@@ -2,6 +2,7 @@
 // the types of what `stateFor` builds in src/server/game/state.ts. The browser
 // derives its `GameState` from the shapes of all parts (src/core/state.ts).
 import type { Inactivity, PlanetActivity } from '../activity.ts';
+import type { ShownProtection } from '../galaxy-shown.ts';
 import type { DebrisField } from '../debris.ts';
 import type { ExplainMode } from '../explain.ts';
 import type { SeenShips } from '../fleet-recognition.ts';
@@ -96,7 +97,14 @@ export type StateShape = {
   fleets: ClientFleet[];
   reports: Report[];
   players: Players;
+  /** When the points and categories of `players` were computed: „Stand“ (#405). */
+  scoresAt: number;
   galaxy: GalaxyPlanet[];
+  /**
+   * The owners of the system the Sternenkarte shows that the noob protection
+   * covers, by exact points (151a); only while the request names the system.
+   */
+  protectedOwners?: ShownProtection;
   /** Every Trümmerfeld, for every player (#45). */
   debris: DebrisField[];
 };

@@ -11,6 +11,7 @@ import { pathToFileURL } from 'node:url';
 import { openDatabase } from '../src/server/db/database.ts';
 import { Store } from '../src/server/db/store.ts';
 import { loadConfig } from '../src/server/config.ts';
+import { SCORES_REVISION } from '../src/server/game/scores.ts';
 import { AREA_SYSTEMS, inArea, readLedger } from './ledger.ts';
 import {
   HOME_SAVED_AT,
@@ -78,6 +79,12 @@ if (!user) throw new Error(`no player ${d.name}`);
 const planet = store.planetOfUser(user.id)!;
 const s = { store, d, user, planet, home: { ...planet } };
 
+/** The running server computes the points again at its next reader (#405). */
+function staleScores(): void {
+  const revision = store.repos.admin.setting(SCORES_REVISION) ?? 0;
+  store.repos.admin.putSettings([[SCORES_REVISION, revision + 1]]);
+}
+
 store.tx(() => {
   let saved = false;
   for (const part of parts) {
@@ -88,6 +95,7 @@ store.tx(() => {
     part.apply(s);
   }
   if (!saved) store.savePlanet(s.home);
+  staleScores();
   for (const p of area ? store.repos.planets.ofOwner(user.id) : [])
     if (area?.kind === 'area' && !inArea(area, p))
       throw new Error(

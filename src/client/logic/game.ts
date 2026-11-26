@@ -25,7 +25,6 @@ import {
 import { hoursPerLevel, stayDuration } from '../../core/expedition.ts';
 import { HOUR_MS, dueAt } from '../../core/holding.ts';
 import { missionRules } from '../../core/missions.ts';
-import { isProtected as protects } from '../../core/protection.ts';
 import type {
   Coords,
   Levels,
@@ -44,12 +43,6 @@ export function ranks(players: Players): Record<string, number> {
     .forEach(([id], i) => (out[id] = i + 1));
   return out;
 }
-
-export const isProtected = (
-  players: Players,
-  me: string,
-  other: string,
-): boolean => protects(players[me]?.points ?? 0, players[other]?.points ?? 0);
 
 export const nameOf = (players: Players, id: string): string =>
   players[id]?.name ?? 'Unbekannt';

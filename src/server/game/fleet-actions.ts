@@ -57,7 +57,8 @@ import { colonyRoom, limitRefusal } from './colony-limit.ts';
 import { attackEvent } from './guild-events.ts';
 import { holdersAt, isAllyOf } from './holding.ts';
 import { joinPlan, joinUnion, recalledWith } from './union.ts';
-import { isProtected, pointsMap } from './points.ts';
+import { isProtected } from './points.ts';
+import { exactPoints } from './scores.ts';
 import { roundRules } from './round.ts';
 import { inVacation } from './vacation.ts';
 import type { ServerFeature } from './feature.ts';
@@ -235,7 +236,9 @@ function checkDestination(
       moon: at.moon,
       locked: at.lockEnd !== null,
       expedition: at.expedition,
-      protects: (owner) => isProtected(u.id, owner, pointsMap(ctx)),
+      // The exact points of the two players, never the stored pass (#405).
+      protects: (owner) =>
+        isProtected(u.id, owner, exactPoints(ctx, [u.id, owner])),
       vacation: inVacation(ctx),
       ally: (owner) => isAllyOf(ctx, u.id, owner),
       // Asked only for a Halten, whose target kind has a planet (#55).

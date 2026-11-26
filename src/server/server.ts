@@ -26,6 +26,7 @@ import {
 } from './maintenance.ts';
 import { announceUpdate, type News } from './news.ts';
 import { startPushDelivery } from './web-push.ts';
+import { scoreBeat } from './game/scores.ts';
 
 export const DB_FILE = 'nova.sqlite';
 const TICK_MS = 1000;
@@ -80,6 +81,12 @@ export function clockBeat(ctx: Ctx, log: Log, version: string | null): void {
     tick(ctx, jobFailure(ctx, log, 'arrival', version));
   } catch (e) {
     jobFailure(ctx, log, 'tick', version)('Tick failed', e);
+  }
+  // The pass of the highscore at its time (#405), after the arrivals.
+  try {
+    scoreBeat(ctx);
+  } catch (e) {
+    jobFailure(ctx, log, 'scores', version)('Highscore pass failed', e);
   }
 }
 
