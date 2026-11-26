@@ -7,12 +7,15 @@
 import { ROUND_SETTINGS, type RoundSetting } from '../../core/round.ts';
 import {
   type HistoryEntry,
+  isCoarse,
   type ParticipantReport,
   rankRows,
+  type ReportCategory,
   type ReportRow,
   resourceSum,
   type RoundEntry,
   type RoundReport,
+  valueOf,
 } from '../../core/round-report.ts';
 import type { Rewind } from '../../core/round-rewind.ts';
 import { text } from '../../core/text.ts';
@@ -23,9 +26,65 @@ import { COVERAGE, day, daysText } from './round-words.ts';
 import { playtime as playtimeText } from './own-activity.ts';
 import {
   HIGHSCORE_CATEGORIES,
-  type HighscoreCategory,
   highscoreNote,
-} from './highscore.ts';
+} from '../../core/highscore-categories.ts';
+
+/**
+ * The four categories of #78 with their notes, as an archive written before
+ * #422 shows them, unchanged (owner, 2026-11-26, 171b).
+ */
+const LEGACY_CATEGORIES = {
+  total: 'Gesamt',
+  buildings: 'Gebäude',
+  research: 'Forschung',
+  fleet: 'Flotte',
+  defense: 'Verteidigung',
+} as const;
+
+const PER_1000 = '1 Punkt = 1.000 verbaute Rohstoffe';
+const LEGACY_NOTES: Record<keyof typeof LEGACY_CATEGORIES, string> = {
+  total: `${PER_1000} (Gebäude, Forschung, Schiffe, Verteidigung).`,
+  buildings: `${PER_1000} (Gebäude).`,
+  research: '1 Punkt pro Forschungsstufe.',
+  fleet: '1 Punkt pro Schiff (auch Sonnenreliquiare).',
+  defense: `${PER_1000} (Verteidigung).`,
+};
+
+/** A category of the archive: of the four of #78 or of the three of #422. */
+export type ArchiveCategory = ReportCategory;
+
+/** The category of `key` among both kinds, or „Gesamt“ for anything else. */
+export const archiveCategory = (key: unknown): ArchiveCategory =>
+  typeof key === 'string' &&
+  (Object.hasOwn(LEGACY_CATEGORIES, key) ||
+    Object.hasOwn(HIGHSCORE_CATEGORIES, key))
+    ? (key as ArchiveCategory)
+    : 'total';
+
+/** The buttons and the note of a report: of #422 for a new archive, of #78 for an old one. */
+interface ReportCategories {
+  labels: Readonly<Record<string, string>>;
+  note: (cat: ArchiveCategory) => string;
+}
+
+/**
+ * The categories of a report by the shape of its records: a record of #422
+ * stores its modes, so the note of each mode is shown; an old record, or a
+ * report without participants, keeps the four categories of #78 [V].
+ */
+function reportCategories(report: RoundReport): ReportCategories {
+  const coarse = report.rows.map((r) => r.valuation).find(isCoarse);
+  if (!coarse)
+    return {
+      labels: LEGACY_CATEGORIES,
+      note: (cat) => LEGACY_NOTES[cat as keyof typeof LEGACY_CATEGORIES],
+    };
+  return {
+    labels: HIGHSCORE_CATEGORIES,
+    note: (cat) =>
+      highscoreNote(cat as keyof typeof HIGHSCORE_CATEGORIES, coarse.modes),
+  };
+}
 
 /** What the browser holds of the archive; the account it was read for, and the round it was read in. */
 export interface ArchiveState {
@@ -38,7 +97,7 @@ export interface ArchiveState {
   participant: ParticipantReport | null;
   /** The Rewind that is open (#235, view G), a story of its own in place of the list. */
   rewind: Rewind | null;
-  category: HighscoreCategory;
+  category: ArchiveCategory;
   loading: boolean;
   error: string | null;
 }
@@ -173,7 +232,7 @@ interface ReportRowPage {
 function reportRow(
   r: ReportRow,
   i: number,
-  cat: HighscoreCategory,
+  cat: ArchiveCategory,
   time: RoundReport['playtime'],
 ): ReportRowPage {
   const ms = time?.[r.seat];
@@ -182,7 +241,7 @@ function reportRow(
     seat: r.seat,
     place: i + 1,
     name: `${r.name}${r.you ? ' (du)' : ''}`,
-    points: fmt(r.valuation[cat]),
+    points: fmt(valueOf(r.valuation, cat)),
     economy: fmt(resourceSum(r.economy)),
     planets: r.planets,
     moons: r.moons,
@@ -230,7 +289,7 @@ export interface ReportPage {
   detail: boolean;
   /** The facts of the round as „Name“ and „Wert“. */
   facts: [string, string][];
-  categories: { key: HighscoreCategory; label: string; pressed: boolean }[];
+  categories: { key: ArchiveCategory; label: string; pressed: boolean }[];
   /** The header of the points column: the name of the category. */
   column: string;
   /** Whether the table has the column „Spielzeit“. */
@@ -250,10 +309,15 @@ export interface ReportPage {
  */
 export function reportPage(
   report: RoundReport,
-  cat: HighscoreCategory,
+  wanted: ArchiveCategory,
   admin = false,
 ): ReportPage {
   const r = report.round;
+  const kinds = reportCategories(report);
+  // A category of the other kind of archive is „Gesamt“ here.
+  const cat: ArchiveCategory = Object.hasOwn(kinds.labels, wanted)
+    ? wanted
+    : 'total';
   const facts: [string, string][] = [
     ['Zeitraum', `${day(r.started)} bis ${day(r.asOf)} · ${daysText(r.days)}`],
     ['Teilnehmer', String(report.rows.length)],
@@ -273,17 +337,17 @@ export function reportPage(
     refresh: r.provisional ? r.number : null,
     detail: admin,
     facts,
-    categories: Object.entries(HIGHSCORE_CATEGORIES).map(([key, label]) => ({
-      key: key as HighscoreCategory,
+    categories: Object.entries(kinds.labels).map(([key, label]) => ({
+      key: key as ArchiveCategory,
       label,
       pressed: key === cat,
     })),
-    column: HIGHSCORE_CATEGORIES[cat],
+    column: kinds.labels[cat]!,
     playtime: report.playtime !== null,
     rows: rankRows(report.rows, cat).map((x, i) =>
       reportRow(x, i, cat, report.playtime),
     ),
-    note: `${highscoreNote(cat)} Wirtschaft/h: Summe aus Adamant, Psikristall und Promethium je Stunde am Rundenende, ungewichtet. Planeten und Monde am Rundenende.`,
+    note: `${kinds.note(cat)} Wirtschaft/h: Summe aus Adamant, Psikristall und Promethium je Stunde am Rundenende, ungewichtet. Planeten und Monde am Rundenende.`,
     playtimeNote: playtimeNote(report),
     guilds: report.guilds.map((g) => ({
       name: `[${g.tag}] ${g.name}`,
@@ -329,10 +393,18 @@ export function participantPage(p: ParticipantReport): ParticipantPage {
   const facts: [string, string][] = [
     ['Gilde', p.guild ? `[${p.guild.tag}] ${p.guild.name}` : '-'],
     ['Punkte gesamt', fmt(v.total)],
-    ['Gebäude', fmt(v.buildings)],
-    ['Forschung', fmt(v.research)],
-    ['Flotte', fmt(v.fleet)],
-    ['Verteidigung', fmt(v.defense)],
+    // The categories the archive was written with (#422, 171b).
+    ...(isCoarse(v)
+      ? ([
+          ['Wirtschaft', fmt(v.economy)],
+          ['Militär', fmt(v.military)],
+        ] as [string, string][])
+      : ([
+          ['Gebäude', fmt(v.buildings)],
+          ['Forschung', fmt(v.research)],
+          ['Flotte', fmt(v.fleet)],
+          ['Verteidigung', fmt(v.defense)],
+        ] as [string, string][])),
     ['Wirtschaft/h', resLine(p.economy)],
     ['Forschungsstufen', levelsText(p.research, 'Stufe ')],
     ['Flotten unterwegs', levelsText(p.flying, '')],

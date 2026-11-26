@@ -134,7 +134,7 @@ describe('what the state shows', () => {
     expect(players().u_Bert).toEqual({
       name: 'Bert',
       points: 0,
-      scores: { buildings: 0, research: 0, fleet: 0, defense: 0 },
+      scores: { economy: 0, military: 0 },
     });
     // Bert was created at the start.
     ctx.clock.t = START + 7 * DAY_MS - 1;

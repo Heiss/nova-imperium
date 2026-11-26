@@ -5,7 +5,7 @@
 // pass, „Stand: {Uhrzeit}“. The universe is shared by the tests: the setting
 // is put back.
 import { expect, test, type Page } from '@playwright/test';
-import { cli, nav, register, uniqueName, watch } from './helpers.ts';
+import { cli, nav, register, seed, uniqueName, watch } from './helpers.ts';
 
 const LABEL = 'Highscore-Aktualisierungen pro Tag (0 = Echtzeit)';
 
@@ -73,6 +73,69 @@ test('the admin sets how often the highscore is computed; the highscore names th
     );
   } finally {
     await saveUniverse(page, '3');
+  }
+  cli('unadmin', name);
+  expect(w.problems).toEqual([]);
+});
+
+/** Sets how Wirtschaft counts in the tab „Universum“ and saves (#422). */
+async function economyBy(page: Page, label: string): Promise<void> {
+  await nav(page, 'admin');
+  await page.getByRole('tab', { name: 'Universum' }).click();
+  await page
+    .locator('#admin-panel-universe')
+    .getByLabel('Wirtschaft zählt nach', { exact: true })
+    .selectOption({ label });
+  await page.getByRole('button', { name: 'Einstellungen speichern' }).click();
+  await expect(page.locator('.toast').last()).toContainText(
+    'Einstellungen gespeichert.',
+  );
+}
+
+test('the admin sets how Wirtschaft and Militär count, Anzahl by default; the highscore follows at once (#422)', async ({
+  page,
+}) => {
+  const w = watch(page);
+  const name = uniqueName('Zaehlart');
+  await register(page, name);
+  // Mines of level 25: 25 levels, about 3,800 points by resources.
+  seed({ name, b: { metal: 25 } });
+  cli('admin', name);
+  await page.reload();
+  await nav(page, 'admin');
+  await page.getByRole('tab', { name: 'Universum' }).click();
+  const panel = page.locator('#admin-panel-universe');
+  for (const label of ['Wirtschaft zählt nach', 'Militär zählt nach']) {
+    const select = panel.getByLabel(label, { exact: true });
+    await expect(select.locator('option:checked')).toHaveText('Anzahl');
+    await expect(select.locator('option')).toHaveText(['Anzahl', 'Rohstoffen']);
+  }
+  // In „Neue Runde“ too; the dialog is closed without a new round.
+  await panel.getByRole('button', { name: 'Neue Runde starten' }).click();
+  for (const label of ['Wirtschaft zählt nach', 'Militär zählt nach'])
+    await expect(
+      page
+        .locator('#modal')
+        .getByLabel(label, { exact: true })
+        .locator('option:checked'),
+    ).toHaveText('Anzahl');
+  await page.keyboard.press('Escape');
+  const own = page.locator('.scores tr.me td.n').last();
+  try {
+    await nav(page, 'highscore');
+    await page.getByRole('button', { name: 'Wirtschaft' }).click();
+    await expect(own).toHaveText('25');
+    await economyBy(page, 'Rohstoffen');
+    await nav(page, 'highscore');
+    await page.getByRole('button', { name: 'Wirtschaft' }).click();
+    await expect(page.locator('.dim', { hasText: '1 Punkt' })).toHaveText(
+      '1 Punkt = 1.000 verbaute Rohstoffe (Gebäude, Forschung, Sonnenreliquiare).',
+    );
+    expect(Number((await own.innerText()).replace(/\D/g, ''))).toBeGreaterThan(
+      1000,
+    );
+  } finally {
+    await economyBy(page, 'Anzahl');
   }
   cli('unadmin', name);
   expect(w.problems).toEqual([]);

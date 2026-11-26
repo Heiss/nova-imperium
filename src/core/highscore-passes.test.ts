@@ -73,6 +73,39 @@ describe('the passes of the highscore (#405)', () => {
     expect(passHolds(at(9, 0), at(8, 59), 3)).toBe(false);
   });
 
+  it('has the settings of Wirtschaft and Militär, by number by default (#422, 166a, 167a)', () => {
+    const choices = [
+      { value: 0, label: 'Anzahl' },
+      { value: 1, label: 'Rohstoffen' },
+    ];
+    expect(roundSettings.slice(1)).toEqual([
+      {
+        kind: 'number',
+        key: 'roundHighscoreEconomy',
+        name: 'highscoreEconomy',
+        label: 'Wirtschaft zählt nach',
+        order: 490,
+        min: 0,
+        max: 1,
+        def: 0,
+        choices,
+        live: true,
+      },
+      {
+        kind: 'number',
+        key: 'roundHighscoreMilitary',
+        name: 'highscoreMilitary',
+        label: 'Militär zählt nach',
+        order: 500,
+        min: 0,
+        max: 1,
+        def: 0,
+        choices,
+        live: true,
+      },
+    ]);
+  });
+
   it('keeps a live pass 10 s', () => {
     expect(LIVE_MS).toBe(10_000);
     const t = at(12, 0);

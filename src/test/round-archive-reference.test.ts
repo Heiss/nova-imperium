@@ -17,7 +17,6 @@ import type {
   RoundReport,
 } from '../core/round-report.ts';
 import { ROUND_SETTINGS } from '../core/round.ts';
-import { HIGHSCORE_CATEGORIES } from '../client/logic/highscore.ts';
 import {
   type ArchiveState,
   forgetArchive,
@@ -32,6 +31,19 @@ const START = Date.UTC(2026, 9, 1, 12);
 /** What a name may hold that is not plain text. */
 const NAMES = ['Lea', 'Vex <b>', 'Cleo & Co', 'D"ora', "Emil's", 'a > b'];
 const TAGS = ['AB', '<i>', 'X&Y'];
+
+/**
+ * The four categories of #78: the archives written before #422 keep them and
+ * are shown as before (owner, 2026-11-26, 171b), so the old HTML is the
+ * reference for them.
+ */
+const LEGACY_CATEGORIES = [
+  'total',
+  'buildings',
+  'research',
+  'fleet',
+  'defense',
+] as const;
 
 const valuation = fc.record({
   total: fc.nat(99_999),
@@ -193,11 +205,7 @@ const state = fc
     entries: fc.option(entries, { nil: null }),
     history: fc.option(history, { nil: null }),
     report: fc.option(report, { nil: null }),
-    category: fc.constantFrom(
-      ...(Object.keys(
-        HIGHSCORE_CATEGORIES,
-      ) as (keyof typeof HIGHSCORE_CATEGORIES)[]),
-    ),
+    category: fc.constantFrom(...LEGACY_CATEGORIES),
     error: fc.constantFrom(
       null,
       null,

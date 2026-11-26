@@ -72,13 +72,12 @@ export interface Players {
     name: string;
     /** The total, also for the noob protection. */
     points: number;
-    /** The other categories of the highscore (#78); the server always sends them. */
-    scores?: {
-      buildings: number;
-      research: number;
-      fleet: number;
-      defense: number;
-    };
+    /**
+     * Wirtschaft and Militär of the highscore (#422), each in the mode the
+     * round sets now; the server always sends them, never the four
+     * categories of #78.
+     */
+    scores?: { economy: number; military: number };
     /** `inactive` while the account shows its inactivity (#229). */
     inactive?: Inactivity;
     /** Whether the player is in vacation mode (#223). */

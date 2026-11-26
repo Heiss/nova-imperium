@@ -216,6 +216,12 @@ test.describe('the provisional report of the admin, view H (#235)', () => {
     await refresh.click();
     await expect(ranking.locator('tr', { hasText: late })).toHaveCount(1);
     await expect(lastToast(page)).toContainText('Vorschau aktualisiert.');
+    // The report of #422: Gesamt, Wirtschaft and Militär (171b).
+    await expect(box.locator('[data-act=roundCat]')).toHaveText([
+      'Gesamt',
+      'Wirtschaft',
+      'Militär',
+    ]);
     await expect(heading).toBeVisible();
 
     // The drilldown of one row, in full, and back to the report.
@@ -229,6 +235,9 @@ test.describe('the provisional report of the admin, view H (#235)', () => {
       box.getByRole('heading', { name: 'Planeten und Monde' }),
     ).toBeVisible();
     await expect(box.locator('table.kv')).toContainText('Forschungsstufen');
+    // A new archive has the categories of #422 (171b).
+    await expect(box.locator('table.kv')).toContainText('Militär');
+    await expect(box.locator('table.kv')).not.toContainText('Verteidigung');
     await expect(box.locator('table.kv')).toContainText('Urlaubsmodus');
     await expect(box.locator('table.kv')).toContainText(
       'wird erst nach Rundenende im Archiv geteilt',

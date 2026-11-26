@@ -1,28 +1,21 @@
-// The categories of the highscore (#78): one ranking each, chosen above the
-// table, as in classic (owiki „Statistik“, D3). The view stays thin: the
+// The categories of the highscore: one ranking each, chosen above the
+// table, as in classic (owiki „Statistik“, D3): Gesamt, Wirtschaft and
+// Militär (#422, core/highscore-categories.ts). The view stays thin: the
 // ranking, the buttons and the note come from here, as the page the component
 // Highscore renders (#118, bundle 5).
+import {
+  categoryModes,
+  HIGHSCORE_CATEGORIES,
+  type HighscoreCategory,
+  highscoreCategory,
+  highscoreNote,
+} from '../../core/highscore-categories.ts';
 import type { V } from '../views/common.ts';
 import { fmt } from './format.ts';
 import { type HomeLink, homeLink, homePlanetOf } from './friends.ts';
 import type { Players } from './types.ts';
 
-/** The categories in the order of the buttons; „Gesamt“ first. */
-export const HIGHSCORE_CATEGORIES = {
-  total: 'Gesamt',
-  buildings: 'Gebäude',
-  research: 'Forschung',
-  fleet: 'Flotte',
-  defense: 'Verteidigung',
-} as const;
-
-export type HighscoreCategory = keyof typeof HIGHSCORE_CATEGORIES;
-
-/** The category of `key`, or „Gesamt“ for anything else. */
-export const highscoreCategory = (key: unknown): HighscoreCategory =>
-  typeof key === 'string' && Object.hasOwn(HIGHSCORE_CATEGORIES, key)
-    ? (key as HighscoreCategory)
-    : 'total';
+export { highscoreCategory, type HighscoreCategory };
 
 /**
  * The players by their points in `cat`, best first; equal points keep the
@@ -75,22 +68,6 @@ export interface HighscorePage {
 export const highscoreStand = (at: number): string =>
   `Stand: ${new Date(at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}`;
 
-const PER_1000 = '1 Punkt = 1.000 verbaute Rohstoffe';
-
-/**
- * The note below the table: what a point is worth. Fleet and research count
- * pieces and levels (Q1); their notes are the owner's (2026-11-17).
- */
-const NOTES: Record<HighscoreCategory, string> = {
-  total: `${PER_1000} (Gebäude, Forschung, Schiffe, Verteidigung).`,
-  buildings: `${PER_1000} (Gebäude).`,
-  research: '1 Punkt pro Forschungsstufe.',
-  fleet: '1 Punkt pro Schiff (auch Sonnenreliquiare).',
-  defense: `${PER_1000} (Verteidigung).`,
-};
-
-export const highscoreNote = (cat: HighscoreCategory): string => NOTES[cat];
-
 /** The page of the category the player chose (#78 D3); `points` is that of the category. */
 export function highscorePage(v: V): HighscorePage {
   const cat = highscoreCategory(v.ui.highscore);
@@ -109,7 +86,8 @@ export function highscorePage(v: V): HighscorePage {
         points: fmt(x.points),
       };
     }),
-    note: highscoreNote(cat),
+    // The note of the mode the round sets now (#422, 168a).
+    note: highscoreNote(cat, categoryModes(v.s.round)),
     // A state without it (a server before #405) has no line.
     stand: v.s.scoresAt === undefined ? '' : highscoreStand(v.s.scoresAt),
   };

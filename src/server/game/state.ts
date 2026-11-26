@@ -26,7 +26,16 @@ import { type Ctx, universe } from './context.ts';
 import { mainPlanetOf } from './main-planet.ts';
 import { isProtected } from './points.ts';
 import { roundRules } from './round.ts';
-import { exactPoints, type ScorePass, storedScores } from './scores.ts';
+import {
+  type CategoryScores,
+  exactPoints,
+  type ScorePass,
+  storedScores,
+} from './scores.ts';
+import {
+  type CategoryModes,
+  categoryModes,
+} from '../../core/highscore-categories.ts';
 import { assembleState } from './assemble.ts';
 import type { StatePart, StateView } from './feature.ts';
 import type { LockedState } from '../../core/state.ts';
@@ -134,13 +143,29 @@ const meOf = (ctx: Ctx, u: User) => ({
   vacation: u.vacation,
 });
 
+/** Wirtschaft and Militär of a player in their modes: the number, or the points of the resources (#422). */
+const shownScores = (
+  c: CategoryScores | undefined,
+  modes: CategoryModes,
+): { economy: number; military: number } | undefined =>
+  c && {
+    economy: modes.economy ? c.economy.points : c.economy.count,
+    military: modes.military ? c.military.points : c.military.count,
+  };
+
 /**
  * Every player with name and points, whether he is in vacation mode (#223),
  * and the inactivity of the account (#229) while it shows one.
  */
-function playersOf(ctx: Ctx, pass: ScorePass, limits: ActivityLimits) {
+function playersOf(
+  ctx: Ctx,
+  pass: ScorePass,
+  limits: ActivityLimits,
+  modes: CategoryModes,
+) {
   // The points and the categories of the highscore, for every player (#78
-  // D4), of the one pass of this state (#405).
+  // D4), of the one pass of this state (#405); Wirtschaft and Militär only
+  // in the mode the round sets now (#422).
   const pts = pass.total;
   const scores = pass.categories;
   const idle = inactivities(ctx, limits);
@@ -150,7 +175,7 @@ function playersOf(ctx: Ctx, pass: ScorePass, limits: ActivityLimits) {
       {
         name: x.name,
         points: pts[x.id] ?? 0,
-        scores: scores[x.id],
+        scores: shownScores(scores[x.id], modes),
         // Who is in vacation mode, for the Sternenkarte (#223).
         ...(x.vacation !== null ? { vacation: true } : {}),
         ...(idle[x.id] ? { inactive: idle[x.id] } : {}),
@@ -239,7 +264,7 @@ const FRAME: readonly StatePart[] = [
   keyed(90, 'fleets', fleetsOf),
   keyed(100, 'reports', (ctx, u) => ctx.reports.ofPlayer(u.id)),
   keyed(140, 'players', (ctx, _u, view) =>
-    playersOf(ctx, view.scores, view.limits),
+    playersOf(ctx, view.scores, view.limits, categoryModes(view.round)),
   ),
   // „Stand“ of the highscore: when the stored pass was made (#405).
   keyed(145, 'scoresAt', (_ctx, _u, view) => view.scores.at),

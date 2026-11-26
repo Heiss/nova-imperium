@@ -5,6 +5,7 @@
 // them (src/client/logic/round-archive.ts). Everything is a fact of the
 // cutoff or derived from facts on read; nothing here is stored as a total
 // (owner, 2026-11-16: no stored statistics).
+import type { CategoryModes } from './highscore-categories.ts';
 import { activeMs, type Interval, union } from './playtime.ts';
 import type { Levels, Resources } from './types.ts';
 
@@ -15,14 +16,36 @@ export type RoundCoverage = 'complete' | 'partial';
 /** The pseudonym of an account deleted after the round (#235, D4, [V]). */
 export const DELETED_PLAYER = 'Gelöschter Spieler';
 
-/** The points of a player at the cutoff, by the categories of the highscore (#78). */
-export interface Valuation {
+/**
+ * The points of a player at the cutoff by the four categories of #78: the
+ * archives written before #422 keep this shape and are shown as they were
+ * (owner, 2026-11-26, 171b).
+ */
+export interface LegacyValuation {
   total: number;
   buildings: number;
   research: number;
   fleet: number;
   defense: number;
 }
+
+/**
+ * The points of a player at the cutoff by the categories of #422: Gesamt,
+ * Wirtschaft and Militär, these two in the mode the round set at its end,
+ * which is stored with them so that the report shows its note (171b).
+ */
+export interface CoarseValuation {
+  total: number;
+  economy: number;
+  military: number;
+  modes: CategoryModes;
+}
+
+export type Valuation = LegacyValuation | CoarseValuation;
+
+/** Whether a valuation is of the categories of #422 (else of the four of #78). */
+export const isCoarse = (v: Valuation): v is CoarseValuation =>
+  'modes' in v && typeof v.modes === 'object' && v.modes !== null;
 
 /** What stood on a planet or moon at the cutoff, as the game holds it. */
 export interface FinalPlace {
@@ -117,7 +140,15 @@ export interface ReportRow {
   guild: { tag: string; name: string } | null;
 }
 
-export type ReportCategory = keyof Valuation;
+/** A category of a report: one of the four of #78 or of the three of #422. */
+export type ReportCategory =
+  keyof LegacyValuation | Exclude<keyof CoarseValuation, 'modes'>;
+
+/** The points of `cat` in a valuation; 0 for a category of the other kind. */
+export const valueOf = (v: Valuation, cat: ReportCategory): number => {
+  const x = (v as unknown as Record<string, unknown>)[cat];
+  return typeof x === 'number' ? x : 0;
+};
 
 /** The rows by their points in `cat`, best first; equal points keep the order of the seats. */
 export function rankRows(
@@ -125,7 +156,8 @@ export function rankRows(
   cat: ReportCategory = 'total',
 ): ReportRow[] {
   return [...rows].sort(
-    (a, b) => b.valuation[cat] - a.valuation[cat] || a.seat - b.seat,
+    (a, b) =>
+      valueOf(b.valuation, cat) - valueOf(a.valuation, cat) || a.seat - b.seat,
   );
 }
 
