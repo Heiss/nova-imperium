@@ -46,17 +46,25 @@ Psikristall, then Promethium without the fuel, up to the capacity
   computes the amounts from its state at the launch.
 * **[V]** (#407) One rule in `src/core/cargo-fill.ts` for the browser and
   the server: `fillEvenly`, `fillOne` and `resolveCargo`. The action `send`
-  carries `cargoAll`: `even` for „alles (gleichmäßig)“, or the resources
-  whose „alles“ was pressed in the order of the clicks; `cargo` keeps the
-  numbers as the preview. The server computes those fields on what the
-  planet can load at the launch (whole units, Promethium after the fuel of
-  the launch) and the capacity of the ships, the typed fields first, then
-  the fields of the intent in their order; a mission without cargo loads
-  nothing; an intent it cannot read is ignored. A field typed by hand is a
-  number again; typing after the even fill makes all three numbers (the
-  player changed what it showed). An „alles“ after the even fill keeps the
-  other two as numbers. The preview follows the form: when ships, target,
-  speed or stock change, the fields of the intent are computed again.
+  carries `cargoAll`: `even` for „alles (gleichmäßig)“, or the one resource
+  of the newest „alles“ under a field; `cargo` keeps the numbers as the
+  preview. The server computes that field on what the planet can load at
+  the launch (whole units, Promethium after the fuel of the launch) and the
+  capacity of the ships, up to the room the other fields leave; a mission
+  without cargo loads nothing; an intent it cannot read (also a list of more
+  than one field) is ignored. A field typed by hand is a number again;
+  typing after the even fill makes all three numbers (the player changed
+  what it showed). The preview follows the form: when ships, target, speed
+  or stock change, the field of the intent is computed again.
+* **[E]** Only the newest „alles“ under a field stays the intent (owner,
+  2026-11-26, 159b, after CodeRabbit on #421): a click on another „alles“
+  turns the earlier one into the number it showed, as the even fill already
+  does, so D1 holds exactly (an „alles“ keeps the other two fields). The
+  server computes only that one field; the earlier numbers are checked at
+  the launch like typed ones. The field depends only on the other fields,
+  never on what it held, so computing it again gives the same cargo and the
+  launch loads what the preview showed (a list of fields in click order,
+  each computed with the old numbers of the later ones, was not).
 * **[E]** (#407, checked first) Before #407 a typed amount above the stock
   was cut silently for Adamant and Psikristall and refused for Promethium
   („Nicht genug Promethium für Treibstoff und Ladung.“); typed numbers keep

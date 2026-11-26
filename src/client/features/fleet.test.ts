@@ -157,12 +157,15 @@ describe('the cargo', () => {
     fleetForm.ships = { fighter: '1' };
     const ctx = fakeCtx();
     acts(ctx).cone!({ k: 'd' });
+    const promethium = fleetForm.cargo.d;
     acts(ctx).cone!({ k: 'm' });
-    expect(fleetForm.cargoAll).toEqual(['d', 'm']);
+    // Only the newest „alles“ stays computed; Promethium keeps its number (159b).
+    expect(fleetForm.cargoAll).toEqual(['m']);
+    expect(fleetForm.cargo.d).toBe(promethium);
     await acts(ctx).send!({});
     expect(ctx.actHere).toHaveBeenCalledWith(
       'send',
-      expect.objectContaining({ cargoAll: ['d', 'm'] }),
+      expect.objectContaining({ cargoAll: ['m'] }),
     );
   });
 });

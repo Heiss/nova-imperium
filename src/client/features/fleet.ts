@@ -215,7 +215,8 @@ const cargoActs = (): Record<string, Handler> => ({
   cone: (d) => {
     const k = d.k as keyof Resources;
     fleetForm.cargo[k] = String(cargoOne(settledPlanet(), readFleetForm(), k));
-    fleetForm.cargoAll = askOne(fleetForm.cargoAll, k);
+    // Only this field stays computed; an earlier „alles“ keeps its number (159b).
+    fleetForm.cargoAll = askOne(k);
     fleetCalc();
   },
 });

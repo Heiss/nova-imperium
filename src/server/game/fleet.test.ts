@@ -8,7 +8,7 @@ import { tick } from './arrival.ts';
 import { runAction } from './dispatch.ts';
 import { addMoon } from './moons.ts';
 import { stateFor } from './state.ts';
-import { fillEvenly } from '../../core/cargo-fill.ts';
+import { fillEvenly, resolveCargo } from '../../core/cargo-fill.ts';
 import { capacity } from '../../core/flight.ts';
 import type { Resources } from '../../core/types.ts';
 
@@ -852,6 +852,32 @@ describe('the „alles“ buttons at the launch (#407)', () => {
     ).toContain('unterwegs');
     const f = ctx.fleets.all()[0]!;
     expect(f.cargo).toEqual({ m: 100, c: 0, d: 500 - f.fuel });
+  });
+
+  it('computes only the newest „alles“; an earlier one is a number, checked like a typed one (159b)', () => {
+    const room = capacity({ lf: 10, sc: 2 });
+    // The form showed Adamant 1000 from an earlier „alles“, then „alles“ under Psikristall.
+    const shown = { m: 1000, c: room - 1000, d: 0 };
+    const { ctx, a } = setup();
+    shrink(ctx, a, { m: 500, c: 300 });
+    send(ctx, a, transport({ cargo: shown, cargoAll: ['c'] }));
+    // Adamant cut to the stock like a typed number; Psikristall by the rule.
+    expect(ctx.fleets.all()[0]!.cargo).toEqual({ m: 500, c: 300, d: 0 });
+    // The preview on the stock of the launch is what the launch loads.
+    const { ctx: c2, a: a2 } = setup();
+    const stock = { m: 50_000, c: 40_000 };
+    shrink(c2, a2, stock);
+    const preview = resolveCargo({ ...stock, d: 0 }, room, shown, ['c']);
+    send(c2, a2, transport({ cargo: preview, cargoAll: ['c'] }));
+    expect(c2.fleets.all()[0]!.cargo).toEqual(preview);
+    // A list of two fields is no intent: the numbers count as typed.
+    const { ctx: c3, a: a3 } = setup();
+    send(
+      c3,
+      a3,
+      transport({ cargo: { m: 10, c: 20, d: 0 }, cargoAll: ['m', 'c'] }),
+    );
+    expect(c3.fleets.all()[0]!.cargo).toEqual({ m: 10, c: 20, d: 0 });
   });
 
   it('ignores an intent it cannot read, and loads nothing for a mission without cargo', () => {

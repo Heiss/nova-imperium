@@ -1,7 +1,8 @@
 // The cargo buttons of the fleet form (#240) as one rule for the browser and
 // the server (#407, owner, 2026-11-25, O31): „alles (gleichmäßig)“ fills the
 // holds evenly, an „alles“ under a field fills its resource up to the room
-// the other fields leave. The browser shows the amounts as a preview; the
+// the other fields leave; only the newest „alles“ stays computed (159b). The
+// browser shows the amounts as a preview; the
 // form sends the intent (`CargoIntent`), and the server computes the amounts
 // again from its stock at the launch, so a stock that changed meanwhile
 // neither refuses the launch nor loads other amounts than „alles“ means.
@@ -12,11 +13,12 @@ type Key = keyof Resources;
 const CARGO_KEYS: readonly Key[] = ['m', 'c', 'd'];
 
 /**
- * What the buttons asked for: `even` for „alles (gleichmäßig)“, or the
- * resources whose „alles“ was pressed, in the order of the clicks. A field
- * typed by hand is a number and is not in it.
+ * What the buttons asked for: `even` for „alles (gleichmäßig)“, or the one
+ * resource whose „alles“ was pressed last (owner, 2026-11-26, 159b): a click
+ * on another „alles“ turns the earlier one into the number it showed, as
+ * the even fill does. A field typed by hand is a number and is not in it.
  */
-export type CargoIntent = 'even' | readonly Key[];
+export type CargoIntent = 'even' | readonly [Key];
 
 /** What a planet can load on a flight: whole units, Promethium after the fuel. */
 export const loadableStock = (res: Resources, fuel: number): Resources => ({
@@ -54,21 +56,21 @@ export function fillOne(
   return Math.max(0, Math.min(stock[key], room - others));
 }
 
-/** The intent as sent, or null for none or for anything else. */
+/** The intent as sent, or null for none or for anything else (also more than one field). */
 export function cargoIntentOf(raw: unknown): CargoIntent | null {
   if (raw === 'even') return 'even';
-  if (!Array.isArray(raw) || raw.length === 0) return null;
-  const keys = raw.filter((k): k is Key => CARGO_KEYS.includes(k as Key));
-  return keys.length === raw.length && new Set(keys).size === keys.length
-    ? keys
-    : null;
+  if (!Array.isArray(raw) || raw.length !== 1) return null;
+  const [key] = raw as unknown[];
+  return CARGO_KEYS.includes(key as Key) ? [key as Key] : null;
 }
 
 /**
- * The cargo of a launch: the numbers typed, with the fields of the intent
+ * The cargo of a launch: the numbers typed, with the field of the intent
  * computed on `stock` (what can be loaded: whole units, Promethium after
- * the fuel) and `room` (the capacity of the ships), in the order of the
- * clicks.
+ * the fuel) and `room` (the capacity of the ships), up to the room the other
+ * fields leave; the even fill on the stock alone. The field of the intent
+ * depends only on the other fields, never on what it held, so computing it
+ * again gives the same cargo (CodeRabbit on #421).
  */
 export function resolveCargo(
   stock: Resources,
@@ -77,30 +79,24 @@ export function resolveCargo(
   intent: CargoIntent | null,
 ): Resources {
   if (intent === 'even') return fillEvenly(stock, room);
-  const cargo = { ...typed };
-  for (const k of intent ?? []) cargo[k] = fillOne(stock, room, cargo, k);
-  return cargo;
+  if (!intent) return { ...typed };
+  const [key] = intent;
+  return { ...typed, [key]: fillOne(stock, room, typed, key) };
 }
 
 /**
- * The intent after an „alles“ under the field `key`: the even fill becomes
- * the numbers it showed, and `key` is asked for last.
+ * The intent after an „alles“ under the field `key`: only `key` (159b); the
+ * even fill or an earlier „alles“ becomes the numbers it showed.
  */
-export const askOne = (intent: CargoIntent | null, key: Key): CargoIntent => [
-  ...(Array.isArray(intent) ? intent.filter((k) => k !== key) : []),
-  key,
-];
+export const askOne = (key: Key): CargoIntent => [key];
 
 /**
  * The intent after the field `key` was typed by hand: that field is a
  * number again; after the even fill all three are (the player changed what
- * it showed). Null when no field is left to compute.
+ * it showed). Another field of „alles“ stays computed.
  */
-export function typedCargo(
+export const typedCargo = (
   intent: CargoIntent | null,
   key: Key,
-): CargoIntent | null {
-  if (!Array.isArray(intent)) return null;
-  const rest = intent.filter((k) => k !== key);
-  return rest.length ? rest : null;
-}
+): CargoIntent | null =>
+  Array.isArray(intent) && intent[0] !== key ? intent : null;
