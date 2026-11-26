@@ -50,7 +50,7 @@ const KINDS: Record<string, Kinds> = {
   tearDownMissiles: { keep: ['planet', 'key', 'n'] },
   jump: { keep: ['planet', 'ships', 'to'] },
   scan: { keep: ['planet', 'target'] },
-  trade: { keep: ['planet', 'give', 'get', 'amount'] },
+  trade: { keep: ['planet', 'give', 'get', 'amount', 'price'] },
   openUnion: { keep: ['id'], length: ['name'] },
   inviteUnion: { keep: ['id'], name: ['name'] },
   abandon: { keep: ['target', 'created'] },

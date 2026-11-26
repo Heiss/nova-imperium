@@ -57,7 +57,13 @@ export const INPUT: Readonly<Record<string, Spec>> = {
   tearDownMissiles: { planet: 'keep', key: 'keep', n: 'keep' },
   jump: { planet: 'keep', ships: 'keep', to: 'keep' },
   scan: { planet: 'keep', target: 'keep' },
-  trade: { planet: 'keep', give: 'keep', get: 'keep', amount: 'keep' },
+  trade: {
+    planet: 'keep',
+    give: 'keep',
+    get: 'keep',
+    amount: 'keep',
+    price: 'keep',
+  },
   openUnion: { id: 'keep', name: 'length' },
   inviteUnion: { id: 'keep', name: 'seatByName' },
   // The account and its rewards.

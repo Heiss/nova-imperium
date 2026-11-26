@@ -23,6 +23,7 @@ import {
   type Market,
   type Pair,
   type PriceState,
+  priceWorse,
   type Res,
   type Terms,
   dayOf,
@@ -52,6 +53,7 @@ import {
 } from './round.ts';
 import { DEFAULT_UNIVERSE, liveSpecs, universeErrors } from './universe.ts';
 import { roundDefaults } from '../test/fixtures.ts';
+import { priceChanged, rateText } from './market-text.ts';
 
 /** The base terms of an exchange at level 1: 500 per 1,000, the base price, a fee of 10 %. */
 const T: Terms = { ratio: 500, price: 1_000_000, fee: 100 };
@@ -1153,6 +1155,69 @@ describe('no sequence of exchanges yields more than it started with (#171, accep
         },
       ),
       { seed: 171, numRuns: 500 },
+    );
+  });
+});
+
+describe('the price the player saw (#406, O31)', () => {
+  it('[U] checked first: a lower price gives less for the same amount, at every ratio and fee', () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 1, max: 1_000_000 }),
+        fc.integer({ min: 1, max: PRICE_UNIT - 1 }),
+        fc.integer({ min: 1, max: PRICE_UNIT - 1 }),
+        fc.integer({ min: RATIO_RANGE.min, max: RATIO_RANGE.max }),
+        fc.integer({ min: 0, max: FEE_UNIT - 1 }),
+        (amount, a, b, ratio, fee) => {
+          const [low, high] = a < b ? [a, b] : [b, a];
+          expect(got(amount, { ratio, price: low, fee })).toBeLessThanOrEqual(
+            got(amount, { ratio, price: high, fee }),
+          );
+        },
+      ),
+      { seed: 406 },
+    );
+    // Strictly less once the amount is large enough to show it.
+    const terms = { ratio: 1000, fee: 0 };
+    expect(got(1_000_000, { ...terms, price: 900_000 })).toBeLessThan(
+      got(1_000_000, { ...terms, price: 1_000_000 }),
+    );
+  });
+
+  it('refuses a price below the one seen, with no tolerance, and nothing else', () => {
+    expect(priceWorse(1_000_000, 999_999)).toBe(true);
+    expect(priceWorse(1_000_000, 1_000_000)).toBe(false);
+    // Drifted back towards the base since: better for the player.
+    expect(priceWorse(900_000, 950_000)).toBe(false);
+    // A price the player cannot have seen.
+    for (const seen of [undefined, null, '900000', 1.5, Number.NaN])
+      expect(priceWorse(seen, 900_000)).toBe(true);
+  });
+
+  it('names the rate of now in the refusal', () => {
+    const m: Market = {
+      open: true,
+      level: 1,
+      stock: { m: 0, c: 0, d: 0 },
+      caps: { m: 0, c: 0, d: 0 },
+      ratios: DEFAULT_RATIOS,
+      prices: {
+        mc: 900_000,
+        md: PRICE_UNIT,
+        cm: PRICE_UNIT,
+        cd: PRICE_UNIT,
+        dm: PRICE_UNIT,
+        dc: PRICE_UNIT,
+      },
+      used: 0,
+      limit: 0,
+      feeBase: 10,
+      feeStep: 1,
+    };
+    // 1.000 × 500/1.000 × 0,9 × (1 − 10 %) = 405.
+    expect(rateText(m, 'mc')).toBe('405 Psikristall je 1.000 Adamant');
+    expect(priceChanged(m, 'mc')).toBe(
+      'Der Kurs hat sich geändert: jetzt 405 Psikristall je 1.000 Adamant. Bitte erneut bestätigen.',
     );
   });
 });

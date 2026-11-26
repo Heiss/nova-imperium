@@ -16,6 +16,7 @@ export const fakeCtx = (over: Partial<ClientCtx> = {}): ClientCtx => ({
   toast: vi.fn(),
   setInput: vi.fn(),
   apply: vi.fn(),
+  refresh: vi.fn(async () => undefined),
   signedOut: vi.fn((error: unknown): never => {
     throw new Error(String(error));
   }),

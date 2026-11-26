@@ -60,6 +60,8 @@ export interface ClientCtx {
   setInput: (sel: string, v: string | number) => void;
   /** Takes over the state an answer of the server brought; the views render when it changed, or at once when `fresh`. */
   apply: (state: GameState, fresh?: boolean) => void;
+  /** Loads the state of the shown place again (#406: the price after a refused trade). */
+  refresh: () => Promise<void>;
   /** The session is gone: back to the login, then stops the caller with an error. */
   signedOut: (error: unknown) => never;
 }

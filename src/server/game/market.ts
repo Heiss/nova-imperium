@@ -15,10 +15,11 @@ import {
   postLevel,
   priceAfter,
   priceNow,
+  priceWorse,
   ratiosOf,
   trade,
 } from '../../core/market.ts';
-import { tradeDone, tradeNote } from '../../core/market-text.ts';
+import { priceChanged, tradeDone, tradeNote } from '../../core/market-text.ts';
 import type { RoundRules } from '../../core/round.ts';
 import type { Planet } from '../../core/types.ts';
 import type { User } from '../db/repos/players.ts';
@@ -86,6 +87,11 @@ const exchange: Handler<'trade'> = (ctx, u, d, event) => {
   const market = marketOf(ctx, u, p, round);
   const result = trade(market, d.give, d.get, d.amount);
   if ('error' in result) return fail(tradeNote(result.error, market, d.get));
+  // The price the player saw, before the own exchange moves it (#406): a
+  // worse one now refuses, and nothing changes.
+  const pair = result.quote.pair;
+  if (priceWorse(d.price, market.prices[pair]))
+    return fail(priceChanged(market, pair));
   const q = result.quote;
   const [give, get] = [q.pair[0] as Res, q.pair[1] as Res];
   p.res[give] -= q.given;
