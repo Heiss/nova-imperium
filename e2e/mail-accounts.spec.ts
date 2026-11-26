@@ -193,14 +193,21 @@ test.describe('accounts by mail (#68)', () => {
     const secret = (await box.locator('[data-totp=secret]').textContent())!;
     const key = unbase32(secret)!;
     // Codes of the step before, of now and of the next: each one taken only
-    // once and after the last one (the window is one step each way).
-    const code = (steps: number) => hotp(key, stepOf(Date.now()) + steps);
+    // once and after the last one (the window is one step each way). A code
+    // is made at least 5 s before the end of its 30 s step (RFC 6238, as in
+    // src/server/totp.ts), so the server checks it in the same step: else
+    // the code of the step before is two steps old when it arrives.
+    const code = async (steps: number): Promise<string> => {
+      const left = (stepOf(Date.now()) + 1) * 30_000 - Date.now();
+      if (left < 5_000) await new Promise((r) => setTimeout(r, left + 100));
+      return hotp(key, stepOf(Date.now()) + steps);
+    };
     await box.getByLabel('Code aus der Authenticator-App').fill('000000');
     await box.getByRole('button', { name: 'Einrichten' }).click();
     await expect(lastToast(page)).toContainText(
       'Der Code der Authenticator-App ist ungültig.',
     );
-    await box.getByLabel('Code aus der Authenticator-App').fill(code(-1));
+    await box.getByLabel('Code aus der Authenticator-App').fill(await code(-1));
     await box.getByRole('button', { name: 'Einrichten' }).click();
     await expect(lastToast(page)).toContainText(
       'Authenticator-App eingerichtet.',
@@ -222,7 +229,7 @@ test.describe('accounts by mail (#68)', () => {
     await expect(page.locator('.auth .hd')).toHaveText(
       'Code aus der Authenticator-App',
     );
-    await page.getByLabel('Code aus der Authenticator-App').fill(code(0));
+    await page.getByLabel('Code aus der Authenticator-App').fill(await code(0));
     await page.getByRole('button', { name: 'Anmelden' }).click();
     await expect(page.locator('h2')).toContainText('Übersicht');
     expect(mailsTo(E2E_MAILBOX, emailOf(name))).toHaveLength(mails);
@@ -243,7 +250,7 @@ test.describe('accounts by mail (#68)', () => {
     const appCode = page.getByLabel('Code aus der Authenticator-App');
     await expect(appCode).toBeVisible();
     await page.getByLabel('Neues Passwort').fill('ein-neues-testpasswort');
-    await appCode.fill(code(1));
+    await appCode.fill(await code(1));
     await page.getByRole('button', { name: 'Passwort speichern' }).click();
     await expect(lastToast(page)).toContainText(
       'Passwort gespeichert. Melde dich mit deinem neuen Passwort an.',

@@ -6,7 +6,7 @@
   // `resetform`, `codeform`), which reads the fields by their ids.
   import type { Snippet } from 'svelte';
   import type { AuthPage } from '../logic/auth.ts';
-  import { RESEND_AFTER } from '../logic/login.ts';
+  import { RESEND_AFTER } from '../../core/login-code.ts';
 
   let { page }: { page: AuthPage } = $props();
 

@@ -11,6 +11,7 @@ import {
   takeAppCode,
   WRONG_APP_CODE,
 } from './authenticator.ts';
+import { RESEND_AFTER } from '../core/login-code.ts';
 import { NUMBERS } from './config.ts';
 import type { User } from './db/repos/players.ts';
 import { fail, type Ctx } from './game/context.ts';
@@ -19,8 +20,6 @@ import type { RoundReset } from './db/round-reset.ts';
 const RESET_LIFE = 30 * 60_000;
 const CODE_LIFE = 10 * 60_000;
 const CODE_ATTEMPTS = 5;
-/** „Code erneut senden“ comes after 30 s (owner, 2026-11-25, 101b, #401). */
-const RESEND_AFTER = 30_000;
 const RESET_COOLDOWN = 60_000;
 
 interface AccountToken {
