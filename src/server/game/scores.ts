@@ -7,7 +7,12 @@
 // points of its two players (`exactPoints`), the archive of a round a fresh
 // pass. [V] The pass is kept in the memory of the server: a restart makes a
 // new one at the first reader.
-import { BUILD, RES, SHIPS, UNIT, canFly } from '../../core/catalog.ts';
+import { BUILD, RES } from '../../core/catalog.ts';
+import {
+  addUnits,
+  type CategoryTally,
+  type Tally,
+} from '../../core/highscore-categories.ts';
 import { passHolds, roundSettings } from '../../core/highscore-passes.ts';
 import { pointsOf } from '../../core/points.ts';
 import { settle, settleR } from '../../core/settle.ts';
@@ -51,35 +56,6 @@ const count = (have: Levels, defs: Record<string, unknown>): number => {
   return n;
 };
 
-/** A category while it is summed: pieces and the resources in them. */
-interface Tally {
-  count: number;
-  value: number;
-}
-
-interface Raw {
-  economy: Tally;
-  military: Tally;
-}
-
-/**
- * A Sonnenreliquiar, the ship that does not fly, counts to Wirtschaft;
- * every other ship, the defense and the missiles to Militär (#422, 160a).
- */
-const isEconomyUnit = (key: string): boolean =>
-  Object.hasOwn(SHIPS, key) && !canFly(key);
-
-/** Adds the units of `units` to their category: one each, and their costs. */
-function addUnits(r: Raw, units: Levels): void {
-  for (const [k, n] of Object.entries(units)) {
-    const d = UNIT[k];
-    if (!d) continue;
-    const t = isEconomyUnit(k) ? r.economy : r.military;
-    t.count += n;
-    t.value += (d.cost[0] + d.cost[1] + d.cost[2]) * n;
-  }
-}
-
 const tally = (): Tally => ({ count: 0, value: 0 });
 
 const valueOf = (t: Tally): CategoryValue => ({
@@ -97,7 +73,7 @@ export function scorePass(ctx: Ctx, only?: ReadonlySet<string>): ScorePass {
   const t = ctx.now();
   const u = universe(ctx);
   const takes = (id: string): boolean => !only || only.has(id);
-  const raw: Record<string, Raw> = {};
+  const raw: Record<string, CategoryTally> = {};
   for (const user of ctx.players.all()) {
     if (!takes(user.id)) continue;
     const research = settleR(user, t).research;

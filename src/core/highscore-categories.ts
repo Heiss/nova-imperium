@@ -5,6 +5,8 @@
 // the default, 167a) or by the resources spent / 1,000 („Rohstoffe“), a
 // round setting each (166a, core/highscore-passes.ts). The notes are the
 // owner's (168a).
+import { SHIPS, UNIT, canFly } from './catalog.ts';
+import type { Levels } from './types.ts';
 
 /** How a category counts: by number (0, the default) or by resources (1). */
 export type CountMode = 0 | 1;
@@ -64,3 +66,33 @@ export const highscoreNote = (
   cat: HighscoreCategory,
   modes: CategoryModes,
 ): string => (cat === 'total' ? TOTAL_NOTE : NOTES[cat][modes[cat]]);
+
+/** A category while it is summed: pieces and the resources in them. */
+export interface Tally {
+  count: number;
+  value: number;
+}
+
+/** Wirtschaft and Militär of a player while they are summed. */
+export interface CategoryTally {
+  economy: Tally;
+  military: Tally;
+}
+
+/**
+ * A Sonnenreliquiar, the ship that does not fly, counts to Wirtschaft;
+ * every other ship, the defense and the missiles to Militär (160a).
+ */
+export const isEconomyUnit = (key: string): boolean =>
+  Object.hasOwn(SHIPS, key) && !canFly(key);
+
+/** Adds the units of `units` to their category: one each, and their costs. */
+export function addUnits(t: CategoryTally, units: Levels): void {
+  for (const [k, n] of Object.entries(units)) {
+    const d = UNIT[k];
+    if (!d) continue;
+    const c = isEconomyUnit(k) ? t.economy : t.military;
+    c.count += n;
+    c.value += (d.cost[0] + d.cost[1] + d.cost[2]) * n;
+  }
+}
