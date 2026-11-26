@@ -15,7 +15,7 @@
 //
 // The repository comes from GITHUB_REPOSITORY, the token for gh from
 // GH_TOKEN (the job needs "actions: read"). It reads the API only.
-import { execFileSync } from 'node:child_process';
+import { type Api, gh } from './already-tested.ts';
 import { runCli } from './cli.ts';
 
 /** The workflow of the nightly complete run. */
@@ -33,8 +33,7 @@ export interface NightlyRun {
   repository: { full_name: string } | null;
 }
 
-/** Answers a GET of the REST API (a path below https://api.github.com/). */
-export type Api = (path: string) => unknown;
+export type { Api };
 
 /** The verdict on the last nightly run and the line that names it. */
 export interface Verdict {
@@ -99,16 +98,6 @@ export function check(repo: string, api: Api): Verdict {
     };
   }
 }
-
-/** The REST API through the command line tool gh, which reads GH_TOKEN. */
-const gh: Api = (path) =>
-  JSON.parse(
-    execFileSync('gh', ['api', '--method', 'GET', path], {
-      encoding: 'utf8',
-      maxBuffer: 32 << 20,
-      stdio: ['ignore', 'pipe', 'inherit'],
-    }),
-  ) as unknown;
 
 /** check: prints green or red, then the line naming the run. */
 export function main(
