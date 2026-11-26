@@ -48,6 +48,14 @@ const TURNS_OFF: Readonly<
     views: [],
     none: 'divides the stay of an expedition by the speed: a rule, no feature',
   },
+  highscoreEconomy: {
+    views: [],
+    none: 'chooses whether Wirtschaft counts by number or by resources (#422): a rule, no feature',
+  },
+  highscoreMilitary: {
+    views: [],
+    none: 'chooses whether Militär counts by number or by resources (#422): a rule, no feature',
+  },
 };
 
 const VIEWS: readonly ClientView[] = CLIENT_VIEWS.flatMap(

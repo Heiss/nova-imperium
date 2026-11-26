@@ -68,9 +68,6 @@ export const roundSettings = [
   },
 ] as const satisfies readonly RoundSetting[];
 
-/** How Wirtschaft and Militär count: by number (Anzahl, the default) or by resources (#422). */
-export const COUNT_BY = { count: 0, resources: 1 } as const;
-
 /**
  * The time of the last scheduled pass at or before `now`: 23:05 UTC, then
  * every 24/N hours; before 23:05 UTC the passes from 23:05 UTC of the day
