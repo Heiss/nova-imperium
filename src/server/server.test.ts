@@ -13,6 +13,7 @@ import {
   pushFailure,
   startServer,
 } from './server.ts';
+import { storedScores } from './game/scores.ts';
 import { addUser, testConfig, testCtx } from './test-helpers.ts';
 
 const PUBLIC = path.resolve(import.meta.dirname, '../test/public');
@@ -232,6 +233,34 @@ describe('background jobs', () => {
         message: 'Fleet f1 failed and was removed: Error: lost planet',
       },
       { action: 'tick', version: '', message: 'Tick failed: Error: no fleets' },
+    ]);
+  });
+
+  it('a clock beat makes the pass of the highscore at its slot and records a failed one (#405)', () => {
+    const at = (h: number, m: number) => new Date(2026, 10, 25, h, m).getTime();
+    const ctx = testCtx(at(7, 0));
+    addUser(ctx, 'Anna');
+    const log = vi.fn();
+    clockBeat(ctx, log, null);
+    expect(storedScores(ctx).at).toBe(at(7, 0));
+    ctx.clock.t = at(8, 5);
+    clockBeat(ctx, log, null);
+    // Made by the beat at 08:05, not by the reader after it.
+    ctx.clock.t = at(8, 30);
+    expect(storedScores(ctx).at).toBe(at(8, 5));
+    const broken = new Error('no players');
+    vi.spyOn(ctx.players, 'all').mockImplementation(() => {
+      throw broken;
+    });
+    ctx.clock.t = at(16, 5);
+    clockBeat(ctx, log, '26.11.25');
+    expect(log.mock.calls).toEqual([['Highscore pass failed', broken]]);
+    expect(errors(ctx)).toEqual([
+      {
+        action: 'scores',
+        version: '26.11.25',
+        message: 'Highscore pass failed: Error: no players',
+      },
     ]);
   });
 

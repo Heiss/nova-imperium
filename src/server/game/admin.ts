@@ -22,6 +22,7 @@ import {
 } from './round-archive.ts';
 import { vacationNotice } from './vacation.ts';
 import type { ServerFeature } from './feature.ts';
+import { newScores } from './scores.ts';
 
 export const requireAdmin = (u: { admin: boolean }): void => {
   if (!u.admin) fail('Nur der Admin darf das.');
@@ -99,6 +100,8 @@ export const reset: Handler<'reset'> = (ctx, u, data, event) => {
   const after = startRoundRules(ctx, data);
   openRound(ctx);
   newRound(ctx, after);
+  // A new round computes the highscore at once (#405).
+  newScores(ctx);
   if (event) event.detail = { before, after };
   return 'Neue Runde gestartet – alle Spieler haben einen frischen Planeten.';
 };

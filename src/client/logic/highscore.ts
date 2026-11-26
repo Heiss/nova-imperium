@@ -67,7 +67,13 @@ export interface HighscorePage {
   buttons: HighscoreButton[];
   rows: HighscoreRow[];
   note: string;
+  /** „Stand: {Uhrzeit}“: when the server computed the points (#405). */
+  stand: string;
 }
+
+/** „Stand: {Uhrzeit}“ of the pass at `at`, the clock time of this browser (#405). */
+export const highscoreStand = (at: number): string =>
+  `Stand: ${new Date(at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}`;
 
 const PER_1000 = '1 Punkt = 1.000 verbaute Rohstoffe';
 
@@ -104,5 +110,7 @@ export function highscorePage(v: V): HighscorePage {
       };
     }),
     note: highscoreNote(cat),
+    // A state without it (a server before #405) has no line.
+    stand: v.s.scoresAt === undefined ? '' : highscoreStand(v.s.scoresAt),
   };
 }

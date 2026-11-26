@@ -3,9 +3,11 @@
 // of the Phalanx (#69) and the shortcuts to the fleet form and to a spy
 // probe, and the bottom sheet of a position on a phone (#189). The markup is in views/galaxy.ts and the Svelte components; the
 // Raketenangriff is in features/missiles.ts.
+import { protectionOf, shownParam } from '../../core/galaxy-shown.ts';
 import { $ } from '../dom.ts';
 import { galaxyStep } from '../logic/game.ts';
 import { galaxyPosition, wanted } from '../logic/galaxy-position.svelte.ts';
+import { GALAXY_VIEW } from '../logic/galaxy-shown.ts';
 import { targetOf } from '../logic/galaxy.ts';
 import { client } from '../logic/state.svelte.ts';
 import type { ClientCtx, ClientFeature, Handler } from './contract.ts';
@@ -100,9 +102,33 @@ const targetActs = ({
   },
 });
 
+/** The system whose list of the noob protection was asked for last (151a). */
+let asked: string | null = null;
+let load: (() => Promise<void>) | null = null;
+
+/**
+ * After a render of the Sternenkarte: a state with the list of the shown
+ * system is loaded once when the state has none for it (another system, a
+ * first visit), so a system switch brings its (n) at once (151a).
+ */
+export function askProtection(): void {
+  const s = client.game;
+  if (!s || ui.view !== GALAXY_VIEW) {
+    asked = null;
+    return;
+  }
+  const at = { g: ui.gal, s: ui.sys };
+  if (protectionOf(s.protectedOwners, at)) return;
+  const key = shownParam(at);
+  if (asked === key) return;
+  asked = key;
+  void load?.();
+}
+
 /** The data-act handlers of the Sternenkarte; „Enter“ in a field of the position goes there. */
 export const clientFeature = {
   listen: (ctx) => {
+    load = ctx.refresh;
     const moves = moveActs(ctx);
     document.addEventListener('keydown', (e) => {
       const id = (e.target as HTMLElement).id;
@@ -110,4 +136,5 @@ export const clientFeature = {
     });
   },
   acts: (ctx) => ({ ...moveActs(ctx), ...targetActs(ctx) }),
+  afterRender: askProtection,
 } satisfies ClientFeature;

@@ -2,8 +2,9 @@
   // „Highscore“ (#118, bundle 5; okf/architecture/patterns.md, section 9),
   // from highscorePage() of logic/highscore.ts: one ranking per category with
   // the buttons above (features/highscore.ts) and what a point is worth
-  // below. The classes of the table are those of the phone layout in
-  // style.css (`.scores`).
+  // below; „Stand“, the time of the pass, next to the table (#405). The
+  // classes of the table are those of the phone layout in style.css
+  // (`.scores`, `.scores-wrap`).
   import type { HighscorePage } from '../logic/highscore.ts';
   import HomeCell from './HomeCell.svelte';
 
@@ -21,22 +22,26 @@
     >
   {/each}
 </div>
-<div class="box">
-  <table class="scores">
-    <tbody>
-      <tr>
-        <th class="n">Platz</th><th>Spieler</th><th>Heimatplanet</th><th
-          class="n">Punkte</th
-        >
-      </tr>
-      {#each page.rows as row (row.id)}
-        <tr class={row.me ? 'me' : ''}>
-          <td class="n">{row.rank}</td><td>{row.name}</td><td
-            ><HomeCell home={row.home} /></td
-          ><td class="n">{row.points}</td>
+<!-- „Stand“ next to the table, above it on a phone (owner, 2026-11-26, B of #418). -->
+<div class="scores-wrap">
+  <div class="box">
+    <table class="scores">
+      <tbody>
+        <tr>
+          <th class="n">Platz</th><th>Spieler</th><th>Heimatplanet</th><th
+            class="n">Punkte</th
+          >
         </tr>
-      {/each}
-    </tbody>
-  </table>
+        {#each page.rows as row (row.id)}
+          <tr class={row.me ? 'me' : ''}>
+            <td class="n">{row.rank}</td><td>{row.name}</td><td
+              ><HomeCell home={row.home} /></td
+            ><td class="n">{row.points}</td>
+          </tr>
+        {/each}
+      </tbody>
+    </table>
+  </div>
+  {#if page.stand}<div class="dim stand">{page.stand}</div>{/if}
 </div>
 <div class="dim">{page.note}</div>

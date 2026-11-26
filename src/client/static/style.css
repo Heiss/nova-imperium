@@ -301,6 +301,21 @@ table {
   border-collapse: collapse;
   width: 100%;
 }
+/* Highscore: „Stand“ next to the table (owner, 2026-11-26, B of #418); the
+   table takes the room, the line keeps its own width. */
+.scores-wrap {
+  display: flex;
+  gap: 0 16px;
+  align-items: flex-start;
+}
+.scores-wrap > .box {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.scores-wrap > .stand {
+  flex: 0 0 auto;
+  padding-top: 8px;
+}
 th,
 td {
   border-bottom: 1px solid var(--line);
@@ -1086,6 +1101,14 @@ dialog.sheet::backdrop {
      coordinates link moves small below the player name. A name breaks only
      when it does not fit (20 wide letters), so normal names stay on one
      line. Every row is a grid: place, name with the link below, points. */
+  /* „Stand“ above the table, not beside it. */
+  .scores-wrap {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+  .scores-wrap > .stand {
+    padding: 0 0 6px;
+  }
   .scores,
   .scores tbody {
     display: block;

@@ -26,9 +26,8 @@ import type { Levels, Planet, Resources } from '../../core/types.ts';
 import type { RoundRow } from '../db/repos/rounds.ts';
 import type { User } from '../db/repos/players.ts';
 import { type Ctx, fail, universe } from './context.ts';
-import { categoryScores } from './highscore.ts';
 import { journalClose } from './journal.ts';
-import { pointsMap } from './points.ts';
+import { scorePass } from './scores.ts';
 import { roundRules, roundStart } from './round.ts';
 
 /** The kinds of the events of the round that this file writes. */
@@ -105,8 +104,8 @@ function finalOf(
  * of the admin (nothing is written).
  */
 export function roundFacts(ctx: Ctx): RoundFacts {
-  const total = pointsMap(ctx);
-  const scores = categoryScores(ctx);
+  // A fresh pass at the cutoff, not the stored one (#405).
+  const { total, categories: scores } = scorePass(ctx);
   const planets = ctx.planets.all();
   // A player keeps the seat they got when they joined (`participant.joined`);
   // one who has none yet (a round without those events) gets the next free one.

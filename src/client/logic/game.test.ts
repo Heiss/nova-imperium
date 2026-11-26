@@ -9,7 +9,6 @@ import {
   fleetEnd,
   fleetPreview,
   galaxyStep,
-  isProtected,
   maxStay,
   nameOf,
   newestFirst,
@@ -32,13 +31,6 @@ const players = {
 describe('players', () => {
   it('rank by points', () => {
     expect(ranks(players)).toEqual({ a: 1, c: 2, b: 3 });
-  });
-  it('protect players below a fifth of my points', () => {
-    expect(isProtected(players, 'a', 'b')).toBe(true);
-    expect(isProtected(players, 'a', 'c')).toBe(false);
-    expect(isProtected(players, 'b', 'a')).toBe(false);
-    expect(isProtected(players, 'a', 'x')).toBe(true);
-    expect(isProtected(players, 'x', 'b')).toBe(false);
   });
   it('name players', () => {
     expect(nameOf(players, 'a')).toBe('Anna');
