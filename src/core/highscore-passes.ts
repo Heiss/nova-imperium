@@ -34,7 +34,42 @@ export const roundSettings = [
     def: HIGHSCORE_PASSES.def,
     live: true,
   },
+  // How Wirtschaft and Militär count (#422, owner, 2026-11-26, 166a, 167a):
+  // by number or by the resources spent, each on its own, Anzahl by default.
+  {
+    kind: 'number',
+    key: 'roundHighscoreEconomy',
+    name: 'highscoreEconomy',
+    label: 'Wirtschaft zählt nach',
+    order: 490,
+    min: 0,
+    max: 1,
+    def: 0,
+    choices: [
+      { value: 0, label: 'Anzahl' },
+      { value: 1, label: 'Rohstoffen' },
+    ],
+    live: true,
+  },
+  {
+    kind: 'number',
+    key: 'roundHighscoreMilitary',
+    name: 'highscoreMilitary',
+    label: 'Militär zählt nach',
+    order: 500,
+    min: 0,
+    max: 1,
+    def: 0,
+    choices: [
+      { value: 0, label: 'Anzahl' },
+      { value: 1, label: 'Rohstoffen' },
+    ],
+    live: true,
+  },
 ] as const satisfies readonly RoundSetting[];
+
+/** How Wirtschaft and Militär count: by number (Anzahl, the default) or by resources (#422). */
+export const COUNT_BY = { count: 0, resources: 1 } as const;
 
 /**
  * The time of the last scheduled pass at or before `now`: 23:05 UTC, then
