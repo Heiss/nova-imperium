@@ -1020,8 +1020,21 @@ describe('the scan of the release image (owner, 2026-11-24, 79a)', () => {
     expect(platforms.length).toBeGreaterThan(1);
     expect(scan).toContain(`        platform: [${platforms.join(', ')}]\n`);
     expect(scan).toContain('      fail-fast: false\n');
-    expect(scan).toContain('docker pull --platform "$PLATFORM" "$IMAGE:$TAG"');
-    expect(scan).toContain('image --platform "$PLATFORM" --scanners vuln');
+    // Trivy reads the image of the platform from the registry, not from the
+    // daemon of the runner, whose export of a foreign platform failed
+    // (26.11.28, arm64).
+    expect(scan).toContain(
+      'image --image-src remote --platform "$PLATFORM" --scanners vuln',
+    );
+    expect(scan).not.toContain('docker pull');
+    expect(scan).not.toContain('docker.sock');
+    // The credentials of the login, read-only, never in an argument.
+    expect(scan).toContain(
+      '-v "$HOME/.docker:/docker:ro" -e DOCKER_CONFIG=/docker',
+    );
+    expect(scan).not.toMatch(
+      /TRIVY_PASSWORD|GITHUB_TOKEN }}[^\n]*run:|--password/,
+    );
     expect(scan).toContain('PLATFORM: ${{ matrix.platform }}');
     expect(scan).toContain('node scripts/trivy-gate.ts trivy-image.json\n');
     expect(job('image')).toContain('tag: ${{ steps.v.outputs.tag }}');
