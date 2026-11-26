@@ -55,6 +55,11 @@ test('the admin sets how often the highscore is computed; the highscore names th
     await expect(page.locator('h2')).toContainText('Highscore');
     const stand = page.getByText(/^Stand: \d{2}:\d{2}$/);
     await expect(stand).toBeVisible();
+    // Next to the table, on its right (owner, 2026-11-26, B of #418).
+    const line = (await stand.boundingBox())!;
+    const table = (await page.locator('.scores-wrap > .box').boundingBox())!;
+    expect(line.x).toBeGreaterThanOrEqual(table.x + table.width);
+    expect(line.y).toBeLessThan(table.y + table.height);
     const clock = new Date().toLocaleTimeString('de-DE', {
       hour: '2-digit',
       minute: '2-digit',

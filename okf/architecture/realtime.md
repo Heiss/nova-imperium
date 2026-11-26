@@ -47,8 +47,14 @@ generated: { by: claude-code/web, at: 2026-11-25T09:30:00Z }
   * **[E]** The setting is an entry of the registry of the round settings
     (`ROUND_SETTINGS`, `live: true`, so also a row of the universe
     settings): „Highscore-Aktualisierungen pro Tag (0 = Echtzeit)“, 0 to
-    24. N times a day means every 24/N hours, the first at 00:05 server
-    time, as in 0.78b.
+    24. N times a day means every 24/N hours.
+  * **[E]** The slots are UTC, independent of the time zone of the server
+    (owner, 2026-11-26, 149e): the first pass of a UTC day is at 23:05 UTC
+    of the day before, then every 24/N hours (N = 3: 23:05, 07:05 and
+    15:05 UTC, that is 00:05, 08:05 and 16:05 in German winter time and
+    01:05, 09:05 and 17:05 in summer time). Before the first slot of a day
+    the slots of the day before count. „Stand“ is shown on the clock of the
+    browser.
   * **[E]** „Live“ (0) means one pass at most every 10 s, not one per call,
     as the requirement of weak hardware asks.
   * **[E]** The pass runs in the clock of the server at its time, so the
@@ -69,16 +75,17 @@ generated: { by: claude-code/web, at: 2026-11-25T09:30:00Z }
     each planet settled once for the total and the categories) and keeps it
     per database in the memory of the server (`storedScores`); a restart
     makes a new pass at the first reader. A pass holds until the next slot
-    (`core/highscore-passes.ts`: `lastSlot` from 00:05 on the clock of the
-    server, every 24/N hours; a pass made between two slots, at a start,
+    (`core/highscore-passes.ts`: `lastSlot` from 23:05 UTC on UTC
+    milliseconds only, every 24/N hours; a pass made between two slots, at a start,
     holds until the next) or, live, 10 s. The clock of the server makes the
     pass of a slot at its time (`scoreBeat` after the arrivals; live waits
     for a reader). The state, the guilds and `topPoints` take the stored
     pass; the noob protection of attacks and missiles takes
     `exactPoints` of its two players; the archive of a round a fresh pass;
     „Neue Runde“ makes a pass at once. The state carries `scoresAt`; the
-    highscore shows „Stand: HH:MM“ on the clock of the browser, below the
-    table. The heading of the setting in „Neue Runde“ and „Universum“ is
+    highscore shows „Stand: HH:MM“ on the clock of the browser, next to the
+    table, above it on a phone (owner, 2026-11-26, B of #418; „neben der
+    Tabelle“ read as on its right **[V]**); no next time, no list of times. The heading of the setting in „Neue Runde“ and „Universum“ is
     „Highscore“, the name of the view (the owner gave the label only). A
     property test holds the one pass equal to the two passes before it,
     frozen in `scores.test.ts`.

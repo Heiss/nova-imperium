@@ -26,11 +26,11 @@ import {
   topPoints,
 } from './scores.ts';
 
-/** A moment of 2026-11-25 on the clock of the server. */
+/** A moment of 2026-11-25 in UTC; the slots are UTC (149e). */
 const at = (h: number, m: number, s = 0): number =>
-  new Date(2026, 10, 25, h, m, s).getTime();
+  Date.UTC(2026, 10, 25, h, m, s);
 
-function world(perDay: number | null, start = at(7, 0)): TestCtx {
+function world(perDay: number | null, start = at(6, 0)): TestCtx {
   const ctx = testCtx(start);
   if (perDay !== null)
     ctx.admin.putSettings([['roundHighscorePasses', perDay]]);
@@ -47,24 +47,24 @@ function grow(ctx: TestCtx): void {
 }
 
 describe('the stored pass (#405)', () => {
-  it('runs at 00:05, 08:05 and 16:05 by default; every call in between takes it', () => {
+  it('runs at 23:05, 07:05 and 15:05 UTC by default; every call in between takes it', () => {
     const ctx = world(null);
     const first = storedScores(ctx);
-    expect(first.at).toBe(at(7, 0));
+    expect(first.at).toBe(at(6, 0));
     grow(ctx);
-    ctx.clock.t = at(8, 4, 59);
+    ctx.clock.t = at(7, 4, 59);
     expect(storedScores(ctx)).toBe(first);
     const state = stateFor(ctx, ctx.players.get('u_Anna')!) as {
       scoresAt: number;
       players: Record<string, { points: number }>;
     };
-    expect(state.scoresAt).toBe(at(7, 0));
+    expect(state.scoresAt).toBe(at(6, 0));
     expect(state.players.u_Anna!.points).toBe(first.total.u_Anna);
-    ctx.clock.t = at(8, 5);
+    ctx.clock.t = at(7, 5);
     const second = storedScores(ctx);
-    expect(second.at).toBe(at(8, 5));
+    expect(second.at).toBe(at(7, 5));
     expect(second.total.u_Anna).toBeGreaterThan(first.total.u_Anna!);
-    ctx.clock.t = at(16, 4);
+    ctx.clock.t = at(15, 4);
     expect(storedScores(ctx)).toBe(second);
   });
 
@@ -72,9 +72,9 @@ describe('the stored pass (#405)', () => {
     const ctx = world(3);
     scoreBeat(ctx);
     const first = storedScores(ctx);
-    ctx.clock.t = at(8, 5, 1);
+    ctx.clock.t = at(7, 5, 1);
     scoreBeat(ctx);
-    expect(storedScores(ctx).at).toBe(at(8, 5, 1));
+    expect(storedScores(ctx).at).toBe(at(7, 5, 1));
     expect(storedScores(ctx)).not.toBe(first);
   });
 

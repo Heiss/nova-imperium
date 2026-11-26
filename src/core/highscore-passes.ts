@@ -1,14 +1,16 @@
 // How often the points and the highscore are computed (#405, owner,
-// 2026-11-25): N passes a day, every 24/N hours from 00:05 server time, as
-// the classic game up to 0.78b did at 00:05, 08:05 and 16:05 (owiki
-// „Punkte“); 0 is live, but one pass at most every 10 s, for the weak
-// hardware the game runs on. Every reader between two passes takes the
-// stored one.
+// 2026-11-25): N passes a day, every 24/N hours, as the classic game up to
+// 0.78b did at 00:05, 08:05 and 16:05 (owiki „Punkte“); 0 is live, but one
+// pass at most every 10 s, for the weak hardware the game runs on. Every
+// reader between two passes takes the stored one. The slots are UTC, the
+// same whatever the time zone of the server (owner, 2026-11-26, 149e): the
+// first of a UTC day is at 23:05 UTC of the day before, so three passes are
+// at 00:05, 08:05 and 16:05 in German winter time, an hour later in summer.
 import type { RoundSetting } from './round.ts';
 
 const DAY_MS = 86_400_000;
-/** The first pass of a day: 00:05 server time. */
-const FIRST_MINUTE = 5;
+/** The first pass of a UTC day: 23:05 UTC of the day before (149e). */
+const ANCHOR_MS = (23 * 60 + 5) * 60_000;
 /** „Echtzeit“ (0): one pass at most every 10 s, not one per call. */
 export const LIVE_MS = 10_000;
 
@@ -35,15 +37,12 @@ export const roundSettings = [
 ] as const satisfies readonly RoundSetting[];
 
 /**
- * The time of the last scheduled pass at or before `now`: 00:05 of the day
- * on the clock of the server, then every 24/N hours. Before 00:05 the
- * passes of the day before count.
+ * The time of the last scheduled pass at or before `now`: 23:05 UTC, then
+ * every 24/N hours; before 23:05 UTC the passes from 23:05 UTC of the day
+ * before count. Arithmetic on UTC milliseconds only, no local clock.
  */
 export function lastSlot(now: number, perDay: number): number {
-  const first = new Date(now);
-  first.setHours(0, FIRST_MINUTE, 0, 0);
-  if (first.getTime() > now) first.setDate(first.getDate() - 1);
-  const start = first.getTime();
+  const start = Math.floor((now - ANCHOR_MS) / DAY_MS) * DAY_MS + ANCHOR_MS;
   const every = DAY_MS / perDay;
   return start + Math.floor((now - start) / every) * every;
 }

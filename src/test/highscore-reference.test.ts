@@ -43,12 +43,13 @@ const highscoreButtonsHTML = (cat: keyof typeof HIGHSCORE_CATEGORIES): string =>
 
 /**
  * Changed on purpose since #118: the line „Stand: {Uhrzeit}“ of the pass the
- * points come from (owner, 2026-11-25, #405), when the state names one.
+ * points come from (owner, 2026-11-25, #405), when the state names one, next
+ * to the table in one wrapper (owner, 2026-11-26, B of #418).
  */
 const stand = (v: V): string =>
   v.s.scoresAt === undefined
     ? ''
-    : `<div class="dim">${highscoreStand(v.s.scoresAt)}</div>`;
+    : `<div class="dim stand">${highscoreStand(v.s.scoresAt)}</div>`;
 
 function highscore(v: V): string {
   const cat = highscoreCategory(v.ui.highscore);
@@ -57,7 +58,7 @@ function highscore(v: V): string {
     const home = homeCell(homePlanetOf(v.s.galaxy, id));
     return `<tr class="${id === v.s.me.id ? 'me' : ''}"><td class="n">${i + 1}</td><td>${esc(x.name)}</td><td>${home}</td><td class="n">${fmt(x.points)}</td></tr>`;
   });
-  return `<h2 id="highscore-h">Highscore</h2>${highscoreButtonsHTML(cat)}<div class="box"><table class="scores"><tr><th class="n">Platz</th><th>Spieler</th><th>Heimatplanet</th><th class="n">Punkte</th></tr>${rows.join('')}</table></div>${stand(v)}<div class="dim">${highscoreNote(cat)}</div>`;
+  return `<h2 id="highscore-h">Highscore</h2>${highscoreButtonsHTML(cat)}<div class="scores-wrap"><div class="box"><table class="scores"><tr><th class="n">Platz</th><th>Spieler</th><th>Heimatplanet</th><th class="n">Punkte</th></tr>${rows.join('')}</table></div>${stand(v)}</div><div class="dim">${highscoreNote(cat)}</div>`;
 }
 
 // ----- the comparison -----
