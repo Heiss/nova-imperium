@@ -121,7 +121,7 @@ const targetsSection = (): PageSection =>
     ),
   );
 
-export const page: PageDef = {
+const page: PageDef = {
   id: 'rule-spy',
   kind: 'rule',
   title: 'Auspex-Erkundung',
@@ -130,3 +130,6 @@ export const page: PageDef = {
   seeAlso: ['spy', 'probe', 'mission-spy', 'faq-intel', 'rule-protection'],
   sections: (s) => [reportSection(s), counterSection(), targetsSection()],
 };
+
+// Its place on the start page of the Lexicanum (#426).
+export const lexiconPage = { order: 20, page };

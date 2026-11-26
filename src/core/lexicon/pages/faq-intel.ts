@@ -22,7 +22,7 @@ const PARTS: Readonly<Record<SpyPart, string>> = {
   r: 'Forschung',
 };
 
-export const page: PageDef = {
+const page: PageDef = {
   id: 'faq-intel',
   kind: 'question',
   title: 'Wie bekomme ich mehr Informationen über den Gegner?',
@@ -74,3 +74,6 @@ export const page: PageDef = {
     ];
   },
 };
+
+// Its place on the start page of the Lexicanum (#426).
+export const lexiconPage = { order: 250, page };

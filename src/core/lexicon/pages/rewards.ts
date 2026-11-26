@@ -140,7 +140,7 @@ const roundSection = (s: LexState): PageSection =>
     ]),
   );
 
-export const page: PageDef = {
+const page: PageDef = {
   id: 'rule-rewards',
   // Hidden in a round without achievements and daily rewards, as its view (#404).
   offered: rewardsOn,
@@ -151,3 +151,6 @@ export const page: PageDef = {
   seeAlso: ['rule-universe', 'faq-resources'],
   sections: (s) => [dailySection(), achievementsSection(), roundSection(s)],
 };
+
+// Its place on the start page of the Lexicanum (#426).
+export const lexiconPage = { order: 180, page };

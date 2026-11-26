@@ -129,7 +129,7 @@ const yardSection = (): PageSection =>
     ),
   );
 
-export const page: PageDef = {
+const page: PageDef = {
   id: 'rule-queues',
   kind: 'rule',
   title: 'Bauen, Forschen und Schiffsschmiede',
@@ -138,3 +138,6 @@ export const page: PageDef = {
   seeAlso: ['robot', 'nanite', 'lab', 'yard', 'rule-planets'],
   sections: () => [buildSection(), researchSection(), yardSection()],
 };
+
+// Its place on the start page of the Lexicanum (#426).
+export const lexiconPage = { order: 140, page };

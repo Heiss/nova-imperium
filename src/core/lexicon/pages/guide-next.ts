@@ -101,7 +101,7 @@ const standSection = (s: LexState): PageSection =>
       : [say('Dein Stand steht hier, sobald du einen Planeten hast.')]),
   );
 
-export const page: PageDef = {
+const page: PageDef = {
   id: 'guide-next',
   kind: 'guide',
   title: 'Deine nächsten Ziele',
@@ -111,3 +111,6 @@ export const page: PageDef = {
   review: REVIEW,
   sections: (s) => [hintsSection(s), standSection(s)],
 };
+
+// Its place on the start page of the Lexicanum (#426).
+export const lexiconPage = { order: 370, page };

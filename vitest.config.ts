@@ -32,6 +32,7 @@ export default defineConfig({
         'src/server/db/repos/repositories.gen.ts',
         'src/client/views/views.gen.ts',
         'src/client/views/options/boxes.gen.ts',
+        'src/core/lexicon/pages/pages.gen.ts',
         'src/server/main.ts',
         'src/server/cli.ts',
         // Runs in a worker thread; tested through maintenance.test.ts.

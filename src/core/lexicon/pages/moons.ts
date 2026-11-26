@@ -184,7 +184,7 @@ const breakSection = (): PageSection =>
     ),
   );
 
-export const page: PageDef = {
+const page: PageDef = {
   id: 'rule-moons',
   kind: 'rule',
   title: 'Monde',
@@ -198,3 +198,6 @@ export const page: PageDef = {
     breakSection(),
   ],
 };
+
+// Its place on the start page of the Lexicanum (#426).
+export const lexiconPage = { order: 50, page };

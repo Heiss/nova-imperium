@@ -43,7 +43,7 @@ const stepsSection = (): PageSection =>
     ),
   );
 
-export const page: PageDef = {
+const page: PageDef = {
   id: 'guide-start',
   kind: 'guide',
   title: 'Erste Schritte',
@@ -52,3 +52,6 @@ export const page: PageDef = {
   seeAlso: ['rule-production', 'rule-queues', 'rule-universe', 'faq-resources'],
   sections: (s) => [beginSection(s), stepsSection()],
 };
+
+// Its place on the start page of the Lexicanum (#426).
+export const lexiconPage = { order: 330, page };

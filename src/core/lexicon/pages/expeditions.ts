@@ -441,7 +441,7 @@ const settingsSection = (s: LexState): PageSection =>
     ]),
   );
 
-export const page: PageDef = {
+const page: PageDef = {
   id: 'rule-expeditions',
   kind: 'rule',
   title: 'Expeditionen',
@@ -464,3 +464,6 @@ export const page: PageDef = {
     settingsSection(s),
   ],
 };
+
+// Its place on the start page of the Lexicanum (#426).
+export const lexiconPage = { order: 110, page };
