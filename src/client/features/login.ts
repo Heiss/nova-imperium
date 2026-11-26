@@ -33,10 +33,11 @@ function continueLogin(
   ctx: ClientCtx,
   reply: Record<string, unknown>,
 ): boolean {
-  if (!reply.loginRequired && typeof reply.challenge !== 'string') return false;
-  login.challenge =
-    typeof reply.challenge === 'string' ? reply.challenge : null;
-  client.ui.auth = login.challenge ? 'code' : 'login';
+  if (!reply.loginRequired && reply.code !== true && reply.app !== true)
+    return false;
+  // The code of the authenticator app, or of the mail (102a, #401).
+  client.ui.auth =
+    reply.app === true ? 'app' : reply.code === true ? 'code' : 'login';
   client.ui.invite = null;
   ctx.render(true);
   if (reply.loginRequired) ctx.toast('Konto erstellt. Melde dich jetzt an.');
@@ -81,13 +82,19 @@ async function loginByPasskey(ctx: ClientCtx): Promise<void> {
 
 async function submitLoginCode(ctx: ClientCtx): Promise<void> {
   try {
-    const j = await ctx.api('/api/login/code', {
-      challenge: login.challenge,
-      code: val('#login_code'),
-      remember: login.remember,
-    });
-    login.challenge = null;
+    // The sign-in of this browser and the wish to stay logged in are in its
+    // cookie (129a, #401).
+    const j = await ctx.api('/api/login/code', { code: val('#login_code') });
     signedIn(ctx, j);
+  } catch (e) {
+    ctx.toast((e as Error).message, e as Error);
+  }
+}
+
+/** A new code for the sign-in under way (101b, #401). */
+async function resendLoginCode(ctx: ClientCtx): Promise<void> {
+  try {
+    await ctx.api('/api/login/resend', {});
   } catch (e) {
     ctx.toast((e as Error).message, e as Error);
   }
@@ -107,6 +114,9 @@ async function submitForgot(ctx: ClientCtx): Promise<void> {
 }
 
 async function submitPassword(ctx: ClientCtx, reset: boolean): Promise<void> {
+  // A reset link the server has not checked sends nothing (152a): the
+  // page does not know yet whether the account asks for the code of its app.
+  if (reset && client.ui.resetChecked !== true) return;
   const password = val('#pw_next');
   const confirmation = val('#pw_confirm');
   if (!reset && password !== confirmation) {
@@ -118,11 +128,16 @@ async function submitPassword(ctx: ClientCtx, reset: boolean): Promise<void> {
     await ctx.api(reset ? '/api/password/reset' : '/api/password/change', {
       password,
       ...(reset
-        ? { token: login.resetToken }
+        ? {
+            token: login.resetToken,
+            // The code of the app, if the account has one (104, #401).
+            ...(client.ui.resetApp ? { code: val('#reset_code') } : {}),
+          }
         : { current: val('#pw_current'), confirmation }),
     });
     client.game = null;
     login.resetToken = null;
+    client.ui.resetChecked = false;
     client.ui.auth = 'login';
     ctx.render(true);
     ctx.toast('Passwort gespeichert. Melde dich mit deinem neuen Passwort an.');
@@ -141,8 +156,12 @@ const showAuth =
 export const clientFeature = {
   acts: (ctx) => ({
     forgot: showAuth(ctx, () => 'forgot'),
-    authback: () => {
-      login.challenge = null;
+    authback: async () => {
+      // Back from the code step, the sign-in under way ends (#401). The
+      // login shows only after the answer: its cleared cookie must not come
+      // after the cookie of a new sign-in begun at once.
+      if (client.ui.auth === 'code' || client.ui.auth === 'app')
+        await ctx.api('/api/login/cancel', {}).catch(() => undefined);
       login.resetToken = null;
       showAuth(ctx, () => 'login')();
     },
@@ -150,6 +169,7 @@ export const clientFeature = {
       client.ui.auth === 'register' ? 'login' : 'register',
     ),
     passkeyLogin: () => loginByPasskey(ctx),
+    resendcode: () => resendLoginCode(ctx),
   }),
   forms: (ctx) => ({
     authform: () => submitAuth(ctx),

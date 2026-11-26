@@ -517,6 +517,15 @@ CREATE TABLE suspensions (
     until INTEGER
   ) STRICT;
 
+CREATE TABLE totp (
+      user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      secret TEXT NOT NULL,
+      confirmed INTEGER NOT NULL DEFAULT 0 CHECK (confirmed IN (0, 1)),
+      created INTEGER NOT NULL,
+      last_step INTEGER,
+      attempts INTEGER NOT NULL DEFAULT 0
+    ) STRICT;
+
 CREATE TABLE user_research (
     user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     key TEXT NOT NULL,

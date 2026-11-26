@@ -736,6 +736,8 @@ describe('account security', () => {
     const login = { name: pilot.name, password: 'secret1' };
     const pending = await call('POST', '/api/login', login);
     expect(pending.status).toBe(200);
+    // The browser keeps the sign-in in its cookie (129a, #401).
+    const signIn = /nova_login=[^;]+/.exec(pending.set!)![0];
     const code = /\b\d{6}\b/.exec(mails[0]!.text)![0];
     setCookie(`${COOKIE}=${startSession(ctx, cfg, admin.id)}`);
     const body = { player: pilot.id, reason: 'Support review' };
@@ -747,12 +749,11 @@ describe('account security', () => {
       (await call('POST', '/api/admin/moderate', { ...body, action: 'unban' }))
         .status,
     ).toBe(200);
-    setCookie('');
-    const reply = await call('POST', '/api/login/code', {
-      challenge: pending.json!.challenge,
-      code,
+    setCookie(signIn);
+    const reply = await call('POST', '/api/login/code', { code });
+    expect(reply.json).toEqual({
+      error: 'Der Anmeldecode ist ungültig oder abgelaufen.',
     });
-    expect(reply.status).toBe(400);
     expect(reply.set).toBeNull();
   });
 
@@ -768,20 +769,23 @@ describe('account security', () => {
     const login = () =>
       call('POST', '/api/login', { name: 'Anna', password: 'secret1' });
     const begin = await login();
-    expect(begin.set).toBeNull();
+    // No session yet, only the sign-in of this browser.
+    expect(begin.set).not.toContain('nova_session=');
+    expect(begin.set).toContain('nova_login=');
     expect((await call('GET', '/api/state')).status).toBe(401);
     const code = /\b\d{6}\b/.exec(mails[0]!.text)![0];
-    const verify = (challenge: unknown, value: string) =>
-      call('POST', '/api/login/code', { challenge, code: value });
+    const verify = (value: string) =>
+      call('POST', '/api/login/code', { code: value });
     for (let i = 0; i < 5; i++)
-      expect((await verify(begin.json?.challenge, 'invalid')).status).toBe(400);
-    expect((await verify(begin.json?.challenge, code)).status).toBe(400);
-    const retry = await login();
+      expect((await verify('invalid')).status).toBe(400);
+    expect((await verify(code)).status).toBe(400);
+    await login();
     const newCode = /\b\d{6}\b/.exec(mails[1]!.text)![0];
-    expect((await verify(retry.json?.challenge, newCode)).set).toContain(
-      'nova_session=',
-    );
-    expect((await verify(retry.json?.challenge, newCode)).status).toBe(400);
+    const entered = await verify(newCode);
+    expect(entered.set).toContain('nova_session=');
+    // The sign-in ends with it.
+    expect(entered.set).toMatch(/nova_login=; [^,]*Max-Age=0/);
+    expect((await verify(newCode)).status).toBe(400);
   });
 
   it('gives a uniform reset response and invalidates sessions and the link', async () => {

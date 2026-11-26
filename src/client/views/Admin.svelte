@@ -22,6 +22,7 @@
   import { isInvalid, isOpen, setOpen } from '../logic/admin-groups.svelte.ts';
   import { panels } from '../logic/admin-panels.svelte.ts';
   import AdminBotCheck from './AdminBotCheck.svelte';
+  import AdminTotp from './AdminTotp.svelte';
   import AdminDiagnostics from './AdminDiagnostics.svelte';
   import AdminErrors from './AdminErrors.svelte';
   import AdminInvitations from './AdminInvitations.svelte';
@@ -105,7 +106,7 @@
       ><div id="admin-diagnostics">
         <AdminDiagnostics players={page.players} />
       </div>
-      <AdminBotCheck /></Box
+      <AdminBotCheck /><AdminTotp /></Box
     >
   </section>
   <!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->

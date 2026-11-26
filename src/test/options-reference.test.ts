@@ -188,6 +188,20 @@ const passkeysBox = (): string =>
     'Passkeys',
     '<p>Auf unterstützten Geräten kannst du dich mit einem Passkey anmelden.</p><form id="passkeyform" class="flex"><label for="passkey-password">Passwort für neuen Passkey</label><input id="passkey-password" type="password" autocomplete="current-password" required><button type="submit">Passkey hinzufügen</button></form><p><button type="button" data-act="listPasskeys">Gespeicherte Passkeys anzeigen</button></p><div id="passkey-list"></div>',
   );
+/**
+ * Changed on purpose since #118: the box „Authenticator-App“ (owner,
+ * 2026-11-25, #401, text 4 and 137a), without a setup under way.
+ */
+const TOTP_TEXT =
+  '<p>Scanne den QR-Code mit deiner Authenticator-App und gib den angezeigten Code ein. Danach brauchst du bei jeder Anmeldung mit Passwort den Code aus der App; eine E-Mail mit Code kommt dann nicht mehr.</p>';
+const totpBox = (on: boolean): string =>
+  sbox(
+    'account',
+    'Authenticator-App',
+    on
+      ? `${TOTP_TEXT}<form id="totpremoveform" class="flex"><span data-totp="status">Eingerichtet.</span><label for="totp_password">Passwort</label><input id="totp_password" type="password" autocomplete="current-password" required><label for="totp_remove_code">Code aus der Authenticator-App</label><input id="totp_remove_code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" required><button type="submit">Entfernen</button></form>`
+      : `${TOTP_TEXT}<p><button type="button" data-act="totpSetup">Einrichten</button></p>`,
+  );
 const notificationBoxes = (
   s: Pick<GameState, 'me' | 'round'>,
   ui: Ui,
@@ -217,6 +231,7 @@ const help = (
  ${sbox('round', 'Rundenarchiv', archiveHTML(shownArchive(v.s)))}
  ${sbox('device', 'Darstellung', `<label class="switch"><input type="checkbox" id="o_anim" ${v.ui.animations ? 'checked' : ''}> Animationen</label><p class="dim">Planeten drehen sich, Wolken ziehen. Gilt für dieses Gerät; ist im System „Bewegung reduzieren“ eingestellt, bleibt alles ruhig.</p>`)}
  ${passwordBox(v.ui)}
+ ${totpBox(v.s.me.totp === true)}
  ${passkeysBox()}
  ${sbox('device', 'App installieren', '<p>Öffne das Browsermenü und wähle „App installieren“ oder „Zum Startbildschirm hinzufügen“. Auf iPhone und iPad öffne Nova Imperium in Safari, tippe auf „Teilen“ und wähle „Zum Home-Bildschirm“ und „Als Web-App öffnen“. Zum Spielen brauchst du eine Internetverbindung.</p><button data-act="installApp" id="pwa-install" hidden>App installieren</button>')}
  ${notificationBoxes(v.s, v.ui)}

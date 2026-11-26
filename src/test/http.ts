@@ -67,12 +67,29 @@ export async function asAdmin(over: Parameters<typeof start>[0] = {}) {
 }
 
 /**
+ * The cookies by name, as a browser keeps them; Max-Age=0 removes one. The
+ * sign-in by mail code adds `nova_login` next to the session (#401).
+ */
+function cookieJar() {
+  const jar = new Map<string, string>();
+  const keep = (line: string): void => {
+    const [pair = ''] = line.split(';');
+    const at = pair.indexOf('=');
+    if (at < 1) return;
+    const name = pair.slice(0, at).trim();
+    if (/;\s*Max-Age=0\b/i.test(line)) jar.delete(name);
+    else jar.set(name, pair.slice(at + 1));
+  };
+  return { jar, keep };
+}
+
+/**
  * Calls with JSON bodies; keeps the session cookie the server sets. A POST
  * carries the `Origin` of the game like a browser does (#328); a header given
  * as `null` is left out, so a test can send a POST without one.
  */
 function fetcher(base: string, origin: string) {
-  let cookie = '';
+  const { jar, keep } = cookieJar();
   const call = async (
     method: string,
     url: string,
@@ -82,7 +99,9 @@ function fetcher(base: string, origin: string) {
     const sent: Record<string, string | null> = {
       ...(body !== undefined ? { 'content-type': 'application/json' } : {}),
       ...(method === 'POST' ? { origin } : {}),
-      ...(cookie ? { cookie } : {}),
+      ...(jar.size
+        ? { cookie: [...jar].map(([k, v]) => `${k}=${v}`).join('; ') }
+        : {}),
       ...headers,
     };
     const res = await fetch(base + url, {
@@ -100,7 +119,7 @@ function fetcher(base: string, origin: string) {
             : JSON.stringify(body),
     });
     const set = res.headers.get('set-cookie');
-    if (set) cookie = set.split(';')[0]!;
+    for (const line of res.headers.getSetCookie()) keep(line);
     // The bytes too, for the ZIP of the error log download.
     const bytes = new Uint8Array(await res.arrayBuffer());
     const text = new TextDecoder().decode(bytes);
@@ -112,5 +131,10 @@ function fetcher(base: string, origin: string) {
     }
     return { status: res.status, headers: res.headers, json, text, bytes, set };
   };
-  return { call, setCookie: (c: string) => (cookie = c) };
+  /** Replaces every cookie by the one given (`''`: none). */
+  const setCookie = (c: string): void => {
+    jar.clear();
+    keep(c);
+  };
+  return { call, setCookie };
 }

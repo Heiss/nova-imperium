@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AuthError } from './logic/transport.ts';
 import { client } from './logic/state.svelte.ts';
+import { totpSetup } from './logic/totp-setup.svelte.ts';
 import { session, signedOut, whenSignedOut } from './session.ts';
 
 afterEach(() => {
@@ -20,6 +21,13 @@ describe('the session is gone', () => {
     expect(client.game).toBeNull();
     expect(client.ui.auth).toBe('login');
     expect(show).toHaveBeenCalledTimes(1);
+  });
+
+  it('forgets the setup of the authenticator app under way (#417)', () => {
+    totpSetup.uri = 'otpauth://anna';
+    totpSetup.secret = 'ANNA';
+    expect(() => signedOut('x')).toThrow(AuthError);
+    expect({ ...totpSetup }).toEqual({ uri: null, secret: null });
   });
 
   it('keeps a screen of the login that is already open', () => {

@@ -5,7 +5,18 @@ import { fast, HOSTILE, sameOn } from '../test/redos.ts';
 const noFile: (path: string) => string = () => {
   throw new Error('no file');
 };
-const base = { NOVA_PUBLIC_URL: 'https://game.example.org' };
+// The tests of other settings run without the mail code, which needs SMTP.
+const base = {
+  NOVA_PUBLIC_URL: 'https://game.example.org',
+  NOVA_EMAIL_LOGIN_CODES: '0',
+};
+const url = { NOVA_PUBLIC_URL: 'https://game.example.org' };
+const off = { NOVA_EMAIL_LOGIN_CODES: '0' };
+const mail = {
+  SMTP_HOST: 'mail.example.org',
+  SMTP_PORT: '465',
+  MAIL_FROM: 'game@example.org',
+};
 
 const ok = (
   env: Record<string, string>,
@@ -25,7 +36,7 @@ const errors = (
 
 describe('configuration', () => {
   it('has safe defaults', () => {
-    expect(ok(base)).toEqual({
+    expect(ok({ ...url, ...mail })).toEqual({
       host: '127.0.0.1',
       port: 8080,
       dataDir: './data',
@@ -37,15 +48,38 @@ describe('configuration', () => {
       inviteDays: 7,
       rateLimitAttempts: 20,
       rateLimitMinutes: 10,
-      emailLoginCodes: false,
+      emailLoginCodes: true,
       webPush: false,
+      smtp: {
+        host: 'mail.example.org',
+        port: 465,
+        tls: 'true',
+        username: '',
+        password: '',
+        from: 'game@example.org',
+      },
+    });
+  });
+
+  it('asks for the mail code unless it is set to 0 (94b, #401)', () => {
+    expect(errors(url)).toEqual([
+      'NOVA_EMAIL_LOGIN_CODES is on by default and requires SMTP_HOST and the mail settings; set NOVA_EMAIL_LOGIN_CODES=0 to sign in without a mail code.',
+    ]);
+    expect(
+      ok({ ...url, ...mail, NOVA_EMAIL_LOGIN_CODES: '' }).emailLoginCodes,
+    ).toBe(true);
+    expect(ok({ ...url, NOVA_EMAIL_LOGIN_CODES: '0' })).toMatchObject({
+      emailLoginCodes: false,
       smtp: null,
     });
+    expect(errors({ ...url, ...mail, NOVA_EMAIL_LOGIN_CODES: 'on' })).toEqual([
+      'NOVA_EMAIL_LOGIN_CODES: 0 or 1, got "on".',
+    ]);
   });
 
   it('requires SMTP for email login codes', () => {
     expect(errors({ ...base, NOVA_EMAIL_LOGIN_CODES: '1' })).toContain(
-      'NOVA_EMAIL_LOGIN_CODES requires SMTP_HOST and mail settings.',
+      'NOVA_EMAIL_LOGIN_CODES is on by default and requires SMTP_HOST and the mail settings; set NOVA_EMAIL_LOGIN_CODES=0 to sign in without a mail code.',
     );
     expect(
       ok({
@@ -67,6 +101,7 @@ describe('configuration', () => {
 
   it('reads the values and trims them', () => {
     const c = ok({
+      ...off,
       NOVA_PUBLIC_URL: ' http://localhost:8080/ ',
       NOVA_HOST: '0.0.0.0',
       NOVA_PORT: '9000',
@@ -95,7 +130,7 @@ describe('configuration', () => {
   });
 
   it('requires a public address without a path', () => {
-    expect(errors({})).toEqual([
+    expect(errors(off)).toEqual([
       'NOVA_PUBLIC_URL is required: the address of the game as players open it.',
     ]);
     for (const bad of [
@@ -104,7 +139,7 @@ describe('configuration', () => {
       'https://x.org/game',
       'https://x.org/?a=1',
     ])
-      expect(errors({ NOVA_PUBLIC_URL: bad })).toEqual([
+      expect(errors({ ...off, NOVA_PUBLIC_URL: bad })).toEqual([
         `NOVA_PUBLIC_URL: an http(s) address without a path, got "${bad}".`,
       ]);
   });
@@ -213,17 +248,19 @@ describe('the slashes at the end of the public address in linear time (#367)', (
   it('are removed as the expression without the start of a run removed them', () => {
     const OLD = /\/+$/;
     sameOn(['/', 'a', '//'], (rest) => {
-      expect(errors({ NOVA_PUBLIC_URL: `${PATH}${rest}` })).toEqual([
+      expect(errors({ ...off, NOVA_PUBLIC_URL: `${PATH}${rest}` })).toEqual([
         `NOVA_PUBLIC_URL: an http(s) address without a path, got "${`${PATH}${rest}`.replace(OLD, '')}".`,
       ]);
     });
     expect(
-      ok({ NOVA_PUBLIC_URL: 'https://game.example.org///' }).publicUrl,
+      ok({ ...off, NOVA_PUBLIC_URL: 'https://game.example.org///' }).publicUrl,
     ).toBe('https://game.example.org');
   });
 
   it('reads many slashes before the end fast (before: about 2 s)', () => {
     const url = `https://game.example.org${'/'.repeat(HOSTILE)}a`;
-    expect(fast(() => errors({ NOVA_PUBLIC_URL: url }))).toHaveLength(1);
+    expect(fast(() => errors({ ...off, NOVA_PUBLIC_URL: url }))).toHaveLength(
+      1,
+    );
   });
 });

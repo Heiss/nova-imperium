@@ -14,6 +14,7 @@ ok() { echo "ok    $1"; }
 bad() { echo "FAIL  $1"; fail=1; }
 check() { if [ "$2" = "$3" ]; then ok "$1"; else bad "$1: expected $2, got $3"; fi; }
 status() { curl -s -o /dev/null -w '%{http_code}' --max-time 10 "$@" || true; }
+. "$(dirname "$0")/signin.sh"
 
 i=0
 until [ "$(status "$GAME/healthz")" = "200" ] || [ $i -ge 60 ]; do i=$((i+1)); sleep 2; done
@@ -47,7 +48,7 @@ docker compose exec -T app nova admin "$who" > /dev/null && ok "made admin throu
 docker compose restart app > /dev/null
 i=0
 until [ "$(status "$GAME/healthz")" = "200" ] || [ $i -ge 30 ]; do i=$((i+1)); sleep 2; done
-login="$(curl -s -X POST -H 'content-type: application/json' -H "origin: $GAME" -d "{\"name\":\"$who\",\"password\":\"smoke-test-passphrase\"}" "$GAME/api/login")"
+login="$(signin "$who" smoke-test-passphrase "$GAME" "$MAIL")"
 case "$login" in *'"admin":true'*) ok "player and admin right survive a restart" ;; *) bad "login after restart: $login" ;; esac
 
 # Maintenance by the operator: players get 503 „Wartung“, the health check stays good.

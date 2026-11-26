@@ -26,11 +26,28 @@ describe('the screen of the login', () => {
     expect(authPage(state({ auth: 'reset', passwordMinLength: 10 }))).toEqual({
       kind: 'reset',
       minLength: 10,
+      app: false,
+      ready: false,
     });
     expect(authPage(state({ auth: 'reset' }))).toEqual({
       kind: 'reset',
       minLength: undefined,
+      app: false,
+      ready: false,
     });
+    // The code of the authenticator app (#401): at the sign-in (text 5) and
+    // on the page of a reset link of an account with one (text 6, 104).
+    expect(authPage(state({ auth: 'app' }))).toEqual({ kind: 'app' });
+    expect(authPage(state({ auth: 'reset', resetApp: true }))).toEqual({
+      kind: 'reset',
+      minLength: undefined,
+      app: true,
+      ready: false,
+    });
+    // „Passwort speichern“ works once the server checked the link (152a).
+    expect(
+      authPage(state({ auth: 'reset', resetApp: true, resetChecked: true })),
+    ).toEqual({ kind: 'reset', minLength: undefined, app: true, ready: true });
   });
 
   it('is the registration only with a checked invitation, with its address and the galaxies to choose from', () => {

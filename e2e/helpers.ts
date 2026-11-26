@@ -173,10 +173,19 @@ export async function loginByCode(
   password = 'ein-sicheres-testpasswort',
 ): Promise<void> {
   await page.goto(E2E_MAIL_URL);
+  // The mail goes in the background (#401): the code is in a mail that
+  // comes after the ones there are now, not in an older one.
+  const before = mailsTo(E2E_MAILBOX, emailOf(name)).length;
   await page.fill('#a_name', name);
   await page.fill('#a_pw', password);
   await page.click('button[type=submit]');
   await expect(page.locator('.auth .hd')).toHaveText('Anmeldecode');
+  await expect
+    .poll(() => mailsTo(E2E_MAILBOX, emailOf(name)).length, {
+      message: `a new mail to ${emailOf(name)}`,
+      timeout: 10000,
+    })
+    .toBeGreaterThan(before);
   const [, code] = await mail(emailOf(name), /Anmeldecode lautet (\d{6})\./);
   await page.getByLabel('Sechsstelliger Code aus deiner E-Mail').fill(code!);
   await page.getByRole('button', { name: 'Anmelden' }).click();
