@@ -1,0 +1,30 @@
+{
+  "ask": "Sollen mehrere Flotten gleichzeitig geplant werden können (mehrere Flotten-Fenster offen)?",
+  "id": "d5",
+  "kind": "sit",
+  "order": "cab",
+  "round": "d4",
+  "roundTitle": "Desktop 4 · Forschung, Flotte, Herold und Börse",
+  "seq": 380,
+  "short": "Desktop: Flotte",
+  "station": 7,
+  "text": "Deine Wahl: Aurelia aus dem System-Fenster auf ein System ziehen öffnet ein Ziel-Fenster (d2); am Handy kommen Vorlagen, die Auswahl Schiff für Schiff bleibt möglich, Vorlagen je Spieler (s9). Wo wählst du am Desktop Vorlage und Schiffe? Laderaum aus dem Katalog, Zeiten sind Beispiele.",
+  "title": "Am Desktop: die Flotte mit Vorlagen losschicken",
+  "variants": {
+    "a": {
+      "desc": "Alles im Ziel-Fenster: Aktion, Vorlage, Schiffe, Losschicken.",
+      "emph": "Desktop-Flotte: ein Fenster",
+      "img": "/_blob/4067a9e356ca08d0f2ce29a78082cdd6"
+    },
+    "b": {
+      "desc": "Ziel-Fenster für Welt und Aktion, daneben ein eigenes Fenster „Flotte“ für Vorlage und Schiffe.",
+      "emph": "Desktop-Flotte: zwei Fenster",
+      "img": "/_blob/a229edf3b36a76e96e97d79517ecb55e"
+    },
+    "c": {
+      "desc": "Nach dem Ziehen öffnet sich unten das breite Blatt: Vorlagen, Schiffe, Abflug nebeneinander.",
+      "emph": "Desktop-Flotte: breites Blatt",
+      "img": "/_blob/dfd5239cdee9922cf5e5a9faa0473e5a"
+    }
+  }
+}

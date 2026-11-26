@@ -1,0 +1,48 @@
+{
+  "kind": "quest",
+  "questions": [
+    {
+      "id": "focus",
+      "label": "Worauf achtest du beim Vergleichen am meisten?",
+      "options": [
+        "schnell erfassen, was los ist",
+        "wenige Klicks",
+        "Atmosphäre und Optik",
+        "alles auf einen Blick",
+        "mit dem Daumen bedienbar",
+        "vertraut, wie früher"
+      ],
+      "type": "multi"
+    },
+    {
+      "id": "device",
+      "label": "Wo spielst du meistens?",
+      "options": ["Handy", "Desktop", "beides gleich"],
+      "type": "one"
+    },
+    {
+      "id": "visit",
+      "label": "Wie lange dauert ein typischer Besuch?",
+      "options": [
+        "unter 2 Minuten",
+        "2 bis 10 Minuten",
+        "länger als 10 Minuten"
+      ],
+      "type": "one"
+    },
+    {
+      "id": "first",
+      "label": "Was willst du direkt nach dem Login als Erstes wissen?",
+      "type": "text"
+    },
+    {
+      "id": "next",
+      "label": "Was soll ich in der nächsten Runde zeigen oder anders machen?",
+      "type": "text"
+    }
+  ],
+  "round": "r1",
+  "roundTitle": "Runde 1 · Ankommen und bauen",
+  "seq": 70,
+  "short": "Fragen Runde 1"
+}

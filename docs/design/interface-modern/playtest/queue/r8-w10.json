@@ -1,0 +1,19 @@
+{
+  "id": "w10",
+  "kind": "sit",
+  "order": "a",
+  "round": "r8",
+  "roundTitle": "Runde 8 · Welt und Konto (Handy)",
+  "seq": 600,
+  "short": "Problem melden",
+  "station": 0,
+  "text": "Heute ein Kasten in den Optionen. Hier ein Blatt aus dem Menü; Seite, Gerät, Version und Zeit gehen automatisch mit. Ein Vorschlag: wähle ihn, wenn er passt, und schreib Korrekturen in die Notiz.",
+  "title": "Problem melden (Vorschlag)",
+  "variants": {
+    "a": {
+      "desc": "Ein Blatt mit einem Textfeld; der Rest geht automatisch mit.",
+      "emph": "Problem melden: Blatt",
+      "img": "/_blob/43dd5c5115318be60ca6247d27f30ff4"
+    }
+  }
+}

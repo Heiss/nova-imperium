@@ -1,0 +1,30 @@
+{
+  "ask": "Soll man mehrere Forschungen vormerken können (eine Schlange), auch wenn das Spiel heute nur eine auf einmal forscht?",
+  "id": "s5",
+  "kind": "sit",
+  "order": "cab",
+  "round": "r2",
+  "roundTitle": "Runde 2 · Forschen, verteidigen, auskundschaften",
+  "seq": 100,
+  "short": "Forschung",
+  "station": 4,
+  "text": "Du willst die Plasma-Lehre. Dafür fehlt Ionen-Lehre 5; Warp-Antrieb 5 läuft noch bis 16:32. Kosten aus dem Katalog, Zeiten sind Beispiele.",
+  "title": "Forschung: Plasma-Lehre ist das Ziel",
+  "variants": {
+    "a": {
+      "desc": "Kompakt-Raster aller Forschungen; antippen öffnet die Infoseite mit „In die Forschungsschlange“.",
+      "emph": "Ansicht: Raster",
+      "img": "img/r2-s5-a.jpg"
+    },
+    "b": {
+      "desc": "Ein Baum der Voraussetzungen; der Weg zum Ziel ist hervorgehoben.",
+      "emph": "Ansicht: Baum",
+      "img": "img/r2-s5-b.jpg"
+    },
+    "c": {
+      "desc": "Ein Ziel wählen; das Spiel zeigt die Schritte dahin, Kosten, Gesamtzeit, und legt alle in die Schlange.",
+      "emph": "Ansicht: Ziel mit Weg",
+      "img": "img/r2-s5-c.jpg"
+    }
+  }
+}

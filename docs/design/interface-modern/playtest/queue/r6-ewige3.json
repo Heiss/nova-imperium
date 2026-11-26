@@ -1,0 +1,30 @@
+{
+  "ask": "Passen die Begriffe (Sternkarte, Chronik, Zeitlauf, Kreis), oder hast du eigene?",
+  "id": "ewige3",
+  "kind": "sit",
+  "order": "cab",
+  "round": "r6",
+  "roundTitle": "Runde 6 · Wiederholungen",
+  "seq": 350,
+  "short": "Ewige: nur Rahmen",
+  "station": 0,
+  "text": "Deine Korrektur: nur die Bedienelemente ändern sich und tragen das Technische, vor allem die Rahmen (wie bei den Protoss, nur als Anregung). Alle mit 65°-Knicken, Begriffe feierlich-alt (Vorschläge: Sternkarte, Chronik, Zeitlauf, Kreis). Die Karte ist dieselbe wie beim Imperium.",
+  "title": "Die Ewigen ein drittes Mal: nur die Rahmen",
+  "variants": {
+    "a": {
+      "desc": "Bronze-Doppelrahmen mit 65°-Ecken, ein leuchtender Edelstein in der Mitte der Kanten.",
+      "emph": "Ewige-Rahmen: Bronze und Edelstein",
+      "img": "/_blob/9093cc94e5abe1a597395b332893c150"
+    },
+    "b": {
+      "desc": "Doppelrahmen mit Uhr-Ringen an den Ecken des Blatts und an der Leiste.",
+      "emph": "Ewige-Rahmen: Uhr-Ringe",
+      "img": "/_blob/fbf2e49bbf38872fc8665adc11ae3593"
+    },
+    "c": {
+      "desc": "Ein feiner Rahmen mit eingravierten 65°-Kerben, fast keine Bewegung.",
+      "emph": "Ewige-Rahmen: Gravur",
+      "img": "/_blob/d6a21b24c318079235fa656b7212e955"
+    }
+  }
+}

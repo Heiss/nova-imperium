@@ -1,0 +1,30 @@
+{
+  "ask": "Sollen mehrere Berichte gleichzeitig offen sein können (zum Vergleichen)?",
+  "id": "d7",
+  "kind": "sit",
+  "order": "bca",
+  "round": "d4",
+  "roundTitle": "Desktop 4 · Forschung, Flotte, Herold und Börse",
+  "seq": 410,
+  "short": "Desktop: Berichte",
+  "station": 8,
+  "text": "Deine Wahl vom Handy: Berichte als Liste nach Zeit mit Filtern; ein Bericht öffnet sich im Blatt seiner Welt und ist auch über Zeitleiste und Welt erreichbar. Wie am Desktop?",
+  "title": "Am Desktop: Berichte",
+  "variants": {
+    "a": {
+      "desc": "Die Liste als Fenster, der gewählte Bericht als zweites Fenster daneben.",
+      "emph": "Desktop-Berichte: zwei Fenster",
+      "img": "/_blob/931710d47f8dddcf0f015c70629a2ac7"
+    },
+    "b": {
+      "desc": "Die Liste als Reiter im Lage-Blatt, der Bericht als Fenster.",
+      "emph": "Desktop-Berichte: Liste im Blatt",
+      "img": "/_blob/b3e3b562f145b0d1187b742f072f975b"
+    },
+    "c": {
+      "desc": "Die Liste als Fenster, der Bericht öffnet sich auf der Karte an seiner Welt.",
+      "emph": "Desktop-Berichte: an der Welt",
+      "img": "/_blob/35f2581ff8fea577cfa201c334be01ac"
+    }
+  }
+}

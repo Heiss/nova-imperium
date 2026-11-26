@@ -1,0 +1,30 @@
+{
+  "ask": "Sollen Vorlagen pro Spieler speicherbar sein, oder reicht ein automatischer Vorschlag „passend zur Beute“?",
+  "id": "s9",
+  "kind": "sit",
+  "order": "acb",
+  "round": "r3",
+  "roundTitle": "Runde 3 · Spionage, Bericht, Flotte",
+  "seq": 160,
+  "short": "Flotte senden",
+  "station": 7,
+  "text": "Du hast im Bericht „Angreifen“ getippt. Auf Aurelia stehen 60 Abfangjäger, 20 Fregatten und 30 Lastbarken. Laderaum aus dem Katalog (Abfangjäger 50, Fregatte 800, Lastbarke 25.000): 24 Lastbarken reichen für die Beute von 600 k. Zeiten sind Beispiele.",
+  "title": "Angreifen: die Flotte losschicken",
+  "variants": {
+    "a": {
+      "desc": "Blatt in drei Schritten (Ziel, Schiffe, Abflug); Lastbarken passend zur Beute vorgeschlagen.",
+      "emph": "Flotte: Schritte im Blatt",
+      "img": "/_blob/f0514e7a800e973505648d1bb182c927"
+    },
+    "b": {
+      "desc": "Auf der Karte von deiner Welt zum Ziel ziehen; die Route zeigt Ankunft und Rückkehr, das Blatt nur die Schiffe als Chips.",
+      "emph": "Flotte: Route auf der Karte ziehen",
+      "img": "/_blob/2be382417428a462e591bbf42ec3f9aa"
+    },
+    "c": {
+      "desc": "Vorlagen: „Raubzug“, „Alles“, „Nur Laderaum“ oder eine eigene; ein Tipp schickt los.",
+      "emph": "Flotte: Vorlagen",
+      "img": "/_blob/d2240524ffc5f33d95a76afdfe7ece6e"
+    }
+  }
+}

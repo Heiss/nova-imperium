@@ -1,0 +1,19 @@
+{
+  "id": "w11",
+  "kind": "sit",
+  "order": "a",
+  "round": "r8",
+  "roundTitle": "Runde 8 · Welt und Konto (Handy)",
+  "seq": 610,
+  "short": "Konto",
+  "station": 0,
+  "text": "Heute drei Kästen (Passwort ändern, Passkeys, Account löschen). Hier eine Seite: die Passkeys oben, das Passwort darunter, „Account löschen“ abgesetzt in Rot. Ein Vorschlag: wähle ihn, wenn er passt, und schreib Korrekturen in die Notiz.",
+  "title": "Konto: Passkeys, Passwort, löschen (Vorschlag)",
+  "variants": {
+    "a": {
+      "desc": "Passkeys oben, Passwort darunter, Löschen in Rot.",
+      "emph": "Konto: eine Seite",
+      "img": "/_blob/11d37cd93b2d64dfbba5a229787dee36"
+    }
+  }
+}

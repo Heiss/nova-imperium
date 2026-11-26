@@ -1,0 +1,30 @@
+{
+  "ask": "Am Desktop gibt es die Maus: sollen Namen und Infos schon beim Überfahren erscheinen (wie die Karte bei 1:31), oder wie am Handy erst beim Klick?",
+  "id": "d1",
+  "kind": "sit",
+  "order": "cab",
+  "round": "d1",
+  "roundTitle": "Desktop 1 · Karte und Lage am großen Bildschirm",
+  "seq": 140,
+  "short": "Desktop: Karte + Lage",
+  "station": 0,
+  "text": "Dieselbe Lage wie in Runde 1, jetzt am Desktop (1280 Pixel breit): Galaxie mit Punkten, Namen auf Klick, die Lage als Zeitleiste, dieselben Farben. Nur die Anordnung unterscheidet sich.",
+  "title": "Am Desktop: Galaxie und Lage",
+  "variants": {
+    "a": {
+      "desc": "Seitenleiste: die Lage-Zeitleiste ist rechts immer offen; links eine Leiste mit den fünf Bereichen.",
+      "emph": "Desktop: Seitenleiste",
+      "img": "/_blob/987e433436144815c12cb6cefe138e05"
+    },
+    "b": {
+      "desc": "Wie am Handy: die Lage ist ein Blatt unten (hier halb hochgezogen, Vergangenes links, Kommendes rechts); die Bereiche stehen oben.",
+      "emph": "Desktop: Blatt wie am Handy",
+      "img": "/_blob/b86eebb46d8b7806934b31197af9f5c3"
+    },
+    "c": {
+      "desc": "Fenster: die Karte füllt den Schirm; Lage und System öffnen sich als Fenster, die man verschieben und schließen kann.",
+      "emph": "Desktop: Fenster",
+      "img": "/_blob/c5b54277359654afa6549aace8e4f2be"
+    }
+  }
+}

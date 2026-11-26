@@ -1,0 +1,30 @@
+{
+  "ask": "Sollen die Rahmen der Rasse auch am Desktop gleich aussehen, oder dort zurückhaltender sein?",
+  "id": "races",
+  "kind": "sit",
+  "order": "abc",
+  "round": "gv",
+  "roundTitle": "Gesamtbild",
+  "seq": 500,
+  "short": "Gesamtbild Rassen",
+  "station": 0,
+  "text": "Die drei Rassen mit ihren Gewinner-Rahmen auf derselben Karte. Imperium: Goldleisten mit goldenerem Zierrat, still. Brut: ruhiges Chitin, Rippen oben, kleine Knochensporne unten, zäher Schleim. Ewige: dunkle, gravierte Bronze mit 65°-Ecken; der Edelstein ist rot, weil gerade ein Angriff läuft. Wähle die Rasse, die am meisten Korrektur braucht, und schreib, was; passt alles, schreib „passt“.",
+  "title": "Gesamtbild: die drei Rassen",
+  "variants": {
+    "a": {
+      "desc": "Imperium.",
+      "emph": "Gesamtbild: Imperium",
+      "img": "/_blob/6794371589af0df2106c378dace97375"
+    },
+    "b": {
+      "desc": "Brut.",
+      "emph": "Gesamtbild: Brut",
+      "img": "/_blob/e761ce0bd02b5d86f2fae252468a3fa6"
+    },
+    "c": {
+      "desc": "Ewige.",
+      "emph": "Gesamtbild: Ewige",
+      "img": "/_blob/db8ad662dade9723d6ffe1bd9ff832b9"
+    }
+  }
+}

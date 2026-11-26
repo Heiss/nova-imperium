@@ -1,0 +1,30 @@
+{
+  "ask": "Woran entscheidest du, was du gegen einen Angriff baust? (Stärke des Angreifers, Rohstoffe, Zeit, Hilfe der Gilde …)",
+  "id": "s6",
+  "kind": "sit",
+  "order": "bca",
+  "round": "r2",
+  "roundTitle": "Runde 2 · Forschen, verteidigen, auskundschaften",
+  "seq": 110,
+  "short": "Abwehr",
+  "station": 5,
+  "text": "Nox wird um 14:32 angegriffen. Auf Nox liegen 61 k Adamant, 33 k Psikristall, 12 k Promethium. Kosten aus dem Katalog, Bauzeiten sind Beispiele.",
+  "title": "Abwehr auf Nox vor dem Angriff",
+  "variants": {
+    "a": {
+      "desc": "Kompakt-Raster der Abwehr; antippen, Menge wählen, sehen ob sie vor dem Angriff fertig wird.",
+      "emph": "Ansicht: Raster + Menge",
+      "img": "img/r2-s6-a.jpg"
+    },
+    "b": {
+      "desc": "Eine Anlage groß, die Menge ziehen; Rohstoff-Balken und eine Zeitleiste bis zum Angriff.",
+      "emph": "Ansicht: Menge mit Zeitleiste",
+      "img": "img/r2-s6-b.jpg"
+    },
+    "c": {
+      "desc": "„Was schaffst du bis 14:32?“: Vorschläge, die mit den Rohstoffen vor dem Angriff fertig werden.",
+      "emph": "Ansicht: Vorschläge bis zum Termin",
+      "img": "img/r2-s6-c.jpg"
+    }
+  }
+}

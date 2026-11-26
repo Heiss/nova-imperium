@@ -1,0 +1,19 @@
+{
+  "id": "d17",
+  "kind": "sit",
+  "order": "a",
+  "round": "d11",
+  "roundTitle": "Runde d11 · Welt und Konto (Desktop)",
+  "seq": 710,
+  "short": "Kolonie aufgeben (Desktop)",
+  "station": 0,
+  "text": "Am Handy abgenickt; am Desktop derselbe Inhalt als Fenster über der Karte. Ein Dialog in der Mitte; dahinter ist alles abgedunkelt. Ein Vorschlag: wähle ihn, wenn er passt, und schreib Korrekturen in die Notiz.",
+  "title": "Kolonie aufgeben am Desktop (Vorschlag)",
+  "variants": {
+    "a": {
+      "desc": "Ein Dialog in der Mitte; dahinter ist alles abgedunkelt.",
+      "emph": "Aufgeben: Dialog",
+      "img": "/_blob/5b92af8290e0afcdc2f234fb8876a3b3"
+    }
+  }
+}

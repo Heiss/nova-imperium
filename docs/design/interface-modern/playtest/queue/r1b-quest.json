@@ -1,0 +1,34 @@
+{
+  "kind": "quest",
+  "questions": [
+    {
+      "id": "brut_more",
+      "label": "Dein Satz zur Brut endete mit „dass das interface dann eben organische …“. Wie ging er weiter?",
+      "type": "text"
+    },
+    {
+      "id": "friends",
+      "label": "Du willst fremde Spieler, Feinde, Gilde, Freunde und dich selbst sofort unterscheiden. Bisher gibt es Farben für dich, Gilde, Krieg und andere; Freunde fehlen. Wie sollen Freunde aussehen?",
+      "options": [
+        "eigene Farbe für Freunde",
+        "Farbe der Gilde, aber ein anderes Zeichen",
+        "Freunde und Gilde gleich"
+      ],
+      "type": "one"
+    },
+    {
+      "id": "enemy",
+      "label": "Wer gilt für dich als „Feind“ (rote Farbe)?",
+      "options": [
+        "Gilden im Krieg mit meiner Gilde",
+        "wer mich in letzter Zeit angegriffen hat",
+        "wen ich selbst als Feind markiere"
+      ],
+      "type": "multi"
+    }
+  ],
+  "round": "r1b",
+  "roundTitle": "Runde 1b · Die Rassen",
+  "seq": 95,
+  "short": "Fragen Rassen"
+}

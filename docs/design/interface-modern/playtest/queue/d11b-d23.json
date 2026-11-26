@@ -1,0 +1,20 @@
+{
+  "ask": "Soll die Galaxienwahl zeigen, wie viele Spieler dort schon sind, oder bleibt es bei „keine Angaben zur Runde“?",
+  "id": "d23",
+  "kind": "sit",
+  "order": "a",
+  "round": "d11b",
+  "roundTitle": "Nachtrag zu d11 · Registrierung und Fenster",
+  "seq": 780,
+  "short": "Registrierung (Desktop)",
+  "station": 0,
+  "text": "Deine Antworten: ein Passkey gleich beim Gründen; vor dem Anmelden keine Angaben zur Runde. Am Desktop derselbe Inhalt in der Karte in der Mitte (wie dein Login). Das Bild am Handy ist genauso angepasst. Ein Vorschlag: wähle ihn, wenn er passt, und schreib Korrekturen in die Notiz.",
+  "title": "Registrierung am Desktop (Vorschlag)",
+  "variants": {
+    "a": {
+      "desc": "Die Registrierung in der Karte in der Mitte; Galaxie auf der Karte, Passkey zuerst.",
+      "emph": "Registrierung: Karte in der Mitte",
+      "img": "/_blob/6a42a9df68610a7012c787e950a0b908"
+    }
+  }
+}

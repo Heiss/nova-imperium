@@ -1,0 +1,30 @@
+{
+  "ask": "Brauchst du „Gesendet“ als eigene Liste, oder reichen die Verläufe, in denen auch deine Nachrichten stehen?",
+  "id": "s20",
+  "kind": "sit",
+  "order": "bca",
+  "round": "r9",
+  "roundTitle": "Runde 9 · Soziales (Handy)",
+  "seq": 800,
+  "short": "Nachrichten",
+  "station": 0,
+  "text": "Heute: „Nachrichten“ mit den Reitern Berichte, Posteingang, Gesendet. Entschieden (s12): der Gilden-Chat ist der Reiter „Funk“ im Lage-Blatt. Offen (W4): kommen die persönlichen Gespräche dazu? Ohne #382 hat das Lage-Blatt keinen Reiter „Herold“.",
+  "title": "Persönliche Nachrichten und der Gilden-Chat",
+  "variants": {
+    "a": {
+      "desc": "Ein Reiter „Funk“ für alles: die Gilde oben, darunter deine Gespräche.",
+      "emph": "Nachrichten: alles in „Funk“",
+      "img": "/_blob/1294146c9765af90a72f86d5b0af8451"
+    },
+    "b": {
+      "desc": "„Funk“ mit zwei Reitern: Gilde und Persönlich.",
+      "emph": "Nachrichten: „Funk“ mit Gilde | Persönlich",
+      "img": "/_blob/f6927da26e50a33c8e698e1736bb5f22"
+    },
+    "c": {
+      "desc": "Eine eigene Seite „Nachrichten“ (Posteingang, Gesendet, Einstellungen); „Funk“ bleibt nur die Gilde.",
+      "emph": "Nachrichten: eigene Seite",
+      "img": "/_blob/052d5514c88bd7f9370019cea2c0498e"
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "ask": "Sollen Gildenmitglieder auf der Karte immer sichtbar sein, oder nur in der Ebene „Gilde“?",
+  "id": "d10",
+  "kind": "sit",
+  "order": "acb",
+  "round": "d8",
+  "roundTitle": "Desktop 5 · Welten, Menü, Gilde",
+  "seq": 480,
+  "short": "Desktop: Gilde",
+  "station": 11,
+  "text": "Deine Wahl vom Handy: der Chat ist der Reiter „Funk“ im Lage-Blatt, nur Nachrichten; Ereignisse der Mitglieder in der Zeitleiste mit Gildenfilter. Wo stehen am Desktop die Mitglieder?",
+  "title": "Am Desktop: die Gilde",
+  "variants": {
+    "a": {
+      "desc": "Ein Gilden-Fenster mit Mitgliedern links und Chat rechts.",
+      "emph": "Desktop-Gilde: ein Fenster",
+      "img": "/_blob/ef1e6b40d146f76c8d15807cb0e61b71"
+    },
+    "b": {
+      "desc": "Chat im Lage-Blatt (Funk), die Mitglieder als kleines Fenster.",
+      "emph": "Desktop-Gilde: Chat im Blatt, Mitglieder als Fenster",
+      "img": "/_blob/a3ad214abc7fdc7fb2cf8c014d2c5d4d"
+    },
+    "c": {
+      "desc": "Eine Kartenebene „Gilde“ zeigt die Mitglieder an ihren Systemen, der Chat im Blatt.",
+      "emph": "Desktop-Gilde: Mitglieder auf der Karte",
+      "img": "/_blob/8a9d5f627413d169f2738d92efc1debf"
+    }
+  }
+}

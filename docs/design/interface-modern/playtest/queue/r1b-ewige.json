@@ -1,0 +1,30 @@
+{
+  "ask": "Wie viel Bewegung soll die Oberfläche der Ewigen haben: so ruhig wie hier, mehr, oder gar keine?",
+  "id": "ewige",
+  "kind": "sit",
+  "order": "cab",
+  "round": "r1b",
+  "roundTitle": "Runde 1b · Die Rassen",
+  "seq": 90,
+  "short": "Ewige",
+  "station": 0,
+  "text": "Die Ewigen sind die Maschinen-Rasse: langsam, kühl, präzise. Auch hier bleibt der Aufbau gleich; die Bilder bewegen sich leicht.",
+  "title": "Die Ewigen: dieselbe Karte",
+  "variants": {
+    "a": {
+      "desc": "Monolith: schwarze Flächen, abgeschnittene Ecken, feines Raster, ein Lichtstreifen wandert über die Karte.",
+      "emph": "Ewige: Monolith",
+      "img": "img/r1b-ewige-a.gif"
+    },
+    "b": {
+      "desc": "Uhrwerk: Ringe um dein System drehen sich langsam, Ränder ticken wie ein Zeiger.",
+      "emph": "Ewige: Uhrwerk",
+      "img": "img/r1b-ewige-b.gif"
+    },
+    "c": {
+      "desc": "Kristallgitter: Waben-Gitter, ein Lichtpunkt läuft die Kanten entlang, Flächen wie geschliffen.",
+      "emph": "Ewige: Kristallgitter",
+      "img": "img/r1b-ewige-c.gif"
+    }
+  }
+}

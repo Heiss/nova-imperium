@@ -1,0 +1,29 @@
+{
+  "id": "s4",
+  "kind": "sit",
+  "order": "bac",
+  "round": "r1",
+  "roundTitle": "Runde 1 · Ankommen und bauen",
+  "seq": 50,
+  "short": "Gebäude-Info",
+  "station": 3,
+  "text": "Im Kompakt-Modus tippst du auf die Servitorenschmiede. Es fehlt Promethium; leistbar wäre sie um 18:39.",
+  "title": "Kompakt-Modus: Infoseite eines Gebäudes",
+  "variants": {
+    "a": {
+      "desc": "Eigene Seite mit Reitern; Kosten Zeile für Zeile grün oder rot; „Erinnern, wenn leistbar“.",
+      "emph": "Schwerpunkt Browser-Strategie (Travian, Forge of Empires, Grepolis)",
+      "img": "img/r1-s4-a.jpg"
+    },
+    "b": {
+      "desc": "Fenster mit Stufentabelle, Kosten und Abhängigkeiten; „In Warteschlange“.",
+      "emph": "Schwerpunkt 4X / Weltraum (Stellaris, EVE Online)",
+      "img": "img/r1-s4-b.jpg"
+    },
+    "c": {
+      "desc": "Großes Blatt: Bild, ein Satz Wirkung, Kosten als farbige Chips, großer Knopf; wischen zum nächsten Gebäude.",
+      "emph": "Schwerpunkt Mobile Strategie (Clash of Clans, Rise of Kingdoms)",
+      "img": "img/r1-s4-c.jpg"
+    }
+  }
+}

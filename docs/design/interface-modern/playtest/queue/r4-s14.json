@@ -1,0 +1,30 @@
+{
+  "ask": "Soll die Lieferzeit (Entfernung zum Händler) beim besten Kurs mitzählen, oder zählt nur der Preis?",
+  "id": "s14",
+  "kind": "sit",
+  "order": "cab",
+  "round": "r4",
+  "roundTitle": "Runde 4 · Kolonie, Gilde, Herold, Börse",
+  "seq": 220,
+  "short": "Börse",
+  "station": 11,
+  "text": "Dein Psikristall-Lager ist in 1 h 40 voll. In der Börse (#386) liefern beide Seiten mit Lastbarken, die Ware liegt in Treuhand, bis beide angekommen sind. Preise sind Beispiele; 40.000 Psikristall brauchen 2 Lastbarken (Laderaum aus dem Katalog).",
+  "title": "Psikristall loswerden: die Börse",
+  "variants": {
+    "a": {
+      "desc": "Orderbuch: Gebote und Angebote, darunter ein Auftrag mit Menge, Preis und Lieferung.",
+      "emph": "Börse: Orderbuch",
+      "img": "/_blob/e6b673937a0acd93c43e35e92037e842"
+    },
+    "b": {
+      "desc": "„Tauschen“ im Blatt: du gibst, du bekommst, zum besten Kurs; ein eigener Preis geht ins Buch.",
+      "emph": "Börse: Tauschen im Blatt",
+      "img": "/_blob/8fc7ebe5ed8345dfd737c550829a8bb7"
+    },
+    "c": {
+      "desc": "Kartenebene: Gebote stehen an den Systemen der Händler, mit Lieferzeit, weil Flotten liefern.",
+      "emph": "Börse: Kartenebene mit Lieferzeit",
+      "img": "/_blob/5bf1aca0b9af59412e14adfe1144123d"
+    }
+  }
+}

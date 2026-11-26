@@ -1,0 +1,19 @@
+{
+  "id": "d19",
+  "kind": "sit",
+  "order": "a",
+  "round": "d11",
+  "roundTitle": "Runde d11 · Welt und Konto (Desktop)",
+  "seq": 730,
+  "short": "Benachrichtigungen (Desktop)",
+  "station": 0,
+  "text": "Am Handy abgenickt; am Desktop derselbe Inhalt als Fenster über der Karte. Ein Fenster aus Menü › Optionen. Ein Vorschlag: wähle ihn, wenn er passt, und schreib Korrekturen in die Notiz.",
+  "title": "Benachrichtigungen am Desktop (Vorschlag)",
+  "variants": {
+    "a": {
+      "desc": "Ein Fenster aus Menü › Optionen.",
+      "emph": "Benachrichtigungen: Fenster",
+      "img": "/_blob/218303612206d3338abb77b9ab50b553"
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "ask": "Soll „Zurückbauen“ auch im Kompakt-Modus erscheinen oder nur auf der Standard-Seite des Gebäudes?",
+  "id": "w5",
+  "kind": "sit",
+  "order": "a",
+  "round": "r8",
+  "roundTitle": "Runde 8 · Welt und Konto (Handy)",
+  "seq": 550,
+  "short": "Zurückbauen",
+  "station": 0,
+  "text": "Heute ein Knopf in der Zeile des Gebäudes, dann eine Bestätigung. Hier im Info-Blatt unter „Ausbauen“, mit Erstattung, Dauer und dem frei werdenden Feld. Erstattung und Dauer stellt der Admin je Runde ein; die Werte sind Beispiele. Ein Vorschlag: wähle ihn, wenn er passt, und schreib Korrekturen in die Notiz.",
+  "title": "Zurückbauen (Vorschlag)",
+  "variants": {
+    "a": {
+      "desc": "Zurückbauen im Info-Blatt, die Bestätigung direkt darunter.",
+      "emph": "Zurückbauen: im Info-Blatt",
+      "img": "/_blob/e826227c5aa4d0732af3980572237c72"
+    }
+  }
+}

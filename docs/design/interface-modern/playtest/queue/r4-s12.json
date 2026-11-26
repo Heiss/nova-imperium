@@ -1,0 +1,30 @@
+{
+  "ask": "Soll der Gilden-Chat auch Ereignisse der Mitglieder zeigen (z. B. „Mira hält Nox“), oder nur Nachrichten?",
+  "id": "s12",
+  "kind": "sit",
+  "order": "abc",
+  "round": "r4",
+  "roundTitle": "Runde 4 · Kolonie, Gilde, Herold, Börse",
+  "seq": 200,
+  "short": "Gilde + Chat",
+  "station": 11,
+  "text": "Mira schreibt im Gilden-Chat, dass sie Nox hält. Wo liest und schreibst du Nachrichten? Deine Idee aus der Dashboard-Studie war ein Chat unten rechts. Namen außer Mira sind Beispiele.",
+  "title": "Gilde und Chat",
+  "variants": {
+    "a": {
+      "desc": "Chat-Knopf unten rechts; er öffnet ein Fenster über der Karte mit Gilde, Direkt und Allgemein.",
+      "emph": "Chat: Knopf unten rechts",
+      "img": "/_blob/eb207b11fe124ea5b90c4f96d341d874"
+    },
+    "b": {
+      "desc": "Der Chat ist ein Reiter „Funk“ im Lage-Blatt, neben der Zeitleiste.",
+      "emph": "Chat: Reiter im Lage-Blatt",
+      "img": "/_blob/b72fa1b3c28809e4b0d4bc02a771baad"
+    },
+    "c": {
+      "desc": "Eigene Seite „Gilde“: Mitglieder mit online-Status und was sie gerade tun, darunter der Gilden-Chat.",
+      "emph": "Chat: Gildenseite",
+      "img": "/_blob/b093641b3a789e241bdb9baa8c99b431"
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "ask": "Was willst du in der System-Ansicht bei fremden Welten sehen? (z. B. Spieler, Aktivität, Alter deines Spionageberichts, Trümmerfeld, Mond)",
+  "id": "s1s",
+  "kind": "sit",
+  "order": "cab",
+  "round": "r1",
+  "roundTitle": "Runde 1 · Ankommen und bauen",
+  "seq": 20,
+  "short": "Eigenes System",
+  "station": 0,
+  "text": "Du tippst auf dein System 1:27. Es hat 15 Positionen; drei gehören dir (Nox, Aurelia, Vesper), auf 14 liegt der Stille Hafen von Leander, der Rest ist frei. Der Lage-Schieber bleibt unten.",
+  "title": "In dein System hineinzoomen",
+  "variants": {
+    "a": {
+      "desc": "Umlaufbahnen von der Sonne aus; Welten mit Bild, Name und Zustand an ihrer Position.",
+      "emph": "Darstellung: Umlaufbahnen",
+      "img": "img/r1-s1s-a.jpg"
+    },
+    "b": {
+      "desc": "Liste der 15 Positionen; eigene Welten hervorgehoben, freie Plätze mit „besiedeln“; blättern zu 1:26 und 1:28.",
+      "emph": "Darstellung: Liste",
+      "img": "img/r1-s1s-b.jpg"
+    },
+    "c": {
+      "desc": "Ring um die Sonne wie eine Uhr; 15 Plätze, eigene Welten groß mit blauem Rand.",
+      "emph": "Darstellung: Ring",
+      "img": "img/r1-s1s-c.jpg"
+    }
+  }
+}

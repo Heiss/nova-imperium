@@ -1,0 +1,30 @@
+{
+  "ask": "Ist das jetzt die Richtung, oder fehlt noch etwas Bestimmtes?",
+  "id": "brut4",
+  "kind": "sit",
+  "order": "cab",
+  "round": "r6",
+  "roundTitle": "Runde 6 · Wiederholungen",
+  "seq": 360,
+  "short": "Brut: mehr Schmodder",
+  "station": 0,
+  "text": "Deine Wahl: Chitin-Stacheln an Leiste, Blatt und Reitern mit Adern; organischer, mit erkennbaren Adern, mehr Schmodder; nur Ränder und große Flächen. Die Adern liegen jetzt erhaben auf den Flächen, aber nicht über der Schrift.",
+  "title": "Die Brut ein viertes Mal: deutliche Adern, mehr Schmodder",
+  "variants": {
+    "a": {
+      "desc": "Adernetz: dicke, verzweigte Adern auf Leiste, Blatt und Reitern, Schleimperlen an den Stacheln.",
+      "emph": "Brut: Adernetz",
+      "img": "/_blob/18495a60adff0216366541d36b1e9832"
+    },
+    "b": {
+      "desc": "Schmodder: Schleim läuft an der Kante entlang und tropft von den Stacheln.",
+      "emph": "Brut: Schmodder",
+      "img": "/_blob/25bc2319ae9a58a11c524fa1b196a481"
+    },
+    "c": {
+      "desc": "Fleisch: ein Hautwulst unter den Stacheln, Adern darin, Schleimfäden zwischen den Stacheln.",
+      "emph": "Brut: Fleisch und Fäden",
+      "img": "/_blob/d20a0bfc9e913107c0665bedfdaa9347"
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "id": "w9",
+  "kind": "sit",
+  "order": "a",
+  "round": "r8",
+  "roundTitle": "Runde 8 · Welt und Konto (Handy)",
+  "seq": 590,
+  "short": "Benachrichtigungen",
+  "station": 0,
+  "text": "Heute drei Kästen (App installieren, Benachrichtigungen, Browser-Benachrichtigungen). Hier eine Seite: das Gerät oben, darunter die 13 Arten nach Gruppen als Schalter (Bau, Flotten, Gilde und Nachrichten, Server). Ein Vorschlag: wähle ihn, wenn er passt, und schreib Korrekturen in die Notiz.",
+  "title": "Benachrichtigungen und App (Vorschlag)",
+  "variants": {
+    "a": {
+      "desc": "Gerät oben, die Arten nach Gruppen als Schalter.",
+      "emph": "Benachrichtigungen: Gruppen",
+      "img": "/_blob/d50e0a61445526cb3a7a5fcf9fd7cf67"
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "ask": "Ist die Farbe jetzt ruhig genug, oder soll sie noch dunkler oder in eine andere Richtung (mehr Braun, mehr Lila)?",
+  "id": "brut6",
+  "kind": "sit",
+  "order": "cab",
+  "round": "r6",
+  "roundTitle": "Runde 6 · Wiederholungen",
+  "seq": 420,
+  "short": "Brut: ruhig + echter Schleim",
+  "station": 0,
+  "text": "Recherche zu den Zerg (nur als Anregung): Die Oberfläche von Heart of the Swarm ist in einem lila Ton gehalten und flacher als vorher; die Konsole ist schmal, damit sie das Spiel nicht verdeckt; kräftige Farbe tragen die Einheiten, nicht der Rahmen. Daher hier: dunkles, gedämpftes Lila-Braun, Relief über Licht, schmale Ränder. Der Schleim ist zäh, langsam (etwa 3 s), durchscheinend, mit Glanz und Einschnürung beim Abtropfen.",
+  "title": "Die Brut ein sechstes Mal: ruhige Farbe, echter Schleim",
+  "variants": {
+    "a": {
+      "desc": "Nur Chitin: schmale Stachelbänder in gedämpftem Lila-Braun, keine Bewegung.",
+      "emph": "Brut ruhig: nur Chitin",
+      "img": "/_blob/6ff489adf536ff735f753226a54dd8f0"
+    },
+    "b": {
+      "desc": "Chitin mit einer schwach violetten Naht, die langsam atmet.",
+      "emph": "Brut ruhig: atmende Naht",
+      "img": "/_blob/ad38b53a68ea9c9d3487901fd977c843"
+    },
+    "c": {
+      "desc": "Chitin mit zähem Schleim: Tropfen schnüren sich ein und fallen langsam, Fäden hängen zwischen den Stacheln.",
+      "emph": "Brut ruhig: zäher Schleim",
+      "img": "/_blob/3199525d4d80fdc1b80b10d9f241664e"
+    }
+  }
+}

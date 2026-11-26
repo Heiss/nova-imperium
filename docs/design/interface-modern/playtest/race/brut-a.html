@@ -1,0 +1,597 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <title>Rasse</title>
+    <link rel="stylesheet" href="/style.css" />
+    <style>
+      :root {
+        color-scheme: dark;
+      }
+      body {
+        margin: 0;
+        background: #050405;
+      }
+      .r-phone {
+        width: 390px;
+        height: 780px;
+        position: relative;
+        overflow: hidden;
+        border-radius: 32px;
+        border: 1px solid #4a1a3a;
+        background: radial-gradient(ellipse at 40% 45%, #2a0f22, #0d0710 70%);
+        font-family: 'EB Garamond', Georgia, serif;
+        color: #f0e0e8;
+      }
+      .r-top {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        padding: 30px 10px 8px;
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        background: #1a0c18;
+        border-bottom: 1px solid #4a1a3a;
+        z-index: 3;
+      }
+      .r-pill {
+        display: inline-flex;
+        gap: 5px;
+        align-items: center;
+        border: 1px solid #4a1a3a;
+        border-radius: 28px 22px 30px 18px;
+        padding: 3px 10px;
+        font-size: 13px;
+        background: #2a1226;
+        clip-path: none;
+      }
+      .r-pill img {
+        width: 15px;
+        height: 15px;
+        filter: hue-rotate(250deg) saturate(1.4);
+      }
+      .r-sheet {
+        position: absolute;
+        left: 4px;
+        right: 4px;
+        top: 642px;
+        bottom: 64px;
+        background: #1a0c18;
+        border: 1.5px solid #b6e04a;
+        border-radius: 28px 22px 30px 18px;
+        padding: 6px 12px;
+        z-index: 3;
+        clip-path: none;
+      }
+      .r-grip {
+        width: 40px;
+        height: 4px;
+        border-radius: 2px;
+        background: #b6e04a;
+        opacity: 0.6;
+        margin: 0 auto 6px;
+      }
+      .r-row {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        font-size: 12px;
+        white-space: nowrap;
+        overflow: hidden;
+      }
+      .r-row b {
+        color: #b6e04a;
+        letter-spacing: 0.02em;
+      }
+      .r-tag {
+        border: 1px solid;
+        border-radius: 28px 22px 30px 18px;
+        padding: 1px 6px;
+        font-size: 10.5px;
+        letter-spacing: 0.04em;
+      }
+      .r-tabs {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 62px;
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        background: #1a0c18;
+        border-top: 1px solid #4a1a3a;
+        z-index: 3;
+      }
+      .r-tab {
+        display: grid;
+        place-items: center;
+        font-size: 11.5px;
+        color: #b090a8;
+        letter-spacing: 0.02em;
+      }
+      .r-tab.on {
+        color: #b6e04a;
+        background: #2a1226;
+        border-radius: 28px 22px 30px 18px;
+        margin: 8px 4px;
+      }
+      .r-name {
+        position: absolute;
+        left: 12px;
+        top: 104px;
+        z-index: 2;
+        font-size: 11.5px;
+        color: #b090a8;
+        letter-spacing: 0.02em;
+      }
+      @keyframes morph {
+        0% {
+          border-radius: 30px 18px 34px 20px / 22px 30px 18px 28px;
+        }
+        50% {
+          border-radius: 18px 34px 20px 30px / 30px 18px 28px 22px;
+        }
+        100% {
+          border-radius: 30px 18px 34px 20px / 22px 30px 18px 28px;
+        }
+      }
+      @keyframes beat {
+        0%,
+        100% {
+          box-shadow: 0 0 14px rgb(182 224 74 / 0.25);
+        }
+        40% {
+          box-shadow: 0 0 30px rgb(182 224 74 / 0.55);
+        }
+      }
+      .r-sheet,
+      .r-pill,
+      .r-tag {
+        animation: morph 1.5s ease-in-out infinite;
+      }
+      .r-sheet {
+        animation:
+          morph 1.5s ease-in-out infinite,
+          beat 1.5s ease-in-out infinite;
+      }
+      .r-tab.on {
+        animation: morph 1.5s infinite;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="r-phone" id="ph">
+      <svg
+        width="390"
+        height="544"
+        viewBox="0 0 390 544"
+        style="position: absolute; left: 0; top: 96px"
+      >
+        <defs>
+          <filter id="wob" x="-30%" y="-30%" width="160%" height="160%">
+            <feTurbulence
+              type="fractalNoise"
+              baseFrequency="0.035"
+              numOctaves="2"
+              seed="3"
+            >
+              <animate
+                attributeName="baseFrequency"
+                dur="3s"
+                values="0.03;0.05;0.03"
+                repeatCount="indefinite"
+              />
+            </feTurbulence>
+            <feDisplacementMap in="SourceGraphic" scale="9" />
+          </filter>
+          <radialGradient id="nest">
+            <stop offset="0" stop-color="#e05a7a" />
+            <stop offset="1" stop-color="#e05a7a" stop-opacity="0" />
+          </radialGradient>
+        </defs>
+        <path
+          d="M -10 30 C 90 -10 200 80 400 20"
+          stroke="#5a1a3a"
+          stroke-width="2"
+          fill="none"
+          opacity="0.5"
+        >
+          <animate
+            attributeName="stroke-width"
+            dur="1.5s"
+            values="1.5;4;1.5"
+            begin="0.00s"
+            repeatCount="indefinite"
+          />
+        </path>
+        <path
+          d="M -10 90 C 90 50 200 140 400 80"
+          stroke="#5a1a3a"
+          stroke-width="2"
+          fill="none"
+          opacity="0.5"
+        >
+          <animate
+            attributeName="stroke-width"
+            dur="1.5s"
+            values="1.5;4;1.5"
+            begin="0.17s"
+            repeatCount="indefinite"
+          />
+        </path>
+        <path
+          d="M -10 150 C 90 110 200 200 400 140"
+          stroke="#5a1a3a"
+          stroke-width="2"
+          fill="none"
+          opacity="0.5"
+        >
+          <animate
+            attributeName="stroke-width"
+            dur="1.5s"
+            values="1.5;4;1.5"
+            begin="0.34s"
+            repeatCount="indefinite"
+          />
+        </path>
+        <path
+          d="M -10 210 C 90 170 200 260 400 200"
+          stroke="#5a1a3a"
+          stroke-width="2"
+          fill="none"
+          opacity="0.5"
+        >
+          <animate
+            attributeName="stroke-width"
+            dur="1.5s"
+            values="1.5;4;1.5"
+            begin="0.51s"
+            repeatCount="indefinite"
+          />
+        </path>
+        <path
+          d="M -10 270 C 90 230 200 320 400 260"
+          stroke="#5a1a3a"
+          stroke-width="2"
+          fill="none"
+          opacity="0.5"
+        >
+          <animate
+            attributeName="stroke-width"
+            dur="1.5s"
+            values="1.5;4;1.5"
+            begin="0.68s"
+            repeatCount="indefinite"
+          />
+        </path>
+        <path
+          d="M -10 330 C 90 290 200 380 400 320"
+          stroke="#5a1a3a"
+          stroke-width="2"
+          fill="none"
+          opacity="0.5"
+        >
+          <animate
+            attributeName="stroke-width"
+            dur="1.5s"
+            values="1.5;4;1.5"
+            begin="0.85s"
+            repeatCount="indefinite"
+          />
+        </path>
+        <path
+          d="M -10 390 C 90 350 200 440 400 380"
+          stroke="#5a1a3a"
+          stroke-width="2"
+          fill="none"
+          opacity="0.5"
+        >
+          <animate
+            attributeName="stroke-width"
+            dur="1.5s"
+            values="1.5;4;1.5"
+            begin="1.02s"
+            repeatCount="indefinite"
+          />
+        </path>
+        <path
+          d="M -10 450 C 90 410 200 500 400 440"
+          stroke="#5a1a3a"
+          stroke-width="2"
+          fill="none"
+          opacity="0.5"
+        >
+          <animate
+            attributeName="stroke-width"
+            dur="1.5s"
+            values="1.5;4;1.5"
+            begin="1.19s"
+            repeatCount="indefinite"
+          />
+        </path>
+        <path
+          d="M -10 510 C 90 470 200 560 400 500"
+          stroke="#5a1a3a"
+          stroke-width="2"
+          fill="none"
+          opacity="0.5"
+        >
+          <animate
+            attributeName="stroke-width"
+            dur="1.5s"
+            values="1.5;4;1.5"
+            begin="1.36s"
+            repeatCount="indefinite"
+          />
+        </path>
+        <path
+          d="M 300 390 Q 265 327 196 306"
+          stroke="#ff5a4a"
+          stroke-width="2.4"
+          fill="none"
+          stroke-dasharray="6 4"
+        >
+          <animate
+            attributeName="stroke-dashoffset"
+            dur="1.5s"
+            values="20;0"
+            repeatCount="indefinite"
+          />
+        </path>
+        <rect
+          x="228"
+          y="335"
+          width="105"
+          height="19"
+          rx="9"
+          fill="#1a0c18"
+          stroke="#ff5a4a"
+        />
+        <text
+          x="280"
+          y="349"
+          fill="#ff5a4a"
+          font-size="11.5"
+          font-family="'EB Garamond', Georgia, serif"
+          text-anchor="middle"
+        >
+          Angriff 14:32
+        </text>
+        <path
+          d="M 120 200 Q 174 229 184 290"
+          stroke="#5ad0b0"
+          stroke-width="2.4"
+          fill="none"
+          stroke-dasharray="6 4"
+        >
+          <animate
+            attributeName="stroke-dashoffset"
+            dur="1.5s"
+            values="20;0"
+            repeatCount="indefinite"
+          />
+        </path>
+        <rect
+          x="82"
+          y="252"
+          width="77"
+          height="19"
+          rx="9"
+          fill="#1a0c18"
+          stroke="#5ad0b0"
+        />
+        <text
+          x="120"
+          y="266"
+          fill="#5ad0b0"
+          font-size="11.5"
+          font-family="'EB Garamond', Georgia, serif"
+          text-anchor="middle"
+        >
+          Mira hält
+        </text>
+        <circle
+          cx="60"
+          cy="70"
+          r="17"
+          fill="url(#nest)"
+          opacity="0.55"
+          filter="url(#wob)"
+        />
+        <circle cx="60" cy="70" r="4" fill="#e05a7a" filter="url(#wob)" />
+        <circle cx="70.9" cy="71.1" r="2.7" fill="#9a7a9a" />
+        <circle cx="57.7" cy="80.8" r="2.7" fill="#9a7a9a" />
+        <text
+          x="76"
+          y="74"
+          fill="#b090a8"
+          font-size="10.5"
+          font-family="'EB Garamond', Georgia, serif"
+        >
+          1:24
+        </text>
+        <circle
+          cx="120"
+          cy="200"
+          r="17"
+          fill="url(#nest)"
+          opacity="0.55"
+          filter="url(#wob)"
+        />
+        <circle cx="120" cy="200" r="4" fill="#e05a7a" filter="url(#wob)" />
+        <circle cx="126.5" cy="208.9" r="2.7" fill="#5ad0b0" />
+        <circle cx="109.1" cy="201.1" r="2.7" fill="#9a7a9a" />
+        <text
+          x="136"
+          y="204"
+          fill="#b090a8"
+          font-size="10.5"
+          font-family="'EB Garamond', Georgia, serif"
+        >
+          1:26
+        </text>
+        <circle
+          cx="190"
+          cy="300"
+          r="22"
+          fill="url(#nest)"
+          opacity="0.55"
+          filter="url(#wob)"
+        />
+        <circle cx="190" cy="300" r="6" fill="#e05a7a" filter="url(#wob)" />
+        <circle
+          cx="190"
+          cy="300"
+          r="24"
+          fill="none"
+          stroke="#b6e04a"
+          stroke-width="1.5"
+          opacity="0.8"
+          filter="url(#wob)"
+        />
+        <circle cx="205.2" cy="295.1" r="3.4" fill="#b6e04a" />
+        <circle cx="193.3" cy="315.7" r="3.4" fill="#b6e04a" />
+        <circle cx="176.1" cy="308.0" r="3.4" fill="#b6e04a" />
+        <circle cx="178.1" cy="289.3" r="3.4" fill="#9a7a9a" />
+        <text
+          x="214"
+          y="304"
+          fill="#f0e0e8"
+          font-size="12"
+          font-family="'EB Garamond', Georgia, serif"
+        >
+          1:27 · dein Nest, 3 Brutwelten
+        </text>
+        <circle
+          cx="310"
+          cy="150"
+          r="17"
+          fill="url(#nest)"
+          opacity="0.55"
+          filter="url(#wob)"
+        />
+        <circle cx="310" cy="150" r="4" fill="#e05a7a" filter="url(#wob)" />
+        <circle cx="319.5" cy="155.5" r="2.7" fill="#9a7a9a" />
+        <text
+          x="326"
+          y="154"
+          fill="#b090a8"
+          font-size="10.5"
+          font-family="'EB Garamond', Georgia, serif"
+        >
+          1:29
+        </text>
+        <circle
+          cx="300"
+          cy="390"
+          r="17"
+          fill="url(#nest)"
+          opacity="0.55"
+          filter="url(#wob)"
+        />
+        <circle cx="300" cy="390" r="4" fill="#e05a7a" filter="url(#wob)" />
+        <circle cx="308.2" cy="382.6" r="2.7" fill="#ff5a4a" />
+        <circle cx="310.9" cy="391.1" r="2.7" fill="#ff5a4a" />
+        <circle cx="297.7" cy="400.8" r="2.7" fill="#ff5a4a" />
+        <text
+          x="316"
+          y="394"
+          fill="#b090a8"
+          font-size="10.5"
+          font-family="'EB Garamond', Georgia, serif"
+        >
+          1:31
+        </text>
+        <circle
+          cx="90"
+          cy="430"
+          r="17"
+          fill="url(#nest)"
+          opacity="0.55"
+          filter="url(#wob)"
+        />
+        <circle cx="90" cy="430" r="4" fill="#e05a7a" filter="url(#wob)" />
+        <circle cx="92.3" cy="440.8" r="2.7" fill="#9a7a9a" />
+        <circle cx="83.5" cy="438.9" r="2.7" fill="#9a7a9a" />
+        <text
+          x="106"
+          y="434"
+          fill="#b090a8"
+          font-size="10.5"
+          font-family="'EB Garamond', Georgia, serif"
+        >
+          1:35
+        </text>
+        <circle
+          cx="330"
+          cy="500"
+          r="17"
+          fill="url(#nest)"
+          opacity="0.55"
+          filter="url(#wob)"
+        />
+        <circle cx="330" cy="500" r="4" fill="#e05a7a" filter="url(#wob)" />
+        <circle cx="340.5" cy="496.6" r="2.7" fill="#ff5a4a" />
+        <circle cx="339.5" cy="505.5" r="2.7" fill="#5ad0b0" />
+        <circle cx="332.3" cy="510.8" r="2.7" fill="#9a7a9a" />
+        <text
+          x="346"
+          y="504"
+          fill="#b090a8"
+          font-size="10.5"
+          font-family="'EB Garamond', Georgia, serif"
+        >
+          1:44
+        </text>
+        <circle
+          cx="250"
+          cy="60"
+          r="17"
+          fill="url(#nest)"
+          opacity="0.55"
+          filter="url(#wob)"
+        />
+        <circle cx="250" cy="60" r="4" fill="#e05a7a" filter="url(#wob)" />
+        <circle cx="254.5" cy="50.0" r="2.7" fill="#9a7a9a" />
+        <text
+          x="266"
+          y="64"
+          fill="#b090a8"
+          font-size="10.5"
+          font-family="'EB Garamond', Georgia, serif"
+        >
+          1:21
+        </text>
+      </svg>
+      <div class="r-top">
+        <span class="r-pill"
+          ><img src="/icons/resources/small/metal.svg" alt="" />184 k</span
+        ><span class="r-pill"
+          ><img src="/icons/resources/small/crystal.svg" alt="" />92 k</span
+        ><span class="r-pill"
+          ><img src="/icons/resources/small/deuterium.svg" alt="" />41 k</span
+        ><span class="r-pill" style="margin-left: auto">Jagdgrund 1 ▾</span>
+      </div>
+      <div class="r-sheet">
+        <div class="r-grip"></div>
+        <div class="r-row">
+          <b>Witterung ▴</b
+          ><span class="r-tag" style="color: #ff5a4a; border-color: #ff5a4a"
+            >ANGRIFF 14:32</span
+          ><span class="r-tag" style="color: #e0c64a; border-color: #e0c64a"
+            >SPEICHER 1 h 40</span
+          ><span class="r-tag" style="color: #5ad0b0; border-color: #5ad0b0"
+            >3 SPUREN</span
+          >
+        </div>
+      </div>
+      <div class="r-tabs">
+        <span class="r-tab on">Brutstätten</span><span class="r-tab">Nest</span
+        ><span class="r-tab">Schwärme</span><span class="r-tab">Spuren</span
+        ><span class="r-tab">Mehr</span>
+      </div>
+    </div>
+  </body>
+</html>

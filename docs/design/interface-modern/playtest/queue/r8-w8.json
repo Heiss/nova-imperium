@@ -1,0 +1,19 @@
+{
+  "id": "w8",
+  "kind": "sit",
+  "order": "a",
+  "round": "r8",
+  "roundTitle": "Runde 8 · Welt und Konto (Handy)",
+  "seq": 580,
+  "short": "Aktivität & Spielzeit",
+  "station": 0,
+  "text": "Heute zwei Tabellen. Hier vier Kennzahlen und die letzten 7 Tage als Balken, darunter die Spielaktionen. Die Werte sind Beispiele. Ein Vorschlag: wähle ihn, wenn er passt, und schreib Korrekturen in die Notiz.",
+  "title": "Meine Aktivität & Spielzeit (Vorschlag)",
+  "variants": {
+    "a": {
+      "desc": "Kennzahlen und 7 Tage als Balken.",
+      "emph": "Spielzeit: Kennzahlen und Balken",
+      "img": "/_blob/1d0d472f45419b7773d855d760856eb6"
+    }
+  }
+}

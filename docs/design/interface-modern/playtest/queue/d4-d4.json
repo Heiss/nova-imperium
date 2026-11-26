@@ -1,0 +1,30 @@
+{
+  "ask": "Soll der Baum alle Forschungen zeigen und beim Ziel nur den Weg hervorheben, oder nur den Weg zum Ziel?",
+  "id": "d4",
+  "kind": "sit",
+  "order": "bca",
+  "round": "d4",
+  "roundTitle": "Desktop 4 · Forschung, Flotte, Herold und Börse",
+  "seq": 370,
+  "short": "Desktop: Forschungsbaum",
+  "station": 4,
+  "text": "Deine Wahl vom Handy: ein Baum der Voraussetzungen mit hervorgehobenem Weg zum Ziel, dazu ein ganzer Baum zum seitlichen Scrollen; Warteschlangen nur über eine eigene Forschung. Voraussetzungen und Kosten aus dem Katalog.",
+  "title": "Am Desktop: der Forschungsbaum",
+  "variants": {
+    "a": {
+      "desc": "Eigene Seite: der Baum groß, rechts fest der Weg zum Ziel mit dem nächsten Schritt.",
+      "emph": "Desktop-Forschung: Seite mit Spalte",
+      "img": "/_blob/3b3a4ec536bea06eb6a114b1655836d6"
+    },
+    "b": {
+      "desc": "Der Baum als Fenster über der Karte, das Ziel als zweites Fenster.",
+      "emph": "Desktop-Forschung: Fenster",
+      "img": "/_blob/48d4ad423e4505533f3c10a4b4b2d66b"
+    },
+    "c": {
+      "desc": "Der Baum im hochgezogenen Lage-Blatt, das Ziel daneben.",
+      "emph": "Desktop-Forschung: im Blatt",
+      "img": "/_blob/c1185b9bb32ba0fc039c40b764027fa7"
+    }
+  }
+}

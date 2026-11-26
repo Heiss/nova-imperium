@@ -1,0 +1,19 @@
+{
+  "id": "d16",
+  "kind": "sit",
+  "order": "a",
+  "round": "d11",
+  "roundTitle": "Runde d11 · Welt und Konto (Desktop)",
+  "seq": 700,
+  "short": "Urlaubsmodus (Desktop)",
+  "station": 0,
+  "text": "Am Handy abgenickt; am Desktop derselbe Inhalt als Fenster über der Karte. Ein Fenster aus Menü › Optionen. Ein Vorschlag: wähle ihn, wenn er passt, und schreib Korrekturen in die Notiz.",
+  "title": "Urlaubsmodus am Desktop (Vorschlag)",
+  "variants": {
+    "a": {
+      "desc": "Ein Fenster aus Menü › Optionen.",
+      "emph": "Urlaubsmodus: Fenster",
+      "img": "/_blob/302c1eace494517207d566a9c193c64b"
+    }
+  }
+}

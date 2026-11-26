@@ -1,0 +1,30 @@
+{
+  "ask": "Soll die Karte nach dem Login auf dein eigenes System gezoomt sein oder die ganze Galaxie zeigen?",
+  "id": "s1m",
+  "kind": "sit",
+  "order": "bca",
+  "round": "r1",
+  "roundTitle": "Runde 1 · Ankommen und bauen",
+  "seq": 10,
+  "short": "Galaxiekarte",
+  "station": 0,
+  "text": "Deine drei Welten liegen alle in System 1:27, so wie die meisten Spieler ihr System besiedeln. Die Karte zeigt deshalb Systeme und die Routen zwischen Spielern; das Dashboard liegt unten als Schieber zum Hochziehen. Nox wird um 14:32 angegriffen, Mira aus deiner Gilde hält Nox, du spionierst Varn aus.",
+  "title": "Direkt nach dem Login: die Galaxiekarte",
+  "variants": {
+    "a": {
+      "desc": "Jedes System ein Stern; ein Punkt je besetzter Position, farbig nach Besitzer; Routen als Bögen zwischen den Systemen.",
+      "emph": "Darstellung: Sterne mit Punkten je Position",
+      "img": "img/r1-s1m-a.jpg"
+    },
+    "b": {
+      "desc": "Systeme in ihrer Nummernfolge auf einem Spiralarm: nah auf der Karte heißt kurzer Flug; Routen mit der Zahl der Systeme.",
+      "emph": "Darstellung: Spirale nach Systemnummer",
+      "img": "img/r1-s1m-b.jpg"
+    },
+    "c": {
+      "desc": "Spieler statt Planeten: eine Marke je Spieler mit der Zahl seiner Welten; Routen zwischen Spielern; ein System als Liste beim Antippen.",
+      "emph": "Darstellung: Spieler-Marken",
+      "img": "img/r1-s1m-c.jpg"
+    }
+  }
+}

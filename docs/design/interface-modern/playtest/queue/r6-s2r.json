@@ -1,0 +1,30 @@
+{
+  "ask": "Soll die Zeile wechseln, wenn es nichts Dringendes gibt (z. B. vom Dringendsten zum nächsten Ereignis)?",
+  "id": "s2r",
+  "kind": "sit",
+  "order": "bca",
+  "round": "r6",
+  "roundTitle": "Runde 6 · Wiederholungen",
+  "seq": 250,
+  "short": "Lage-Zeile unten",
+  "station": 1,
+  "text": "Du hast entschieden: heruntergezogen zeigt die Lage eine Zeile, und bei einem Angriff eine Meldung wie „Mission Control“. Welche Zeile soll es im Alltag sein?",
+  "title": "Noch einmal: die eine Zeile der Lage",
+  "variants": {
+    "a": {
+      "desc": "Marken: Angriff, Lager, Berichte als kleine Zähler.",
+      "emph": "Lage-Zeile: Marken",
+      "img": "/_blob/9a3a04a989b965311cef65641baedf2c"
+    },
+    "b": {
+      "desc": "Das nächste Ereignis der Zeitleiste mit Uhrzeit, rechts die Zahl der weiteren.",
+      "emph": "Lage-Zeile: nächstes Ereignis",
+      "img": "/_blob/d06055344c45038d027521b457efb27f"
+    },
+    "c": {
+      "desc": "Das Dringendste mit Restzeit und einem Knopf; bei einem Angriff wird der Rand rot.",
+      "emph": "Lage-Zeile: das Dringendste",
+      "img": "/_blob/8c37224bc826274d05edd6eb8be8360b"
+    }
+  }
+}

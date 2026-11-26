@@ -1,0 +1,30 @@
+{
+  "ask": "Soll man vor dem Anmelden etwas von der Runde sehen (Tag, Zahl der Galaxien und Spieler)?",
+  "id": "d13",
+  "kind": "sit",
+  "order": "bac",
+  "round": "d11",
+  "roundTitle": "Runde d11 · Welt und Konto (Desktop)",
+  "seq": 670,
+  "short": "Login (Desktop)",
+  "station": 0,
+  "text": "Am Handy gewählt: der Passkey zuerst, Name und Passwort oder ein Code per E-Mail darunter. Am Desktop …",
+  "title": "Anmelden am Desktop",
+  "variants": {
+    "a": {
+      "desc": "… eine Karte in der Mitte über der Galaxie.",
+      "emph": "Login: Karte in der Mitte",
+      "img": "/_blob/f244a2f9be6a63451005d0b10516e602"
+    },
+    "b": {
+      "desc": "… geteilt: links die Runde, rechts die Anmeldung.",
+      "emph": "Login: geteilt",
+      "img": "/_blob/bdc235c4920cbfc8b7e9c4278ea6d021"
+    },
+    "c": {
+      "desc": "… eine Kopfzeile mit „Anmelden“; die Anmeldung klappt oben rechts auf.",
+      "emph": "Login: Kopfzeile",
+      "img": "/_blob/e0a15a86802a363569d074c889c97911"
+    }
+  }
+}

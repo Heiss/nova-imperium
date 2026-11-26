@@ -1,0 +1,20 @@
+{
+  "kind": "quest",
+  "questions": [
+    {
+      "id": "pace",
+      "label": "Wie fühlt sich das Tempo der Situationen an?",
+      "options": ["zu langsam, mehr auf einmal", "genau richtig", "zu schnell"],
+      "type": "one"
+    },
+    {
+      "id": "next",
+      "label": "Was fehlt dir bisher in den Varianten am meisten?",
+      "type": "text"
+    }
+  ],
+  "round": "r2",
+  "roundTitle": "Runde 2 · Forschen, verteidigen, auskundschaften",
+  "seq": 130,
+  "short": "Fragen Runde 2"
+}

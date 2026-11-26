@@ -1,0 +1,19 @@
+{
+  "id": "s26",
+  "kind": "sit",
+  "order": "a",
+  "round": "r9",
+  "roundTitle": "Runde 9 · Soziales (Handy)",
+  "seq": 850,
+  "short": "Ohne Gilde",
+  "station": 0,
+  "text": "Heute: die Gildenübersicht mit „Bewerben“ und „Neue Gilde“. Hier eine Liste mit „Bewerben“ und darunter „Gilde gründen“. Ein Vorschlag: wähle ihn, wenn er passt, und schreib Korrekturen in die Notiz.",
+  "title": "Ohne Gilde: bewerben oder gründen (Vorschlag)",
+  "variants": {
+    "a": {
+      "desc": "Liste der Gilden mit Bewerben, darunter Gilde gründen.",
+      "emph": "Ohne Gilde: Liste",
+      "img": "/_blob/2022a94685cf91c3a0ef9182debdac5a"
+    }
+  }
+}

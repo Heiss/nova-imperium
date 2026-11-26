@@ -1,0 +1,2942 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <title>Playtest r3</title>
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="../modern.css" />
+    <link rel="stylesheet" href="../studies.css" />
+  </head>
+  <body
+    style="
+      background: #070504;
+      padding: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+    "
+  >
+    <figure id="r3-s8-a" style="margin: 0; display: inline-block">
+      <div class="k-phone" style="">
+        <div class="k-stars" style="position: absolute; inset: 0"></div>
+        <div class="k-abs" style="left: 10px; top: 104px">
+          <span class="k-pill">Galaxie 1 › System 1:44</span>
+        </div>
+        <div
+          class="k-abs"
+          style="left: 90px; top: 220px; text-align: center; font-size: 11.5px"
+        >
+          <span
+            class="m-ball"
+            style="
+              display: inline-block;
+              width: 46px;
+              height: 46px;
+              background-image: url(/planets/trocken-1-surface.svg);
+            "
+          ></span
+          ><br /><b style="color: #ee7660">4 · Varn</b>
+        </div>
+        <div
+          class="k-abs"
+          style="left: 200px; top: 290px; text-align: center; font-size: 11.5px"
+        >
+          <span
+            class="m-ball"
+            style="
+              display: inline-block;
+              width: 36px;
+              height: 36px;
+              background-image: url(/planets/wueste-1-surface.svg);
+            "
+          ></span
+          ><br /><b style="color: #6fe0a8">6 · Kessra Prime</b>
+        </div>
+        <div
+          class="k-abs"
+          style="left: 120px; top: 390px; text-align: center; font-size: 11.5px"
+        >
+          <span
+            class="m-ball"
+            style="
+              display: inline-block;
+              width: 34px;
+              height: 34px;
+              background-image: url(/planets/gas-1-surface.svg);
+            "
+          ></span
+          ><br /><b style="color: #a8997f">8 · Tarsis</b>
+        </div>
+        <div
+          class="k-abs"
+          style="
+            left: 78px;
+            top: 208px;
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            border: 2px solid #f1d27a;
+          "
+        ></div>
+        <div
+          class="k-abs"
+          style="
+            left: 0;
+            right: 0;
+            top: 0;
+            padding: 30px 10px 6px;
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            background: rgb(18 13 10 / 0.92);
+            border-bottom: 1px solid var(--line);
+            z-index: 3;
+          "
+        >
+          <span class="k-pill"
+            ><img src="/icons/resources/small/metal.svg" alt="" />184 k</span
+          ><span class="k-pill"
+            ><img src="/icons/resources/small/crystal.svg" alt="" /><span
+              style="color: var(--orange)"
+              >92 k</span
+            ></span
+          ><span class="k-pill"
+            ><img src="/icons/resources/small/deuterium.svg" alt="" />41 k</span
+          ><span class="k-pill" style="margin-left: auto">Galaxie 1 ▾</span>
+        </div>
+        <div
+          class="k-abs"
+          style="
+            left: 0;
+            right: 0;
+            bottom: 62px;
+            height: 400px;
+            background: #17110d;
+            border-top: 1px solid var(--gold);
+            border-radius: 16px 16px 0 0;
+            box-shadow: 0 -10px 30px rgb(0 0 0 / 0.7);
+            padding: 6px 12px;
+            z-index: 3;
+            overflow: hidden;
+          "
+        >
+          <div
+            style="
+              width: 40px;
+              height: 4px;
+              border-radius: 2px;
+              background: var(--line);
+              margin: 0 auto 6px;
+            "
+          ></div>
+          <b style="color: var(--gold-hi)">Varn [1:44:4]</b>
+          <span class="m-tag red">KRIEG</span>
+          <span class="m-dim" style="font-size: 12px"
+            >· Bericht 13:24 · gerade eben</span
+          >
+          <div class="m-kv">
+            <span>Adamant</span><b>640 k</b><span>Psikristall</span><b>380 k</b
+            ><span>Promethium</span><b>180 k</b><span>Beute (die Hälfte)</span
+            ><b
+              ><span style="color: var(--green)"
+                >≈ 600 k (320 k / 190 k / 90 k)</span
+              ></b
+            >
+          </div>
+          <div class="m-kv">
+            <span>Flotte</span><b>24 Abfangjäger · 6 Fregatten</b
+            ><span>Abwehr</span><b>40 Raketenbatterien · 12 Lichtlanzen</b
+            ><span>Aktivität</span><b>vor 2 h</b>
+          </div>
+          <div
+            style="
+              display: grid;
+              grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+              gap: 8px;
+              margin-top: 8px;
+              font-size: 13px;
+            "
+          >
+            <span
+              class="m-btn"
+              style="
+                text-align: center;
+                padding: 10px 4px;
+                background: var(--red);
+                color: #120d0a;
+              "
+              >Angreifen</span
+            ><span
+              class="m-btn"
+              style="
+                text-align: center;
+                padding: 10px 4px;
+                background: none;
+                color: var(--gold-hi);
+                border: 1px solid var(--gold);
+              "
+              >Nochmal spionieren</span
+            >
+          </div>
+          <div class="m-dim" style="font-size: 12px; margin-top: 8px">
+            Der Bericht bleibt an Varn hängen: Varn antippen zeigt ihn wieder,
+            mit Alter.
+          </div>
+        </div>
+        <div
+          class="k-abs"
+          style="
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 62px;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            background: #110c09;
+            border-top: 1px solid var(--line);
+            z-index: 3;
+          "
+        >
+          <span
+            style="display: grid; place-items: center; color: var(--gold-hi)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <circle cx="6" cy="7" r="2" />
+              <circle cx="17" cy="6" r="2" />
+              <circle cx="12" cy="17" r="2" />
+              <path d="M8 8l3 7M15 7l-2 8" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="12" r="6" />
+              <ellipse cx="12" cy="12" rx="10" ry="3.5" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <path d="M3 16l9-11 9 11-9-3z" />
+              <path d="M12 13v7" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <rect x="4" y="4" width="16" height="16" rx="2" />
+              <path d="M8 9h8M8 13h8M8 17h5" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <path d="M4 7h16M4 12h16M4 17h16" /></svg
+          ></span>
+        </div>
+      </div>
+    </figure>
+    <figure id="r3-s8-b" style="margin: 0; display: inline-block">
+      <div class="k-phone" style="">
+        <div class="k-stars" style="position: absolute; inset: 0"></div>
+        <div class="k-abs" style="left: 10px; top: 104px">
+          <span class="k-pill">Galaxie 1 › System 1:44</span>
+        </div>
+        <div
+          class="k-abs"
+          style="left: 90px; top: 220px; text-align: center; font-size: 11.5px"
+        >
+          <span
+            class="m-ball"
+            style="
+              display: inline-block;
+              width: 46px;
+              height: 46px;
+              background-image: url(/planets/trocken-1-surface.svg);
+            "
+          ></span
+          ><br /><b style="color: #ee7660">4 · Varn</b>
+        </div>
+        <div
+          class="k-abs"
+          style="left: 200px; top: 290px; text-align: center; font-size: 11.5px"
+        >
+          <span
+            class="m-ball"
+            style="
+              display: inline-block;
+              width: 36px;
+              height: 36px;
+              background-image: url(/planets/wueste-1-surface.svg);
+            "
+          ></span
+          ><br /><b style="color: #6fe0a8">6 · Kessra Prime</b>
+        </div>
+        <div
+          class="k-abs"
+          style="left: 120px; top: 390px; text-align: center; font-size: 11.5px"
+        >
+          <span
+            class="m-ball"
+            style="
+              display: inline-block;
+              width: 34px;
+              height: 34px;
+              background-image: url(/planets/gas-1-surface.svg);
+            "
+          ></span
+          ><br /><b style="color: #a8997f">8 · Tarsis</b>
+        </div>
+        <div
+          class="k-abs"
+          style="
+            left: 78px;
+            top: 208px;
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            border: 2px solid #f1d27a;
+          "
+        ></div>
+        <div
+          class="k-abs"
+          style="
+            left: 150px;
+            top: 190px;
+            z-index: 2;
+            background: #17110d;
+            border: 1px solid var(--green);
+            border-radius: 8px;
+            padding: 5px 8px;
+            font-size: 11.5px;
+            line-height: 1.45;
+          "
+        >
+          <b style="color: var(--green)">Bericht · gerade eben</b><br />640 k ·
+          380 k · 180 k<br /><span class="m-dim">30 Schiffe · 52 Anlagen</span>
+        </div>
+        <div
+          class="k-abs"
+          style="left: 10px; right: 10px; top: 470px; font-size: 12px"
+          class="m-dim"
+        >
+          Jede Welt mit Bericht zeigt ihn als Schild; antippen öffnet den ganzen
+          Bericht mit „Angreifen“.
+        </div>
+        <div
+          class="k-abs"
+          style="
+            left: 0;
+            right: 0;
+            top: 0;
+            padding: 30px 10px 6px;
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            background: rgb(18 13 10 / 0.92);
+            border-bottom: 1px solid var(--line);
+            z-index: 3;
+          "
+        >
+          <span class="k-pill"
+            ><img src="/icons/resources/small/metal.svg" alt="" />184 k</span
+          ><span class="k-pill"
+            ><img src="/icons/resources/small/crystal.svg" alt="" /><span
+              style="color: var(--orange)"
+              >92 k</span
+            ></span
+          ><span class="k-pill"
+            ><img src="/icons/resources/small/deuterium.svg" alt="" />41 k</span
+          ><span class="k-pill" style="margin-left: auto">Galaxie 1 ▾</span>
+        </div>
+        <div
+          class="k-abs"
+          style="
+            left: 0;
+            right: 0;
+            top: 640px;
+            bottom: 62px;
+            background: #17110d;
+            border-top: 1px solid var(--gold);
+            border-radius: 16px 16px 0 0;
+            box-shadow: 0 -8px 24px rgb(0 0 0 / 0.6);
+            padding: 6px 12px;
+            z-index: 3;
+          "
+        >
+          <div
+            style="
+              width: 40px;
+              height: 4px;
+              border-radius: 2px;
+              background: var(--line);
+              margin: 0 auto 6px;
+            "
+          ></div>
+          <div
+            style="
+              display: flex;
+              gap: 6px;
+              align-items: center;
+              font-size: 12.5px;
+              white-space: nowrap;
+              overflow: hidden;
+            "
+          >
+            <b
+              style="
+                font: 600 12px var(--head);
+                color: var(--gold-hi);
+                letter-spacing: 0.06em;
+              "
+              >LAGE ▴</b
+            ><span class="m-tag red">ANGRIFF 14:32</span
+            ><span class="m-tag gold">LAGER 1 h 40</span
+            ><span class="m-tag blue">3 BERICHTE</span>
+          </div>
+        </div>
+        <div
+          class="k-abs"
+          style="
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 62px;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            background: #110c09;
+            border-top: 1px solid var(--line);
+            z-index: 3;
+          "
+        >
+          <span
+            style="display: grid; place-items: center; color: var(--gold-hi)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <circle cx="6" cy="7" r="2" />
+              <circle cx="17" cy="6" r="2" />
+              <circle cx="12" cy="17" r="2" />
+              <path d="M8 8l3 7M15 7l-2 8" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="12" r="6" />
+              <ellipse cx="12" cy="12" rx="10" ry="3.5" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <path d="M3 16l9-11 9 11-9-3z" />
+              <path d="M12 13v7" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <rect x="4" y="4" width="16" height="16" rx="2" />
+              <path d="M8 9h8M8 13h8M8 17h5" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <path d="M4 7h16M4 12h16M4 17h16" /></svg
+          ></span>
+        </div>
+      </div>
+    </figure>
+    <figure id="r3-s8-c" style="margin: 0; display: inline-block">
+      <div class="k-phone" style="">
+        <div class="k-stars" style="position: absolute; inset: 0"></div>
+        <div class="k-abs" style="left: 10px; top: 104px">
+          <span class="k-pill">Galaxie 1 › System 1:44</span>
+        </div>
+        <div
+          class="k-abs"
+          style="left: 90px; top: 220px; text-align: center; font-size: 11.5px"
+        >
+          <span
+            class="m-ball"
+            style="
+              display: inline-block;
+              width: 46px;
+              height: 46px;
+              background-image: url(/planets/trocken-1-surface.svg);
+            "
+          ></span
+          ><br /><b style="color: #ee7660">4 · Varn</b>
+        </div>
+        <div
+          class="k-abs"
+          style="left: 200px; top: 290px; text-align: center; font-size: 11.5px"
+        >
+          <span
+            class="m-ball"
+            style="
+              display: inline-block;
+              width: 36px;
+              height: 36px;
+              background-image: url(/planets/wueste-1-surface.svg);
+            "
+          ></span
+          ><br /><b style="color: #6fe0a8">6 · Kessra Prime</b>
+        </div>
+        <div
+          class="k-abs"
+          style="left: 120px; top: 390px; text-align: center; font-size: 11.5px"
+        >
+          <span
+            class="m-ball"
+            style="
+              display: inline-block;
+              width: 34px;
+              height: 34px;
+              background-image: url(/planets/gas-1-surface.svg);
+            "
+          ></span
+          ><br /><b style="color: #a8997f">8 · Tarsis</b>
+        </div>
+        <div
+          class="k-abs"
+          style="
+            left: 78px;
+            top: 208px;
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            border: 2px solid #f1d27a;
+          "
+        ></div>
+        <div
+          class="k-abs"
+          style="
+            left: 0;
+            right: 0;
+            top: 0;
+            padding: 30px 10px 6px;
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            background: rgb(18 13 10 / 0.92);
+            border-bottom: 1px solid var(--line);
+            z-index: 3;
+          "
+        >
+          <span class="k-pill"
+            ><img src="/icons/resources/small/metal.svg" alt="" />184 k</span
+          ><span class="k-pill"
+            ><img src="/icons/resources/small/crystal.svg" alt="" /><span
+              style="color: var(--orange)"
+              >92 k</span
+            ></span
+          ><span class="k-pill"
+            ><img src="/icons/resources/small/deuterium.svg" alt="" />41 k</span
+          ><span class="k-pill" style="margin-left: auto">Galaxie 1 ▾</span>
+        </div>
+        <div
+          class="k-abs"
+          style="
+            left: 0;
+            right: 0;
+            bottom: 62px;
+            height: 520px;
+            background: #17110d;
+            border-top: 1px solid var(--gold);
+            border-radius: 16px 16px 0 0;
+            box-shadow: 0 -10px 30px rgb(0 0 0 / 0.7);
+            padding: 6px 12px;
+            z-index: 3;
+            overflow: hidden;
+          "
+        >
+          <div
+            style="
+              width: 40px;
+              height: 4px;
+              border-radius: 2px;
+              background: var(--line);
+              margin: 0 auto 6px;
+            "
+          ></div>
+          <b style="color: var(--gold-hi)">Lage · Zeitleiste</b>
+          <div
+            style="
+              margin: 6px 0 0 20px;
+              border-left: 2px solid var(--line);
+              padding-left: 10px;
+            "
+          >
+            <div
+              style="
+                position: relative;
+                display: grid;
+                grid-template-columns: 44px 1fr;
+                gap: 6px;
+                font-size: 13px;
+                margin: 5px 0;
+                opacity: 0.8;
+              "
+            >
+              <span
+                style="
+                  position: absolute;
+                  left: -17px;
+                  top: 5px;
+                  width: 9px;
+                  height: 9px;
+                  border-radius: 50%;
+                  background: var(--dim);
+                "
+              ></span
+              ><b class="m-num" style="color: var(--dim)">12:58</b
+              ><span
+                ><span class="m-dim">Leander</span> gründet Kolonie in
+                1:44</span
+              >
+            </div>
+            <div
+              style="
+                position: relative;
+                display: grid;
+                grid-template-columns: 44px 1fr;
+                gap: 6px;
+                font-size: 13px;
+                margin: 5px 0;
+                opacity: 0.8;
+              "
+            >
+              <span
+                style="
+                  position: absolute;
+                  left: -17px;
+                  top: 5px;
+                  width: 9px;
+                  height: 9px;
+                  border-radius: 50%;
+                  background: var(--dim);
+                "
+              ></span
+              ><b class="m-num" style="color: var(--dim)">13:20</b
+              ><span>Spähschädel nach Varn gestartet</span>
+            </div>
+            <div
+              style="
+                position: relative;
+                display: grid;
+                grid-template-columns: 44px 1fr;
+                gap: 6px;
+                font-size: 13px;
+                margin: 5px 0;
+                opacity: 0.8;
+              "
+            >
+              <span
+                style="
+                  position: absolute;
+                  left: -17px;
+                  top: 5px;
+                  width: 9px;
+                  height: 9px;
+                  border-radius: 50%;
+                  background: var(--green);
+                "
+              ></span
+              ><b class="m-num" style="color: var(--dim)">13:24</b
+              ><span
+                ><b style="color: var(--green)">Bericht Varn</b> ·
+                aufgeklappt</span
+              >
+            </div>
+            <div
+              style="
+                border: 1px solid var(--green);
+                border-radius: 8px;
+                padding: 8px;
+                margin: 4px 0 8px;
+              "
+            >
+              <b style="color: var(--gold-hi)">Varn [1:44:4]</b>
+              <span class="m-tag red">KRIEG</span>
+              <span class="m-dim" style="font-size: 12px"
+                >· Bericht 13:24 · gerade eben</span
+              >
+              <div class="m-kv">
+                <span>Adamant</span><b>640 k</b><span>Psikristall</span
+                ><b>380 k</b><span>Promethium</span><b>180 k</b
+                ><span>Beute (die Hälfte)</span
+                ><b
+                  ><span style="color: var(--green)"
+                    >≈ 600 k (320 k / 190 k / 90 k)</span
+                  ></b
+                >
+              </div>
+              <div
+                style="
+                  display: grid;
+                  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+                  gap: 8px;
+                  margin-top: 8px;
+                  font-size: 13px;
+                "
+              >
+                <span
+                  class="m-btn"
+                  style="
+                    text-align: center;
+                    padding: 10px 4px;
+                    background: var(--red);
+                    color: #120d0a;
+                  "
+                  >Angreifen</span
+                ><span
+                  class="m-btn"
+                  style="
+                    text-align: center;
+                    padding: 10px 4px;
+                    background: none;
+                    color: var(--gold-hi);
+                    border: 1px solid var(--gold);
+                  "
+                  >Nochmal spionieren</span
+                >
+              </div>
+              <div class="m-dim" style="font-size: 12px; margin-top: 6px">
+                24 Abfangjäger · 6 Fregatten · 40 Raketenbatterien · 12
+                Lichtlanzen
+              </div>
+            </div>
+            <div
+              style="
+                position: relative;
+                display: grid;
+                grid-template-columns: 44px 1fr;
+                gap: 6px;
+                font-size: 13px;
+                margin: 5px 0;
+              "
+            >
+              <span
+                style="
+                  position: absolute;
+                  left: -17px;
+                  top: 5px;
+                  width: 9px;
+                  height: 9px;
+                  border-radius: 50%;
+                  background: var(--gold);
+                "
+              ></span
+              ><b class="m-num" style="color: var(--txt)">13:42</b
+              ><span>Psikristall-Steinbruch 16 fertig</span>
+            </div>
+          </div>
+        </div>
+        <div
+          class="k-abs"
+          style="
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 62px;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            background: #110c09;
+            border-top: 1px solid var(--line);
+            z-index: 3;
+          "
+        >
+          <span
+            style="display: grid; place-items: center; color: var(--gold-hi)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <circle cx="6" cy="7" r="2" />
+              <circle cx="17" cy="6" r="2" />
+              <circle cx="12" cy="17" r="2" />
+              <path d="M8 8l3 7M15 7l-2 8" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="12" r="6" />
+              <ellipse cx="12" cy="12" rx="10" ry="3.5" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <path d="M3 16l9-11 9 11-9-3z" />
+              <path d="M12 13v7" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <rect x="4" y="4" width="16" height="16" rx="2" />
+              <path d="M8 9h8M8 13h8M8 17h5" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <path d="M4 7h16M4 12h16M4 17h16" /></svg
+          ></span>
+        </div>
+      </div>
+    </figure>
+    <figure id="r3-s9-a" style="margin: 0; display: inline-block">
+      <div class="k-phone" style="">
+        <div class="k-stars" style="position: absolute; inset: 0"></div>
+        <div class="k-abs" style="left: 10px; top: 104px">
+          <span class="k-pill">Galaxie 1 › System 1:44</span>
+        </div>
+        <div
+          class="k-abs"
+          style="left: 90px; top: 220px; text-align: center; font-size: 11.5px"
+        >
+          <span
+            class="m-ball"
+            style="
+              display: inline-block;
+              width: 46px;
+              height: 46px;
+              background-image: url(/planets/trocken-1-surface.svg);
+            "
+          ></span
+          ><br /><b style="color: #ee7660">4 · Varn</b>
+        </div>
+        <div
+          class="k-abs"
+          style="left: 200px; top: 290px; text-align: center; font-size: 11.5px"
+        >
+          <span
+            class="m-ball"
+            style="
+              display: inline-block;
+              width: 36px;
+              height: 36px;
+              background-image: url(/planets/wueste-1-surface.svg);
+            "
+          ></span
+          ><br /><b style="color: #6fe0a8">6 · Kessra Prime</b>
+        </div>
+        <div
+          class="k-abs"
+          style="left: 120px; top: 390px; text-align: center; font-size: 11.5px"
+        >
+          <span
+            class="m-ball"
+            style="
+              display: inline-block;
+              width: 34px;
+              height: 34px;
+              background-image: url(/planets/gas-1-surface.svg);
+            "
+          ></span
+          ><br /><b style="color: #a8997f">8 · Tarsis</b>
+        </div>
+        <div
+          class="k-abs"
+          style="
+            left: 78px;
+            top: 208px;
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            border: 2px solid #f1d27a;
+          "
+        ></div>
+        <div
+          class="k-abs"
+          style="
+            left: 0;
+            right: 0;
+            top: 0;
+            padding: 30px 10px 6px;
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            background: rgb(18 13 10 / 0.92);
+            border-bottom: 1px solid var(--line);
+            z-index: 3;
+          "
+        >
+          <span class="k-pill"
+            ><img src="/icons/resources/small/metal.svg" alt="" />184 k</span
+          ><span class="k-pill"
+            ><img src="/icons/resources/small/crystal.svg" alt="" /><span
+              style="color: var(--orange)"
+              >92 k</span
+            ></span
+          ><span class="k-pill"
+            ><img src="/icons/resources/small/deuterium.svg" alt="" />41 k</span
+          ><span class="k-pill" style="margin-left: auto">Galaxie 1 ▾</span>
+        </div>
+        <div
+          class="k-abs"
+          style="
+            left: 0;
+            right: 0;
+            bottom: 62px;
+            height: 460px;
+            background: #17110d;
+            border-top: 1px solid var(--gold);
+            border-radius: 16px 16px 0 0;
+            box-shadow: 0 -10px 30px rgb(0 0 0 / 0.7);
+            padding: 6px 12px;
+            z-index: 3;
+            overflow: hidden;
+          "
+        >
+          <div
+            style="
+              width: 40px;
+              height: 4px;
+              border-radius: 2px;
+              background: var(--line);
+              margin: 0 auto 6px;
+            "
+          ></div>
+          <b style="color: var(--gold-hi)">Angriff auf Varn [1:44:4]</b>
+          <span class="m-dim" style="font-size: 12px"
+            >von Aurelia [1:27:8]</span
+          >
+          <div style="display: flex; gap: 14px; margin: 8px 0">
+            <span
+              style="
+                display: inline-flex;
+                gap: 6px;
+                align-items: center;
+                font-size: 12.5px;
+                color: var(--dim);
+              "
+              ><b
+                style="
+                  display: grid;
+                  place-items: center;
+                  width: 20px;
+                  height: 20px;
+                  border-radius: 50%;
+                  border: 1px solid currentColor;
+                "
+                >1</b
+              >Ziel ✓</span
+            ><span
+              style="
+                display: inline-flex;
+                gap: 6px;
+                align-items: center;
+                font-size: 12.5px;
+                color: var(--gold-hi);
+              "
+              ><b
+                style="
+                  display: grid;
+                  place-items: center;
+                  width: 20px;
+                  height: 20px;
+                  border-radius: 50%;
+                  border: 1px solid currentColor;
+                "
+                >2</b
+              >Schiffe</span
+            ><span
+              style="
+                display: inline-flex;
+                gap: 6px;
+                align-items: center;
+                font-size: 12.5px;
+                color: var(--dim);
+              "
+              ><b
+                style="
+                  display: grid;
+                  place-items: center;
+                  width: 20px;
+                  height: 20px;
+                  border-radius: 50%;
+                  border: 1px solid currentColor;
+                "
+                >3</b
+              >Abflug</span
+            >
+          </div>
+          <div
+            style="
+              display: grid;
+              grid-template-columns: 1fr auto auto;
+              gap: 8px;
+              align-items: center;
+              padding: 4px 0;
+              font-size: 13.5px;
+            "
+          >
+            <span>Abfangjäger</span
+            ><span class="m-dim" style="font-size: 12px">von 60</span
+            ><span class="m-stepper"
+              ><span>−</span><b>60</b><span>+</span></span
+            >
+          </div>
+          <div
+            style="
+              display: grid;
+              grid-template-columns: 1fr auto auto;
+              gap: 8px;
+              align-items: center;
+              padding: 4px 0;
+              font-size: 13.5px;
+            "
+          >
+            <span>Fregatte</span
+            ><span class="m-dim" style="font-size: 12px">von 20</span
+            ><span class="m-stepper"
+              ><span>−</span><b>20</b><span>+</span></span
+            >
+          </div>
+          <div
+            style="
+              display: grid;
+              grid-template-columns: 1fr auto auto;
+              gap: 8px;
+              align-items: center;
+              padding: 4px 0;
+              font-size: 13.5px;
+            "
+          >
+            <span>Lastbarke</span
+            ><span class="m-dim" style="font-size: 12px">von 30</span
+            ><span class="m-stepper"
+              ><span>−</span><b>24</b><span>+</span></span
+            >
+          </div>
+          <div class="m-dim" style="font-size: 12px; margin: 4px 0">
+            Lastbarken passend zur Beute vorgeschlagen.
+          </div>
+          <div class="m-kv">
+            <span>Laderaum</span
+            ><b style="color: var(--green)">619 k ≥ Beute 600 k ✓</b
+            ><span>Ankunft</span><b>14:05</b><span>zurück</span><b>14:50</b>
+          </div>
+          <span
+            class="m-btn big"
+            style="display: block; margin-top: 8px; text-align: center"
+            >Weiter zu Abflug</span
+          >
+        </div>
+        <div
+          class="k-abs"
+          style="
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 62px;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            background: #110c09;
+            border-top: 1px solid var(--line);
+            z-index: 3;
+          "
+        >
+          <span
+            style="display: grid; place-items: center; color: var(--gold-hi)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <circle cx="6" cy="7" r="2" />
+              <circle cx="17" cy="6" r="2" />
+              <circle cx="12" cy="17" r="2" />
+              <path d="M8 8l3 7M15 7l-2 8" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="12" r="6" />
+              <ellipse cx="12" cy="12" rx="10" ry="3.5" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <path d="M3 16l9-11 9 11-9-3z" />
+              <path d="M12 13v7" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <rect x="4" y="4" width="16" height="16" rx="2" />
+              <path d="M8 9h8M8 13h8M8 17h5" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <path d="M4 7h16M4 12h16M4 17h16" /></svg
+          ></span>
+        </div>
+      </div>
+    </figure>
+    <figure id="r3-s9-b" style="margin: 0; display: inline-block">
+      <div class="k-phone" style="">
+        <div class="k-stars" style="position: absolute; inset: 0"></div>
+        <div class="k-abs" style="left: 0; top: 96px">
+          <svg width="390" height="420" viewBox="0 0 390 420">
+            <circle cx="126" cy="63" r="1.3" fill="#d9c9a8" opacity="0.22" />
+            <circle cx="320" cy="40" r="1.3" fill="#d9c9a8" opacity="0.22" />
+            <circle cx="198" cy="16" r="1" fill="#d9c9a8" opacity="0.37" />
+            <circle cx="94" cy="231" r="0.8" fill="#d9c9a8" opacity="0.53" />
+            <circle cx="48" cy="94" r="1.3" fill="#d9c9a8" opacity="0.43" />
+            <circle cx="24" cy="246" r="0.8" fill="#d9c9a8" opacity="0.59" />
+            <circle cx="18" cy="361" r="1" fill="#d9c9a8" opacity="0.37" />
+            <circle cx="211" cy="240" r="1.3" fill="#d9c9a8" opacity="0.53" />
+            <circle cx="70" cy="244" r="1.3" fill="#d9c9a8" opacity="0.28" />
+            <circle cx="38" cy="299" r="1.3" fill="#d9c9a8" opacity="0.22" />
+            <circle cx="80" cy="286" r="1" fill="#d9c9a8" opacity="0.51" />
+            <circle cx="182" cy="388" r="1" fill="#d9c9a8" opacity="0.32" />
+            <circle cx="310" cy="294" r="0.8" fill="#d9c9a8" opacity="0.23" />
+            <circle cx="117" cy="208" r="1" fill="#d9c9a8" opacity="0.49" />
+            <circle cx="112" cy="412" r="0.8" fill="#d9c9a8" opacity="0.40" />
+            <circle cx="64" cy="144" r="1" fill="#d9c9a8" opacity="0.37" />
+            <circle cx="375" cy="33" r="1.3" fill="#d9c9a8" opacity="0.43" />
+            <circle cx="341" cy="132" r="1.3" fill="#d9c9a8" opacity="0.34" />
+            <circle cx="194" cy="335" r="0.8" fill="#d9c9a8" opacity="0.54" />
+            <circle cx="368" cy="199" r="1.3" fill="#d9c9a8" opacity="0.23" />
+            <circle cx="285" cy="130" r="1.3" fill="#d9c9a8" opacity="0.60" />
+            <circle cx="321" cy="120" r="1" fill="#d9c9a8" opacity="0.55" />
+            <circle cx="135" cy="395" r="1" fill="#d9c9a8" opacity="0.27" />
+            <circle cx="46" cy="25" r="1" fill="#d9c9a8" opacity="0.25" />
+            <circle cx="97" cy="164" r="1" fill="#d9c9a8" opacity="0.23" />
+            <circle cx="175" cy="231" r="0.8" fill="#d9c9a8" opacity="0.53" />
+            <circle cx="337" cy="117" r="1" fill="#d9c9a8" opacity="0.59" />
+            <circle cx="266" cy="160" r="0.8" fill="#d9c9a8" opacity="0.26" />
+            <circle cx="69" cy="97" r="0.8" fill="#d9c9a8" opacity="0.20" />
+            <circle cx="324" cy="77" r="1" fill="#d9c9a8" opacity="0.20" />
+            <circle cx="163" cy="155" r="1.3" fill="#d9c9a8" opacity="0.33" />
+            <circle cx="49" cy="361" r="1.3" fill="#d9c9a8" opacity="0.46" />
+            <circle cx="289" cy="192" r="1.3" fill="#d9c9a8" opacity="0.52" />
+            <circle cx="153" cy="168" r="0.8" fill="#d9c9a8" opacity="0.39" />
+            <circle cx="156" cy="80" r="0.8" fill="#d9c9a8" opacity="0.38" />
+            <circle cx="43" cy="252" r="0.8" fill="#d9c9a8" opacity="0.20" />
+            <circle cx="59" cy="43" r="1" fill="#d9c9a8" opacity="0.45" />
+            <circle cx="27" cy="87" r="1" fill="#d9c9a8" opacity="0.26" />
+            <circle cx="98" cy="146" r="1" fill="#d9c9a8" opacity="0.39" />
+            <circle cx="45" cy="205" r="1" fill="#d9c9a8" opacity="0.39" />
+            <circle cx="122" cy="61" r="1.3" fill="#d9c9a8" opacity="0.34" />
+            <circle cx="103" cy="348" r="0.8" fill="#d9c9a8" opacity="0.41" />
+            <circle cx="80" cy="400" r="1" fill="#d9c9a8" opacity="0.26" />
+            <circle cx="212" cy="11" r="1.3" fill="#d9c9a8" opacity="0.32" />
+            <circle cx="251" cy="38" r="1" fill="#d9c9a8" opacity="0.41" />
+            <circle cx="354" cy="149" r="0.8" fill="#d9c9a8" opacity="0.41" />
+            <circle cx="304" cy="138" r="0.8" fill="#d9c9a8" opacity="0.45" />
+            <circle cx="307" cy="318" r="0.8" fill="#d9c9a8" opacity="0.52" />
+            <circle cx="319" cy="311" r="0.8" fill="#d9c9a8" opacity="0.28" />
+            <circle cx="192" cy="307" r="0.8" fill="#d9c9a8" opacity="0.52" />
+            <circle cx="184" cy="81" r="1.3" fill="#d9c9a8" opacity="0.58" />
+            <circle cx="174" cy="394" r="1" fill="#d9c9a8" opacity="0.58" />
+            <circle cx="142" cy="93" r="0.8" fill="#d9c9a8" opacity="0.39" />
+            <circle cx="132" cy="203" r="1.3" fill="#d9c9a8" opacity="0.54" />
+            <circle cx="187" cy="274" r="1.3" fill="#d9c9a8" opacity="0.23" />
+            <circle cx="258" cy="382" r="1.3" fill="#d9c9a8" opacity="0.50" />
+            <circle cx="186" cy="75" r="1.3" fill="#d9c9a8" opacity="0.33" />
+            <circle cx="312" cy="408" r="1" fill="#d9c9a8" opacity="0.39" />
+            <circle cx="290" cy="36" r="0.8" fill="#d9c9a8" opacity="0.27" />
+            <circle cx="50" cy="63" r="1" fill="#d9c9a8" opacity="0.52" />
+            <circle cx="57" cy="347" r="1" fill="#d9c9a8" opacity="0.46" />
+            <circle cx="137" cy="230" r="0.8" fill="#d9c9a8" opacity="0.21" />
+            <circle cx="312" cy="305" r="0.8" fill="#d9c9a8" opacity="0.41" />
+            <path
+              d="M 186 245 Q 295 240 329 338"
+              stroke="#ee7660"
+              stroke-width="4"
+              fill="none"
+            />
+            <circle
+              cx="335"
+              cy="344"
+              r="16"
+              fill="none"
+              stroke="#ee7660"
+              stroke-width="2.5"
+            />
+            <circle cx="329" cy="338" r="9" fill="#f1d27a" opacity="0.85" />
+            <circle cx="27" cy="176" r="4" fill="#f3d36b" />
+            <circle
+              cx="37.4"
+              cy="166.6"
+              r="2.6"
+              fill="#a8997f"
+              stroke="#0f0b08"
+              stroke-width="0.8"
+            />
+            <text
+              x="47"
+              y="180"
+              fill="#a8997f"
+              font-size="11.5"
+              font-family="Georgia"
+            >
+              1:12
+            </text>
+            <circle cx="363" cy="50" r="4" fill="#f3d36b" />
+            <circle
+              cx="376.9"
+              cy="51.5"
+              r="2.6"
+              fill="#a8997f"
+              stroke="#0f0b08"
+              stroke-width="0.8"
+            />
+            <text
+              x="383"
+              y="54"
+              fill="#a8997f"
+              font-size="11.5"
+              font-family="Georgia"
+            >
+              1:18
+            </text>
+            <circle cx="215" cy="46" r="4" fill="#f3d36b" />
+            <circle
+              cx="220.7"
+              cy="33.2"
+              r="2.6"
+              fill="#a8997f"
+              stroke="#0f0b08"
+              stroke-width="0.8"
+            />
+            <text
+              x="235"
+              y="50"
+              fill="#a8997f"
+              font-size="11.5"
+              font-family="Georgia"
+            >
+              1:21
+            </text>
+            <circle cx="70" cy="71" r="4" fill="#f3d36b" />
+            <circle
+              cx="83.9"
+              cy="72.5"
+              r="2.6"
+              fill="#a8997f"
+              stroke="#0f0b08"
+              stroke-width="0.8"
+            />
+            <circle
+              cx="67.1"
+              cy="84.7"
+              r="2.6"
+              fill="#a8997f"
+              stroke="#0f0b08"
+              stroke-width="0.8"
+            />
+            <text
+              x="90"
+              y="75"
+              fill="#a8997f"
+              font-size="11.5"
+              font-family="Georgia"
+            >
+              1:24
+            </text>
+            <circle cx="117" cy="160" r="4" fill="#f3d36b" />
+            <circle
+              cx="125.2"
+              cy="171.3"
+              r="2.6"
+              fill="#6fe0a8"
+              stroke="#0f0b08"
+              stroke-width="0.8"
+            />
+            <circle
+              cx="103.1"
+              cy="161.5"
+              r="2.6"
+              fill="#a8997f"
+              stroke="#0f0b08"
+              stroke-width="0.8"
+            />
+            <text
+              x="137"
+              y="164"
+              fill="#a8997f"
+              font-size="11.5"
+              font-family="Georgia"
+            >
+              1:26
+            </text>
+            <circle cx="176" cy="235" r="6" fill="#f3d36b" />
+            <circle
+              cx="176"
+              cy="235"
+              r="27"
+              fill="none"
+              stroke="#6fb8ff"
+              stroke-width="1.5"
+              opacity="0.7"
+            />
+            <circle
+              cx="195.0"
+              cy="228.8"
+              r="3.4"
+              fill="#6fb8ff"
+              stroke="#0f0b08"
+              stroke-width="0.8"
+            />
+            <circle
+              cx="180.2"
+              cy="254.6"
+              r="3.4"
+              fill="#6fb8ff"
+              stroke="#0f0b08"
+              stroke-width="0.8"
+            />
+            <circle
+              cx="158.7"
+              cy="245.0"
+              r="3.4"
+              fill="#6fb8ff"
+              stroke="#0f0b08"
+              stroke-width="0.8"
+            />
+            <circle
+              cx="161.1"
+              cy="221.6"
+              r="3.4"
+              fill="#a8997f"
+              stroke="#0f0b08"
+              stroke-width="0.8"
+            />
+            <text
+              x="146"
+              y="203"
+              fill="#f1d27a"
+              font-size="13"
+              font-family="Georgia"
+            >
+              1:27 · deine 3 Welten
+            </text>
+            <circle cx="277" cy="122" r="4" fill="#f3d36b" />
+            <circle
+              cx="289.1"
+              cy="129.0"
+              r="2.6"
+              fill="#a8997f"
+              stroke="#0f0b08"
+              stroke-width="0.8"
+            />
+            <text
+              x="297"
+              y="126"
+              fill="#a8997f"
+              font-size="11.5"
+              font-family="Georgia"
+            >
+              1:29
+            </text>
+            <circle cx="261" cy="277" r="4" fill="#f3d36b" />
+            <circle
+              cx="271.4"
+              cy="267.6"
+              r="2.6"
+              fill="#ee7660"
+              stroke="#0f0b08"
+              stroke-width="0.8"
+            />
+            <circle
+              cx="274.9"
+              cy="278.5"
+              r="2.6"
+              fill="#ee7660"
+              stroke="#0f0b08"
+              stroke-width="0.8"
+            />
+            <circle
+              cx="258.1"
+              cy="290.7"
+              r="2.6"
+              fill="#ee7660"
+              stroke="#0f0b08"
+              stroke-width="0.8"
+            />
+            <text
+              x="281"
+              y="281"
+              fill="#a8997f"
+              font-size="11.5"
+              font-family="Georgia"
+            >
+              1:31
+            </text>
+            <circle cx="129" cy="370" r="3.5" fill="#8a7a5c" />
+            <text
+              x="149"
+              y="374"
+              fill="#a8997f"
+              font-size="11.5"
+              font-family="Georgia"
+            >
+              1:33
+            </text>
+            <circle cx="62" cy="302" r="4" fill="#f3d36b" />
+            <circle
+              cx="64.9"
+              cy="315.7"
+              r="2.6"
+              fill="#a8997f"
+              stroke="#0f0b08"
+              stroke-width="0.8"
+            />
+            <circle
+              cx="53.8"
+              cy="313.3"
+              r="2.6"
+              fill="#a8997f"
+              stroke="#0f0b08"
+              stroke-width="0.8"
+            />
+            <text
+              x="82"
+              y="306"
+              fill="#a8997f"
+              font-size="11.5"
+              font-family="Georgia"
+            >
+              1:35
+            </text>
+            <circle cx="343" cy="193" r="4" fill="#f3d36b" />
+            <circle
+              cx="343.0"
+              cy="179.0"
+              r="2.6"
+              fill="#a8997f"
+              stroke="#0f0b08"
+              stroke-width="0.8"
+            />
+            <circle
+              cx="351.2"
+              cy="204.3"
+              r="2.6"
+              fill="#a8997f"
+              stroke="#0f0b08"
+              stroke-width="0.8"
+            />
+            <text
+              x="363"
+              y="197"
+              fill="#a8997f"
+              font-size="11.5"
+              font-family="Georgia"
+            >
+              1:38
+            </text>
+            <circle cx="226" cy="378" r="3.5" fill="#8a7a5c" />
+            <text
+              x="246"
+              y="382"
+              fill="#a8997f"
+              font-size="11.5"
+              font-family="Georgia"
+            >
+              1:40
+            </text>
+            <circle cx="335" cy="344" r="4" fill="#f3d36b" />
+            <circle
+              cx="348.3"
+              cy="339.7"
+              r="2.6"
+              fill="#ee7660"
+              stroke="#0f0b08"
+              stroke-width="0.8"
+            />
+            <circle
+              cx="347.1"
+              cy="351.0"
+              r="2.6"
+              fill="#6fe0a8"
+              stroke="#0f0b08"
+              stroke-width="0.8"
+            />
+            <circle
+              cx="337.9"
+              cy="357.7"
+              r="2.6"
+              fill="#a8997f"
+              stroke="#0f0b08"
+              stroke-width="0.8"
+            />
+            <text
+              x="355"
+              y="348"
+              fill="#a8997f"
+              font-size="11.5"
+              font-family="Georgia"
+            >
+              1:44
+            </text>
+          </svg>
+        </div>
+        <div class="k-abs" style="left: 10px; top: 104px; z-index: 2">
+          <span class="k-pill">Ziehe von deiner Welt zum Ziel</span>
+        </div>
+        <div
+          class="k-abs"
+          style="
+            left: 196px;
+            top: 466px;
+            z-index: 2;
+            background: #17110d;
+            border: 1px solid var(--red);
+            border-radius: 8px;
+            padding: 4px 8px;
+            font-size: 12px;
+          "
+        >
+          <b style="color: var(--red)">Angriff Varn [1:44:4]</b><br />an 14:05 ·
+          zurück 14:50
+        </div>
+        <div
+          class="k-abs"
+          style="
+            left: 0;
+            right: 0;
+            top: 0;
+            padding: 30px 10px 6px;
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            background: rgb(18 13 10 / 0.92);
+            border-bottom: 1px solid var(--line);
+            z-index: 3;
+          "
+        >
+          <span class="k-pill"
+            ><img src="/icons/resources/small/metal.svg" alt="" />184 k</span
+          ><span class="k-pill"
+            ><img src="/icons/resources/small/crystal.svg" alt="" /><span
+              style="color: var(--orange)"
+              >92 k</span
+            ></span
+          ><span class="k-pill"
+            ><img src="/icons/resources/small/deuterium.svg" alt="" />41 k</span
+          ><span class="k-pill" style="margin-left: auto">Galaxie 1 ▾</span>
+        </div>
+        <div
+          class="k-abs"
+          style="
+            left: 0;
+            right: 0;
+            bottom: 62px;
+            height: 200px;
+            background: #17110d;
+            border-top: 1px solid var(--gold);
+            border-radius: 16px 16px 0 0;
+            box-shadow: 0 -10px 30px rgb(0 0 0 / 0.7);
+            padding: 6px 12px;
+            z-index: 3;
+            overflow: hidden;
+          "
+        >
+          <div
+            style="
+              width: 40px;
+              height: 4px;
+              border-radius: 2px;
+              background: var(--line);
+              margin: 0 auto 6px;
+            "
+          ></div>
+          <b style="color: var(--gold-hi)">Aurelia → Varn</b>
+          <span class="m-dim" style="font-size: 12px">Angriff</span>
+          <div class="m-chips" style="margin: 6px 0">
+            <span class="m-chip on">60 Abfangjäger</span
+            ><span class="m-chip on">20 Fregatten</span
+            ><span class="m-chip on">24 Lastbarken</span
+            ><span class="m-chip">+ Schiffe</span>
+          </div>
+          <div style="font-size: 12.5px; color: var(--green)">
+            Laderaum 619 k ≥ Beute 600 k ✓
+          </div>
+          <span
+            class="m-btn big"
+            style="display: block; margin-top: 8px; text-align: center"
+            >Losschicken</span
+          >
+        </div>
+        <div
+          class="k-abs"
+          style="
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 62px;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            background: #110c09;
+            border-top: 1px solid var(--line);
+            z-index: 3;
+          "
+        >
+          <span
+            style="display: grid; place-items: center; color: var(--gold-hi)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <circle cx="6" cy="7" r="2" />
+              <circle cx="17" cy="6" r="2" />
+              <circle cx="12" cy="17" r="2" />
+              <path d="M8 8l3 7M15 7l-2 8" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="12" r="6" />
+              <ellipse cx="12" cy="12" rx="10" ry="3.5" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <path d="M3 16l9-11 9 11-9-3z" />
+              <path d="M12 13v7" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <rect x="4" y="4" width="16" height="16" rx="2" />
+              <path d="M8 9h8M8 13h8M8 17h5" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <path d="M4 7h16M4 12h16M4 17h16" /></svg
+          ></span>
+        </div>
+      </div>
+    </figure>
+    <figure id="r3-s9-c" style="margin: 0; display: inline-block">
+      <div class="k-phone" style="">
+        <div class="k-stars" style="position: absolute; inset: 0"></div>
+        <div class="k-abs" style="left: 10px; top: 104px">
+          <span class="k-pill">Galaxie 1 › System 1:44</span>
+        </div>
+        <div
+          class="k-abs"
+          style="left: 90px; top: 220px; text-align: center; font-size: 11.5px"
+        >
+          <span
+            class="m-ball"
+            style="
+              display: inline-block;
+              width: 46px;
+              height: 46px;
+              background-image: url(/planets/trocken-1-surface.svg);
+            "
+          ></span
+          ><br /><b style="color: #ee7660">4 · Varn</b>
+        </div>
+        <div
+          class="k-abs"
+          style="left: 200px; top: 290px; text-align: center; font-size: 11.5px"
+        >
+          <span
+            class="m-ball"
+            style="
+              display: inline-block;
+              width: 36px;
+              height: 36px;
+              background-image: url(/planets/wueste-1-surface.svg);
+            "
+          ></span
+          ><br /><b style="color: #6fe0a8">6 · Kessra Prime</b>
+        </div>
+        <div
+          class="k-abs"
+          style="left: 120px; top: 390px; text-align: center; font-size: 11.5px"
+        >
+          <span
+            class="m-ball"
+            style="
+              display: inline-block;
+              width: 34px;
+              height: 34px;
+              background-image: url(/planets/gas-1-surface.svg);
+            "
+          ></span
+          ><br /><b style="color: #a8997f">8 · Tarsis</b>
+        </div>
+        <div
+          class="k-abs"
+          style="
+            left: 78px;
+            top: 208px;
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            border: 2px solid #f1d27a;
+          "
+        ></div>
+        <div
+          class="k-abs"
+          style="
+            left: 0;
+            right: 0;
+            top: 0;
+            padding: 30px 10px 6px;
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            background: rgb(18 13 10 / 0.92);
+            border-bottom: 1px solid var(--line);
+            z-index: 3;
+          "
+        >
+          <span class="k-pill"
+            ><img src="/icons/resources/small/metal.svg" alt="" />184 k</span
+          ><span class="k-pill"
+            ><img src="/icons/resources/small/crystal.svg" alt="" /><span
+              style="color: var(--orange)"
+              >92 k</span
+            ></span
+          ><span class="k-pill"
+            ><img src="/icons/resources/small/deuterium.svg" alt="" />41 k</span
+          ><span class="k-pill" style="margin-left: auto">Galaxie 1 ▾</span>
+        </div>
+        <div
+          class="k-abs"
+          style="
+            left: 0;
+            right: 0;
+            bottom: 62px;
+            height: 520px;
+            background: #17110d;
+            border-top: 1px solid var(--gold);
+            border-radius: 16px 16px 0 0;
+            box-shadow: 0 -10px 30px rgb(0 0 0 / 0.7);
+            padding: 6px 12px;
+            z-index: 3;
+            overflow: hidden;
+          "
+        >
+          <div
+            style="
+              width: 40px;
+              height: 4px;
+              border-radius: 2px;
+              background: var(--line);
+              margin: 0 auto 6px;
+            "
+          ></div>
+          <b style="color: var(--gold-hi)">Angriff auf Varn</b>
+          <span class="m-dim" style="font-size: 12px"
+            >von Aurelia · Vorlage wählen</span
+          >
+          <div
+            style="
+              border: 1px solid var(--gold);
+              border-radius: 8px;
+              padding: 8px;
+              margin: 6px 0;
+              background: rgb(212 165 55 / 0.08);
+            "
+          >
+            <b style="color: var(--gold-hi)">Raubzug</b>
+            <div class="m-dim" style="font-size: 12.5px">
+              alle Kampfschiffe + Lastbarken passend zur Beute (24)
+            </div>
+          </div>
+          <div
+            style="
+              border: 1px solid var(--line);
+              border-radius: 8px;
+              padding: 8px;
+              margin: 6px 0;
+            "
+          >
+            <b style="color: var(--txt)">Alles</b>
+            <div class="m-dim" style="font-size: 12.5px">
+              jedes Schiff auf Aurelia (60 · 20 · 30)
+            </div>
+          </div>
+          <div
+            style="
+              border: 1px solid var(--line);
+              border-radius: 8px;
+              padding: 8px;
+              margin: 6px 0;
+            "
+          >
+            <b style="color: var(--txt)">Nur Laderaum</b>
+            <div class="m-dim" style="font-size: 12.5px">
+              24 Lastbarken, ohne Schutz
+            </div>
+          </div>
+          <div
+            style="
+              border: 1px solid var(--line);
+              border-radius: 8px;
+              padding: 8px;
+              margin: 6px 0;
+            "
+          >
+            <b style="color: var(--txt)">+ Eigene Vorlage</b>
+            <div class="m-dim" style="font-size: 12.5px">
+              aus der jetzigen Auswahl speichern
+            </div>
+          </div>
+          <div class="m-kv">
+            <span>Laderaum</span
+            ><b style="color: var(--green)">619 k ≥ Beute 600 k ✓</b
+            ><span>Ankunft</span><b>14:05</b><span>zurück</span><b>14:50</b>
+          </div>
+          <span
+            class="m-btn big"
+            style="display: block; margin-top: 8px; text-align: center"
+            >Raubzug losschicken</span
+          >
+        </div>
+        <div
+          class="k-abs"
+          style="
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 62px;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            background: #110c09;
+            border-top: 1px solid var(--line);
+            z-index: 3;
+          "
+        >
+          <span
+            style="display: grid; place-items: center; color: var(--gold-hi)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <circle cx="6" cy="7" r="2" />
+              <circle cx="17" cy="6" r="2" />
+              <circle cx="12" cy="17" r="2" />
+              <path d="M8 8l3 7M15 7l-2 8" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="12" r="6" />
+              <ellipse cx="12" cy="12" rx="10" ry="3.5" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <path d="M3 16l9-11 9 11-9-3z" />
+              <path d="M12 13v7" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <rect x="4" y="4" width="16" height="16" rx="2" />
+              <path d="M8 9h8M8 13h8M8 17h5" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <path d="M4 7h16M4 12h16M4 17h16" /></svg
+          ></span>
+        </div>
+      </div>
+    </figure>
+    <figure id="r3-s10-a" style="margin: 0; display: inline-block">
+      <div class="k-phone" style="">
+        <div class="k-stars" style="position: absolute; inset: 0"></div>
+        <div class="k-abs" style="left: 10px; top: 104px">
+          <span class="k-pill">Galaxie 1 › System 1:44</span>
+        </div>
+        <div
+          class="k-abs"
+          style="left: 90px; top: 220px; text-align: center; font-size: 11.5px"
+        >
+          <span
+            class="m-ball"
+            style="
+              display: inline-block;
+              width: 46px;
+              height: 46px;
+              background-image: url(/planets/trocken-1-surface.svg);
+            "
+          ></span
+          ><br /><b style="color: #ee7660">4 · Varn</b>
+        </div>
+        <div
+          class="k-abs"
+          style="left: 200px; top: 290px; text-align: center; font-size: 11.5px"
+        >
+          <span
+            class="m-ball"
+            style="
+              display: inline-block;
+              width: 36px;
+              height: 36px;
+              background-image: url(/planets/wueste-1-surface.svg);
+            "
+          ></span
+          ><br /><b style="color: #6fe0a8">6 · Kessra Prime</b>
+        </div>
+        <div
+          class="k-abs"
+          style="left: 120px; top: 390px; text-align: center; font-size: 11.5px"
+        >
+          <span
+            class="m-ball"
+            style="
+              display: inline-block;
+              width: 34px;
+              height: 34px;
+              background-image: url(/planets/gas-1-surface.svg);
+            "
+          ></span
+          ><br /><b style="color: #a8997f">8 · Tarsis</b>
+        </div>
+        <div
+          class="k-abs"
+          style="
+            left: 78px;
+            top: 208px;
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            border: 2px solid #f1d27a;
+          "
+        ></div>
+        <div
+          class="k-abs"
+          style="
+            left: 0;
+            right: 0;
+            top: 0;
+            padding: 30px 10px 6px;
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            background: rgb(18 13 10 / 0.92);
+            border-bottom: 1px solid var(--line);
+            z-index: 3;
+          "
+        >
+          <span class="k-pill"
+            ><img src="/icons/resources/small/metal.svg" alt="" />184 k</span
+          ><span class="k-pill"
+            ><img src="/icons/resources/small/crystal.svg" alt="" /><span
+              style="color: var(--orange)"
+              >92 k</span
+            ></span
+          ><span class="k-pill"
+            ><img src="/icons/resources/small/deuterium.svg" alt="" />41 k</span
+          ><span class="k-pill" style="margin-left: auto">Galaxie 1 ▾</span>
+        </div>
+        <div
+          class="k-abs"
+          style="
+            left: 0;
+            right: 0;
+            bottom: 62px;
+            height: 470px;
+            background: #17110d;
+            border-top: 1px solid var(--gold);
+            border-radius: 16px 16px 0 0;
+            box-shadow: 0 -10px 30px rgb(0 0 0 / 0.7);
+            padding: 6px 12px;
+            z-index: 3;
+            overflow: hidden;
+          "
+        >
+          <div
+            style="
+              width: 40px;
+              height: 4px;
+              border-radius: 2px;
+              background: var(--line);
+              margin: 0 auto 6px;
+            "
+          ></div>
+          <b style="color: var(--green)">Sieg über Varn</b>
+          <span class="m-dim" style="font-size: 12px"
+            >· 4 von 6 Runden · 14:05</span
+          >
+          <div
+            style="
+              display: grid;
+              grid-template-columns: 1fr auto auto;
+              gap: 3px 10px;
+              font-size: 12.5px;
+              margin: 6px 0;
+            "
+          >
+            <span class="m-dim">Einheit</span><span class="m-dim">du</span
+            ><span class="m-dim">Varn</span><span>Abfangjäger</span
+            ><b>60 → 46</b><b style="color: var(--red)">24 → 0</b
+            ><span>Fregatte</span><b>20 → 18</b
+            ><b style="color: var(--red)">6 → 0</b><span>Lastbarke</span
+            ><b>24 → 24</b><b style="color: var(--red)">–</b
+            ><span>Raketenbatterie</span><b>–</b
+            ><b style="color: var(--red)">40 → 0 (28 wieder auf)</b
+            ><span>Lichtlanze</span><b>–</b
+            ><b style="color: var(--red)">12 → 0 (8 wieder auf)</b>
+          </div>
+          <div class="m-kv">
+            <span>Beute</span
+            ><b style="color: var(--green)">600 k (320 k / 190 k / 90 k)</b
+            ><span>Trümmerfeld 1:44:4</span><b>≈ 82 k / 28 k</b
+            ><span>zum Bergen</span><b>6 Bergungsbarken</b>
+          </div>
+          <div
+            style="
+              display: grid;
+              grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+              gap: 8px;
+              margin-top: 8px;
+              font-size: 13px;
+            "
+          >
+            <span class="m-btn" style="text-align: center; padding: 10px 4px"
+              >Trümmer bergen</span
+            ><span
+              class="m-btn"
+              style="
+                text-align: center;
+                padding: 10px 4px;
+                background: none;
+                color: var(--gold-hi);
+                border: 1px solid var(--gold);
+              "
+              >▶ Wiederholung</span
+            >
+          </div>
+        </div>
+        <div
+          class="k-abs"
+          style="
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 62px;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            background: #110c09;
+            border-top: 1px solid var(--line);
+            z-index: 3;
+          "
+        >
+          <span
+            style="display: grid; place-items: center; color: var(--gold-hi)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <circle cx="6" cy="7" r="2" />
+              <circle cx="17" cy="6" r="2" />
+              <circle cx="12" cy="17" r="2" />
+              <path d="M8 8l3 7M15 7l-2 8" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="12" r="6" />
+              <ellipse cx="12" cy="12" rx="10" ry="3.5" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <path d="M3 16l9-11 9 11-9-3z" />
+              <path d="M12 13v7" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <rect x="4" y="4" width="16" height="16" rx="2" />
+              <path d="M8 9h8M8 13h8M8 17h5" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <path d="M4 7h16M4 12h16M4 17h16" /></svg
+          ></span>
+        </div>
+      </div>
+    </figure>
+    <figure id="r3-s10-b" style="margin: 0; display: inline-block">
+      <div class="k-phone" style="">
+        <div class="k-stars" style="position: absolute; inset: 0"></div>
+        <div style="position: relative; padding: 100px 10px 0">
+          <div style="margin-bottom: 6px">
+            <b style="color: var(--green)">Sieg über Varn</b>
+            <span class="m-dim" style="font-size: 12px"
+              >· 4 von 6 Runden · 14:05</span
+            >
+          </div>
+          <svg
+            width="370"
+            height="250"
+            viewBox="0 0 370 250"
+            style="
+              background: #0b0806;
+              border: 1px solid var(--line);
+              border-radius: 8px;
+            "
+          >
+            <line
+              x1="44"
+              y1="134"
+              x2="334"
+              y2="228"
+              stroke="#f1d27a"
+              stroke-width="1"
+              opacity="0.5"
+            />
+            <line
+              x1="57"
+              y1="147"
+              x2="314"
+              y2="54"
+              stroke="#f1d27a"
+              stroke-width="1"
+              opacity="0.5"
+            />
+            <line
+              x1="83"
+              y1="34"
+              x2="335"
+              y2="223"
+              stroke="#f1d27a"
+              stroke-width="1"
+              opacity="0.5"
+            />
+            <line
+              x1="21"
+              y1="196"
+              x2="340"
+              y2="140"
+              stroke="#f1d27a"
+              stroke-width="1"
+              opacity="0.5"
+            />
+            <line
+              x1="46"
+              y1="69"
+              x2="319"
+              y2="64"
+              stroke="#f1d27a"
+              stroke-width="1"
+              opacity="0.5"
+            />
+            <line
+              x1="120"
+              y1="119"
+              x2="331"
+              y2="140"
+              stroke="#f1d27a"
+              stroke-width="1"
+              opacity="0.5"
+            />
+            <line
+              x1="104"
+              y1="120"
+              x2="271"
+              y2="33"
+              stroke="#f1d27a"
+              stroke-width="1"
+              opacity="0.5"
+            />
+            <line
+              x1="84"
+              y1="52"
+              x2="334"
+              y2="228"
+              stroke="#f1d27a"
+              stroke-width="1"
+              opacity="0.5"
+            />
+            <line
+              x1="83"
+              y1="202"
+              x2="250"
+              y2="188"
+              stroke="#f1d27a"
+              stroke-width="1"
+              opacity="0.5"
+            />
+            <line
+              x1="72"
+              y1="176"
+              x2="285"
+              y2="52"
+              stroke="#f1d27a"
+              stroke-width="1"
+              opacity="0.5"
+            />
+            <path d="M 44 130 L 51 134 L 44 138 Z" fill="#6fb8ff" />
+            <path d="M 57 143 L 64 147 L 57 151 Z" fill="#6fb8ff" />
+            <path d="M 83 30 L 90 34 L 83 38 Z" fill="#6fb8ff" />
+            <path d="M 21 192 L 28 196 L 21 200 Z" fill="#6fb8ff" />
+            <path d="M 46 65 L 53 69 L 46 73 Z" fill="#6fb8ff" />
+            <path d="M 120 115 L 127 119 L 120 123 Z" fill="#6fb8ff" />
+            <path d="M 104 116 L 111 120 L 104 124 Z" fill="#6fb8ff" />
+            <path d="M 84 48 L 91 52 L 84 56 Z" fill="#6fb8ff" />
+            <path d="M 83 198 L 90 202 L 83 206 Z" fill="#6fb8ff" />
+            <path d="M 72 172 L 79 176 L 72 180 Z" fill="#6fb8ff" />
+            <path d="M 87 29 L 94 33 L 87 37 Z" fill="#6fb8ff" />
+            <path d="M 96 140 L 103 144 L 96 148 Z" fill="#6fb8ff" />
+            <path d="M 50 23 L 57 27 L 50 31 Z" fill="#6fb8ff" />
+            <path d="M 107 115 L 114 119 L 107 123 Z" fill="#6fb8ff" />
+            <path d="M 92 201 L 99 205 L 92 209 Z" fill="#6fb8ff" />
+            <path d="M 91 209 L 98 213 L 91 217 Z" fill="#6fb8ff" />
+            <path d="M 59 184 L 66 188 L 59 192 Z" fill="#6fb8ff" />
+            <path d="M 64 212 L 71 216 L 64 220 Z" fill="#6fb8ff" />
+            <path d="M 108 36 L 115 40 L 108 44 Z" fill="#6fb8ff" />
+            <path d="M 34 62 L 41 66 L 34 70 Z" fill="#6fb8ff" />
+            <path d="M 117 108 L 124 112 L 117 116 Z" fill="#6fb8ff" />
+            <path d="M 83 79 L 90 83 L 83 87 Z" fill="#6fb8ff" />
+            <path d="M 71 97 L 78 101 L 71 105 Z" fill="#6fb8ff" />
+            <path d="M 55 139 L 62 143 L 55 147 Z" fill="#6fb8ff" />
+            <path d="M 78 206 L 85 210 L 78 214 Z" fill="#6fb8ff" />
+            <path d="M 88 211 L 95 215 L 88 219 Z" fill="#6fb8ff" />
+            <path d="M 334 224 L 327 228 L 334 232 Z" fill="#ee7660" />
+            <path d="M 314 50 L 307 54 L 314 58 Z" fill="#ee7660" />
+            <path d="M 335 219 L 328 223 L 335 227 Z" fill="#ee7660" />
+            <path d="M 340 136 L 333 140 L 340 144 Z" fill="#ee7660" />
+            <path d="M 319 60 L 312 64 L 319 68 Z" fill="#ee7660" />
+            <path d="M 331 136 L 324 140 L 331 144 Z" fill="#ee7660" />
+            <path d="M 271 29 L 264 33 L 271 37 Z" fill="#ee7660" />
+            <path d="M 334 224 L 327 228 L 334 232 Z" fill="#ee7660" />
+            <path d="M 250 184 L 243 188 L 250 192 Z" fill="#ee7660" />
+            <path d="M 285 48 L 278 52 L 285 56 Z" fill="#ee7660" />
+            <path d="M 272 177 L 265 181 L 272 185 Z" fill="#ee7660" />
+            <path d="M 336 25 L 329 29 L 336 33 Z" fill="#ee7660" />
+            <path d="M 308 25 L 301 29 L 308 33 Z" fill="#ee7660" />
+            <path d="M 319 86 L 312 90 L 319 94 Z" fill="#ee7660" />
+            <circle cx="300" cy="80" r="9" fill="#f0a050" opacity="0.6" />
+            <circle cx="270" cy="170" r="7" fill="#f0a050" opacity="0.6" />
+            <circle cx="320" cy="200" r="6" fill="#f0a050" opacity="0.6" />
+          </svg>
+          <div
+            style="
+              display: flex;
+              gap: 6px;
+              align-items: center;
+              margin: 8px 0;
+              font-size: 12.5px;
+            "
+          >
+            ▶
+            <span
+              style="
+                flex: 1;
+                height: 6px;
+                border-radius: 3px;
+                background: var(--gold);
+              "
+            ></span
+            ><span
+              style="
+                flex: 1;
+                height: 6px;
+                border-radius: 3px;
+                background: var(--gold);
+              "
+            ></span
+            ><span
+              style="
+                flex: 1;
+                height: 6px;
+                border-radius: 3px;
+                background: var(--line);
+              "
+            ></span
+            ><span
+              style="
+                flex: 1;
+                height: 6px;
+                border-radius: 3px;
+                background: var(--line);
+              "
+            ></span
+            ><span class="m-dim">Runde 2 von 4</span>
+          </div>
+          <div style="font-size: 12.5px">
+            Runde 2: 9 Abfangjäger und 4 Raketenbatterien von Varn zerstört.
+          </div>
+          <div class="m-kv">
+            <span>Beute</span
+            ><b style="color: var(--green)">600 k (320 k / 190 k / 90 k)</b
+            ><span>Trümmerfeld 1:44:4</span><b>≈ 82 k / 28 k</b
+            ><span>zum Bergen</span><b>6 Bergungsbarken</b>
+          </div>
+          <div
+            style="
+              display: grid;
+              grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+              gap: 8px;
+              margin-top: 8px;
+              font-size: 13px;
+            "
+          >
+            <span class="m-btn" style="text-align: center; padding: 10px 4px"
+              >Trümmer bergen</span
+            ><span
+              class="m-btn"
+              style="
+                text-align: center;
+                padding: 10px 4px;
+                background: none;
+                color: var(--gold-hi);
+                border: 1px solid var(--gold);
+              "
+              >▶ Wiederholung</span
+            >
+          </div>
+        </div>
+        <div
+          class="k-abs"
+          style="
+            left: 0;
+            right: 0;
+            top: 0;
+            padding: 30px 10px 6px;
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            background: rgb(18 13 10 / 0.92);
+            border-bottom: 1px solid var(--line);
+            z-index: 3;
+          "
+        >
+          <span class="k-pill"
+            ><img src="/icons/resources/small/metal.svg" alt="" />184 k</span
+          ><span class="k-pill"
+            ><img src="/icons/resources/small/crystal.svg" alt="" /><span
+              style="color: var(--orange)"
+              >92 k</span
+            ></span
+          ><span class="k-pill"
+            ><img src="/icons/resources/small/deuterium.svg" alt="" />41 k</span
+          ><span class="k-pill" style="margin-left: auto">Galaxie 1 ▾</span>
+        </div>
+        <div
+          class="k-abs"
+          style="
+            left: 0;
+            right: 0;
+            top: 640px;
+            bottom: 62px;
+            background: #17110d;
+            border-top: 1px solid var(--gold);
+            border-radius: 16px 16px 0 0;
+            box-shadow: 0 -8px 24px rgb(0 0 0 / 0.6);
+            padding: 6px 12px;
+            z-index: 3;
+          "
+        >
+          <div
+            style="
+              width: 40px;
+              height: 4px;
+              border-radius: 2px;
+              background: var(--line);
+              margin: 0 auto 6px;
+            "
+          ></div>
+          <div
+            style="
+              display: flex;
+              gap: 6px;
+              align-items: center;
+              font-size: 12.5px;
+              white-space: nowrap;
+              overflow: hidden;
+            "
+          >
+            <b
+              style="
+                font: 600 12px var(--head);
+                color: var(--gold-hi);
+                letter-spacing: 0.06em;
+              "
+              >LAGE ▴</b
+            ><span class="m-tag red">ANGRIFF 14:32</span
+            ><span class="m-tag gold">LAGER 1 h 40</span
+            ><span class="m-tag blue">3 BERICHTE</span>
+          </div>
+        </div>
+        <div
+          class="k-abs"
+          style="
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 62px;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            background: #110c09;
+            border-top: 1px solid var(--line);
+            z-index: 3;
+          "
+        >
+          <span
+            style="display: grid; place-items: center; color: var(--gold-hi)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <circle cx="6" cy="7" r="2" />
+              <circle cx="17" cy="6" r="2" />
+              <circle cx="12" cy="17" r="2" />
+              <path d="M8 8l3 7M15 7l-2 8" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="12" r="6" />
+              <ellipse cx="12" cy="12" rx="10" ry="3.5" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <path d="M3 16l9-11 9 11-9-3z" />
+              <path d="M12 13v7" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <rect x="4" y="4" width="16" height="16" rx="2" />
+              <path d="M8 9h8M8 13h8M8 17h5" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <path d="M4 7h16M4 12h16M4 17h16" /></svg
+          ></span>
+        </div>
+      </div>
+    </figure>
+    <figure id="r3-s10-c" style="margin: 0; display: inline-block">
+      <div class="k-phone" style="">
+        <div class="k-stars" style="position: absolute; inset: 0"></div>
+        <div class="k-abs" style="left: 10px; top: 104px">
+          <span class="k-pill">Galaxie 1 › System 1:44</span>
+        </div>
+        <div
+          class="k-abs"
+          style="left: 90px; top: 220px; text-align: center; font-size: 11.5px"
+        >
+          <span
+            class="m-ball"
+            style="
+              display: inline-block;
+              width: 46px;
+              height: 46px;
+              background-image: url(/planets/trocken-1-surface.svg);
+            "
+          ></span
+          ><br /><b style="color: #ee7660">4 · Varn</b>
+        </div>
+        <div
+          class="k-abs"
+          style="left: 200px; top: 290px; text-align: center; font-size: 11.5px"
+        >
+          <span
+            class="m-ball"
+            style="
+              display: inline-block;
+              width: 36px;
+              height: 36px;
+              background-image: url(/planets/wueste-1-surface.svg);
+            "
+          ></span
+          ><br /><b style="color: #6fe0a8">6 · Kessra Prime</b>
+        </div>
+        <div
+          class="k-abs"
+          style="left: 120px; top: 390px; text-align: center; font-size: 11.5px"
+        >
+          <span
+            class="m-ball"
+            style="
+              display: inline-block;
+              width: 34px;
+              height: 34px;
+              background-image: url(/planets/gas-1-surface.svg);
+            "
+          ></span
+          ><br /><b style="color: #a8997f">8 · Tarsis</b>
+        </div>
+        <div
+          class="k-abs"
+          style="
+            left: 78px;
+            top: 208px;
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            border: 2px solid #f1d27a;
+          "
+        ></div>
+        <div
+          class="k-abs"
+          style="
+            left: 0;
+            right: 0;
+            top: 0;
+            padding: 30px 10px 6px;
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            background: rgb(18 13 10 / 0.92);
+            border-bottom: 1px solid var(--line);
+            z-index: 3;
+          "
+        >
+          <span class="k-pill"
+            ><img src="/icons/resources/small/metal.svg" alt="" />184 k</span
+          ><span class="k-pill"
+            ><img src="/icons/resources/small/crystal.svg" alt="" /><span
+              style="color: var(--orange)"
+              >92 k</span
+            ></span
+          ><span class="k-pill"
+            ><img src="/icons/resources/small/deuterium.svg" alt="" />41 k</span
+          ><span class="k-pill" style="margin-left: auto">Galaxie 1 ▾</span>
+        </div>
+        <div
+          class="k-abs"
+          style="
+            left: 0;
+            right: 0;
+            bottom: 62px;
+            height: 560px;
+            background: #17110d;
+            border-top: 1px solid var(--gold);
+            border-radius: 16px 16px 0 0;
+            box-shadow: 0 -10px 30px rgb(0 0 0 / 0.7);
+            padding: 6px 12px;
+            z-index: 3;
+            overflow: hidden;
+          "
+        >
+          <div
+            style="
+              width: 40px;
+              height: 4px;
+              border-radius: 2px;
+              background: var(--line);
+              margin: 0 auto 6px;
+            "
+          ></div>
+          <b style="color: var(--gold-hi)">Lage · Zeitleiste</b>
+          <div
+            style="
+              margin: 6px 0 0 20px;
+              border-left: 2px solid var(--line);
+              padding-left: 10px;
+            "
+          >
+            <div
+              style="
+                position: relative;
+                display: grid;
+                grid-template-columns: 44px 1fr;
+                gap: 6px;
+                font-size: 13px;
+                margin: 5px 0;
+                opacity: 0.8;
+              "
+            >
+              <span
+                style="
+                  position: absolute;
+                  left: -17px;
+                  top: 5px;
+                  width: 9px;
+                  height: 9px;
+                  border-radius: 50%;
+                  background: var(--dim);
+                "
+              ></span
+              ><b class="m-num" style="color: var(--dim)">13:24</b
+              ><span>Bericht Varn</span>
+            </div>
+            <div
+              style="
+                position: relative;
+                display: grid;
+                grid-template-columns: 44px 1fr;
+                gap: 6px;
+                font-size: 13px;
+                margin: 5px 0;
+                opacity: 0.8;
+              "
+            >
+              <span
+                style="
+                  position: absolute;
+                  left: -17px;
+                  top: 5px;
+                  width: 9px;
+                  height: 9px;
+                  border-radius: 50%;
+                  background: var(--dim);
+                "
+              ></span
+              ><b class="m-num" style="color: var(--dim)">13:26</b
+              ><span>Flotte nach Varn gestartet</span>
+            </div>
+            <div
+              style="
+                position: relative;
+                display: grid;
+                grid-template-columns: 44px 1fr;
+                gap: 6px;
+                font-size: 13px;
+                margin: 5px 0;
+                opacity: 0.8;
+              "
+            >
+              <span
+                style="
+                  position: absolute;
+                  left: -17px;
+                  top: 5px;
+                  width: 9px;
+                  height: 9px;
+                  border-radius: 50%;
+                  background: var(--green);
+                "
+              ></span
+              ><b class="m-num" style="color: var(--dim)">14:05</b
+              ><span
+                ><b style="color: var(--green)">Schlacht um Varn</b> ·
+                aufgeklappt</span
+              >
+            </div>
+            <div
+              style="
+                border: 1px solid var(--green);
+                border-radius: 8px;
+                padding: 8px;
+                margin: 4px 0 8px;
+              "
+            >
+              <b style="color: var(--green)">Sieg über Varn</b>
+              <span class="m-dim" style="font-size: 12px"
+                >· 4 von 6 Runden · 14:05</span
+              >
+              <div style="font-size: 12.5px; margin: 4px 0">
+                Verluste: du 14 Abfangjäger, 2 Fregatten · Varn alles
+              </div>
+              <div class="m-kv">
+                <span>Beute</span
+                ><b style="color: var(--green)">600 k (320 k / 190 k / 90 k)</b
+                ><span>Trümmerfeld 1:44:4</span><b>≈ 82 k / 28 k</b
+                ><span>zum Bergen</span><b>6 Bergungsbarken</b>
+              </div>
+              <div
+                style="
+                  display: grid;
+                  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+                  gap: 8px;
+                  margin-top: 8px;
+                  font-size: 13px;
+                "
+              >
+                <span
+                  class="m-btn"
+                  style="text-align: center; padding: 10px 4px"
+                  >Trümmer bergen</span
+                ><span
+                  class="m-btn"
+                  style="
+                    text-align: center;
+                    padding: 10px 4px;
+                    background: none;
+                    color: var(--gold-hi);
+                    border: 1px solid var(--gold);
+                  "
+                  >▶ Wiederholung</span
+                >
+              </div>
+              <div class="m-dim" style="font-size: 12px; margin-top: 6px">
+                Wischen: Runde 1 · 2 · 3 · 4
+              </div>
+            </div>
+            <div
+              style="
+                position: relative;
+                display: grid;
+                grid-template-columns: 44px 1fr;
+                gap: 6px;
+                font-size: 13px;
+                margin: 5px 0;
+              "
+            >
+              <span
+                style="
+                  position: absolute;
+                  left: -17px;
+                  top: 5px;
+                  width: 9px;
+                  height: 9px;
+                  border-radius: 50%;
+                  background: var(--red);
+                "
+              ></span
+              ><b class="m-num" style="color: var(--txt)">14:32</b
+              ><span
+                ><b style="color: var(--red)"
+                  >Angriff Haus Valcor auf Nox</b
+                ></span
+              >
+            </div>
+            <div
+              style="
+                position: relative;
+                display: grid;
+                grid-template-columns: 44px 1fr;
+                gap: 6px;
+                font-size: 13px;
+                margin: 5px 0;
+              "
+            >
+              <span
+                style="
+                  position: absolute;
+                  left: -17px;
+                  top: 5px;
+                  width: 9px;
+                  height: 9px;
+                  border-radius: 50%;
+                  background: var(--gold);
+                "
+              ></span
+              ><b class="m-num" style="color: var(--txt)">14:50</b
+              ><span>Flotte zurück mit Beute</span>
+            </div>
+          </div>
+        </div>
+        <div
+          class="k-abs"
+          style="
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 62px;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            background: #110c09;
+            border-top: 1px solid var(--line);
+            z-index: 3;
+          "
+        >
+          <span
+            style="display: grid; place-items: center; color: var(--gold-hi)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <circle cx="6" cy="7" r="2" />
+              <circle cx="17" cy="6" r="2" />
+              <circle cx="12" cy="17" r="2" />
+              <path d="M8 8l3 7M15 7l-2 8" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="12" r="6" />
+              <ellipse cx="12" cy="12" rx="10" ry="3.5" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <path d="M3 16l9-11 9 11-9-3z" />
+              <path d="M12 13v7" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <rect x="4" y="4" width="16" height="16" rx="2" />
+              <path d="M8 9h8M8 13h8M8 17h5" /></svg></span
+          ><span style="display: grid; place-items: center; color: var(--dim)"
+            ><svg
+              class="k-g"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              aria-hidden="true"
+            >
+              <path d="M4 7h16M4 12h16M4 17h16" /></svg
+          ></span>
+        </div>
+      </div>
+    </figure>
+  </body>
+</html>

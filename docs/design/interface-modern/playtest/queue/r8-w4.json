@@ -1,0 +1,30 @@
+{
+  "ask": "Sollen wichtige Admin-Ereignisse (neuer Fehler, gemeldete Nachricht) auch in deiner Lage-Zeile erscheinen?",
+  "id": "w4",
+  "kind": "sit",
+  "order": "bac",
+  "round": "r8",
+  "roundTitle": "Runde 8 · Welt und Konto (Handy)",
+  "seq": 540,
+  "short": "Admin",
+  "station": 0,
+  "text": "Heute acht Reiter: Ereignisprotokoll, Spieler, Aufträge, Fehler, Gemeldete Nachrichten, Einladungen, Universum, Servernachricht. Nur du siehst ihn. Zahlen und Namen sind Beispiele; das Lage-Blatt hat ohne #382 keinen Reiter „Herold“.",
+  "title": "Der Admin-Bereich",
+  "variants": {
+    "a": {
+      "desc": "Ein eigener Bereich mit den acht Reitern oben.",
+      "emph": "Admin: Reiter",
+      "img": "/_blob/de0f9c7298df2cacf3f2bdea05ff4a7d"
+    },
+    "b": {
+      "desc": "Eine Übersicht mit Kacheln und Zählern; ein Tipp öffnet den Bereich.",
+      "emph": "Admin: Übersicht",
+      "img": "/_blob/defeba5914be5512f3c14f89fe90b718"
+    },
+    "c": {
+      "desc": "Ein Reiter „Admin“ im Lage-Blatt mit den Admin-Ereignissen; die Einstellungen als Knöpfe darunter.",
+      "emph": "Admin: im Lage-Blatt",
+      "img": "/_blob/d74e97ff543a959cf9ff629a7937b20b"
+    }
+  }
+}

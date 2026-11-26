@@ -1,0 +1,30 @@
+{
+  "ask": "Soll das Lexikon am Desktop neben dem Spiel offen bleiben können (als angeheftetes Fenster)?",
+  "id": "d9",
+  "kind": "sit",
+  "order": "bca",
+  "round": "d8",
+  "roundTitle": "Desktop 5 · Welten, Menü, Gilde",
+  "seq": 470,
+  "short": "Desktop: Menü",
+  "station": 11,
+  "text": "Deine Wahl vom Handy: das Menü als Blatt (Lexikon, Soziales, Optionen, Admin); am Desktop zusätzlich die Börse als Liste im Menü (d6).",
+  "title": "Am Desktop: das Menü",
+  "variants": {
+    "a": {
+      "desc": "Klick auf „Menü“ oben: eine Klappe mit den Einträgen.",
+      "emph": "Desktop-Menü: Klappe",
+      "img": "/_blob/0ed18037f95c0112b376fcd229dd3ee0"
+    },
+    "b": {
+      "desc": "Wie am Handy: das Menü als Reiter im Lage-Blatt.",
+      "emph": "Desktop-Menü: im Blatt",
+      "img": "/_blob/fb32bf827f2376b0b221d66dfe1bbd34"
+    },
+    "c": {
+      "desc": "Kein „Menü“: die Einträge stehen direkt oben, jeder öffnet ein Fenster (hier das Lexikon).",
+      "emph": "Desktop-Menü: Einträge oben, Fenster",
+      "img": "/_blob/86339f788604e3a3bc5721e7fc6f0afe"
+    }
+  }
+}
