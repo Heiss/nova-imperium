@@ -77,7 +77,14 @@ bullets they replace below are marked.
   (CodeRabbit on #395), before the job „latest and stable“ moves the aliases. A finding
   stops the aliases (they stay on the previous release), the run fails
   visibly, and the loop tells the owner. The tag and the `<version>` image
-  stay as they are.
+  stay as they are. **[V]** Trivy reads the image of each platform from the
+  registry (`--image-src remote --platform`), with the credentials of the
+  login as a read-only docker config, not from the daemon of the runner:
+  the pull of the arm64 image into the amd64 runner left its export to
+  Trivy without its content, so the scan of 26.11.28 (arm64) never ran
+  (coordinator, 2026-11-25). The scans of `ci.yml` (images built on the
+  runner) and `security-hotfix.yml` (the platform of the runner) keep the
+  daemon.
 * **[E]** No more release candidates: no `<version>-rc.<N>` images,
   `rc-image.yml` is gone (#387 part 2, owner, 2026-11-23; this replaces the
   decision on release candidates of 2026-11-12). The moving image tag `next`
