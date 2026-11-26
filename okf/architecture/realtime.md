@@ -47,8 +47,14 @@ generated: { by: claude-code/web, at: 2026-11-25T09:30:00Z }
   * **[E]** The setting is an entry of the registry of the round settings
     (`ROUND_SETTINGS`, `live: true`, so also a row of the universe
     settings): „Highscore-Aktualisierungen pro Tag (0 = Echtzeit)“, 0 to
-    24. N times a day means every 24/N hours, the first at 00:05 server
-    time, as in 0.78b.
+    24. N times a day means every 24/N hours.
+  * **[E]** The slots are UTC, independent of the time zone of the server
+    (owner, 2026-11-26, 149e): the first pass of a UTC day is at 23:05 UTC
+    of the day before, then every 24/N hours (N = 3: 23:05, 07:05 and
+    15:05 UTC, that is 00:05, 08:05 and 16:05 in German winter time and
+    01:05, 09:05 and 17:05 in summer time). Before the first slot of a day
+    the slots of the day before count. „Stand“ is shown on the clock of the
+    browser.
   * **[E]** „Live“ (0) means one pass at most every 10 s, not one per call,
     as the requirement of weak hardware asks.
   * **[E]** The pass runs in the clock of the server at its time, so the
@@ -58,6 +64,19 @@ generated: { by: claude-code/web, at: 2026-11-25T09:30:00Z }
     computing them exactly, for the two players it concerns only; the
     expeditions (#93) take the stored points. **[U]** Whether 0.78b
     protected by the stored points or by the current ones was not checked.
+  * **[E]** The (n) of the Sternenkarte follows the same rule (owner,
+    2026-11-26, 151a): exact, like an attack, only while the map shows a
+    system. While the Sternenkarte is the view, the browser names the shown
+    system with its state requests and actions (`galaxy=g:s`,
+    `client/logic/galaxy-shown.ts`); the server checks it (integers within
+    the universe, else ignored) and answers `protectedOwners` (the owners of
+    that system the protection covers, `protectedIn` in `server/game/
+    state.ts`: `isProtected` of `points.ts` with `exactPoints` of the player
+    and those owners). Without a valid system nothing is computed. The
+    browser shows no (n) until the list of the shown system is there, never
+    the stored pass, and a system without its list loads the state once
+    (`askProtection`). **[V]** As built and measured, see the log of
+    2026-11-26.
   * Measured with the setup above (20 players): `pointsMap` and
     `categoryScores` took about 15 and 18.6 ms, 34 ms together; three
     passes a day cost nothing worth naming, one every 10 s about 0.3 % of
@@ -65,6 +84,24 @@ generated: { by: claude-code/web, at: 2026-11-25T09:30:00Z }
   * The proposals above were confirmed by the owner (2026-11-25).
   * Built in #405, target `main`, although players see the change: the
     highscore with the default can be up to 8 h old (owner, 2026-11-25).
+    **[V]** As built: `server/game/scores.ts` makes one pass (`scorePass`:
+    each planet settled once for the total and the categories) and keeps it
+    per database in the memory of the server (`storedScores`); a restart
+    makes a new pass at the first reader. A pass holds until the next slot
+    (`core/highscore-passes.ts`: `lastSlot` from 23:05 UTC on UTC
+    milliseconds only, every 24/N hours; a pass made between two slots, at a start,
+    holds until the next) or, live, 10 s. The clock of the server makes the
+    pass of a slot at its time (`scoreBeat` after the arrivals; live waits
+    for a reader). The state, the guilds and `topPoints` take the stored
+    pass; the noob protection of attacks and missiles takes
+    `exactPoints` of its two players; the archive of a round a fresh pass;
+    „Neue Runde“ makes a pass at once. The state carries `scoresAt`; the
+    highscore shows „Stand: HH:MM“ on the clock of the browser, next to the
+    table, above it on a phone (owner, 2026-11-26, B of #418; „neben der
+    Tabelle“ read as on its right **[V]**); no next time, no list of times. The heading of the setting in „Neue Runde“ and „Universum“ is
+    „Highscore“, the name of the view (the owner gave the label only). A
+    property test holds the one pass equal to the two passes before it,
+    frozen in `scores.test.ts`.
 * **[E]** The parts that are the same for every player are built once and
   sent to all (owner, 2026-11-25): `galaxy` (`state.ts`: its builder ignores
   the player), `players`, the universe and the rules of the round. Each is

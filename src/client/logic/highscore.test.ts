@@ -7,6 +7,7 @@ import {
   highscoreCategory,
   highscoreNote,
   highscorePage,
+  highscoreStand,
   highscoreRanking,
 } from './highscore.ts';
 import type { GameState, Players } from './types.ts';
@@ -133,6 +134,22 @@ const view = (
     s: { me: { id: me }, players, galaxy } as unknown as GameState,
     ui: { highscore } as Ui,
   }) as V;
+
+describe('„Stand“ of the highscore (#405)', () => {
+  it('names the clock time of the pass the points come from', () => {
+    const at = new Date(2026, 10, 25, 8, 5, 42).getTime();
+    expect(highscoreStand(at)).toBe('Stand: 08:05');
+    const page = highscorePage({
+      ...view([]),
+      s: { ...view([]).s, scoresAt: at },
+    } as V);
+    expect(page.stand).toBe('Stand: 08:05');
+  });
+
+  it('is empty for a state without a pass (a server before #405)', () => {
+    expect(highscorePage(view([])).stand).toBe('');
+  });
+});
 
 describe('the page of the highscore', () => {
   it('has one button per category, only the shown one pressed', () => {

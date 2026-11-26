@@ -1,57 +1,19 @@
-// Points: 1 point per 1,000 resources in buildings, research, ships and defense.
-import { BUILD, RES, UNIT } from '../../core/catalog.ts';
-import { sumLevels } from '../../core/economy.ts';
-import { pointsOf } from '../../core/points.ts';
+// Points: 1 point per 1,000 resources in buildings, research, ships and
+// defense. They are computed in one pass with the categories of the
+// highscore (scores.ts, #405); this file keeps the exact total and the noob
+// protection.
 import { isProtected as protects } from '../../core/protection.ts';
-import { settle, settleR } from '../../core/settle.ts';
-import type { Levels } from '../../core/types.ts';
-import { type Ctx, universe } from './context.ts';
+import type { Ctx } from './context.ts';
+import { scorePass } from './scores.ts';
 
-export const unitValue = (units: Levels, defs: typeof UNIT): number => {
-  let s = 0;
-  for (const [k, n] of Object.entries(units)) {
-    const d = defs[k];
-    if (d) s += (d.cost[0] + d.cost[1] + d.cost[2]) * n;
-  }
-  return s;
-};
-
-export const levelValue = (
-  have: Levels,
-  defs: typeof BUILD | typeof RES,
-): number => {
-  let s = 0;
-  for (const k of Object.keys(defs)) s += sumLevels(defs[k]!, have[k] ?? 0);
-  return s;
-};
-
-export function pointsMap(ctx: Ctx): Record<string, number> {
-  const t = ctx.now();
-  const u = universe(ctx);
-  const pts: Record<string, number> = {};
-  for (const user of ctx.players.all())
-    pts[user.id] = levelValue(settleR(user, t).research, RES);
-  // Every planet and fleet has an owner (foreign keys of the database).
-  for (const p of ctx.planets.all()) {
-    const s = settle(p, t, u);
-    pts[p.owner] =
-      (pts[p.owner] ?? 0) +
-      levelValue(s.b, BUILD) +
-      unitValue({ ...s.ships, ...s.def }, UNIT);
-  }
-  // Missiles in flight count until their impact (#54, owiki).
-  for (const f of ctx.fleets.all())
-    pts[f.owner] = (pts[f.owner] ?? 0) + unitValue(f.ships, UNIT);
-  for (const k of Object.keys(pts)) pts[k] = pointsOf(pts[k]!);
-  return pts;
-}
+export { topPoints } from './scores.ts';
 
 /**
- * The points of the best player: the size of the finds of an expedition
- * scales with them (#93, owner, 2026-11-17). 0 without a player.
+ * The exact points of every player now, a fresh pass: the archive of a round
+ * and the tests. The state reads the stored pass (`storedScores`).
  */
-export const topPoints = (ctx: Ctx): number =>
-  Math.max(0, ...Object.values(pointsMap(ctx)));
+export const pointsMap = (ctx: Ctx): Record<string, number> =>
+  scorePass(ctx).total;
 
 /** Noob protection: a player with less than a fifth of your points. */
 export const isProtected = (

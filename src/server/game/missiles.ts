@@ -21,7 +21,8 @@ import { type Handler, mine, researchOf } from './actions.ts';
 import { type Ctx, coords, fail, fmt, int, universe } from './context.ts';
 import { text } from '../../core/text.ts';
 import { route, target } from './fleet-actions.ts';
-import { isProtected, pointsMap } from './points.ts';
+import { isProtected } from './points.ts';
+import { exactPoints } from './scores.ts';
 import { inVacation } from './vacation.ts';
 import type { ServerFeature } from './feature.ts';
 
@@ -56,7 +57,8 @@ function checked(ctx: Ctx, u: User, p: Planet, d: Wire<'missile'>) {
     {
       place: { ...dest, kind },
       owner,
-      protects: (o) => isProtected(u.id, o, pointsMap(ctx)),
+      // The exact points of the two players, never the stored pass (#405).
+      protects: (o) => isProtected(u.id, o, exactPoints(ctx, [u.id, o])),
       vacation: inVacation(ctx),
     },
     n,

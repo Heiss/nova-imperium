@@ -3,6 +3,7 @@
 // rank, noob protection, the moon (#53), the Trümmerfeld (#45) and the
 // actions, the words of activity and inactivity (#229), and the Spähschädel
 // of a spying.
+import type { ShownProtection } from '../../core/galaxy-shown.ts';
 import { describe, expect, it } from 'vitest';
 import type { DebrisField } from '../../core/debris.ts';
 import { MISSION } from '../../core/missions.ts';
@@ -47,6 +48,8 @@ interface Setup {
   probes?: number;
   now?: number;
   research?: Record<string, number>;
+  /** The list of the noob protection the server sent (151a). */
+  listed?: ShownProtection;
 }
 
 /** Anna (u1) looks at system 1:2 from her planet at [1:2:5]. */
@@ -61,6 +64,7 @@ function view(o: Setup = {}): V {
     },
     galaxy: o.galaxy ?? [],
     debris: o.debris ?? [],
+    ...(o.listed && { protectedOwners: o.listed }),
   } as unknown as GameState;
   return {
     s,
@@ -408,10 +412,13 @@ describe('a foreign planet', () => {
     });
   });
 
-  it('marks the noob protection, and an unknown owner without a rank or points', () => {
-    const v = view({
-      galaxy: [place('planet', 6, 'u2'), place('planet', 7, 'u9')],
-    });
+  it('marks the noob protection by the list of the server, and an unknown owner without a rank', () => {
+    const galaxy = [
+      place('planet', 6, 'u2'),
+      place('planet', 7, 'u9'),
+      place('planet', 8, 'u3'),
+    ];
+    const v = view({ galaxy, listed: { g: 1, s: 2, owners: ['u2', 'u9'] } });
     expect(rowAt(v, 6).planet).toMatchObject({
       owner: 'Bert',
       rank: '3',
@@ -420,9 +427,25 @@ describe('a foreign planet', () => {
     expect(rowAt(v, 7).planet).toMatchObject({
       owner: 'Unbekannt',
       rank: '-',
-      // Without points, as before.
       protected: true,
     });
+    // Not in the list: no (n), whatever the stored points say.
+    expect(rowAt(v, 8).planet).toMatchObject({ protected: false });
+  });
+
+  it('marks no noob protection before the list of the shown system is there (151a)', () => {
+    const galaxy = [place('planet', 6, 'u2')];
+    // Bert has a tenth of Anna's stored points, but no list came yet.
+    expect(rowAt(view({ galaxy }), 6).planet!.protected).toBe(false);
+    // The list of another system is not used for this one.
+    for (const other of [
+      { g: 1, s: 3 },
+      { g: 2, s: 2 },
+    ])
+      expect(
+        rowAt(view({ galaxy, listed: { ...other, owners: ['u2'] } }), 6).planet!
+          .protected,
+      ).toBe(false);
   });
 
   it('marks an owner in vacation mode (#223), the others not', () => {
@@ -534,7 +557,14 @@ describe('moons (#53)', () => {
   });
 
   it('opens the row of a foreign moon with its actions at the moon', () => {
-    const r = rowAt(view({ galaxy: galaxy(), ui: { gmoon: 'm1_2_6' } }), 6);
+    const r = rowAt(
+      view({
+        galaxy: galaxy(),
+        ui: { gmoon: 'm1_2_6' },
+        listed: { g: 1, s: 2, owners: ['u2'] },
+      }),
+      6,
+    );
     expect(r.marks).toEqual([moonSymbol(galaxy()[3]!, true)]);
     expect(r.moon).toEqual({
       g: 1,

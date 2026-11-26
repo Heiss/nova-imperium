@@ -11,6 +11,11 @@ import {
   type SeenShips,
   seenShips,
 } from '../../core/fleet-recognition.ts';
+import {
+  type ShownProtection,
+  type ShownSystem,
+  shownSystemOf,
+} from '../../core/galaxy-shown.ts';
 import type { PmOpen } from '../../core/private-messages.ts';
 import type { Fleet } from '../../core/types.ts';
 import { SERVER_FEATURES } from '../features.gen.ts';
@@ -20,9 +25,9 @@ import { ownLabs, researchOf } from './actions.ts';
 import { inactivities, planetActivities } from './activity.ts';
 import { type Ctx, universe } from './context.ts';
 import { mainPlanetOf } from './main-planet.ts';
+import { isProtected } from './points.ts';
 import { roundRules } from './round.ts';
-import { categoryScores } from './highscore.ts';
-import { pointsMap } from './points.ts';
+import { exactPoints, type ScorePass, storedScores } from './scores.ts';
 import { assembleState } from './assemble.ts';
 import type { StatePart, StateView } from './feature.ts';
 import type { LockedState } from '../../core/state.ts';
@@ -91,6 +96,29 @@ function galaxyOf(ctx: Ctx, limits: ActivityLimits) {
   }));
 }
 
+/**
+ * The owners of the shown system that the noob protection covers against
+ * `me` (151a): the rule of an attack or a missile (points.ts `isProtected`
+ * with the exact points of the players concerned), computed for them only.
+ */
+export function protectedIn(
+  ctx: Ctx,
+  me: string,
+  at: ShownSystem,
+): ShownProtection {
+  const owners = [
+    ...new Set(
+      ctx.planets
+        .all()
+        .filter((x) => x.g === at.g && x.s === at.s && x.owner !== me)
+        .map((x) => x.owner),
+    ),
+  ];
+  if (owners.length === 0) return { ...at, owners };
+  const pts = exactPoints(ctx, [me, ...owners]);
+  return { ...at, owners: owners.filter((o) => isProtected(me, o, pts)) };
+}
+
 /** The player's own account: research, options and the push kinds that are off (#192). */
 const meOf = (ctx: Ctx, u: User) => ({
   id: u.id,
@@ -113,13 +141,11 @@ const meOf = (ctx: Ctx, u: User) => ({
  * Every player with name and points, whether he is in vacation mode (#223),
  * and the inactivity of the account (#229) while it shows one.
  */
-function playersOf(
-  ctx: Ctx,
-  pts: Readonly<Record<string, number>>,
-  limits: ActivityLimits,
-) {
-  // The categories of the highscore, for every player (#78 D4).
-  const scores = categoryScores(ctx);
+function playersOf(ctx: Ctx, pass: ScorePass, limits: ActivityLimits) {
+  // The points and the categories of the highscore, for every player (#78
+  // D4), of the one pass of this state (#405).
+  const pts = pass.total;
+  const scores = pass.categories;
   const idle = inactivities(ctx, limits);
   return Object.fromEntries(
     ctx.players.all().map((x) => [
@@ -216,9 +242,15 @@ const FRAME: readonly StatePart[] = [
   keyed(90, 'fleets', fleetsOf),
   keyed(100, 'reports', (ctx, u) => ctx.reports.ofPlayer(u.id)),
   keyed(140, 'players', (ctx, _u, view) =>
-    playersOf(ctx, view.pts, view.limits),
+    playersOf(ctx, view.scores, view.limits),
   ),
+  // „Stand“ of the highscore: when the stored pass was made (#405).
+  keyed(145, 'scoresAt', (_ctx, _u, view) => view.scores.at),
   keyed(150, 'galaxy', (ctx, _u, view) => galaxyOf(ctx, view.limits)),
+  // Only while the Sternenkarte names its system (151a); else no key.
+  keyed(155, 'protectedOwners', (ctx, u, view) =>
+    view.shown ? protectedIn(ctx, u.id, view.shown) : undefined,
+  ),
   // Every player sees every Trümmerfeld (#45).
   keyed(160, 'debris', (ctx) => ctx.debris.all()),
 ];
@@ -231,6 +263,7 @@ export function stateFor(
   u: User,
   selected?: unknown,
   pmOpen?: PmOpen,
+  shown?: unknown,
 ): Record<string, unknown> {
   if (u.vacation !== null) return lockedState(ctx, u, pmOpen);
   const round = roundRules(ctx);
@@ -239,13 +272,18 @@ export function stateFor(
   const main = mainPlanetOf(ctx, u);
   const requested =
     typeof selected === 'string' ? ctx.planets.get(selected) : null;
+  const scores = storedScores(ctx);
   const view: StateView = {
     round,
     main,
     planet: requested?.owner === u.id ? requested : main.planet,
-    pts: pointsMap(ctx),
+    // The stored pass, N times a day (#405), read once for the whole state.
+    pts: scores.total,
+    scores,
     limits: activityLimits(round),
     pmOpen,
+    // The system of the Sternenkarte, when the request names a valid one.
+    shown: shownSystemOf(shown, universe(ctx)),
   };
   const state: Record<string, unknown> = {};
   for (const part of STATE_PARTS)

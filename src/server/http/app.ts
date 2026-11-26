@@ -417,6 +417,8 @@ function actionReply(ctx: Ctx, u: User, call: Call): Reply {
         ctx.players.get(u.id)!,
         call.body.planet,
         pmOpenOf(call.body),
+        // The system of the open Sternenkarte (151a).
+        call.body.galaxy,
       ),
     },
   };
@@ -449,6 +451,8 @@ function gameRoutes(
             pm: query.get('pm') ?? undefined,
             pmAfter: query.get('pmAfter') ?? undefined,
           }),
+          // The system of the open Sternenkarte (151a).
+          query.get('galaxy'),
         ),
       };
     },
