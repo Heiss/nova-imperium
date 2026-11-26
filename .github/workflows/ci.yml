@@ -17,13 +17,20 @@ name: CI
 # the mutation configuration or the test tool chain (#146), and take over the
 # green result of the previous head when the newest head only merged main
 # (#167). A pull request that goes into no hotfix branch mutates only the
-# files it changes and the sources of the tests it changes, in one job (#309);
-# the complete run in 12 shards stays for the pushes (unless proven on the
-# identical tree, #342), the nightly run and a change of the mutation
-# configuration or the
-# test tool chain; a change of the floors alone
-# in mutation-floors.txt adds those files to the partial run, and a set of
-# more than 12 files (PARTIAL_LIMIT) runs the complete run too.
+# files it changes and the sources of the tests it changes, at any size, in
+# parts of about 12 files split by the weights of the last complete run
+# (#309; owner, 2026-11-26, #370, 189a and 190a); a change of the floors
+# alone in mutation-floors.txt adds those files to the partial run. The
+# complete run in 12 shards comes from the nightly run of mutation.yml on
+# main; it runs in a pull request only for a change of the mutation
+# configuration or the test tool chain, into a hotfix branch, and while the
+# last nightly complete run on main is red or missing (a pull request whose
+# partial set is not empty then runs it, until a nightly run is green again;
+# #370, 194a via 197b and 201a; scripts/mutation-nightly.ts, the gate prints
+# the run it looked at). A push to main runs no mutation job: the result of
+# the pull request counts, and without a proof the nightly run tests the
+# tree (#370, 195a and 200a; output "nightly"). A push to hotfix/** runs the
+# complete run unless proven (#342).
 # A release pull request (head release/*, of main or of a hotfix branch)
 # changes only VERSION, CHANGELOG.md and changes/: "Detect changes" refuses
 # any other file, and it runs no expensive job; it relies on the results of

@@ -55,6 +55,12 @@ description: 'When a push to main or a hotfix branch skips a job that succeeded 
   tree: CI run <id>, job "<name>" (<url>), head <sha>, tree <tree>“. The
   mutation plan, the shards and „Mutation tests“ share the proof of
   „Mutation tests“. Every other case of the gate is unchanged.
+* **[E]** A push to `main` runs no mutation job (owner, 2026-11-26, #370,
+  195a and 200a): „Detect changes“ writes `mutation=nightly`, the proof of
+  the pull request is still looked up and printed by the CI Gate, and
+  without one the gate passes and says that the nightly complete run
+  (`mutation.yml`) tests the tree. A push to `hotfix/**` keeps the rule
+  below.
 * **[V]** A proven push runs no mutation job, so it does not refresh the
   caches of `main` (the state, the incremental results of the shards, the
   weights); the nightly run of `.github/workflows/mutation.yml` on `main`

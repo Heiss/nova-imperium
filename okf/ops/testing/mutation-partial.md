@@ -15,8 +15,14 @@ description: 'A pull request mutates only what it changes: when the jobs start, 
   (Renovate, the fix of a security hotfix) and the `Dockerfile` skip them:
   the mutants and the tests stay the same, and lint, types, unit tests,
   build, E2E, the image, Trivy, the Compose stack and the upgrade test
-  secure such a change. Pushes to `main` and `hotfix/**` keep the full
-  suite with the mutation run on every push (since #342 a push skips it
+  secure such a change. Since #370 (owner, 2026-11-26, 195a and 200a) a
+  push to `main` runs no mutation job: the result of the pull request
+  counts on the identical tree (#342), and without such a proof the gate
+  passes and says that the nightly complete run tests the tree („Detect
+  changes“ writes `mutation=nightly`; the CI Gate refuses any mutation job
+  on such a push and the value anywhere else). Until #370 pushes to `main`
+  and `hotfix/**` kept the full
+  suite with the mutation run on every push; pushes to `hotfix/**` still do (since #342 a push skips it
   when the pull request it merged passed its own mutation jobs, complete or
   partial, on the identical tree; owner, 2026-11-21, O23); a push that runs it also keeps
   the shard caches and the weights current, after a proven one the nightly
@@ -55,7 +61,8 @@ description: 'A pull request mutates only what it changes: when the jobs start, 
   complete run in 12 shards (6 until 2026-11-20) stays for pushes to `main` and `hotfix/**`,
   the pull requests into a hotfix branch and the
   nightly run, with their caches, weights and plan state (the release pull
-  requests ran it too until #387). The owner accepts
+  requests ran it too until #387; the pushes to `main` until #370, since
+  then only the nightly run writes the caches of `main`). The owner accepts
   that a pull request which lowers the score of a file it does not touch is
   found only at night (until #387 also in the release pull request); unit tests and E2E
   stay complete in every pull request. The nightly run opens or updates the
@@ -260,6 +267,13 @@ description: 'A pull request mutates only what it changes: when the jobs start, 
   for `reuse`). It writes the line that names the run as the output
   `mutation-nightly`, and the CI Gate prints it („Last nightly complete
   mutation run: …“).
+
+* **[E]** A release needs no extra mutation condition (owner, 2026-11-26,
+  #370, 196c). The owner accepts the risk: unit tests and E2E stay complete
+  in every pull request, mutation measures the tests and not the game, and a
+  gap shows up one night later as a red nightly run, which step 1 of the
+  release loop fixes first. Hotfix branches keep their rule
+  (`scripts/mutation-changes.ts`, [V]).
 
 * **[V]** The nightly issue (#309): `mutation.yml` had no notice of a failed
   gate (a failed scheduled run mails only the person who last changed the
