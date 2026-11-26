@@ -9,6 +9,7 @@ import { createAct, placeOf, samePlace } from './logic/act.ts';
 import { stateUrl } from './logic/address.ts';
 import { login } from './logic/login.ts';
 import { openQuery } from './logic/private-messages.ts';
+import { shownQuery } from './logic/galaxy-shown.ts';
 import { scanOf } from './logic/phalanx.ts';
 import { client } from './logic/state.svelte.ts';
 import type { GameState } from './logic/types.ts';
@@ -47,7 +48,7 @@ const sync = createAct({
   state: () => client.game,
   apply: (state) => apply(state),
   toast,
-  extra: openQuery,
+  extra: () => ({ ...openQuery(), ...shownQuery() }),
   answer: (data) => {
     const scan = scanOf(data);
     if (scan) client.ui.scan = scan;
@@ -81,10 +82,10 @@ export async function refresh(): Promise<void> {
   const fresh = sync.refresh();
   try {
     const state = (await api(
-      stateUrl(
-        planet === client.game?.mainPlanet ? undefined : planet,
-        openQuery(),
-      ),
+      stateUrl(planet === client.game?.mainPlanet ? undefined : planet, {
+        ...openQuery(),
+        ...shownQuery(),
+      }),
     )) as unknown as GameState;
     if (fresh() && samePlace(client.game, before)) apply(state);
   } catch (e) {

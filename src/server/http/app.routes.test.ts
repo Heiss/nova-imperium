@@ -121,6 +121,30 @@ describe('rate limit', () => {
     expect(rename.json).toMatchObject({ ok: true });
   });
 
+  it('answers the noob protection of the shown system of the Sternenkarte, by a query or an action (151a)', async () => {
+    const { ctx, call } = await player();
+    await call('POST', '/api/login', { name: 'Anna', password: 'secret1' });
+    addPlanet(ctx, 'u_Anna', { p: 4, b: { metal: 20 } });
+    addUser(ctx, 'Bert');
+    addPlanet(ctx, 'u_Bert', { g: 1, s: 2, p: 6 });
+    const list = { g: 1, s: 2, owners: ['u_Bert'] };
+    const state = (url: string) =>
+      call('GET', url).then((r) => r.json as { protectedOwners?: unknown });
+    expect((await state('/api/state?galaxy=1%3A2')).protectedOwners).toEqual(
+      list,
+    );
+    expect(await state('/api/state')).not.toHaveProperty('protectedOwners');
+    expect(await state('/api/state?galaxy=9%3A2')).not.toHaveProperty(
+      'protectedOwners',
+    );
+    const act = (galaxy?: string) =>
+      call('POST', '/api/action', { type: 'rename', name: 'X', galaxy }).then(
+        (r) => (r.json as { state: { protectedOwners?: unknown } }).state,
+      );
+    expect((await act('1:2')).protectedOwners).toEqual(list);
+    expect(await act()).not.toHaveProperty('protectedOwners');
+  });
+
   it('guards a password action whose type is not a string (#224)', async () => {
     const { ctx, call } = await player({ cfg: { rateLimitAttempts: 1 } });
     await call('POST', '/api/login', { name: 'Anna', password: 'secret1' });

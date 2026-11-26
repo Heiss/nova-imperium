@@ -15,7 +15,7 @@ import type { Levels, Planet } from '../core/types.ts';
 import { debrisAt } from '../client/logic/debris.ts';
 import { coords, dur, esc, fmt } from '../client/logic/format.ts';
 import { galaxyPage } from '../client/logic/galaxy.ts';
-import { isProtected, nameOf, ranks } from '../client/logic/game.ts';
+import { nameOf, ranks } from '../client/logic/game.ts';
 import { moonAt } from '../client/logic/moon.ts';
 import { canScan, scanRows, scanTitle } from '../client/logic/phalanx.ts';
 import type { GalaxyPlanet, GameState } from '../client/logic/types.ts';
@@ -98,10 +98,21 @@ function scanPanel(v: V): string {
   return `<section class="bd scan-panel" id="scan" aria-labelledby="scan-h"><h3 id="scan-h" tabindex="-1">${esc(scanTitle(scan, v.s.galaxy))}</h3>${list}<button class="small" data-act="gscanClose">Schließen</button></section>`;
 }
 
+/**
+ * Changed on purpose since #118: the (n) comes from the list of the server
+ * for the shown system, by exact points, never from the stored pass (owner,
+ * 2026-11-26, 151a of #405).
+ */
 function ownerCell(v: V, pl: GalaxyPlanet, rk: Record<string, number>): string {
   const { s } = v;
   const mine = pl.owner === s.me.id;
-  const prot = !mine && isProtected(s.players, s.me.id, pl.owner);
+  const list = s.protectedOwners;
+  const prot =
+    !mine &&
+    list !== undefined &&
+    list.g === pl.g &&
+    list.s === pl.s &&
+    list.owners.includes(pl.owner);
   return `<td>${esc(nameOf(s.players, pl.owner))} <span class="dim">(Platz ${rk[pl.owner] ?? '-'})</span>${prot ? ' <span class="good" title="Noobschutz">(n)</span>' : ''}</td>`;
 }
 
@@ -278,6 +289,14 @@ const generated = fc.record({
   ),
   probes: fc.constantFrom(0, 1, 3, 1500),
   now: time,
+  // The list of the noob protection (151a): none yet, the one of the shown
+  // system, or the one of another system.
+  listed: fc.option(
+    fc.record({
+      here: fc.boolean(),
+      owners: fc.subarray([...OWNERS]),
+    }),
+  ),
 });
 
 type Generated = typeof generated extends fc.Arbitrary<infer T> ? T : never;
@@ -322,6 +341,7 @@ function uiOf(x: Generated, galaxy: GalaxyPlanet[], P: Planet): Ui {
 
 const state = generated.map((x): V => {
   const { galaxy, P } = shownPlace(x);
+  const ui = uiOf(x, galaxy, P);
   const s = {
     cfg: U,
     me: { id: 'u1', probes: x.probes },
@@ -333,8 +353,14 @@ const state = generated.map((x): V => {
       m: d.m,
       c: d.c,
     })),
+    ...(x.listed && {
+      protectedOwners: {
+        g: ui.gal,
+        s: x.listed.here ? ui.sys : (ui.sys % 3) + 1,
+        owners: x.listed.owners,
+      },
+    }),
   } as unknown as GameState;
-  const ui = uiOf(x, galaxy, P);
   return { s, P, R: { research: {}, rq: null }, now: x.now, ui };
 });
 

@@ -12,6 +12,7 @@ import type { User } from '../db/repos/players.ts';
 import type { ActionName } from '../../core/actions.ts';
 import type { Handler } from './actions.ts';
 import type { Ctx } from './context.ts';
+import type { ShownSystem } from '../../core/galaxy-shown.ts';
 import type { ScorePass } from './scores.ts';
 
 /** What `stateFor` works out once for all parts of the state. */
@@ -31,6 +32,8 @@ export interface StateView {
   limits: ActivityLimits;
   /** The conversation of the private messages the browser has open (Q32), if it names one. */
   pmOpen?: PmOpen;
+  /** The system the Sternenkarte shows, when the request names one (151a). */
+  shown?: ShownSystem | null;
 }
 
 /**

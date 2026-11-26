@@ -10,6 +10,11 @@ import {
   type SeenShips,
   seenShips,
 } from '../../core/fleet-recognition.ts';
+import {
+  type ShownProtection,
+  type ShownSystem,
+  shownSystemOf,
+} from '../../core/galaxy-shown.ts';
 import type { PmOpen } from '../../core/private-messages.ts';
 import type { Fleet } from '../../core/types.ts';
 import { SERVER_FEATURES } from '../features.gen.ts';
@@ -19,8 +24,9 @@ import { ownLabs, researchOf } from './actions.ts';
 import { inactivities, planetActivities } from './activity.ts';
 import { type Ctx, universe } from './context.ts';
 import { mainPlanetOf } from './main-planet.ts';
+import { isProtected } from './points.ts';
 import { roundRules } from './round.ts';
-import { type ScorePass, storedScores } from './scores.ts';
+import { exactPoints, type ScorePass, storedScores } from './scores.ts';
 import { assembleState } from './assemble.ts';
 import type { StatePart, StateView } from './feature.ts';
 import type { LockedState } from '../../core/state.ts';
@@ -87,6 +93,29 @@ function galaxyOf(ctx: Ctx, limits: ActivityLimits) {
     owner: x.owner,
     ...(shown[x.id] ? { activity: shown[x.id] } : {}),
   }));
+}
+
+/**
+ * The owners of the shown system that the noob protection covers against
+ * `me` (151a): the rule of an attack or a missile (points.ts `isProtected`
+ * with the exact points of the players concerned), computed for them only.
+ */
+export function protectedIn(
+  ctx: Ctx,
+  me: string,
+  at: ShownSystem,
+): ShownProtection {
+  const owners = [
+    ...new Set(
+      ctx.planets
+        .all()
+        .filter((x) => x.g === at.g && x.s === at.s && x.owner !== me)
+        .map((x) => x.owner),
+    ),
+  ];
+  if (owners.length === 0) return { ...at, owners };
+  const pts = exactPoints(ctx, [me, ...owners]);
+  return { ...at, owners: owners.filter((o) => isProtected(me, o, pts)) };
 }
 
 /** The player's own account: research, options and the push kinds that are off (#192). */
@@ -215,6 +244,10 @@ const FRAME: readonly StatePart[] = [
   // „Stand“ of the highscore: when the stored pass was made (#405).
   keyed(145, 'scoresAt', (_ctx, _u, view) => view.scores.at),
   keyed(150, 'galaxy', (ctx, _u, view) => galaxyOf(ctx, view.limits)),
+  // Only while the Sternenkarte names its system (151a); else no key.
+  keyed(155, 'protectedOwners', (ctx, u, view) =>
+    view.shown ? protectedIn(ctx, u.id, view.shown) : undefined,
+  ),
   // Every player sees every Trümmerfeld (#45).
   keyed(160, 'debris', (ctx) => ctx.debris.all()),
 ];
@@ -227,6 +260,7 @@ export function stateFor(
   u: User,
   selected?: unknown,
   pmOpen?: PmOpen,
+  shown?: unknown,
 ): Record<string, unknown> {
   if (u.vacation !== null) return lockedState(ctx, u, pmOpen);
   const round = roundRules(ctx);
@@ -245,6 +279,8 @@ export function stateFor(
     scores,
     limits: activityLimits(round),
     pmOpen,
+    // The system of the Sternenkarte, when the request names a valid one.
+    shown: shownSystemOf(shown, universe(ctx)),
   };
   const state: Record<string, unknown> = {};
   for (const part of STATE_PARTS)

@@ -64,6 +64,19 @@ generated: { by: claude-code/web, at: 2026-11-25T09:30:00Z }
     computing them exactly, for the two players it concerns only; the
     expeditions (#93) take the stored points. **[U]** Whether 0.78b
     protected by the stored points or by the current ones was not checked.
+  * **[E]** The (n) of the Sternenkarte follows the same rule (owner,
+    2026-11-26, 151a): exact, like an attack, only while the map shows a
+    system. While the Sternenkarte is the view, the browser names the shown
+    system with its state requests and actions (`galaxy=g:s`,
+    `client/logic/galaxy-shown.ts`); the server checks it (integers within
+    the universe, else ignored) and answers `protectedOwners` (the owners of
+    that system the protection covers, `protectedIn` in `server/game/
+    state.ts`: `isProtected` of `points.ts` with `exactPoints` of the player
+    and those owners). Without a valid system nothing is computed. The
+    browser shows no (n) until the list of the shown system is there, never
+    the stored pass, and a system without its list loads the state once
+    (`askProtection`). **[V]** As built and measured, see the log of
+    2026-11-26.
   * Measured with the setup above (20 players): `pointsMap` and
     `categoryScores` took about 15 and 18.6 ms, 34 ms together; three
     passes a day cost nothing worth naming, one every 10 s about 0.3 % of

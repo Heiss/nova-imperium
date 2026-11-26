@@ -8,6 +8,7 @@
 // button „Bergung“ are data (`GalaxyMark`, the action kind `harvest`) that the
 // component draws (#337).
 import { canFly } from '../../core/catalog.ts';
+import { protectionOf } from '../../core/galaxy-shown.ts';
 import { distance, fleetSpeed, flightMs } from '../../core/flight.ts';
 import { expeditionLevel } from '../../core/expedition.ts';
 import { MISSION } from '../../core/missions.ts';
@@ -20,7 +21,7 @@ import { activityNote, inactivityNote } from './activity.ts';
 import { debrisAt, debrisTip } from './debris.ts';
 import { offeredMissions } from './fleet-target.ts';
 import { coords, dur, fmt } from './format.ts';
-import { isProtected, nameOf, ranks } from './game.ts';
+import { nameOf, ranks } from './game.ts';
 import { canLaunch } from './missiles.ts';
 import { moonAt, moonMarkId } from './moon.ts';
 import { type Countdown, countdown } from './overview.ts';
@@ -307,7 +308,11 @@ function place(
     owner: nameOf(s.players, pl.owner),
     inactivity: inactivityNote(s.players[pl.owner]?.inactive),
     rank: String(rk[pl.owner] ?? '-'),
-    protected: !mine && isProtected(s.players, s.me.id, pl.owner),
+    // By the exact points of the server for the shown system (151a); none
+    // until its list is there, never by the stored pass.
+    protected:
+      !mine &&
+      (protectionOf(s.protectedOwners, pl)?.includes(pl.owner) ?? false),
     vacation: !!s.players[pl.owner]?.vacation,
     actions,
     sheet: sheetOf(v, pl.id, `${name} ${coords(pl)}`, pl, actions),
