@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Studie – Börse</title>
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="study.css" />
+    <style>
+      .bx {
+        display: grid;
+        grid-template-columns: 1fr 330px;
+        gap: 14px;
+      }
+      .pairs {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+      .pairs button[aria-pressed='true'] {
+        border-color: var(--gold-hi);
+      }
+      .chart {
+        width: 100%;
+        height: auto;
+        display: block;
+      }
+      .book {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0;
+      }
+      .book td,
+      .book th {
+        padding: 3px 8px;
+        font-size: 14.5px;
+        font-variant-numeric: tabular-nums;
+        position: relative;
+      }
+      .book .bid td:first-child {
+        color: var(--green);
+      }
+      .book .ask td:first-child {
+        color: var(--red);
+      }
+      .depth {
+        position: absolute;
+        top: 2px;
+        bottom: 2px;
+        right: 0;
+        opacity: 0.13;
+      }
+      .form label {
+        display: block;
+        font-size: 14px;
+        color: var(--dim);
+        margin: 8px 0 2px;
+      }
+      .form input,
+      .form select {
+        width: 100%;
+        box-sizing: border-box;
+      }
+      .seg {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+      }
+      .seg button.buy {
+        border-color: var(--green);
+        color: #120d0a;
+        background: var(--green);
+      }
+      .seg button.sell {
+        opacity: 0.6;
+      }
+      .sum {
+        margin-top: 10px;
+        font-size: 14.5px;
+        line-height: 1.5;
+      }
+      .contracts td {
+        font-size: 14.5px;
+        vertical-align: middle;
+      }
+      .leg {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        white-space: nowrap;
+      }
+      .bar {
+        width: 90px;
+        height: 6px;
+        background: var(--line);
+        border-radius: 3px;
+        overflow: hidden;
+      }
+      .bar i {
+        display: block;
+        height: 100%;
+        background: var(--gold);
+      }
+      .st {
+        font: 600 11px var(--head);
+        letter-spacing: 0.05em;
+        padding: 2px 6px;
+        border-radius: 3px;
+        border: 1px solid;
+      }
+      .st.ok {
+        color: var(--green);
+      }
+      .st.go {
+        color: var(--gold-hi);
+      }
+      .st.lost {
+        color: var(--red);
+      }
+      .st.wait {
+        color: var(--c);
+      }
+    </style>
+  </head>
+  <body>
+    <main class="mock">
+      <p class="cap">
+        Studie · die Börse mit Orderbuch [E] · Lieferung per Frachtflotte, jede
+        Seite liefert selbst, Treuhand je Seite [E] · Layout, Texte, Gebühren
+        und Fristen sind Vorschläge und Beispiele [V]
+      </p>
+      <h2>Börse</h2>
+      <div class="pairs">
+        <button aria-pressed="true">
+          <img
+            class="ri"
+            src="/icons/resources/small/crystal.svg"
+            alt=""
+          />Psikristall / Adamant
+        </button>
+        <button>
+          <img
+            class="ri"
+            src="/icons/resources/small/deuterium.svg"
+            alt=""
+          />Promethium / Adamant
+        </button>
+        <button>Promethium / Psikristall</button>
+        <span class="dim" style="margin-left: auto; align-self: center"
+          >Planet: Gorgonis II [3:412:5] · Handelsposten Stufe 3</span
+        >
+      </div>
+
+      <div class="bx">
+        <div>
+          <div class="box">
+            <div class="hd">KURS · Adamant je 1 Psikristall · 7 Tage</div>
+            <div class="bd">
+              <svg
+                class="chart"
+                viewBox="0 0 760 210"
+                role="img"
+                aria-label="Kursverlauf mit Umsatzbalken"
+              >
+                <g font-family="Georgia, serif" font-size="11" fill="#a8997f">
+                  <line x1="40" y1="160" x2="750" y2="160" stroke="#3b2f22" />
+                  <text x="4" y="30">2,00</text>
+                  <text x="4" y="80">1,90</text>
+                  <text x="4" y="130">1,80</text>
+                  <line
+                    x1="40"
+                    y1="26"
+                    x2="750"
+                    y2="26"
+                    stroke="#3b2f22"
+                    stroke-dasharray="2 4"
+                  />
+                  <line
+                    x1="40"
+                    y1="76"
+                    x2="750"
+                    y2="76"
+                    stroke="#3b2f22"
+                    stroke-dasharray="2 4"
+                  />
+                  <line
+                    x1="40"
+                    y1="126"
+                    x2="750"
+                    y2="126"
+                    stroke="#3b2f22"
+                    stroke-dasharray="2 4"
+                  />
+                  <polyline
+                    fill="none"
+                    stroke="#f1d27a"
+                    stroke-width="2"
+                    points="40,130 70,126 100,128 130,118 160,121 190,112 220,115 250,104 280,108 310,99 340,102 370,94 400,97 430,88 460,92 490,84 520,86 550,79 580,82 610,74 640,77 670,70 700,72 730,66 750,62"
+                  />
+                  <g fill="#3b2f22">
+                    <rect x="42" y="176" width="20" height="18" />
+                    <rect x="72" y="182" width="20" height="12" />
+                    <rect x="102" y="170" width="20" height="24" />
+                    <rect x="132" y="178" width="20" height="16" />
+                    <rect x="162" y="168" width="20" height="26" />
+                    <rect x="192" y="180" width="20" height="14" />
+                    <rect x="222" y="174" width="20" height="20" />
+                    <rect x="252" y="166" width="20" height="28" />
+                    <rect x="282" y="184" width="20" height="10" />
+                    <rect x="312" y="172" width="20" height="22" />
+                    <rect x="342" y="178" width="20" height="16" />
+                    <rect x="372" y="170" width="20" height="24" />
+                    <rect x="402" y="176" width="20" height="18" />
+                    <rect x="432" y="164" width="20" height="30" />
+                    <rect x="462" y="180" width="20" height="14" />
+                    <rect x="492" y="172" width="20" height="22" />
+                    <rect x="522" y="176" width="20" height="18" />
+                    <rect x="552" y="168" width="20" height="26" />
+                    <rect x="582" y="178" width="20" height="16" />
+                    <rect x="612" y="170" width="20" height="24" />
+                    <rect x="642" y="174" width="20" height="20" />
+                    <rect x="672" y="162" width="20" height="32" />
+                    <rect x="702" y="176" width="20" height="18" />
+                    <rect x="732" y="172" width="16" height="22" />
+                  </g>
+                  <text x="690" y="58" fill="#f1d27a">1,92</text>
+                  <text x="44" y="206">Umsatz je 7 Std.</text>
+                </g>
+              </svg>
+            </div>
+          </div>
+          <div class="box">
+            <div class="hd">ORDERBUCH</div>
+            <div class="book">
+              <table class="bid">
+                <tr>
+                  <th class="n">Kaufen zu</th>
+                  <th class="n">Menge</th>
+                  <th class="n">Aufträge</th>
+                </tr>
+                <tr>
+                  <td class="n">1,91</td>
+                  <td class="n">
+                    120.000<span
+                      class="depth"
+                      style="width: 30%; background: var(--green)"
+                    ></span>
+                  </td>
+                  <td class="n">3</td>
+                </tr>
+                <tr>
+                  <td class="n">1,90</td>
+                  <td class="n">
+                    340.000<span
+                      class="depth"
+                      style="width: 60%; background: var(--green)"
+                    ></span>
+                  </td>
+                  <td class="n">5</td>
+                </tr>
+                <tr>
+                  <td class="n">1,88</td>
+                  <td class="n">
+                    80.000<span
+                      class="depth"
+                      style="width: 72%; background: var(--green)"
+                    ></span>
+                  </td>
+                  <td class="n">1</td>
+                </tr>
+                <tr>
+                  <td class="n">1,85</td>
+                  <td class="n">
+                    500.000<span
+                      class="depth"
+                      style="width: 100%; background: var(--green)"
+                    ></span>
+                  </td>
+                  <td class="n">2</td>
+                </tr>
+              </table>
+              <table class="ask">
+                <tr>
+                  <th class="n">Verkaufen zu</th>
+                  <th class="n">Menge</th>
+                  <th class="n">Aufträge</th>
+                </tr>
+                <tr>
+                  <td class="n">1,93</td>
+                  <td class="n">
+                    60.000<span
+                      class="depth"
+                      style="width: 15%; background: var(--red)"
+                    ></span>
+                  </td>
+                  <td class="n">1</td>
+                </tr>
+                <tr>
+                  <td class="n">1,95</td>
+                  <td class="n">
+                    210.000<span
+                      class="depth"
+                      style="width: 48%; background: var(--red)"
+                    ></span>
+                  </td>
+                  <td class="n">4</td>
+                </tr>
+                <tr>
+                  <td class="n">1,98</td>
+                  <td class="n">
+                    150.000<span
+                      class="depth"
+                      style="width: 70%; background: var(--red)"
+                    ></span>
+                  </td>
+                  <td class="n">2</td>
+                </tr>
+                <tr>
+                  <td class="n">2,05</td>
+                  <td class="n">
+                    400.000<span
+                      class="depth"
+                      style="width: 100%; background: var(--red)"
+                    ></span>
+                  </td>
+                  <td class="n">3</td>
+                </tr>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="box form">
+          <div class="hd">AUFTRAG</div>
+          <div class="bd">
+            <div class="seg">
+              <button class="buy" aria-pressed="true">Kaufen</button
+              ><button class="sell">Verkaufen</button>
+            </div>
+            <label>Menge Psikristall</label
+            ><input type="text" value="200.000" />
+            <label>Höchstkurs (Adamant je Psikristall)</label
+            ><input type="text" value="1,92" />
+            <label>Liefern an / abholen von</label>
+            <select>
+              <option>Gorgonis II [3:412:5]</option>
+            </select>
+            <label>Gültig bis</label>
+            <select>
+              <option>48 Stunden</option>
+            </select>
+            <div class="sum">
+              In Treuhand: <b>384.000 Adamant</b> (bleiben auf dem Planeten,
+              gesperrt)<br />
+              Gebühr: <b>2 %</b> (Handelsposten Stufe 3)<br />
+              Lieferfrist nach Abschluss: <b>24 Std.</b><br />
+              <span class="dim"
+                >Sofort ausführbar: 60.000 zu 1,93 nicht (über dem
+                Höchstkurs).</span
+              >
+            </div>
+            <button class="go" style="width: 100%; margin-top: 10px">
+              Auftrag einstellen
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="box">
+        <div class="hd">MEINE VERTRÄGE · Lieferung per Frachtflotte</div>
+        <table class="contracts">
+          <tr>
+            <th>Vertrag</th>
+            <th>Partner</th>
+            <th>Du lieferst</th>
+            <th>Du erhältst</th>
+            <th>Stand</th>
+          </tr>
+          <tr>
+            <td>#1182 · 1,92</td>
+            <td>Orden von Kessra</td>
+            <td>
+              <div class="leg">
+                384.000 Adamant · 9 Lastbarken
+                <span class="bar"><i style="width: 100%"></i></span>
+                <span class="st ok">ANGEKOMMEN</span>
+              </div>
+            </td>
+            <td>
+              <div class="leg">
+                200.000 Psikristall
+                <span class="bar"><i style="width: 100%"></i></span>
+                <span class="st ok">ANGEKOMMEN</span>
+              </div>
+            </td>
+            <td>erledigt – beide Teile freigegeben</td>
+          </tr>
+          <tr>
+            <td>#1190 · 1,90</td>
+            <td>Haus Valcor</td>
+            <td>
+              <div class="leg">
+                190.000 Adamant · 5 Lastbarken
+                <span class="bar"><i style="width: 100%"></i></span>
+                <span class="st wait">IN TREUHAND</span>
+              </div>
+            </td>
+            <td>
+              <div class="leg">
+                100.000 Psikristall
+                <span class="bar"><i style="width: 55%"></i></span>
+                <span class="st go">UNTERWEGS 3:12 h</span>
+              </div>
+            </td>
+            <td>deine Lieferung wartet beim Partner auf seine</td>
+          </tr>
+          <tr>
+            <td>#1194 · 1,91</td>
+            <td>Brüderschaft Ashkar</td>
+            <td>
+              <div class="leg">
+                95.000 Adamant
+                <span class="bar"><i style="width: 0%"></i></span>
+                <span class="st go">NOCH 18 h</span>
+              </div>
+            </td>
+            <td>
+              <div class="leg">
+                50.000 Psikristall · 3 Frachtläufer
+                <span class="bar"><i style="width: 40%"></i></span>
+                <span class="st lost">VERNICHTET</span>
+              </div>
+            </td>
+            <td>
+              Partner muss neu liefern (Frist 18 h); sonst Rückgabe deiner
+              Ladung
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="grid2">
+        <div class="box">
+          <div class="hd">Ablauf eines Vertrags [V]</div>
+          <div class="bd" style="font-size: 15px">
+            <ol style="margin: 0; padding-left: 20px">
+              <li>
+                Auftrag einstellen: Das Angebot bleibt auf dem Planeten, aber
+                gesperrt (Treuhand).
+              </li>
+              <li>
+                Ein Gegenauftrag passt: Der Server schließt den Vertrag zum Kurs
+                des älteren Auftrags.
+              </li>
+              <li>
+                Jede Seite schickt ihren Teil mit eigenen Frachtern (Mission
+                „Börsenlieferung“).
+              </li>
+              <li>
+                Ankunft: Der Teil bleibt beim Empfänger in Treuhand, bis auch
+                der andere Teil angekommen ist; dann werden beide freigegeben.
+              </li>
+              <li>
+                Frachter vernichtet: Die Ladung ist für den Lieferer verloren,
+                er muss bis zum Ende der Frist neu liefern.
+              </li>
+              <li>
+                Frist verstrichen: Der Vertrag fällt, jeder Teil in Treuhand
+                geht an seinen Lieferer zurück.
+              </li>
+            </ol>
+          </div>
+        </div>
+        <div class="box">
+          <div class="hd">Was offen ist</div>
+          <div class="bd" style="font-size: 15px">
+            <ul style="margin: 0; padding-left: 18px">
+              <li>
+                <b>Widerspruch zu klären:</b> „Jeder Teil wird bei Ankunft
+                freigegeben“ und „ein Verlust trifft nur den, dessen Flotte
+                fiel“ gehen nicht zusammen: Sonst hätte der Partner geliefert
+                und nichts bekommen. Die Study schlägt die Treuhand bis beide
+                Teile da sind vor (Schritt 4).
+              </li>
+              <li>
+                Braucht die Börse einen Handelsposten (wie der Marktplatz)?
+              </li>
+              <li>
+                Sieht der Angreifer, dass eine Flotte Börsenware trägt? Landet
+                sie als Beute oder Trümmer?
+              </li>
+              <li>
+                Pushen (Rohstoffe an Freunde oder Zweitkonten zu
+                Fantasiekursen): Kursband um den Marktkurs?
+              </li>
+              <li>
+                „Marktplatz und Börse“ zugleich: Arbitrage zwischen festem Kurs
+                und Börsenkurs.
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>

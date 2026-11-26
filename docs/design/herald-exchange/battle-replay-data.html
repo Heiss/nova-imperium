@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Studie – Kampfprotokoll für Godot</title>
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="study.css" />
+    <style>
+      .flow {
+        width: 100%;
+        height: auto;
+        display: block;
+        margin-bottom: 14px;
+      }
+      .box .bd {
+        font-size: 15px;
+      }
+      .box ul {
+        margin: 0;
+        padding-left: 18px;
+      }
+      .box li {
+        margin-bottom: 3px;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="mock">
+      <p class="cap">
+        Studie [V] · wie eine berechnete Schlacht so gespeichert wird, dass
+        Godot sie zeigen kann und das Bild immer zum Kampfbericht passt ·
+        Feldnamen, Größen und Grenzen sind Vorschläge
+      </p>
+      <h2>Vom Kampf zur Aufzeichnung</h2>
+
+      <svg
+        class="flow"
+        viewBox="0 0 1200 230"
+        role="img"
+        aria-label="Datenfluss vom Server zum Godot-Player"
+      >
+        <defs>
+          <marker
+            id="a"
+            viewBox="0 0 10 10"
+            refX="9"
+            refY="5"
+            markerWidth="7"
+            markerHeight="7"
+            orient="auto"
+          >
+            <path d="M0 0 L10 5 L0 10 z" fill="#d4a537" />
+          </marker>
+        </defs>
+        <g font-family="Georgia, serif" font-size="14" fill="#e9dfc8">
+          <g stroke="#3b2f22" fill="#1a1411">
+            <rect x="10" y="20" width="200" height="86" rx="5" />
+            <rect x="260" y="20" width="210" height="86" rx="5" />
+            <rect x="520" y="20" width="200" height="86" rx="5" />
+            <rect x="770" y="20" width="200" height="86" rx="5" />
+            <rect x="1010" y="20" width="180" height="86" rx="5" />
+            <rect x="520" y="140" width="200" height="74" rx="5" />
+          </g>
+          <text x="22" y="44" fill="#f1d27a" font-weight="bold">
+            battleOf()
+          </text>
+          <text x="22" y="66">Kampf wie heute,</text>
+          <text x="22" y="86">+ Rekorder je Runde</text>
+          <text x="272" y="44" fill="#f1d27a" font-weight="bold">
+            Folgen-Pipeline
+          </text>
+          <text x="272" y="66">Trümmer, Mond, Wieder-</text>
+          <text x="272" y="86">aufbau, Berichte</text>
+          <text x="532" y="44" fill="#f1d27a" font-weight="bold">
+            battle_log (SQLite)
+          </text>
+          <text x="532" y="66">Protokoll, gzip,</text>
+          <text x="532" y="86">bis Rundenende</text>
+          <text x="782" y="44" fill="#f1d27a" font-weight="bold">
+            Herold-Redaktion
+          </text>
+          <text x="782" y="66">Verzögerung, Unschärfe,</text>
+          <text x="782" y="86">Schweigegelübde</text>
+          <text x="1022" y="44" fill="#f1d27a" font-weight="bold">
+            Godot (Web)
+          </text>
+          <text x="1022" y="66">Regie + Darstellung,</text>
+          <text x="1022" y="86">rechnet nichts</text>
+          <text x="532" y="164" fill="#f1d27a" font-weight="bold">
+            Kampfbericht
+          </text>
+          <text x="532" y="186">heute schon da;</text>
+          <text x="532" y="204">Test: gleiche Verluste</text>
+          <g
+            stroke="#d4a537"
+            stroke-width="1.6"
+            fill="none"
+            marker-end="url(#a)"
+          >
+            <path d="M210 63 H256" />
+            <path d="M470 63 H516" />
+            <path d="M720 63 H766" />
+            <path d="M970 63 H1006" />
+            <path d="M620 106 V136" />
+          </g>
+          <text x="776" y="130" fill="#a8997f" font-size="13">
+            nur was die Meldung zeigen darf
+          </text>
+          <text x="776" y="148" fill="#a8997f" font-size="13">
+            (gerundete Gruppen statt exakter Zahlen)
+          </text>
+        </g>
+      </svg>
+
+      <div class="grid2">
+        <div class="box">
+          <div class="hd">Protokoll einer Schlacht (Beispiel, gekürzt) [V]</div>
+          <div class="bd">
+            <pre class="code">
+{
+  "v": 1,                      // Version des Formats
+  "battle": 48211, "at": "2026-11-22T09:14:00Z",
+  "place": { "g": 3, "s": 412, "p": 8, "kind": "planet" },
+  "sides": {
+    "att": [{ "party": "p17", "tech": { "weapons": 14, "shield": 12, "armor": 13 } }],
+    "def": [{ "party": "p04", "tech": { "weapons": 12, "shield": 13, "armor": 12 } }]
+  },
+  "rounds": [
+    { "n": 1,
+      "start": { "p17": { "bs": 412, "cr": 960, "lf": 4200 },
+                 "p04": { "bs": 120, "gauss": 7, "ll": 900, "ssd": 1 } },
+      "fire": [ ["p17:bs", "p04:ll", 1480, 1310, 0],
+                ["p04:gauss", "p17:bs", 41, 38, 3] ],
+                // Schütze, Ziel, Schüsse, Treffer auf Rumpf, Explosionen
+      "lost": { "p17": { "bs": 3, "lf": 610 }, "p04": { "ll": 402 } } },
+    { "n": 2, "...": "..." }
+  ],
+  "result": { "winner": "att", "rounds": 6,
+              "debris": { "m": 1650000, "c": 780000 },
+              "moonChance": 0.2, "moon": false,
+              "rebuilt": { "gauss": 2, "ll": 512 } }
+}</pre>
+          </div>
+        </div>
+        <div class="box">
+          <div class="hd">Damit es logisch funktioniert</div>
+          <div class="bd">
+            <ul>
+              <li>
+                <b>[E] heute:</b> Der Kampf würfelt mit
+                <code>Math.random</code>
+                (<code>src/server/game/context.ts</code>) und speichert keine
+                Runden. Ein Replay ist erst mit Protokoll möglich.
+              </li>
+              <li>
+                <b>[V] Protokoll statt Neuberechnung:</b> Der Server schreibt
+                die Runden mit, während er kämpft. Godot rechnet nicht nach;
+                eine zweite Kampfrechnung in GDScript liefe sonst irgendwann
+                auseinander.
+              </li>
+              <li>
+                <b>[V] Aggregiert, nicht je Einheit:</b> Je Runde und Paar
+                (Schütze → Ziel) nur Summen. Eine Endzeit-Schlacht mit Millionen
+                Schüssen bleibt so klein (geschätzt wenige KB gzip; [U] zu
+                messen).
+              </li>
+              <li>
+                <b>[V] Prüfung:</b> Ein Test spielt das Protokoll ab: Summe
+                <code>lost</code> über die Runden = Verluste im Kampfbericht,
+                <code>rebuilt</code> = Wiederaufbau aus der Pipeline.
+              </li>
+              <li>
+                <b>[V] Gruppen im Bild:</b> Ein Modell steht für
+                <i>k</i> Einheiten (z. B. 1 Kathedralschiff-Modell je 10, 1
+                Jäger je 50); Verluste werden auf die Modelle umgelegt und
+                gerundet, aber nie „zu viele“ gezeigt.
+              </li>
+              <li>
+                <b>[V] Gleiche Regie für alle:</b> Die Kamera wählt die Schnitte
+                aus dem Protokoll (größter Verlust, erster Verlust eines
+                Großschiffs, Verteidigung fällt) mit der Schlacht-ID als
+                Zufallssamen. Jeder sieht denselben Film.
+              </li>
+              <li>
+                <b>[V] Unschärfe gilt auch fürs Bild:</b> Die Redaktion gibt
+                Godot nur eine gerundete Fassung des Protokolls (siehe
+                Chronisten-Stufen). Sonst verrät das Replay mehr als die
+                Meldung.
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid3">
+        <div class="box">
+          <div class="hd">Godot im Browser [U]</div>
+          <div class="bd">
+            <ul>
+              <li>
+                Web-Export (Godot 4) etwa 30–40 MB; einmal geladen, dann im
+                Cache.
+              </li>
+              <li>
+                Mit Threads braucht er COOP/COEP-Kopfzeilen in Caddy, nur für
+                <code>/herold</code>; ohne Threads (ab 4.3) geht es ohne.
+              </li>
+              <li>
+                Handys: wahrscheinlich nur eine leichtere Stufe der Darstellung.
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div class="box">
+          <div class="hd">Ton [V]</div>
+          <div class="bd">
+            <ul>
+              <li>
+                Außenaufnahmen gedämpft (Tiefpass), wie durch einen Rumpf
+                gehört.
+              </li>
+              <li>Nur Mitflug-Schnitte laut und direkt.</li>
+              <li>Ton erst nach Klick (Autoplay-Regeln der Browser).</li>
+            </ul>
+          </div>
+        </div>
+        <div class="box">
+          <div class="hd">Grenzen [V]</div>
+          <div class="bd">
+            <ul>
+              <li>
+                Replay nur für Schlachten über einer Größe; kleine nur als Text.
+              </li>
+              <li>
+                Protokolle werden am Rundenende gelöscht oder ins Rundenarchiv
+                (#235) übernommen – offen.
+              </li>
+              <li>
+                Keine fremden Assets: eigene Modelle, Kamera nur „im Stil von“.
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>

@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Studie – Admin: Handel und Herold</title>
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="study.css" />
+    <style>
+      fieldset {
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: var(--box);
+        margin: 0 0 14px;
+        padding: 10px 14px 14px;
+      }
+      legend {
+        font: 600 14px var(--head);
+        letter-spacing: 0.08em;
+        color: var(--gold);
+        padding: 0 6px;
+      }
+      .opts {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+      }
+      .opt {
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        padding: 10px;
+        font-size: 14.5px;
+      }
+      .opt.sel {
+        outline: 2px solid var(--gold-hi);
+        outline-offset: 1px;
+      }
+      .opt b {
+        display: block;
+        font: 600 14px var(--head);
+        letter-spacing: 0.04em;
+        color: var(--gold-hi);
+        margin-bottom: 4px;
+      }
+      .row {
+        display: grid;
+        grid-template-columns: 1fr 150px 90px;
+        gap: 10px;
+        align-items: center;
+        padding: 5px 0;
+        border-bottom: 1px solid var(--line);
+        font-size: 15px;
+      }
+      .row:last-child {
+        border-bottom: 0;
+      }
+      .row input,
+      .row select {
+        width: 100%;
+        box-sizing: border-box;
+      }
+      .link {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        font:
+          13px ui-monospace,
+          monospace;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="mock" style="max-width: 1100px">
+      <p class="cap">
+        Studie · Dialog „Neue Runde“ und Universums-Einstellungen · die vier
+        Handelsarten, ihre Änderbarkeit während der Runde und der öffentliche
+        Link sind vom Owner [E] · alle anderen Felder, Bereiche und
+        Standardwerte sind Vorschläge [V]
+      </p>
+      <h2>Neue Runde · Handel</h2>
+      <fieldset>
+        <legend>Handel in dieser Runde</legend>
+        <div class="opts">
+          <label class="opt"><b>○ Aus</b>Kein Marktplatz, keine Börse.</label>
+          <label class="opt"
+            ><b>○ Marktplatz</b>Tausch zu festen Kursen wie heute (#171).</label
+          >
+          <label class="opt sel"
+            ><b>● Börse</b>Spieler handeln untereinander mit Orderbuch,
+            Lieferung per Frachter.</label
+          >
+          <label class="opt"
+            ><b>○ Marktplatz und Börse</b>Beides offen. Achtung: Arbitrage
+            zwischen festen Kursen und Börse.</label
+          >
+        </div>
+        <p class="note" style="margin-bottom: 0">
+          [V] Ersetzt den Schalter „Marktplatz aktiv“
+          (<code>roundMarketOn</code>, 0/1) durch einen Wert 0–3. Bestehende
+          Universen: 1 → „Marktplatz“, 0 → „Aus“. Die Marktplatz-Felder bleiben
+          und gelten nur, wenn der Marktplatz offen ist.
+        </p>
+        <p class="note" style="margin-bottom: 0">
+          [E] Handelsart und alle Börsen-Felder stehen im Dialog „Neue Runde“
+          und sind auch während der Runde in den Universums-Einstellungen
+          änderbar (wie der Marktplatz, X1 von #171). Was beim Abschalten mit
+          offenen Aufträgen passiert: offen (#386, C8).
+        </p>
+      </fieldset>
+
+      <fieldset>
+        <legend>Börse</legend>
+        <div class="row">
+          <span>Börse Gebühr auf Stufe 1 des Handelspostens (Prozent)</span
+          ><input type="text" value="4" /><span class="mark v">V</span>
+        </div>
+        <div class="row">
+          <span>Börse Lieferfrist nach Abschluss (Stunden)</span
+          ><input type="text" value="24" /><span class="mark v">V</span>
+        </div>
+        <div class="row">
+          <span>Börse längste Gültigkeit eines Auftrags (Stunden)</span
+          ><input type="text" value="72" /><span class="mark v">V</span>
+        </div>
+        <div class="row">
+          <span>Börse offene Aufträge je Spieler</span
+          ><input type="text" value="10" /><span class="mark v">V</span>
+        </div>
+        <div class="row">
+          <span>Börse Kursband um den letzten Kurs (Prozent, 0 = frei)</span
+          ><input type="text" value="30" /><span class="mark v">V</span>
+        </div>
+      </fieldset>
+
+      <h2>Neue Runde · Imperialer Herold</h2>
+      <fieldset>
+        <legend>Imperialer Herold</legend>
+        <div class="row">
+          <span>Herold aktiv</span
+          ><select>
+            <option>Ja</option></select
+          ><span class="mark v">V</span>
+        </div>
+        <div class="row">
+          <span>Öffentlicher Link für diese Runde</span
+          ><select>
+            <option>Ja</option></select
+          ><span class="mark e">E</span>
+        </div>
+        <div class="row">
+          <span class="link"
+            >https://…/herold/r7-9f3c2a…
+            <button class="small">Neu erzeugen</button></span
+          ><span></span><span></span>
+        </div>
+        <div class="row">
+          <span>Chronisten steigen eine Stufe alle (Tage)</span
+          ><input type="text" value="7" /><span class="mark v">V</span>
+        </div>
+        <div class="row">
+          <span>Höchste Chronisten-Stufe</span
+          ><input type="text" value="4" /><span class="mark v">V</span>
+        </div>
+        <div class="row">
+          <span>Falschmeldungen</span
+          ><select>
+            <option>Ja</option></select
+          ><span class="mark v">V</span>
+        </div>
+        <div class="row">
+          <span>Dementi nach (Stunden)</span
+          ><input type="text" value="48" /><span class="mark v">V</span>
+        </div>
+        <div class="row">
+          <span>Replay ab Verlusten von (Einheiten, nach Kosten)</span
+          ><input type="text" value="1.000.000" /><span class="mark v">V</span>
+        </div>
+      </fieldset>
+      <p class="note red">
+        Der öffentliche Link zeigt alles, was der Herold zeigt, auch
+        Spielernamen, ohne Anmeldung. Das weicht von „Defaults stay inside“ ab
+        (<code>okf/ops/defaults.md</code>); Vorschlag [V]: in einer neuen Runde
+        aus, der Admin schaltet ihn ein.
+      </p>
+    </main>
+  </body>
+</html>

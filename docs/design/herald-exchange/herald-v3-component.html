@@ -1,0 +1,556 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Studie – Imperialer Herold als v3-Komponente</title>
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="study.css" />
+    <style>
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+        padding: 12px;
+        border: 1px dashed var(--line);
+        border-radius: 6px;
+        margin-bottom: 18px;
+      }
+      .s1 {
+        grid-column: span 1;
+      }
+      .s2 {
+        grid-column: span 2;
+      }
+      .s3 {
+        grid-column: span 3;
+      }
+      .cmp {
+        background: var(--box);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      .cmp.ghost {
+        opacity: 0.45;
+      }
+      .cmp > .bar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-bottom: 1px solid var(--line);
+      }
+      .cmp > .bar .grip {
+        color: var(--dim);
+        letter-spacing: -2px;
+      }
+      .cmp > .bar h3 {
+        margin: 0;
+        font: 600 17px var(--head);
+        letter-spacing: 0.04em;
+        color: var(--gold-hi);
+      }
+      .chip {
+        font: 600 11px var(--head);
+        letter-spacing: 0.04em;
+        border: 1px solid var(--line);
+        border-radius: 3px;
+        padding: 1px 6px;
+        color: var(--txt);
+      }
+      .cmp > .bar .tools {
+        margin-left: auto;
+        display: flex;
+        gap: 10px;
+        color: var(--dim);
+      }
+      .cmp > .bd {
+        padding: 10px 12px;
+        flex: 1;
+      }
+      .crawl1 {
+        font-size: 13.5px;
+        white-space: nowrap;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 3px;
+        padding: 4px 8px;
+        background: #120d0a;
+        margin-bottom: 8px;
+      }
+      .news {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      .news li {
+        display: grid;
+        grid-template-columns: 86px 1fr;
+        gap: 2px 8px;
+        padding: 6px 0;
+        border-bottom: 1px solid var(--line);
+        font-size: 14.5px;
+        line-height: 1.3;
+      }
+      .news li:last-child {
+        border-bottom: 0;
+      }
+      .news .tag {
+        align-self: start;
+        text-align: center;
+      }
+      .news .t {
+        grid-column: 2;
+        font-size: 12.5px;
+        color: var(--dim);
+      }
+      .open {
+        display: block;
+        width: 100%;
+        margin-top: 8px;
+      }
+      .thumb {
+        position: relative;
+        border-radius: 4px;
+        overflow: hidden;
+        border: 1px solid var(--line);
+      }
+      .thumb img {
+        display: block;
+        width: 100%;
+        aspect-ratio: 1280 / 536;
+        object-fit: cover;
+      }
+      .thumb .ovl {
+        position: absolute;
+        left: 10px;
+        bottom: 10px;
+        right: 10px;
+        font-size: 14px;
+        background: rgb(0 0 0 / 0.6);
+        padding: 6px 8px;
+        border-radius: 3px;
+      }
+      .thumb .ovl b {
+        color: var(--gold-hi);
+      }
+      .w2 {
+        display: grid;
+        grid-template-columns: 1.1fr 1fr;
+        gap: 12px;
+      }
+      .w3 {
+        display: grid;
+        grid-template-columns: 1.4fr 1fr 0.9fr;
+        gap: 14px;
+      }
+      .px td,
+      .px th {
+        padding: 3px 6px;
+        font-size: 13.5px;
+      }
+      .side {
+        display: grid;
+        grid-template-columns: 390px 1fr;
+        gap: 18px;
+        align-items: start;
+      }
+      .phone {
+        width: 390px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 12px;
+        background: #0a0806;
+      }
+      .settings {
+        background: var(--box);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 12px 14px;
+        font-size: 14.5px;
+      }
+      .settings h4 {
+        margin: 0 0 8px;
+        font: 600 15px var(--head);
+        color: var(--gold-hi);
+      }
+      .seg3 {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+        margin: 4px 0 10px;
+      }
+      .seg3 span {
+        text-align: center;
+        border: 1px solid var(--line);
+        border-radius: 3px;
+        padding: 4px;
+      }
+      .seg3 span.on {
+        background: var(--gold);
+        color: #120d0a;
+        border-color: var(--gold);
+      }
+      .chk {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 14px;
+        margin: 4px 0 10px;
+      }
+      .feed2 li {
+        display: grid;
+        grid-template-columns: 34px 1fr auto;
+        gap: 8px;
+        align-items: center;
+        padding: 7px 0;
+        border-bottom: 1px solid var(--line);
+        font-size: 14.5px;
+      }
+      .feed2 {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      .feed2 .ic {
+        width: 34px;
+        height: 34px;
+        border: 1px solid var(--gold);
+        border-radius: 4px;
+        display: grid;
+        place-items: center;
+        color: var(--gold-hi);
+        font: 600 13px var(--head);
+      }
+    </style>
+  </head>
+  <body>
+    <main class="mock" style="max-width: 1240px">
+      <p class="cap">
+        Studie · der Imperiale Herold als Komponente des konfigurierbaren
+        Dashboards von Interface v3 (#236) · eigene Seite und Komponente [E,
+        2026-11-23] · Breiten, Inhalte, Texte und Zahlen sind Vorschläge [V] ·
+        die Komponente zeigt nur, was der Herold öffentlich zeigt
+      </p>
+
+      <h2>Breite 1 · neben anderen Komponenten</h2>
+      <div class="grid">
+        <div class="cmp s1">
+          <div class="bar">
+            <span class="grip">⠿</span>
+            <h3>Imperialer Herold</h3>
+            <span class="chip">1 Spalte</span>
+            <span class="tools">⚙ 👁</span>
+          </div>
+          <div class="bd">
+            <div class="crawl1">
+              <img class="ri" src="/icons/resources/small/crystal.svg" alt="" />
+              1,92 <span class="up">▲3,1 %</span> ·
+              <img
+                class="ri"
+                src="/icons/resources/small/deuterium.svg"
+                alt=""
+              />4,35 <span class="down">▼1,4 %</span>
+            </div>
+            <ul class="news">
+              <li>
+                <span class="tag battle">SCHLACHT</span
+                ><span>312 Kathedralschiffe über Gorgonis III gefallen ▶</span>
+                <span class="t">vor ca. 6 Std. · Replay</span>
+              </li>
+              <li>
+                <span class="tag research">FORSCHUNG</span
+                ><span>Erstes Imperium erreicht Warp-Antrieb 12</span>
+                <span class="t">vor ca. 11 Std.</span>
+              </li>
+              <li>
+                <span class="tag denial">DEMENTI</span
+                ><span>Belagerung von Vharos war falsch</span>
+                <span class="t">vor ca. 18 Std.</span>
+              </li>
+            </ul>
+            <button class="open">Herold öffnen</button>
+          </div>
+        </div>
+        <div class="cmp s2 ghost">
+          <div class="bar">
+            <span class="grip">⠿</span>
+            <h3>Was in deiner Abwesenheit geschah</h3>
+            <span class="chip">2 Spalten</span>
+          </div>
+          <div class="bd">
+            <ul class="feed2">
+              <li>
+                <span class="ic">HR</span
+                ><span
+                  ><b>Der Herold berichtet über deine Schlacht</b><br /><span
+                    class="dim"
+                    >Gorgonis III · Chronisten-Stufe 4 · deine Flotte wird
+                    genannt</span
+                  ></span
+                ><button class="small">Meldung lesen</button>
+              </li>
+              <li>
+                <span class="ic">FS</span
+                ><span
+                  ><b>Forschung abgeschlossen</b><br /><span class="dim"
+                    >Scholarium Stufe 6</span
+                  ></span
+                ><button class="small">Forschung öffnen</button>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <h2>Breite 2 · Schlacht des Tages und Meldungen</h2>
+      <div class="grid">
+        <div class="cmp s2">
+          <div class="bar">
+            <span class="grip">⠿</span>
+            <h3>Imperialer Herold</h3>
+            <span class="chip">2 Spalten</span>
+            <span class="dim" style="font-size: 13px"
+              >Runde 7 · Tag 23 · Chronisten-Stufe 4</span
+            >
+            <span class="tools">⚙ 👁</span>
+          </div>
+          <div class="bd">
+            <div class="w2">
+              <div>
+                <div class="thumb">
+                  <img
+                    src="shot-4.jpg"
+                    alt="Standbild der Schlacht des Tages"
+                  />
+                  <div class="ovl">
+                    <b>▶ Kathedralschiffe brennen über Gorgonis III</b><br />
+                    Replay 2:40 · vor ca. 6 Std.
+                  </div>
+                </div>
+              </div>
+              <ul class="news">
+                <li>
+                  <span class="tag battle">SCHLACHT</span
+                  ><span>Abfangjäger zerreißen Frachtkonvoi bei [2:118:4]</span>
+                  <span class="t">vor ca. 9 Std.</span>
+                </li>
+                <li>
+                  <span class="tag research">FORSCHUNG</span
+                  ><span>Erstes Imperium erreicht Warp-Antrieb 12</span>
+                  <span class="t">vor ca. 11 Std. · Name geheim</span>
+                </li>
+                <li>
+                  <span class="tag empire">IMPERIUM</span
+                  ><span>Neuer Mond über [3:401:9]</span>
+                  <span class="t">vor ca. 14 Std.</span>
+                </li>
+                <li>
+                  <span class="tag rumor">UNBESTÄTIGT</span
+                  ><span>„Mehrere Hundert“ Fregatten in Galaxie 1</span>
+                  <span class="t">vor ca. 20 Std.</span>
+                </li>
+              </ul>
+            </div>
+            <button class="open">Herold öffnen</button>
+          </div>
+        </div>
+        <div class="cmp s1 ghost">
+          <div class="bar">
+            <span class="grip">⠿</span>
+            <h3>Nächste Schritte</h3>
+            <span class="chip">1 Spalte</span>
+          </div>
+          <div class="bd">
+            <ul class="feed2">
+              <li>
+                <span class="ic">SG</span
+                ><span
+                  ><b>Chronisten werden genauer</b><br /><span class="dim"
+                    >In 2 Tagen Stufe 4; dein Schweigegelübde: 2</span
+                  ></span
+                ><span></span>
+              </li>
+              <li>
+                <span></span
+                ><button class="small" style="grid-column: 2 / 4">
+                  Schweigegelübde öffnen
+                </button>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <h2>Breite 3 · kleiner Herold im Dashboard</h2>
+      <div class="grid">
+        <div class="cmp s3">
+          <div class="bar">
+            <span class="grip">⠿</span>
+            <h3>Imperialer Herold</h3>
+            <span class="chip">3 Spalten</span>
+            <span class="dim" style="font-size: 13px"
+              >Runde 7 · Tag 23 · Chronisten-Stufe 4</span
+            >
+            <span class="tools">⚙ 👁</span>
+          </div>
+          <div class="bd">
+            <div class="w3">
+              <div class="thumb">
+                <img src="shot-6.jpg" alt="Standbild: Gegenfeuer vom Boden" />
+                <div class="ovl">
+                  <b>▶ Gorgonis III: Die Verteidigung schlägt zurück</b><br />
+                  Replay 2:40 · Runde 5 von 6 · vor ca. 6 Std.
+                </div>
+              </div>
+              <ul class="news">
+                <li>
+                  <span class="tag battle">SCHLACHT</span
+                  ><span>312 Kathedralschiffe über Gorgonis III</span>
+                  <span class="t">vor ca. 6 Std. · Replay</span>
+                </li>
+                <li>
+                  <span class="tag research">FORSCHUNG</span
+                  ><span>Warp-Antrieb 12 erreicht</span>
+                  <span class="t">vor ca. 11 Std.</span>
+                </li>
+                <li>
+                  <span class="tag market">BÖRSE</span
+                  ><span>1,2 Mio. Promethium gehandelt</span>
+                  <span class="t">vor ca. 16 Std.</span>
+                </li>
+                <li>
+                  <span class="tag denial">DEMENTI</span
+                  ><span>Vharos: Meldung war falsch</span>
+                  <span class="t">vor ca. 18 Std.</span>
+                </li>
+              </ul>
+              <div>
+                <table class="px">
+                  <tr>
+                    <th>Kurs</th>
+                    <th class="n">je 1</th>
+                    <th class="n">24 Std.</th>
+                  </tr>
+                  <tr>
+                    <td>Psikristall</td>
+                    <td class="n">1,92</td>
+                    <td class="n up">+3,1 %</td>
+                  </tr>
+                  <tr>
+                    <td>Promethium</td>
+                    <td class="n">4,35</td>
+                    <td class="n down">−1,4 %</td>
+                  </tr>
+                  <tr>
+                    <td>Prom./Psik.</td>
+                    <td class="n">2,27</td>
+                    <td class="n down">−4,6 %</td>
+                  </tr>
+                </table>
+                <p class="dim" style="font-size: 12.5px; margin: 6px 0 0">
+                  Kurse nur, wenn die Börse (#386) in dieser Runde offen ist.
+                </p>
+                <button class="open">Herold öffnen</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <h2>Handy und Einstellungen</h2>
+      <div class="side">
+        <div class="phone">
+          <div class="cmp">
+            <div class="bar">
+              <span class="grip">⠿</span>
+              <h3>Imperialer Herold</h3>
+              <span class="tools">⚙</span>
+            </div>
+            <div class="bd">
+              <div class="thumb">
+                <img src="shot-4.jpg" alt="Standbild der Schlacht des Tages" />
+                <div class="ovl"><b>▶ Gorgonis III</b> · Replay 2:40</div>
+              </div>
+              <ul class="news" style="margin-top: 6px">
+                <li>
+                  <span class="tag research">FORSCHUNG</span
+                  ><span>Warp-Antrieb 12 erreicht</span>
+                  <span class="t">vor ca. 11 Std.</span>
+                </li>
+                <li>
+                  <span class="tag denial">DEMENTI</span
+                  ><span>Vharos: Meldung war falsch</span>
+                  <span class="t">vor ca. 18 Std.</span>
+                </li>
+              </ul>
+              <button class="open">Herold öffnen</button>
+            </div>
+          </div>
+          <p class="dim" style="font-size: 13px; margin: 8px 2px 0">
+            Auf dem Handy öffnet das Replay eine leichtere Fassung oder nur das
+            Storyboard (offen, #382 B5).
+          </p>
+        </div>
+        <div>
+          <div class="settings">
+            <h4>Einstellungen: Imperialer Herold</h4>
+            Breite im Raster:
+            <div class="seg3">
+              <span>1 Spalte</span><span class="on">2 Spalten</span
+              ><span>3 Spalten</span>
+            </div>
+            Zeigen:
+            <div class="chk">
+              <label>☑ Schlachten</label><label>☑ Forschung</label
+              ><label>☑ Imperien</label><label>☑ Börse</label
+              ><label>☐ Unbestätigte</label>
+            </div>
+            Replay im Dashboard:
+            <div class="seg3">
+              <span class="on">Standbild</span><span>stumm abspielen</span
+              ><span>aus</span>
+            </div>
+          </div>
+          <div class="box" style="margin-top: 14px">
+            <div class="hd">Regeln der Komponente [V]</div>
+            <div class="bd" style="font-size: 14.5px">
+              <ul style="margin: 0; padding-left: 18px">
+                <li>
+                  Breiten 1, 2, 3; jede hat ihr eigenes Layout (Liste, Replay +
+                  Liste, kleiner Herold), nicht nur gestreckt (#236).
+                </li>
+                <li>
+                  Liest dieselben Meldungen wie die Seite: gleiche Verzögerung,
+                  Unschärfe und Falschmeldungen. Kein Vorteil für
+                  Dashboard-Nutzer.
+                </li>
+                <li>
+                  „Herold öffnen“ führt zur eigenen Seite [E]; ein Klick auf ein
+                  Replay öffnet es dort.
+                </li>
+                <li>
+                  Beiträge an „Was in deiner Abwesenheit geschah“: wenn der
+                  Herold über das eigene Imperium berichtet hat.
+                </li>
+                <li>
+                  Beitrag an „Nächste Schritte“: wenn die Chronisten-Stufe bald
+                  über das eigene Schweigegelübde steigt; der Knopf öffnet nur
+                  die Forschung, er forscht nicht.
+                </li>
+                <li>
+                  Ist der Herold in der Runde aus, steht die Komponente als „in
+                  dieser Runde nicht verfügbar“ da; das gespeicherte Set bleibt
+                  unverändert.
+                </li>
+                <li>Modern und Classic zeigen dieselben Inhalte.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>
