@@ -180,6 +180,33 @@ describe('Detect changes: the mutation jobs of a pull request (#309)', () => {
     vcs('commit', '-q', '-m', 'head');
     return vcs('rev-parse', 'HEAD');
   };
+  // gh answers the runs of mutation.yml with NIGHTLY_RUNS (a green nightly
+  // run by default) and writes down its calls (#370).
+  const ghBin = join(dir, 'detect-bin');
+  const ghCalls = join(dir, 'detect-gh-calls');
+  mkdirSync(ghBin, { recursive: true });
+  writeFileSync(
+    join(ghBin, 'gh'),
+    [
+      '#!/bin/sh',
+      'printf \'%s\\n\' "$*" >> "$GH_CALLS"',
+      '[ "$GH_FAILS" != 1 ] || exit 1',
+      'printf \'{"workflow_runs":%s}\\n\' "$NIGHTLY_RUNS"',
+      '',
+    ].join('\n'),
+  );
+  chmodSync(join(ghBin, 'gh'), 0o755);
+  const nightlyRun = (conclusion: string, id = 77): string =>
+    JSON.stringify({
+      id,
+      path: '.github/workflows/mutation.yml',
+      event: 'schedule',
+      status: 'completed',
+      conclusion,
+      head_branch: 'main',
+      html_url: `https://github.com/owner/game/actions/runs/${id}`,
+      repository: { full_name: 'owner/game' },
+    });
   const detectIn = (
     changed: string[],
     env: Record<string, string> = {},
@@ -202,6 +229,9 @@ describe('Detect changes: the mutation jobs of a pull request (#309)', () => {
         PR_BASE_REF: 'main',
         GITHUB_REPOSITORY: 'owner/game',
         GITHUB_OUTPUT: output,
+        PATH: `${ghBin}:${process.env.PATH}`,
+        GH_CALLS: ghCalls,
+        NIGHTLY_RUNS: `[${nightlyRun('success')}]`,
         ...env,
       },
       repo,
@@ -333,16 +363,76 @@ describe('Detect changes: the mutation jobs of a pull request (#309)', () => {
     }
   });
 
-  it('mutates a set at the limit of one job and runs everything above it', () => {
+  it('mutates a set of any size in parts of about 12 files (#370, 189a, 190a)', () => {
     const many = (n: number): string[] =>
       Array.from({ length: n }, (_, i) => `src/core/new${i}.ts`);
-    const at = detectIn(many(12));
-    expect(field(at.written, 'mutation')).toBe('partial');
-    expect(JSON.parse(field(at.written, 'mutation-files')!)).toHaveLength(12);
-    const above = detectIn(many(13));
-    expect(above.code).toBe(0);
-    expect(field(above.written, 'mutation')).toBe('true');
-    expect(field(above.written, 'mutation-files')).toBe('');
+    for (const [n, parts] of [
+      [1, 1],
+      [12, 1],
+      [13, 2],
+      [40, 4],
+    ] as const) {
+      const { code, written } = detectIn(many(n));
+      expect(code).toBe(0);
+      expect(field(written, 'mutation')).toBe('partial');
+      const files = JSON.parse(field(written, 'mutation-files')!) as string[];
+      expect(files).toHaveLength(n);
+      const plan = JSON.parse(field(written, 'mutation-plan')!) as string[][];
+      expect(plan).toHaveLength(parts);
+      expect(plan.flat().sort()).toEqual([...files].sort());
+      expect(field(written, 'mutation-parts')).toBe(
+        JSON.stringify(Array.from({ length: parts }, (_, i) => i + 1)),
+      );
+    }
+  });
+
+  it('names the green nightly run it looked at and asks only for it (#370, 194a)', () => {
+    rmSync(ghCalls, { force: true });
+    const { written } = detectIn(['src/core/economy.ts']);
+    expect(field(written, 'mutation')).toBe('partial');
+    expect(field(written, 'mutation-nightly')).toBe(
+      'nightly mutation run 77 on main: success (https://github.com/owner/game/actions/runs/77)',
+    );
+    expect(readFileSync(ghCalls, 'utf8')).toBe(
+      'api --method GET repos/owner/game/actions/workflows/mutation.yml/runs?branch=main&event=schedule&status=completed&per_page=100\n',
+    );
+  });
+
+  it('runs the complete run while the last nightly run is red or missing (#370, 194a)', () => {
+    for (const [env, line] of [
+      [
+        {
+          NIGHTLY_RUNS: `[${nightlyRun('success', 5)},${nightlyRun('failure', 6)}]`,
+        },
+        'nightly mutation run 6 on main: failure (https://github.com/owner/game/actions/runs/6): the complete run',
+      ],
+      [
+        { NIGHTLY_RUNS: '[]' },
+        'no completed nightly mutation run on main: the complete run',
+      ],
+      [{ GH_FAILS: '1' }, 'cannot look up the nightly mutation run'],
+    ] as const) {
+      const { code, written } = detectIn(['src/core/economy.ts'], env);
+      expect(code).toBe(0);
+      expect(field(written, 'mutation')).toBe('true');
+      expect(field(written, 'mutation-files')).toBe('');
+      expect(field(written, 'mutation-plan')).toBe('');
+      expect(field(written, 'mutation-parts')).toBe('');
+      expect(field(written, 'mutation-nightly')).toContain(line);
+    }
+  });
+
+  it('looks up no nightly run without a partial run, nor into a hotfix branch', () => {
+    for (const [changed, env] of [
+      [['okf/ops/x.md'], {}],
+      [['stryker.config.json'], {}],
+      [['src/core/economy.ts'], { PR_BASE_REF: 'hotfix/x' }],
+    ] as const) {
+      rmSync(ghCalls, { force: true });
+      const { written } = detectIn([...changed], { ...env, GH_FAILS: '1' });
+      expect(field(written, 'mutation-nightly')).toBe('');
+      expect(existsSync(ghCalls)).toBe(false);
+    }
   });
 
   it('runs no expensive job in a release pull request that changes only the metadata files (#387)', () => {
@@ -424,6 +514,7 @@ describe('CI Gate', () => {
     MUTATION_PLAN: 'success',
     MUTATION_SHARDS: 'success',
     MUTATION: 'success',
+    MUTATION_PARTIAL_PARTS: 'skipped',
     MUTATION_PARTIAL: 'skipped',
     COMPOSE: 'success',
     SITE: 'success',
@@ -454,6 +545,7 @@ describe('CI Gate', () => {
     MUTATION_PLAN: 'skipped',
     MUTATION_SHARDS: 'skipped',
     MUTATION: 'skipped',
+    MUTATION_PARTIAL_PARTS: 'success',
     MUTATION_PARTIAL: 'success',
   };
   const releaseMain = { HEAD_REF: 'release/main' };
@@ -525,6 +617,11 @@ describe('CI Gate', () => {
       expect(out).toContain(
         `::error::Mutation tests (changed files) must succeed (result: ${result})`,
       );
+      const parts = evaluate({ ...partial, MUTATION_PARTIAL_PARTS: result });
+      expect(parts.code).toBe(1);
+      expect(parts.out).toContain(
+        `::error::Mutation tests (changed files, parts) must succeed (result: ${result})`,
+      );
     }
     for (const shards of [
       { MUTATION_PLAN: 'success' },
@@ -537,6 +634,18 @@ describe('CI Gate', () => {
         '::error::The mutation shards must not run next to the job for the changed files.',
       );
     }
+  });
+
+  it('prints the nightly run that the detection looked at (#370, 194a)', () => {
+    const line =
+      'nightly mutation run 77 on main: success (https://github.com/owner/game/actions/runs/77)';
+    const { code, out } = evaluate({ ...partial, NIGHTLY: line });
+    expect(code).toBe(0);
+    expect(out).toContain(`Last nightly complete mutation run: ${line}`);
+    const red = evaluate({ NIGHTLY: `${line}: the complete run` });
+    expect(red.code).toBe(0);
+    expect(red.out).toContain('Last nightly complete mutation run: ');
+    expect(evaluate(partial).out).not.toContain('Last nightly');
   });
 
   it('refuses the mutation of the changed files where the complete run is required (#309)', () => {

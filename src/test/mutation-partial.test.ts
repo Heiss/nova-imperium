@@ -1147,18 +1147,41 @@ describe('partial mutation run: the job in ci.yml', () => {
 
   it('reads and writes no cache and no plan of the complete runs', () => {
     const partial = job('mutation-partial');
-    expect(partial).toContain('Mutation tests (changed files)');
-    for (const word of complete) expect(partial).not.toContain(word);
+    expect(partial).toContain('    name: Mutation tests (changed files)\n');
+    const part = job('mutation-partial-part');
+    expect(part).toContain(
+      'Mutation tests (changed files, part ${{ matrix.part }} of ${{ strategy.job-total }})',
+    );
+    for (const text of [partial, part])
+      for (const word of complete) expect(text).not.toContain(word);
+  });
+
+  it('restores the weights of main in "Detect changes" read only (#370)', () => {
+    const changes = job('changes');
+    expect(changes).toContain('actions/cache/restore@');
+    expect(changes).not.toMatch(/actions\/cache@|actions\/cache\/save@/);
   });
 
   it('runs only for the output "partial" and only after "Detect changes"', () => {
+    const part = job('mutation-partial-part');
+    expect(part).toContain('    needs: changes\n');
+    expect(part).toContain("if: needs.changes.outputs.mutation == 'partial'\n");
+    expect(part).toContain(
+      "part: ${{ fromJSON(needs.changes.outputs.mutation-parts || '[1]') }}",
+    );
+    expect(part).toContain(
+      'MUTATION_PLAN: ${{ needs.changes.outputs.mutation-plan }}',
+    );
     const partial = job('mutation-partial');
-    expect(partial).toContain('needs: changes\n');
+    expect(partial).toContain('needs: [changes, mutation-partial-part]\n');
     expect(partial).toContain(
       "if: needs.changes.outputs.mutation == 'partial'\n",
     );
     expect(partial).toContain(
       'MUTATION_FILES: ${{ needs.changes.outputs.mutation-files }}',
+    );
+    expect(partial).toContain(
+      'MUTATION_PLAN: ${{ needs.changes.outputs.mutation-plan }}',
     );
     for (const name of ['mutation-plan', 'mutation-shard', 'mutation'])
       expect(job(name)).toContain(
@@ -1179,6 +1202,10 @@ describe('partial mutation run: the job in ci.yml', () => {
 
   it('is a step of the gate job as well', () => {
     expect(job('gate')).toContain('        mutation-partial,\n');
+    expect(job('gate')).toContain('        mutation-partial-part,\n');
+    expect(job('gate')).toContain(
+      'MUTATION_PARTIAL_PARTS: ${{ needs.mutation-partial-part.result }}',
+    );
     expect(job('gate')).toContain(
       'MUTATION_PARTIAL: ${{ needs.mutation-partial.result }}',
     );
