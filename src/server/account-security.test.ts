@@ -5,11 +5,15 @@ import {
   issueLoginCode,
   issueReset,
   purgeAccountTokens,
+  resendLoginCode,
   resetPassword,
 } from './account-security.ts';
 import { hashToken, passwordMatches } from './auth.ts';
-import { GameError } from './game/context.ts';
+import { beginSetup, confirmSetup } from './authenticator.ts';
+import type { User } from './db/repos/players.ts';
+import { GameError, type Ctx } from './game/context.ts';
 import { addUser, testCtx } from './test-helpers.ts';
+import { hotp, stepOf, unbase32 } from './totp.ts';
 
 // The password check is the cost of every change here; the result of the same
 // password and salt is computed once (src/test/scrypt-memo.ts).
@@ -181,5 +185,52 @@ describe('login codes', () => {
     ctx.clock.t += 1;
     purgeAccountTokens(ctx);
     expect(count('account_tokens')).toBe(0);
+  });
+});
+
+// A sign-in by mail code begun in one browser, the app set up in another
+// (102a, 103c, CodeRabbit of #417): the mail code no longer signs in.
+describe('login codes after the app is set up', () => {
+  const WRONG_MAIL = 'Der Anmeldecode ist ungültig oder abgelaufen.';
+  /** Sets up the app of the user with its first code. */
+  function setUpApp(ctx: Ctx, user: User) {
+    const { secret } = beginSetup(ctx, user);
+    confirmSetup(ctx, user, hotp(unbase32(secret)!, stepOf(ctx.now())));
+  }
+
+  it('ends the sign-in by mail code under way when the app is set up', () => {
+    const { ctx, user, count } = setup();
+    const { challenge, code } = issueLoginCode(ctx, user.id);
+    setUpApp(ctx, user);
+    expect(count('account_tokens')).toBe(0);
+    refuses(() => completeLogin(ctx, challenge, code), WRONG_MAIL);
+    ctx.clock.t += 30_000;
+    refuses(() => resendLoginCode(ctx, challenge), WRONG_MAIL);
+  });
+
+  it('refuses a mail code of an account with the app, also one left over', () => {
+    const { ctx, user, db } = setup();
+    setUpApp(ctx, user);
+    // A mail code stored by any other way, e.g. before the app.
+    const { challenge, code } = issueLoginCode(ctx, user.id);
+    refuses(() => completeLogin(ctx, challenge, code), WRONG_MAIL);
+    expect(
+      db
+        .prepare('SELECT attempts FROM account_tokens WHERE token_hash = ?')
+        .get(hashToken(challenge)),
+    ).toEqual({ attempts: 1 });
+    ctx.clock.t += 30_000;
+    refuses(() => resendLoginCode(ctx, challenge), WRONG_MAIL);
+  });
+
+  it('leaves the sign-in by mail code of an account without the app as it is', () => {
+    const { ctx, user } = setup();
+    const other = addUser(ctx, 'Lotse');
+    const { challenge } = issueLoginCode(ctx, user.id);
+    setUpApp(ctx, other);
+    ctx.clock.t += 30_000;
+    const sent = resendLoginCode(ctx, challenge);
+    expect(sent?.user.id).toBe(user.id);
+    expect(completeLogin(ctx, challenge, sent!.code).id).toBe(user.id);
   });
 });

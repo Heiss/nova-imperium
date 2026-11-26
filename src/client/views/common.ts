@@ -33,7 +33,15 @@ export interface Ui extends PushChoice {
   openEx: Record<string, boolean>;
   /** Entries whose level overview the player unfolded with the ▤ (#187). */
   openLv?: Record<string, boolean>;
-  auth: 'login' | 'register' | 'forgot' | 'reset' | 'code' | null;
+  /** The screen of the login; `app` asks for the code of the authenticator app (#401). */
+  auth: 'login' | 'register' | 'forgot' | 'reset' | 'code' | 'app' | null;
+  /** The reset link of an account with an authenticator app asks for its code too (104, #401). */
+  resetApp?: boolean;
+  /**
+   * The server checked the reset link (152a, #401): until then „Passwort
+   * speichern“ stays off, so an account with an app never sends without its code.
+   */
+  resetChecked?: boolean;
   invite: { token: string; email: string; galaxies: number } | null;
   lastLink: string | null;
   /** Planet animations of this viewer (Hilfe & Optionen, issue #61 D9). */

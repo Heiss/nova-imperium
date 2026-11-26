@@ -396,6 +396,7 @@ describe('points and state', () => {
       readAt: 0,
       admin: true,
       vacation: null,
+      totp: false,
     });
   });
 

@@ -135,6 +135,7 @@ export const clientFeature = {
       api: ctx.api,
       signedOut: ctx.signedOut,
       download: (body) => downloadErrors(body, ctx.signedOut),
+      toast: (msg) => ctx.toast(msg),
     });
     document.addEventListener('keydown', adminTabKey);
     watchDrafts();

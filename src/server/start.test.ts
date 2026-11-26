@@ -45,6 +45,8 @@ describe('server start', () => {
         NOVA_PORT: '8097',
         NOVA_HOST: '127.0.0.1',
         NOVA_DATA_DIR: dir,
+        // No SMTP here; the mail code is on by default (94b, #401).
+        NOVA_EMAIL_LOGIN_CODES: '0',
       },
     });
     const exited = new Promise((r) => child.once('exit', r));

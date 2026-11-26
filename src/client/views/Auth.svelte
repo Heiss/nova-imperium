@@ -6,18 +6,37 @@
   // `resetform`, `codeform`), which reads the fields by their ids.
   import type { Snippet } from 'svelte';
   import type { AuthPage } from '../logic/auth.ts';
+  import { RESEND_AFTER } from '../../core/login-code.ts';
 
   let { page }: { page: AuthPage } = $props();
+
+  // „Code erneut senden“ comes 30 s after a code was sent, and again 30 s
+  // after each new one (owner, 2026-11-25, 101b, #401).
+  let canResend = $state(false);
+  let sent = $state(0);
+  $effect(() => {
+    if (page.kind !== 'code') return;
+    void sent;
+    canResend = false;
+    const timer = setTimeout(() => (canResend = true), RESEND_AFTER);
+    return () => clearTimeout(timer);
+  });
 </script>
 
-{#snippet step(title: string, form: string, button: string, input: Snippet)}
+{#snippet step(
+  title: string,
+  form: string,
+  button: string,
+  input: Snippet,
+  ready = true,
+)}
   <div class="box auth">
     <div class="hd">{title}</div>
     <div class="bd">
       <form id={form}>
         {@render input()}
         <p>
-          <button type="submit">{button}</button>
+          <button type="submit" disabled={!ready}>{button}</button>
           <button class="small" type="button" data-act="authback"
             >Zurück zum Login</button
           >
@@ -32,7 +51,7 @@
   <input id="recovery_email" type="email" autocomplete="email" required />
 {/snippet}
 
-{#snippet resetInput(minLength: number | undefined)}
+{#snippet resetInput(minLength: number | undefined, app: boolean)}
   <label for="pw_next">Neues Passwort</label>
   <input
     id="pw_next"
@@ -41,9 +60,33 @@
     minlength={minLength}
     required
   />
+  {#if app}
+    <!-- With an authenticator app its code too (text 6, 104, #401). -->
+    <label for="reset_code">Code aus der Authenticator-App</label>
+    <input
+      id="reset_code"
+      inputmode="numeric"
+      autocomplete="one-time-code"
+      pattern="[0-9]{'{6}'}"
+      required
+    />
+  {/if}
+{/snippet}
+
+{#snippet appInput()}
+  <!-- The sign-in of an account with an authenticator app (text 5, #401). -->
+  <label for="login_code">Code aus der Authenticator-App</label>
+  <input
+    id="login_code"
+    inputmode="numeric"
+    autocomplete="one-time-code"
+    pattern="[0-9]{'{6}'}"
+    required
+  />
 {/snippet}
 
 {#snippet codeInput()}
+  <p>Wir haben dir einen Code per E-Mail geschickt.</p>
   <label for="login_code">Sechsstelliger Code aus deiner E-Mail</label>
   <input
     id="login_code"
@@ -52,6 +95,16 @@
     pattern="[0-9]{'{6}'}"
     required
   />
+  {#if canResend}
+    <p>
+      <button
+        class="small"
+        type="button"
+        data-act="resendcode"
+        onclick={() => sent++}>Code erneut senden</button
+      >
+    </p>
+  {/if}
 {/snippet}
 
 {#if page.kind === 'forgot'}
@@ -63,15 +116,24 @@
   )}
 {:else if page.kind === 'reset'}
   {@const minLength = page.minLength}
-  {#snippet input()}{@render resetInput(minLength)}{/snippet}
+  {@const app = page.app}
+  {#snippet input()}{@render resetInput(minLength, app)}{/snippet}
   {@render step(
     'Neues Passwort festlegen',
     'resetform',
     'Passwort speichern',
     input,
+    page.ready,
   )}
 {:else if page.kind === 'code'}
   {@render step('Anmeldecode', 'codeform', 'Anmelden', codeInput)}
+{:else if page.kind === 'app'}
+  {@render step(
+    'Code aus der Authenticator-App',
+    'codeform',
+    'Anmelden',
+    appInput,
+  )}
 {:else}
   {@const reg = page.kind === 'register'}
   <div class="box auth">

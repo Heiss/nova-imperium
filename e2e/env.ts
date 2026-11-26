@@ -33,6 +33,9 @@ export const E2E_ENV: Record<string, string> = {
   // All tests come from one address; the limit itself is tested in
   // src/server/http/app.test.ts.
   NOVA_RATE_LIMIT_ATTEMPTS: '1000',
+  // This server has no SMTP; the mail code, on by default (94b, #401), is
+  // tested on the mail server below.
+  NOVA_EMAIL_LOGIN_CODES: '0',
 };
 
 // The second server, for the mails (#68): its normal SMTP settings send to

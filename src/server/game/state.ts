@@ -4,6 +4,7 @@
 // recognizes (#228). The keys of a feature are a part of its own module
 // (`serverFeature`, feature.ts), put in order by their numbers.
 import { type ActivityLimits, activityLimits } from '../../core/activity.ts';
+import { hasAuthenticator } from '../authenticator.ts';
 import {
   type Recognition,
   recognitionOf,
@@ -132,6 +133,8 @@ const meOf = (ctx: Ctx, u: User) => ({
   admin: u.admin,
   // When the vacation mode started (#223); null outside of it.
   vacation: u.vacation,
+  // Whether an authenticator app is set up (#401): yes or no, never more.
+  totp: hasAuthenticator(ctx, u.id),
 });
 
 /**

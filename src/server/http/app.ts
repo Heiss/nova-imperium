@@ -32,6 +32,9 @@ import { adminRoutes } from './admin.ts';
 import { errorRoutes } from './errors.ts';
 import { playtimeRoutes } from './playtime.ts';
 import { loadStatic } from './static.ts';
+import { hasAuthenticator } from '../authenticator.ts';
+import { authenticatorRoutes } from './authenticator.ts';
+import { beginAppLogin, beginLogin, loginCodeRoutes } from './login-code.ts';
 import type { News } from '../news.ts';
 
 export interface AppDeps {
@@ -54,17 +57,18 @@ export interface Call {
   token: string | undefined;
 }
 
-type Reply = {
+export type Reply = {
   status?: number;
   json?: unknown;
-  cookie?: string;
+  /** One Set-Cookie header, or several (the session and the end of a sign-in). */
+  cookie?: string | string[];
   /** A download instead of JSON (the ZIP of the admin tab „Fehler“). */
   file?: { type: string; name: string; body: Uint8Array };
 };
 /** Refuses a request that exceeds the rate limit. */
-type Guard = (req: IncomingMessage) => void;
+export type Guard = (req: IncomingMessage) => void;
 /** Starts a session for a signed-in user. */
-type Enter = (u: User, remember?: boolean) => Reply;
+export type Enter = (u: User, remember?: boolean) => Reply;
 export type Handler = (call: Call) => Reply | Promise<Reply>;
 
 function send(
@@ -72,7 +76,7 @@ function send(
   status: number,
   type: string,
   body: string | Uint8Array,
-  extra: Record<string, string> = {},
+  extra: Record<string, string | string[]> = {},
 ): void {
   res.writeHead(status, {
     ...SECURITY_HEADERS,
@@ -86,7 +90,7 @@ const json = (
   res: ServerResponse,
   status: number,
   value: unknown,
-  cookie?: string,
+  cookie?: string | string[],
 ): void =>
   send(res, status, 'application/json; charset=utf-8', JSON.stringify(value), {
     'cache-control': 'no-store',
@@ -125,26 +129,6 @@ function sessionUserOf(ctx: Ctx, call: Call): User {
   return u;
 }
 
-async function beginLogin(d: AppDeps, u: User): Promise<Reply> {
-  if (!d.mailer)
-    throw new GameError('Anmeldecodes sind momentan nicht verfügbar.');
-  if (!u.email)
-    throw new GameError(
-      'Für dieses Konto ist keine E-Mail-Adresse hinterlegt.',
-    );
-  const { challenge, code } = security.issueLoginCode(d.ctx, u.id);
-  try {
-    await d.mailer({
-      to: u.email,
-      subject: 'Dein Anmeldecode für Nova Imperium',
-      text: `Dein Anmeldecode lautet ${code}. Er gilt einmal und für zehn Minuten.`,
-    });
-  } catch {
-    throw new GameError('Der Anmeldecode konnte nicht gesendet werden.');
-  }
-  return { json: { challenge } };
-}
-
 async function sendReset(d: AppDeps, email: unknown): Promise<void> {
   if (!d.mailer) return;
   const reset = security.issueReset(d.ctx, email);
@@ -154,6 +138,25 @@ async function sendReset(d: AppDeps, email: unknown): Promise<void> {
     subject: 'Passwort für Nova Imperium zurücksetzen',
     text: `Neues Passwort festlegen: ${d.cfg.publicUrl}/#reset=${reset.token}\n\nDer Link gilt einmal und für 30 Minuten. Wenn du das nicht angefordert hast, ignoriere diese E-Mail.`,
   });
+}
+
+/** „Passwort vergessen“: the link goes by mail in the background. */
+function forgotReply(d: AppDeps, email: unknown): Reply {
+  if (!d.mailer)
+    throw new GameError(
+      'Passwort-Wiederherstellung per E-Mail ist nicht eingerichtet.',
+    );
+  setImmediate(() => {
+    void sendReset(d, email).catch((error: unknown) => {
+      d.log?.('Password reset mail failed');
+      noteServerError(
+        d.ctx,
+        { action: 'mail', error, version: d.news?.version },
+        d.log,
+      );
+    });
+  });
+  return { json: { ok: true } };
 }
 
 function passwordRoutes(d: AppDeps, guard: Guard): Record<string, Handler> {
@@ -166,25 +169,18 @@ function passwordRoutes(d: AppDeps, guard: Guard): Record<string, Handler> {
   return {
     'POST /api/password/forgot': ({ req, body }) => {
       guard(req);
-      if (!d.mailer)
-        throw new GameError(
-          'Passwort-Wiederherstellung per E-Mail ist nicht eingerichtet.',
-        );
-      setImmediate(() => {
-        void sendReset(d, body.email).catch((error: unknown) => {
-          d.log?.('Password reset mail failed');
-          noteServerError(
-            ctx,
-            { action: 'mail', error, version: d.news?.version },
-            d.log,
-          );
-        });
-      });
-      return { json: { ok: true } };
+      return forgotReply(d, body.email);
     },
     'POST /api/password/reset': ({ req, body }) => {
       guard(req);
-      security.resetPassword(ctx, body.token, body.password, minimum);
+      // With an authenticator app its code too (104, #401).
+      security.resetPassword(
+        ctx,
+        body.token,
+        body.password,
+        minimum,
+        body.code,
+      );
       return signedOut();
     },
     'POST /api/password/change': (call) => {
@@ -332,22 +328,23 @@ function loginRoutes(
     'POST /api/login': ({ req, body, requestId }) => {
       guard(req);
       const actor = ctx.players.byName(str(body.name, 20))?.id;
-      const action = cfg.emailLoginCodes ? 'loginPassword' : 'login';
+      // An account with an authenticator app is asked for its code whatever
+      // the setting says, and never for a mail code (102a, #401).
+      const app = actor !== undefined && hasAuthenticator(ctx, actor);
+      const second = app || cfg.emailLoginCodes;
+      const action = second ? 'loginPassword' : 'login';
       const user = audited(
         ctx,
         { category: 'account', action, actor, requestId },
         () => auth.login(ctx, body.name, body.password),
       );
-      return cfg.emailLoginCodes
-        ? beginLogin(d, user)
-        : enter(user, body.remember !== false);
+      const remember = body.remember !== false;
+      if (app) return beginAppLogin(d, user, remember);
+      return second
+        ? beginLogin(d, user, requestId, remember)
+        : enter(user, remember);
     },
-    'POST /api/login/code': ({ req, body, requestId }) => {
-      guard(req);
-      if (!cfg.emailLoginCodes)
-        throw new GameError('Anmeldecodes sind nicht aktiviert.');
-      return loginCodeReply(ctx, body, requestId, enter);
-    },
+    ...loginCodeRoutes(d, guard, enter),
   };
 }
 
@@ -360,30 +357,6 @@ function logoutReply(ctx: Ctx, cfg: Config, { token, requestId }: Call): Reply {
       () => auth.endSession(ctx, token),
     );
   return { json: { ok: true }, cookie: sessionCookie(cfg, null) };
-}
-
-function loginCodeReply(
-  ctx: Ctx,
-  body: Call['body'],
-  requestId: string,
-  enter: Enter,
-): Reply {
-  const entry: AuditEntry = {
-    category: 'account',
-    action: 'loginCode',
-    requestId,
-  };
-  // Failed code checks increment the attempt counter. Keep that write even
-  // when verification throws, outside the session-and-audit transaction.
-  let user: User;
-  try {
-    user = security.completeLogin(ctx, body.challenge, body.code);
-  } catch (error) {
-    record(ctx, entry, error instanceof GameError ? 'rejected' : 'error');
-    throw error;
-  }
-  entry.actor = user.id;
-  return audited(ctx, entry, () => enter(user, body.remember !== false));
 }
 
 function pushRoutes(d: AppDeps): Record<string, Handler> {
@@ -707,6 +680,7 @@ export function createApp(d: AppDeps): {
   const errors = errorRoutes(d, (call) => sessionUserOf(d.ctx, call));
   const table = Object.entries({
     ...accountRoutes(d, guard),
+    ...authenticatorRoutes(d, guard, (call) => sessionUserOf(d.ctx, call)),
     ...gameRoutes(d, guard, actions),
     ...pushRoutes(d),
     ...errors.routes,

@@ -3,11 +3,12 @@
 # under test starts on the same volume. The player and the admin right must
 # survive, a migration must leave a backup of the old schema version, and the
 # database must record the ID of every migration of the image as run.
-#   docker/upgrade.sh before [game-url]   with the last release running
-#   docker/upgrade.sh after  [game-url]   with the new image running
+#   docker/upgrade.sh before [game-url] [mailpit-url]   with the last release running
+#   docker/upgrade.sh after  [game-url] [mailpit-url]   with the new image running
 set -eu
 step="$1"
 GAME="${2:-http://localhost:8080}"
+MAIL="${3:-http://localhost:8025}"
 who=upgrade
 pass=upgrade-test-passphrase
 state=upgrade-from.txt
@@ -15,6 +16,7 @@ fail=0
 ok() { echo "ok    $1"; }
 bad() { echo "FAIL  $1"; fail=1; }
 status() { curl -s -o /dev/null -w '%{http_code}' --max-time 10 "$@" || true; }
+. "$(dirname "$0")/signin.sh"
 schema() {
   docker compose exec -T app node -e \
     "const D=require('better-sqlite3');const d=new D('/data/nova.sqlite',{readonly:true});console.log(d.pragma('user_version',{simple:true}))"
@@ -53,7 +55,7 @@ else
   to="$(schema)"
   want="$(expected || true)"
   echo "schema version: $from -> $to (image: $want)"
-  login="$(curl -s -X POST -H 'content-type: application/json' -H "origin: $GAME" -d "{\"name\":\"$who\",\"password\":\"$pass\"}" "$GAME/api/login")"
+  login="$(signin "$who" "$pass" "$GAME" "$MAIL")"
   case "$login" in *'"admin":true'*) ok "player and admin right survive the upgrade" ;; *) bad "login after the upgrade: $login" ;; esac
   if [ -z "$want" ] || [ "$to" -ne "$want" ]; then
     bad "schema version $to, the image expects $want"

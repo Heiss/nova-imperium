@@ -1,4 +1,5 @@
 import { audited, auditPage, type AuditEntry } from '../audit.ts';
+import { resetAuthenticator } from '../authenticator.ts';
 import type { User } from '../db/repos/players.ts';
 import { errorExport, exportRange } from '../error-export.ts';
 import { errorPage } from '../error-log.ts';
@@ -187,7 +188,30 @@ function moderationRoutes(
     }),
     'POST /api/admin/moon': moonCreation(ctx, admin),
     'POST /api/admin/bot-check': botCheckSwitch(ctx, admin),
+    'POST /api/admin/totp-reset': totpReset(ctx, admin),
   };
+}
+
+/**
+ * „Authenticator-App zurücksetzen“ in the tab „Spieler“ (#401, 103c), an
+ * admin write: the player signs in with the password and the mail code again.
+ */
+function totpReset(ctx: Ctx, admin: Admin): Handler {
+  return admin((call, u) => {
+    const target = str(call.body.player, 40);
+    const entry: AuditEntry = {
+      category: 'admin.write',
+      action: 'totpReset',
+      actor: u.id,
+      target,
+      requestId: call.requestId,
+    };
+    audited(ctx, entry, () => {
+      if (!ctx.players.get(target)) fail('Spieler nicht gefunden.');
+      resetAuthenticator(ctx, target);
+    });
+    return { json: { ok: true } };
+  });
 }
 
 /**

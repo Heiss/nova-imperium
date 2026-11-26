@@ -19,7 +19,7 @@ beforeEach(() => {
   vi.stubGlobal('document', {
     querySelector: (sel: string) => fields[sel] ?? null,
   });
-  Object.assign(login, { challenge: null, remember: false, resetToken: null });
+  Object.assign(login, { remember: false, resetToken: null });
   Object.assign(client.ui, { auth: 'login', invite: null });
   client.game = null;
 });
@@ -57,12 +57,15 @@ describe('the login', () => {
     expect(ctx.toast).not.toHaveBeenCalled();
   });
 
-  it('asks for the code of the mail when the server sends a challenge, and keeps the wish to stay logged in', async () => {
+  it('asks for the code of the mail when the server asks for it, and sends the code alone (129a, #401)', async () => {
     fields['#remember-login'] = { checked: true };
-    const ctx = fakeCtx({ api: vi.fn(async () => ({ challenge: 'c1' })) });
+    const ctx = fakeCtx({ api: vi.fn(async () => ({ code: true })) });
     await forms(ctx).authform!();
+    expect(ctx.api).toHaveBeenCalledWith(
+      '/api/login',
+      expect.objectContaining({ remember: true }),
+    );
     expect(client.ui.auth).toBe('code');
-    expect(login.challenge).toBe('c1');
     expect(ctx.apply).not.toHaveBeenCalled();
 
     fields['#login_code'] = { value: '123456' };
@@ -71,13 +74,57 @@ describe('the login', () => {
       apply: vi.fn(),
     });
     await forms(code).codeform!();
+    // The sign-in and the wish to stay logged in are in the cookie.
     expect(code.api).toHaveBeenCalledWith('/api/login/code', {
-      challenge: 'c1',
       code: '123456',
-      remember: true,
     });
-    expect(login.challenge).toBeNull();
     expect(client.ui.auth).toBeNull();
+  });
+
+  it('asks for a new code of the sign-in under way, and shows a refusal (101b, #401)', async () => {
+    client.ui.auth = 'code';
+    const ctx = fakeCtx({ api: vi.fn(async () => ({ ok: true })) });
+    await acts(ctx).resendcode!();
+    expect(ctx.api).toHaveBeenCalledWith('/api/login/resend', {});
+    expect(ctx.toast).not.toHaveBeenCalled();
+    expect(client.ui.auth).toBe('code');
+    const refused = fakeCtx({
+      api: vi.fn(async () => {
+        throw new Error('Der Anmeldecode ist ungültig oder abgelaufen.');
+      }),
+    });
+    await acts(refused).resendcode!();
+    expect(refused.toast).toHaveBeenCalledWith(
+      'Der Anmeldecode ist ungültig oder abgelaufen.',
+      expect.objectContaining({
+        message: 'Der Anmeldecode ist ungültig oder abgelaufen.',
+      }),
+    );
+  });
+
+  it('asks for the code of the authenticator app when the server asks for it (102a, #401)', async () => {
+    const ctx = fakeCtx({ api: vi.fn(async () => ({ app: true })) });
+    await forms(ctx).authform!();
+    expect(client.ui.auth).toBe('app');
+    expect(ctx.apply).not.toHaveBeenCalled();
+    fields['#login_code'] = { value: '654321' };
+    const code = fakeCtx({
+      api: vi.fn(async () => ({ state: state() })),
+      apply: vi.fn(),
+    });
+    await forms(code).codeform!();
+    expect(code.api).toHaveBeenCalledWith('/api/login/code', {
+      code: '654321',
+    });
+    expect(client.ui.auth).toBeNull();
+  });
+
+  it('ends the sign-in with the app when going back to the login (#401)', async () => {
+    client.ui.auth = 'app';
+    const ctx = fakeCtx({ api: vi.fn(async () => ({ ok: true })) });
+    await acts(ctx).authback!();
+    expect(ctx.api).toHaveBeenCalledWith('/api/login/cancel', {});
+    expect(client.ui.auth).toBe('login');
   });
 
   it('shows a refusal as a note and stays on the screen', async () => {
@@ -161,12 +208,37 @@ describe('the screens', () => {
     expect(ctx.render).toHaveBeenCalledTimes(3);
   });
 
-  it('forgets the challenge and the reset link when going back to the login', () => {
-    Object.assign(login, { challenge: 'c', resetToken: 't' });
+  it('forgets the reset link when going back to the login', async () => {
+    Object.assign(login, { resetToken: 't' });
     client.ui.auth = 'reset';
-    acts().authback!();
-    expect(login).toMatchObject({ challenge: null, resetToken: null });
+    const ctx = fakeCtx();
+    await acts(ctx).authback!();
+    expect(login).toMatchObject({ resetToken: null });
     expect(client.ui.auth).toBe('login');
+    // No sign-in by code was under way.
+    expect(ctx.api).not.toHaveBeenCalled();
+  });
+
+  it('ends the sign-in under way when going back from the code step, then shows the login (#401)', async () => {
+    client.ui.auth = 'code';
+    let answer: () => void = () => undefined;
+    const ctx = fakeCtx({
+      api: vi.fn(
+        () =>
+          new Promise<Record<string, unknown>>((_, refuse) => {
+            answer = () => refuse(new Error('weg'));
+          }),
+      ),
+    });
+    const back = acts(ctx).authback!();
+    // The login waits for the answer of the server.
+    expect(client.ui.auth).toBe('code');
+    answer();
+    await back;
+    expect(ctx.api).toHaveBeenCalledWith('/api/login/cancel', {});
+    expect(client.ui.auth).toBe('login');
+    // A failed cancel is no note: the cookie ends with its ten minutes.
+    expect(ctx.toast).not.toHaveBeenCalled();
   });
 
   it('asks for the link, then shows the login with the same answer for every address', async () => {
@@ -187,6 +259,7 @@ describe('the screens', () => {
 describe('the new password', () => {
   it('sets it with the token of the link and goes back to the login', async () => {
     login.resetToken = 'tok';
+    client.ui.resetChecked = true;
     fields['#pw_next'] = { value: 'neu12345' };
     fields['#pw_confirm'] = { value: '' };
     const ctx = fakeCtx();
@@ -201,6 +274,34 @@ describe('the new password', () => {
     expect(ctx.toast).toHaveBeenCalledWith(
       'Passwort gespeichert. Melde dich mit deinem neuen Passwort an.',
     );
+  });
+
+  it('sends the code of the app with the new password when the account has one (104, #401)', async () => {
+    login.resetToken = 'tok';
+    client.ui.resetApp = true;
+    client.ui.resetChecked = true;
+    fields['#pw_next'] = { value: 'neu12345' };
+    fields['#reset_code'] = { value: '123456' };
+    const ctx = fakeCtx();
+    await forms(ctx).resetform!();
+    expect(ctx.api).toHaveBeenCalledWith('/api/password/reset', {
+      password: 'neu12345',
+      token: 'tok',
+      code: '123456',
+    });
+    client.ui.resetApp = false;
+    client.ui.resetChecked = false;
+  });
+
+  it('sends nothing before the server checked the link (152a, #401)', async () => {
+    login.resetToken = 'tok';
+    client.ui.resetChecked = false;
+    fields['#pw_next'] = { value: 'neu12345' };
+    const ctx = fakeCtx();
+    await forms(ctx).resetform!();
+    expect(ctx.api).not.toHaveBeenCalled();
+    expect(login.resetToken).toBe('tok');
+    login.resetToken = null;
   });
 
   it('changes the password of the options with the old one and refuses two different new ones without a request', async () => {
