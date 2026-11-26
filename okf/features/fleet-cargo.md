@@ -41,13 +41,45 @@ Psikristall, then Promethium without the fuel, up to the capacity
 * **[V]** The buttons under the fields are small buttons (`button.small`),
   so they are reached with the keyboard and carry their accessible names;
   the even one stays a link like the other links of the form.
-* **[E]** No change on the server: the send keeps its checks.
+* **[E]** No change on the server: the send keeps its checks. Replaced by
+  #407 (owner, 2026-11-25, O31): the buttons send the intent, and the server
+  computes the amounts from its state at the launch.
+* **[V]** (#407) One rule in `src/core/cargo-fill.ts` for the browser and
+  the server: `fillEvenly`, `fillOne` and `resolveCargo`. The action `send`
+  carries `cargoAll`: `even` for „alles (gleichmäßig)“, or the one resource
+  of the newest „alles“ under a field; `cargo` keeps the numbers as the
+  preview. The server computes that field on what the planet can load at
+  the launch (whole units, Promethium after the fuel of the launch) and the
+  capacity of the ships, up to the room the other fields leave, each
+  counted as the launch takes it: Adamant and Psikristall at most their
+  stock, Promethium as typed (CodeRabbit on #421, so the preview and the
+  launch start from the same numbers; the form keeps the typed number); a
+  mission
+  without cargo loads nothing; an intent it cannot read (also a list of more
+  than one field) is ignored. A field typed by hand is a number again;
+  typing after the even fill makes all three numbers (the player changed
+  what it showed). The preview follows the form: when ships, target, speed
+  or stock change, the field of the intent is computed again.
+* **[E]** Only the newest „alles“ under a field stays the intent (owner,
+  2026-11-26, 159b, after CodeRabbit on #421): a click on another „alles“
+  turns the earlier one into the number it showed, as the even fill already
+  does, so D1 holds exactly (an „alles“ keeps the other two fields). The
+  server computes only that one field; the earlier numbers are checked at
+  the launch like typed ones. The field depends only on the other fields,
+  never on what it held, so computing it again gives the same cargo and the
+  launch loads what the preview showed (a list of fields in click order,
+  each computed with the old numbers of the later ones, was not).
+* **[E]** (#407, checked first) Before #407 a typed amount above the stock
+  was cut silently for Adamant and Psikristall and refused for Promethium
+  („Nicht genug Promethium für Treibstoff und Ladung.“); typed numbers keep
+  this.
 
 # Code
 
-* `src/client/logic/game.ts`: `cargoMax` (even, through `fillEvenly` and
-  `loadable`) and `cargoOne`, pure functions with unit tests in
-  `game.test.ts`.
+* `src/core/cargo-fill.ts` (#407): the rule, with unit tests in
+  `cargo-fill.test.ts`; `src/client/logic/game.ts`: `cargoMax`, `cargoOne`
+  and `cargoPreview` on the stock and fuel of the form;
+  `src/server/game/fleet-actions.ts`: `withIntent` at the launch.
 * `src/client/views/fleet.ts` renders the fields with their buttons
   (`data-act="cone"`, `data-k`), `src/client/fleet-acts.ts` fills the field
   and updates the preview (out of `main.ts`, ratchet #242); the class `.cargo` in `style.css` puts each button

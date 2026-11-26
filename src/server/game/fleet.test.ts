@@ -8,6 +8,9 @@ import { tick } from './arrival.ts';
 import { runAction } from './dispatch.ts';
 import { addMoon } from './moons.ts';
 import { stateFor } from './state.ts';
+import { fillEvenly, resolveCargo } from '../../core/cargo-fill.ts';
+import { capacity } from '../../core/flight.ts';
+import type { Resources } from '../../core/types.ts';
 
 function setup() {
   const ctx = testCtx();
@@ -790,5 +793,145 @@ describe('sending a Mondbruch (#95)', () => {
       sc: 1,
       lf: 4,
     });
+  });
+});
+
+describe('the „alles“ buttons at the launch (#407)', () => {
+  /** Anna's planet with less of everything than the form showed. */
+  function shrink(
+    ctx: TestCtx,
+    a: { id: string },
+    res: Partial<Resources>,
+  ): void {
+    const p = ctx.planets.home(a.id)!;
+    p.res = { ...p.res, ...res };
+    ctx.planets.save(p);
+  }
+  const transport = (over = {}) =>
+    go({ mission: 'transport', ships: { lf: 10, sc: 2 }, ...over });
+
+  it('[U] checked first: typed numbers are cut to the stock for Adamant and Psikristall, refused for Promethium', () => {
+    const { ctx, a } = setup();
+    shrink(ctx, a, { m: 100, c: 100, d: 30000 });
+    send(ctx, a, transport({ cargo: { m: 5000, c: 5000, d: 0 } }));
+    expect(ctx.fleets.all()[0]!.cargo).toMatchObject({ m: 100, c: 100 });
+    const { ctx: c2, a: a2 } = setup();
+    shrink(c2, a2, { d: 100 });
+    expect(() =>
+      send(c2, a2, transport({ cargo: { m: 0, c: 0, d: 5000 } })),
+    ).toThrow('Nicht genug Promethium für Treibstoff und Ladung.');
+  });
+
+  it('loads „alles (gleichmäßig)“ by the rule on the stock of the launch, not the numbers shown', () => {
+    const { ctx, a } = setup();
+    const room = capacity({ lf: 10, sc: 2 });
+    // The form showed the even fill of a larger stock.
+    const shown = { m: room / 3, c: room / 3, d: room / 3 };
+    shrink(ctx, a, { m: 200, c: 30000, d: 30000 });
+    expect(
+      send(ctx, a, transport({ cargo: shown, cargoAll: 'even' })),
+    ).toContain('unterwegs');
+    const f = ctx.fleets.all()[0]!;
+    const p = ctx.planets.home(a.id)!;
+    const stock = { m: 200, c: 30000, d: 30000 - f.fuel };
+    expect(f.cargo).toEqual(fillEvenly(stock, room));
+    expect(f.cargo.m + f.cargo.c + f.cargo.d).toBe(room);
+    expect(p.res.m).toBe(0);
+  });
+
+  it('loads the „alles“ of a field by the rule, after the typed fields, and does not refuse a smaller stock', () => {
+    const { ctx, a } = setup();
+    const room = capacity({ lf: 10, sc: 2 });
+    shrink(ctx, a, { d: 500 });
+    expect(
+      send(
+        ctx,
+        a,
+        transport({ cargo: { m: 100, c: 0, d: room - 100 }, cargoAll: ['d'] }),
+      ),
+    ).toContain('unterwegs');
+    const f = ctx.fleets.all()[0]!;
+    expect(f.cargo).toEqual({ m: 100, c: 0, d: 500 - f.fuel });
+  });
+
+  it('computes only the newest „alles“; an earlier one is a number, checked like a typed one (159b)', () => {
+    const room = capacity({ lf: 10, sc: 2 });
+    // The form showed Adamant 1000 from an earlier „alles“, then „alles“ under Psikristall.
+    const shown = { m: 1000, c: room - 1000, d: 0 };
+    const { ctx, a } = setup();
+    shrink(ctx, a, { m: 500, c: 300 });
+    send(ctx, a, transport({ cargo: shown, cargoAll: ['c'] }));
+    // Adamant cut to the stock like a typed number; Psikristall by the rule.
+    expect(ctx.fleets.all()[0]!.cargo).toEqual({ m: 500, c: 300, d: 0 });
+    // The preview on the stock of the launch is what the launch loads.
+    const { ctx: c2, a: a2 } = setup();
+    const stock = { m: 50_000, c: 40_000 };
+    shrink(c2, a2, stock);
+    const preview = resolveCargo({ ...stock, d: 0 }, room, shown, ['c']);
+    send(c2, a2, transport({ cargo: preview, cargoAll: ['c'] }));
+    expect(c2.fleets.all()[0]!.cargo).toEqual(preview);
+    // A list of two fields is no intent: the numbers count as typed.
+    const { ctx: c3, a: a3 } = setup();
+    send(
+      c3,
+      a3,
+      transport({ cargo: { m: 10, c: 20, d: 0 }, cargoAll: ['m', 'c'] }),
+    );
+    expect(c3.fleets.all()[0]!.cargo).toEqual({ m: 10, c: 20, d: 0 });
+  });
+
+  it('computes the „alles“ field from a typed field over the stock as the launch takes it (CodeRabbit on #421)', () => {
+    const room = capacity({ lf: 10, sc: 2 });
+    const stock = { m: 500, c: 40_000, d: 0 };
+    // Adamant typed over the stock; „alles“ under Psikristall.
+    const typed = { m: 1000, c: 0, d: 0 };
+    const preview = resolveCargo(stock, room, typed, ['c']);
+    expect(preview).toEqual({ m: 1000, c: room - 500, d: 0 });
+    const { ctx, a } = setup();
+    shrink(ctx, a, { m: 500, c: 40_000 });
+    send(ctx, a, transport({ cargo: typed, cargoAll: ['c'] }));
+    // The launch cuts Adamant to its stock and loads the Psikristall shown.
+    expect(ctx.fleets.all()[0]!.cargo).toEqual({ m: 500, c: preview.c, d: 0 });
+  });
+
+  it('ignores an intent it cannot read, and loads nothing for a mission without cargo', () => {
+    const { ctx, a } = setup();
+    send(ctx, a, transport({ cargo: { m: 10, c: 0, d: 0 }, cargoAll: 'all' }));
+    expect(ctx.fleets.all()[0]!.cargo).toEqual({ m: 10, c: 0, d: 0 });
+    const { ctx: c2, a: a2 } = setup();
+    // An Auspex-Erkundung carries nothing.
+    send(
+      c2,
+      a2,
+      go({
+        mission: 'spy',
+        ships: { probe: 1 },
+        cargo: { m: 10, c: 0, d: 0 },
+        cargoAll: 'even',
+      }),
+    );
+    expect(c2.fleets.all()[0]!.cargo).toEqual({ m: 0, c: 0, d: 0 });
+  });
+
+  it('loads nothing by an intent for a mission without cargo, even when its ships have room', () => {
+    const { ctx, a } = setup();
+    // An expedition carries nothing; two Frachtläufer have room for 10,000.
+    const explorer = { ...a, research: { ...a.research, expo: 1 } };
+    ctx.players.save(explorer);
+    expect(
+      send(
+        ctx,
+        explorer,
+        go({
+          mission: 'expedition',
+          ships: { sc: 2 },
+          to: { g: 1, s: 1, p: 16 },
+          stay: 1,
+          cargoAll: 'even',
+        }),
+      ),
+    ).toContain('unterwegs');
+    expect(capacity({ sc: 2 })).toBeGreaterThan(0);
+    expect(ctx.fleets.all()[0]!.cargo).toEqual({ m: 0, c: 0, d: 0 });
   });
 });

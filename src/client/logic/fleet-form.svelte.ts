@@ -5,6 +5,7 @@
 // A fresh render (another view or planet, or a fleet that was sent) drops it
 // (form-state.svelte.ts). A field of the position that nobody typed in (null)
 // shows the target of the page; the speed is null while the first is chosen.
+import type { CargoIntent } from '../../core/cargo-fill.ts';
 import type { Resources } from '../../core/types.ts';
 import { formState } from './form-state.svelte.ts';
 
@@ -17,6 +18,12 @@ export interface FleetDraft {
   speed: string | null;
   /** The cargo typed per resource. */
   cargo: Partial<Record<keyof Resources, string>>;
+  /**
+   * What the „alles“ buttons asked for (#407): `even`, or the resources of
+   * the „alles“ under their fields in the order of the clicks; null when
+   * every field is a number typed by hand.
+   */
+  cargoAll: CargoIntent | null;
   /** The name typed to invite into a union, by the id of the union. */
   invite: Record<string, string>;
   /** The kind of target chosen, or null while the page says it (logic/fleet-choice.ts). */
@@ -38,6 +45,7 @@ export const fleetForm = formState((): FleetDraft => ({
   to: { g: null, s: null, p: null },
   speed: null,
   cargo: {},
+  cargoAll: null,
   invite: {},
   kind: null,
   mission: null,
