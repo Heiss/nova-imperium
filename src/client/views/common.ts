@@ -37,6 +37,11 @@ export interface Ui extends PushChoice {
   auth: 'login' | 'register' | 'forgot' | 'reset' | 'code' | 'app' | null;
   /** The reset link of an account with an authenticator app asks for its code too (104, #401). */
   resetApp?: boolean;
+  /**
+   * The server checked the reset link (152a, #401): until then „Passwort
+   * speichern“ stays off, so an account with an app never sends without its code.
+   */
+  resetChecked?: boolean;
   invite: { token: string; email: string; galaxies: number } | null;
   lastLink: string | null;
   /** Planet animations of this viewer (Hilfe & Optionen, issue #61 D9). */

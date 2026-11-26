@@ -292,6 +292,30 @@ test.describe('accounts by mail (#68)', () => {
     expect(w.problems).toEqual([]);
   });
 
+  test('a failed check of a reset link is a note, and its form cannot be sent (152a, #401)', async ({
+    page,
+  }) => {
+    // The check does not reach the server: the page cannot know whether the
+    // account asks for the code of its app.
+    await page.route('**/api/password/reset/check', (route) =>
+      route.fulfill({ status: 502, body: 'Bad Gateway' }),
+    );
+    await page.goto(`${E2E_MAIL_URL}/#reset=${'u'.repeat(43)}`);
+    await expect(page.locator('.auth .hd')).toHaveText(
+      'Neues Passwort festlegen',
+    );
+    await expect(page.locator('.toast.err').last()).toContainText(
+      'Keine Antwort vom Server.',
+    );
+    const save = page.getByRole('button', { name: 'Passwort speichern' });
+    await expect(save).toBeDisabled();
+    // Opened again, the link is checked again.
+    await page.unroute('**/api/password/reset/check');
+    await page.goto('about:blank');
+    await page.goto(`${E2E_MAIL_URL}/#reset=${'u'.repeat(43)}`);
+    await expect(save).toBeEnabled();
+  });
+
   test('an invitation link shows no login while the server checks it (#272)', async ({
     page,
   }) => {

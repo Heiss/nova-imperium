@@ -259,6 +259,7 @@ describe('the screens', () => {
 describe('the new password', () => {
   it('sets it with the token of the link and goes back to the login', async () => {
     login.resetToken = 'tok';
+    client.ui.resetChecked = true;
     fields['#pw_next'] = { value: 'neu12345' };
     fields['#pw_confirm'] = { value: '' };
     const ctx = fakeCtx();
@@ -278,6 +279,7 @@ describe('the new password', () => {
   it('sends the code of the app with the new password when the account has one (104, #401)', async () => {
     login.resetToken = 'tok';
     client.ui.resetApp = true;
+    client.ui.resetChecked = true;
     fields['#pw_next'] = { value: 'neu12345' };
     fields['#reset_code'] = { value: '123456' };
     const ctx = fakeCtx();
@@ -288,6 +290,18 @@ describe('the new password', () => {
       code: '123456',
     });
     client.ui.resetApp = false;
+    client.ui.resetChecked = false;
+  });
+
+  it('sends nothing before the server checked the link (152a, #401)', async () => {
+    login.resetToken = 'tok';
+    client.ui.resetChecked = false;
+    fields['#pw_next'] = { value: 'neu12345' };
+    const ctx = fakeCtx();
+    await forms(ctx).resetform!();
+    expect(ctx.api).not.toHaveBeenCalled();
+    expect(login.resetToken).toBe('tok');
+    login.resetToken = null;
   });
 
   it('changes the password of the options with the old one and refuses two different new ones without a request', async () => {

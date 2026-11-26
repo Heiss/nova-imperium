@@ -114,6 +114,9 @@ async function submitForgot(ctx: ClientCtx): Promise<void> {
 }
 
 async function submitPassword(ctx: ClientCtx, reset: boolean): Promise<void> {
+  // A reset link the server has not checked sends nothing (152a): the
+  // page does not know yet whether the account asks for the code of its app.
+  if (reset && client.ui.resetChecked !== true) return;
   const password = val('#pw_next');
   const confirmation = val('#pw_confirm');
   if (!reset && password !== confirmation) {
@@ -134,6 +137,7 @@ async function submitPassword(ctx: ClientCtx, reset: boolean): Promise<void> {
     });
     client.game = null;
     login.resetToken = null;
+    client.ui.resetChecked = false;
     client.ui.auth = 'login';
     ctx.render(true);
     ctx.toast('Passwort gespeichert. Melde dich mit deinem neuen Passwort an.');

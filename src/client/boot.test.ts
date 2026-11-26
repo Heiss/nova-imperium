@@ -37,7 +37,9 @@ afterEach(() => {
   login.resetToken = null;
   client.ui.auth = null;
   client.ui.resetApp = false;
+  client.ui.resetChecked = false;
   client.game = null;
+  vi.mocked(toast).mockReset();
 });
 
 /** Opens a link in the open tab. */
@@ -70,6 +72,53 @@ describe('the reset links of an open tab', () => {
     answers.get(OLD)!({ app: true });
     await tick();
     expect(client.ui.resetApp).toBe(true);
+  });
+});
+
+describe('the check of a reset link (152a, #401)', () => {
+  it('lets the form be sent after a check, with the code of the app if there is one', async () => {
+    vi.mocked(api).mockResolvedValueOnce({ app: true });
+    open(`#reset=${OLD}`);
+    expect(client.ui.resetChecked).toBe(false);
+    await tick();
+    expect(api).toHaveBeenCalledWith('/api/password/reset/check', {
+      token: OLD,
+    });
+    expect(client.ui.resetApp).toBe(true);
+    expect(client.ui.resetChecked).toBe(true);
+    expect(toast).not.toHaveBeenCalled();
+  });
+
+  it('shows a failed check as a note and keeps the form off', async () => {
+    const failed = new Error('Dieser Link ist ungültig oder abgelaufen.');
+    vi.mocked(api).mockRejectedValueOnce(failed);
+    open(`#reset=${OLD}`);
+    await tick();
+    expect(toast).toHaveBeenCalledWith(failed.message, failed);
+    expect(client.ui.resetChecked).toBe(false);
+    expect(client.ui.resetApp).toBe(false);
+    expect(client.ui.auth).toBe('reset');
+    // The link opened again checks again.
+    vi.mocked(api).mockResolvedValueOnce({ app: false });
+    open(`#reset=${OLD}`);
+    await tick();
+    expect(client.ui.resetChecked).toBe(true);
+  });
+
+  it('says nothing of a failed check of an older link', async () => {
+    const answers = new Map<string, (e: unknown) => void>();
+    vi.mocked(api).mockImplementation(
+      (_url, body) =>
+        new Promise((_, reject) =>
+          answers.set((body as { token: string }).token, reject),
+        ) as never,
+    );
+    open(`#reset=${OLD}`);
+    open(`#reset=${NEW}`);
+    answers.get(OLD)!(new Error('alt'));
+    await tick();
+    expect(toast).not.toHaveBeenCalled();
+    expect(client.ui.resetChecked).toBe(false);
   });
 });
 

@@ -38,16 +38,24 @@ function openReset(): boolean {
   client.game = null;
   ui.auth = 'reset';
   ui.resetApp = false;
+  ui.resetChecked = false;
   render(true);
   // With an authenticator app the page asks for its code too (104, #401).
-  void api('/api/password/reset/check', { token })
-    .then((j) => {
+  // The form is sent only after the check; a failed check is a note, and
+  // the link opened again checks again (152a).
+  void api('/api/password/reset/check', { token }).then(
+    (j) => {
       // A later link of another reset is the one shown now.
       if (login.resetToken !== token) return;
       ui.resetApp = j.app === true;
+      ui.resetChecked = true;
       render(true);
-    })
-    .catch(() => undefined);
+    },
+    (e: unknown) => {
+      if (login.resetToken !== token) return;
+      toast((e as Error).message, e as Error);
+    },
+  );
   return true;
 }
 

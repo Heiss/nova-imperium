@@ -10,7 +10,13 @@ import type { Ui } from '../views/common.ts';
 /** The screen of `ui.auth`: the login, the registration with an invitation, or one of the steps. */
 export type AuthPage =
   | { kind: 'forgot' }
-  | { kind: 'reset'; minLength: number | undefined; app: boolean }
+  | {
+      kind: 'reset';
+      minLength: number | undefined;
+      app: boolean;
+      /** Whether the server checked the link, so the form can be sent (152a). */
+      ready: boolean;
+    }
   | { kind: 'code' }
   | { kind: 'app' }
   | { kind: 'login' }
@@ -25,12 +31,20 @@ export type AuthPage =
 
 /** The screen for the state of the login; the registration only with a checked invitation. */
 export function authPage(
-  ui: Pick<Ui, 'auth' | 'invite' | 'passwordMinLength' | 'resetApp'>,
+  ui: Pick<
+    Ui,
+    'auth' | 'invite' | 'passwordMinLength' | 'resetApp' | 'resetChecked'
+  >,
 ): AuthPage {
   const minLength = ui.passwordMinLength;
   if (ui.auth === 'forgot') return { kind: 'forgot' };
   if (ui.auth === 'reset')
-    return { kind: 'reset', minLength, app: ui.resetApp === true };
+    return {
+      kind: 'reset',
+      minLength,
+      app: ui.resetApp === true,
+      ready: ui.resetChecked === true,
+    };
   if (ui.auth === 'code') return { kind: 'code' };
   if (ui.auth === 'app') return { kind: 'app' };
   if (ui.auth === 'register' && ui.invite !== null)

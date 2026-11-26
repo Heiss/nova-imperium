@@ -23,14 +23,20 @@
   });
 </script>
 
-{#snippet step(title: string, form: string, button: string, input: Snippet)}
+{#snippet step(
+  title: string,
+  form: string,
+  button: string,
+  input: Snippet,
+  ready = true,
+)}
   <div class="box auth">
     <div class="hd">{title}</div>
     <div class="bd">
       <form id={form}>
         {@render input()}
         <p>
-          <button type="submit">{button}</button>
+          <button type="submit" disabled={!ready}>{button}</button>
           <button class="small" type="button" data-act="authback"
             >Zurück zum Login</button
           >
@@ -117,6 +123,7 @@
     'resetform',
     'Passwort speichern',
     input,
+    page.ready,
   )}
 {:else if page.kind === 'code'}
   {@render step('Anmeldecode', 'codeform', 'Anmelden', codeInput)}

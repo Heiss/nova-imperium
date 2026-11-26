@@ -40,9 +40,10 @@ function authStep(
   form: string,
   input: string,
   button: string,
+  ready = true,
 ): string {
   return `<div class="box auth"><div class="hd">${title}</div><div class="bd">
-  <form id="${form}">${input}<p><button type="submit">${button}</button> ${backToLogin}</p></form>
+  <form id="${form}">${input}<p><button type="submit"${ready ? '' : ' disabled'}>${button}</button> ${backToLogin}</p></form>
   </div></div>`;
 }
 
@@ -55,12 +56,15 @@ function extraAuth(ui: Ui): string | null {
       '<label for="recovery_email">Hinterlegte E-Mail-Adresse</label> <input id="recovery_email" type="email" autocomplete="email" required>',
       'Link anfordern',
     );
+  // Changed on purpose since #118: „Passwort speichern“ stays off until the
+  // server checked the link (owner, 2026-11-26, 152a of #401).
   if (ui.auth === 'reset')
     return authStep(
       'Neues Passwort festlegen',
       'resetform',
       `<label for="pw_next">Neues Passwort</label> <input id="pw_next" type="password" autocomplete="new-password" ${passwordMinimum(ui)} required>`,
       'Passwort speichern',
+      ui.resetChecked === true,
     );
   // Changed on purpose since #118: the hint of the code step (owner,
   // 2026-11-25, text 3 of #401); „Code erneut senden“ comes only after 30 s,
@@ -108,6 +112,7 @@ const state = fc.record({
     { nil: null },
   ),
   passwordMinLength: fc.constantFrom(undefined, 8, 12),
+  resetChecked: fc.constantFrom(undefined, false, true),
 }) as fc.Arbitrary<Ui>;
 
 const login = (over: Partial<Ui> = {}): Ui =>
@@ -141,6 +146,10 @@ const HAND_BUILT: [string, Ui][] = [
   ['the forgotten password', login({ auth: 'forgot' })],
   ['the new password', login({ auth: 'reset', passwordMinLength: 8 })],
   ['the new password without a known minimum', login({ auth: 'reset' })],
+  [
+    'the new password of a checked link',
+    login({ auth: 'reset', resetChecked: true }),
+  ],
   ['the code of the mail', login({ auth: 'code' })],
 ];
 
