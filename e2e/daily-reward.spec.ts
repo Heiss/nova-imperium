@@ -1,6 +1,6 @@
 // The daily reward and the achievements filter (#220), desktop and phone.
 import { expect, test, type Page } from '@playwright/test';
-import { nav, register, stock, uniqueName, watch } from './helpers.ts';
+import { nav, register, seed, stock, uniqueName, watch } from './helpers.ts';
 import { rewardMinutes } from '../src/core/daily-reward.ts';
 
 /** The amount of a resource in the bar, as a number. */
@@ -78,4 +78,50 @@ test('claims the shown daily reward on a phone (#220) @phone', async ({
   await register(page, uniqueName('Belohnt'));
   await claimsShownDailyReward(page);
   expect(w.problems).toEqual([]);
+});
+
+/**
+ * Counts the game actions of one type the page sends and waits for their
+ * answers, so a refusal of a second request would already show its toast.
+ */
+function countActions(page: Page, type: string) {
+  const answers: Promise<unknown>[] = [];
+  page.on('request', (r) => {
+    if (r.method() === 'POST' && r.postData()?.includes(type))
+      answers.push(r.response());
+  });
+  return {
+    sent: async (): Promise<number> => {
+      await Promise.all(answers);
+      return answers.length;
+    },
+  };
+}
+
+test('a double click on „Abholen“ claims once and shows no error (#425)', async ({
+  page,
+}) => {
+  const name = uniqueName('Doppel');
+  await register(page, name);
+  // Level 1 of the Servitor-Schmiede makes its first achievement claimable.
+  seed({ name, b: { robot: 1 } });
+  await page.reload();
+  await nav(page, 'achievements');
+  const claims = countActions(page, 'claimAchievement');
+  const daily = countActions(page, 'claimDailyReward');
+  const claim = page.locator(
+    'button[data-act=achievementClaim][data-id="buildings:robot:1"]',
+  );
+  await expect(claim).toHaveText('Abholen');
+  await claim.dblclick();
+  await expect(claim).toHaveCount(0);
+  await page
+    .getByRole('button', { name: 'Tagesbelohnung abholen', exact: true })
+    .dblclick();
+  await expect(
+    page.locator('[data-daily-reward]').getByText('Abgeholt', { exact: true }),
+  ).toBeVisible();
+  expect(await claims.sent()).toBe(1);
+  expect(await daily.sent()).toBe(1);
+  await expect(page.locator('.toast.err')).toHaveCount(0);
 });
