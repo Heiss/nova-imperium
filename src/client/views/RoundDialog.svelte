@@ -15,6 +15,7 @@
     RoundRow,
   } from '../logic/admin.ts';
   import { isInvalid, isOpen, setOpen } from '../logic/admin-groups.svelte.ts';
+  import PresetRow from './PresetRow.svelte';
 
   let { page }: { page: RoundDialogPage } = $props();
 </script>
@@ -30,9 +31,11 @@
         checked={f.checked}
       />
       {f.label}</label
-    >
+    >{#if f.mark}<span class="mark">{f.mark}</span>{/if}
   {:else if f.kind === 'choice'}
-    <label for={f.id}>{f.label}</label>
+    <label for={f.id}>{f.label}</label>{#if f.mark}<span class="mark"
+        >{f.mark}</span
+      >{/if}
     <select id={f.id} aria-invalid={isInvalid(f.id) || undefined}>
       {#each f.choices as choice (choice.value)}
         <option value={choice.value} selected={choice.selected}
@@ -41,7 +44,9 @@
       {/each}
     </select>
   {:else}
-    <label for={f.id}>{f.label}</label>
+    <label for={f.id}>{f.label}</label>{#if f.mark}<span class="mark"
+        >{f.mark}</span
+      >{/if}
     <input
       type="number"
       id={f.id}
@@ -98,6 +103,7 @@
   Nachrichten und Belohnungsfortschritt werden zurückgesetzt. Das kann nicht rückgängig
   gemacht werden.
 </p>
+<PresetRow place="round" />
 {#each page.sections as section, i (section.heading ?? i)}
   {#if section.heading}
     <details

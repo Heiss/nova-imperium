@@ -19,6 +19,7 @@ import {
   type RoundRules,
   type RoundSetting,
   roundFieldId,
+  MARK_LABELS,
   roundConfirm,
   roundPreview,
   roundShown,
@@ -70,7 +71,12 @@ const choicesOf = (
 ): Choice[] => choices.map((c) => ({ ...c, selected: c.value === current }));
 
 /** One row of the settings of the universe: a field with its name, a number or a choice. */
-type SettingRow = { key: string; label: string } & (
+type SettingRow = {
+  key: string;
+  label: string;
+  /** „klassisch“ or „neu“ next to the field (#441, 235b); none without a mark. */
+  mark?: string;
+} & (
   | { choices: Choice[] }
   | {
       choices: null;
@@ -86,7 +92,11 @@ type SettingRow = { key: string; label: string } & (
 /** One row of the settings of the universe (the live ones of the round included). */
 function settingRow(s: GameState, x: AdminState['specs'][number]): SettingRow {
   const value = s.cfg[x.key];
-  const row = { key: x.key, label: x.label };
+  const row = {
+    key: x.key,
+    label: x.label,
+    ...(x.mark ? { mark: MARK_LABELS[x.mark] } : {}),
+  };
   // A setting of the round with named choices is a selection (#283).
   if (x.choices)
     return { ...row, choices: choicesOf(x.choices, Number(value)) };
@@ -198,10 +208,17 @@ export type RoundField = { id: string; label: string } & (
       step?: number;
       value: number;
     }
-);
+) & {
+    /** „klassisch“ or „neu“ next to the field (#441, 235b); none without a mark. */
+    mark?: string;
+  };
 
 function roundField(s: RoundSetting, value: number | boolean): RoundField {
-  const field = { id: roundFieldId(s), label: s.label };
+  const field = {
+    id: roundFieldId(s),
+    label: s.label,
+    ...(s.mark ? { mark: MARK_LABELS[s.mark] } : {}),
+  };
   if (s.kind === 'switch')
     return { ...field, kind: 'switch', checked: !!value, note: s.note ?? null };
   if (s.choices)

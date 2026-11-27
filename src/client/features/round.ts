@@ -13,6 +13,7 @@ import {
   roundShown,
 } from '../../core/round.ts';
 import { roundWrong } from '../logic/admin-groups.svelte.ts';
+import { closePreset } from '../logic/presets.svelte.ts';
 import { client } from '../logic/state.svelte.ts';
 import { roundDialog } from '../views/admin.ts';
 import { showWrong } from './admin-groups.ts';
@@ -84,14 +85,17 @@ export const clientFeature = {
     document.addEventListener('input', changed);
   },
   acts: ({ act, modal }) => ({
-    reset: () =>
+    reset: () => {
+      // A question of a preset left open goes with the old dialog (#441).
+      closePreset();
       modal(
         roundDialog(
           client.game!.round,
           ROUND_SETTINGS,
           client.game!.admin?.fresh,
         ),
-      ),
+      );
+    },
     doReset: () => {
       // Read before the dialog closes with its fields.
       const data = roundRequest(dialogValues());

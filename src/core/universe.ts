@@ -7,6 +7,7 @@ import { GIFT_DEFAULT_MINUTES, GIFT_MINUTES } from './endzeit.ts';
 import {
   ROUND_SECTIONS,
   ROUND_SETTINGS,
+  type RoundMark,
   type RoundNumber,
   type RoundSection,
   type RoundSetting,
@@ -27,6 +28,8 @@ export interface UniverseSpec {
   choices?: readonly { value: number; label: string }[];
   /** The step of the number field of a setting of the round (#433, 218a). */
   step?: number;
+  /** The mark of a setting of the round (#441, 235b). */
+  mark?: RoundMark;
   /** A rule between settings of the round (#237), with its wording. */
   agrees?: RoundNumber['agrees'];
   refusal?: string;
@@ -47,6 +50,7 @@ export const liveSpecs = (
             def: s.unstored ?? s.def,
             ...(s.choices ? { choices: s.choices } : {}),
             ...(s.step ? { step: s.step } : {}),
+            ...(s.mark ? { mark: s.mark } : {}),
             ...(s.agrees ? { agrees: s.agrees, refusal: s.refusal } : {}),
           },
         ]

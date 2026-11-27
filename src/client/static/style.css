@@ -518,6 +518,15 @@ button[aria-pressed='true'] {
 .dim {
   color: var(--dim);
 }
+/* The mark „klassisch“ or „neu“ of a round setting (#441, 235b) [V]. */
+.mark {
+  margin-left: 6px;
+  padding: 0 4px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  color: var(--dim);
+  font-size: 11px;
+}
 .req {
   color: var(--red);
   font-size: 15px;

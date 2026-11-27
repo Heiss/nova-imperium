@@ -60,7 +60,37 @@ interface Common<N extends string> {
    * with the others, and it has no effect while the other one disagrees.
    */
   shownWhen?: { name: string; value: number };
+  /**
+   * Whether the setting is a rule of the classic game or a new one (#441,
+   * owner, 2026-11-27, 235b): shown next to its field. None until the owner
+   * confirms the list.
+   */
+  mark?: RoundMark;
+  /**
+   * The value of the setting in a preset other than „Standard“ (#441, 234),
+   * by the id of the preset; „Standard“ is the default `def`. A test refuses
+   * a preset without a value for an entry.
+   */
+  presets?: Partial<Record<PresetId, number | boolean>>;
 }
+
+/** The mark of a setting (#441, 235b). */
+export type RoundMark = 'classic' | 'new';
+
+/** The words of the marks, as the admin reads them (#441). */
+export const MARK_LABELS: Readonly<Record<RoundMark, string>> = {
+  classic: 'klassisch',
+  new: 'neu',
+};
+
+/**
+ * The presets of the round settings (#441, owner, 2026-11-27, 234): for now
+ * only „Standard“, the defaults; the others follow with the owner's values.
+ */
+export const PRESETS = [{ id: 'standard', name: 'Standard' }] as const;
+
+/** The id of a preset. */
+export type PresetId = (typeof PRESETS)[number]['id'];
 
 /** A value of yes or no, a checkbox in the dialog. */
 interface RoundSwitch<N extends string = string> extends Common<N> {
@@ -313,6 +343,33 @@ export const roundPreview = (
   values: Readonly<Record<string, number | boolean>>,
   settings: readonly RoundSetting[] = ROUND_SETTINGS,
 ): string => group.preview?.(membersOf(group, values, settings)) ?? '';
+
+/** The value of an entry in a preset: „Standard“ is its default (#441, 234). */
+export const presetValue = (
+  s: RoundSetting,
+  id: PresetId,
+): number | boolean | undefined =>
+  id === 'standard' ? s.def : s.presets?.[id];
+
+/**
+ * The values of a preset by the entry's `name`, for the dialog „Neue Runde“
+ * (every entry), or, `liveOnly`, by its stored key for the universe settings
+ * (only the `live` entries, 237a).
+ */
+export function presetValues(
+  id: PresetId,
+  liveOnly: boolean,
+  settings: readonly RoundSetting[] = ROUND_SETTINGS,
+): Record<string, number | boolean> {
+  const out: Record<string, number | boolean> = {};
+  for (const s of settings) {
+    const value = presetValue(s, id);
+    if (value === undefined) continue;
+    if (!liveOnly) out[s.name] = value;
+    else if (s.kind === 'number' && s.live) out[s.key] = value;
+  }
+  return out;
+}
 
 /** The id of an entry's field in the dialog: `mainLock` is `round-main-lock`. */
 export const roundFieldId = (s: RoundSetting): string =>

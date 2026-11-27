@@ -28,6 +28,7 @@
   import AdminInvitations from './AdminInvitations.svelte';
   import AdminReports from './AdminReports.svelte';
   import Box from './Box.svelte';
+  import PresetRow from './PresetRow.svelte';
   import RoundArchive from './RoundArchive.svelte';
 
   let { page }: { page: AdminPage | null } = $props();
@@ -42,7 +43,11 @@
     <tbody>
       {#each rows as row (`${page?.settings.owner}/${row.key}`)}
         <tr>
-          <td><label for="set_{row.key}">{row.label}</label></td>
+          <td>
+            <label for="set_{row.key}">{row.label}</label>{#if row.mark}<span
+                class="mark">{row.mark}</span
+              >{/if}
+          </td>
           <td>
             {#if row.choices}
               <select
@@ -171,6 +176,7 @@
     hidden={shown !== 'universe'}
   >
     <Box title="Universum">
+      <PresetRow place="universe" />
       {#each page.settings.sections as section, i (section.heading ?? i)}
         {#if section.heading}
           <details
