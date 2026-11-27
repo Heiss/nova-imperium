@@ -27,6 +27,7 @@ import {
 import { announceUpdate, type News } from './news.ts';
 import { startPushDelivery } from './web-push.ts';
 import { scoreBeat } from './game/scores.ts';
+import { recheckHolds } from './game/holding.ts';
 
 export const DB_FILE = 'nova.sqlite';
 const TICK_MS = 1000;
@@ -234,6 +235,8 @@ function openGame(
   const news = o.news ?? { version: null, versions: [] };
   const told = announceUpdate(ctx, news);
   if (told) log(`Told ${told} players about version ${news.version}.`);
+  // The start checks every running hold (#440): after an update too.
+  recheckHolds(ctx);
   const app = createApp({
     ctx,
     cfg: o.cfg,

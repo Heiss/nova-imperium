@@ -5,7 +5,7 @@
 // (owner, 2026-11-16, Q2). The server, the fleet form and the overview ask
 // these rules (patterns, section 7). The alliance depot comes later (D1).
 import type { RoundSetting } from './round.ts';
-import type { Fleet, Levels, Resources } from './types.ts';
+import type { Fleet, Levels } from './types.ts';
 
 /** One hour in milliseconds; the holding time runs in real time [V]. */
 export const HOUR_MS = 3_600_000;
@@ -73,25 +73,6 @@ export const roundHeading = 'Wache stellen';
  */
 export const roundSettings = [
   {
-    // The switch of the feature (#440, owner, 2026-11-27; the rule of
-    // okf/ops/feature-switches.md): a number of 1 („An“) and 0 („Aus“),
-    // because a switch of the registry cannot be live, as `roundMarketOn`.
-    // A universe without the key reads the default, „An“ (261a).
-    kind: 'number',
-    key: 'roundHoldOn',
-    name: 'holdOn',
-    label: 'Wache stellen',
-    order: 105,
-    min: 0,
-    max: 1,
-    def: 1,
-    choices: [
-      { value: 1, label: 'An' },
-      { value: 0, label: 'Aus' },
-    ],
-    live: true,
-  },
-  {
     kind: 'number',
     key: 'roundAllies',
     name: 'allies',
@@ -118,6 +99,26 @@ export const roundSettings = [
     max: HELD_SPY.max,
     def: HELD_SPY.default,
     refusal: `Bitte für „${HELD_SPY_LABEL}“ eine ganze Zahl von ${HELD_SPY.min} bis ${HELD_SPY.max} angeben.`,
+    live: true,
+  },
+  {
+    // The switch of the feature (#440, owner, 2026-11-27; the rule of
+    // okf/ops/feature-switches.md): a number of 1 („An“) and 0 („Aus“),
+    // because a switch of the registry cannot be live, as `roundMarketOn`.
+    // A universe without the key reads the default, „An“ (261a). Last in
+    // the list, so the places of the two before stay (the Lexicanum reads them).
+    kind: 'number',
+    key: 'roundHoldOn',
+    name: 'holdOn',
+    label: 'Wache stellen',
+    order: 105,
+    min: 0,
+    max: 1,
+    def: 1,
+    choices: [
+      { value: 1, label: 'An' },
+      { value: 0, label: 'Aus' },
+    ],
     live: true,
   },
 ] as const satisfies readonly RoundSetting[];
@@ -182,14 +183,3 @@ export function dueAt(
   if (f.state === 'out') return f.arr;
   return f.state === 'hold' ? holdEnd(f) : f.ret;
 }
-
-/** The sum of the cargo of several fleets. */
-export const cargoOf = (fleets: readonly Pick<Fleet, 'cargo'>[]): Resources =>
-  fleets.reduce(
-    (sum, f) => ({
-      m: sum.m + f.cargo.m,
-      c: sum.c + f.cargo.c,
-      d: sum.d + f.cargo.d,
-    }),
-    { m: 0, c: 0, d: 0 },
-  );

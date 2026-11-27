@@ -45,9 +45,9 @@ function fill(avail: Resources, free: number): Resources {
 }
 
 /**
- * The winner takes up to half of each resource, as much as the holds carry;
- * of the cargo of the fleets that held at the planet all of it (`share` 1,
- * #55).
+ * The winner takes up to half of each resource (`share`), as much as the
+ * holds carry. The cargo of the fleets that held at the planet is no loot
+ * since #440 (233b).
  */
 export const plunder = (
   stock: Resources,

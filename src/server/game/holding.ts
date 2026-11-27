@@ -12,7 +12,7 @@ import {
   shipsOf,
   showsHeldApart,
 } from '../../core/holding.ts';
-import { HOLD_REASON_TEXT } from '../../core/hold-texts.ts';
+import { HOLD_REASON_TEXT, HOLD_REPORT_TITLE } from '../../core/hold-texts.ts';
 import { missionRules } from '../../core/missions.ts';
 import { placeName } from '../../core/moon.ts';
 import type { Fleet, Levels, Planet } from '../../core/types.ts';
@@ -174,7 +174,7 @@ export function endNotAllowed(
     ctx,
     f.owner,
     at,
-    `Wache heimgeschickt ${coords(f.toC)}`,
+    HOLD_REPORT_TITLE.notAllowed,
     `Deine Wache bei ${placeOf(ctx, f)} kehrt zurück: ${HOLD_REASON_TEXT[reason]}.`,
   );
 }
@@ -200,7 +200,7 @@ export function holdLaunched(ctx: Ctx, f: Fleet, host: string): void {
     ctx,
     host,
     f.dep,
-    '[TEXT PENDING #440: title launch]',
+    HOLD_REPORT_TITLE.launch,
     `${playerOf(ctx, f.owner).name} schickt eine Wache zu ${placeOf(ctx, f)}. Ankunft: ${lockEndText(f.arr)}.`,
   );
 }
@@ -211,7 +211,7 @@ export function holdArrived(ctx: Ctx, f: Fleet, host: string): void {
     ctx,
     host,
     f.arr,
-    '[TEXT PENDING #440: title arrival]',
+    HOLD_REPORT_TITLE.arrival,
     `${playerOf(ctx, f.owner).name} hält mit einer Flotte Wache bei ${placeOf(ctx, f)} bis ${lockEndText(holdEnd(f))}.`,
   );
 }
@@ -233,7 +233,7 @@ const sendAway: Handler<'sendAway'> = (ctx, u, d) => {
     ctx,
     f.owner,
     t,
-    `Wache heimgeschickt ${coords(f.toC)}`,
+    HOLD_REPORT_TITLE.sentAway,
     `${u.name} hat deine Wache bei ${placeOf(ctx, f)} weggeschickt. Deine Flotte kehrt zurück.`,
   );
   return null;

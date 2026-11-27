@@ -205,6 +205,8 @@ describe('the rules of every mission (contract)', () => {
       ...(rules.remembered === undefined ? [] : ['remembered']),
       // `withoutShips` is set by the spy only (F12 of #214).
       ...(rules.withoutShips === undefined ? [] : ['withoutShips']),
+      // `offered` is set by the Wache stellen only (#440).
+      ...(rules.offered === undefined ? [] : ['offered']),
     ];
     expect(Object.keys(rules).sort(), m).toEqual(fields.sort());
     expect(TARGETS, m).toContain(rules.target);
@@ -428,7 +430,8 @@ describe('the target kind (#116)', () => {
       'occupied',
       'noDebris',
       'notMoon',
-      'protected',
+      // A hold at a weak host is allowed (#440, 238c).
+      undefined,
     ]);
   });
 
@@ -594,7 +597,8 @@ describe('the target kind (#116)', () => {
         const target = at(planet, true);
         sendError(rules(k), fleet, target);
         expect(target.asked, `${k} ${planet?.id}`).toEqual(
-          (k === 'foreign' || k === 'ally') && planet === foreign ? ['b'] : [],
+          // Not for a hold since #440 (238c).
+          k === 'foreign' && planet === foreign ? ['b'] : [],
         );
       }
   });

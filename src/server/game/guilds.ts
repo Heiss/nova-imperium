@@ -17,6 +17,7 @@ import { fail, str, type Ctx } from './context.ts';
 import { GUILDS_OFF } from './round.ts';
 import { chatState } from './guild-chat.ts';
 import { memberEvent, rankEvent } from './guild-events.ts';
+import { recheckHolds } from './holding.ts';
 import {
   actor,
   asRule,
@@ -128,9 +129,12 @@ const leaveGuild: Handler<'leaveGuild'> = (ctx, user) => {
   });
   if (lead) {
     ctx.guilds.delete(own!.id);
+    recheckHolds(ctx);
     return 'Gilde aufgelöst.';
   }
   ctx.guilds.removeMember(user.id);
+  // A bond that ends may end a hold too (#440, 229a).
+  recheckHolds(ctx);
   if (member!.status === 'pending') return 'Bewerbung zurückgezogen.';
   memberEvent(ctx, own!.id, 'leave', user.id);
   return 'Gilde verlassen.';
@@ -160,6 +164,7 @@ const manageGuildMember: Handler<'manageGuildMember'> = (ctx, user, d) => {
     return 'Gildenleitung übergeben.';
   }
   ctx.guilds.removeMember(uid);
+  recheckHolds(ctx);
   memberEvent(ctx, a.guild.id, 'remove', uid, user.id);
   return 'Mitglied entfernt.';
 };

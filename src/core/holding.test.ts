@@ -10,7 +10,6 @@ import {
   HOLD_HOURS,
   HOLD_LIMITS,
   HOUR_MS,
-  cargoOf,
   dueAt,
   holdEnd,
   holdLimitError,
@@ -211,18 +210,6 @@ describe('the return of a fleet that turns home (#55, owner, 2026-11-19)', () =>
         },
       ),
     );
-  });
-});
-
-describe('the cargo of several fleets', () => {
-  it('adds up each resource', () => {
-    expect(cargoOf([])).toEqual({ m: 0, c: 0, d: 0 });
-    expect(
-      cargoOf([
-        { cargo: { m: 1, c: 2, d: 3 } },
-        { cargo: { m: 10, c: 20, d: 30 } },
-      ]),
-    ).toEqual({ m: 11, c: 22, d: 33 });
   });
 });
 

@@ -23,6 +23,7 @@ import {
 import { vacationNotice } from './vacation.ts';
 import type { ServerFeature } from './feature.ts';
 import { newScores } from './scores.ts';
+import { recheckHolds } from './holding.ts';
 
 export const requireAdmin = (u: { admin: boolean }): void => {
   if (!u.admin) fail('Nur der Admin darf das.');
@@ -59,6 +60,8 @@ export const saveSettings: Handler<'settings'> = (ctx, u, d) => {
     ctx.planets.save(settle(p, t, old, ctx.players.get(p.owner)));
   ctx.admin.saveUniverse(universeOf(input));
   recordRoundEvent(ctx, ROUND_EVENT.settings, { settings: universe(ctx) });
+  // „Wache stellen“, „Verbündete“ or the guilds may have changed (#440).
+  recheckHolds(ctx);
   return 'Einstellungen gespeichert.';
 };
 
@@ -100,6 +103,8 @@ export const reset: Handler<'reset'> = (ctx, u, data, event) => {
   const after = startRoundRules(ctx, data);
   openRound(ctx);
   newRound(ctx, after);
+  // The rules of the new round may no longer allow a hold (#440).
+  recheckHolds(ctx);
   // A new round computes the highscore at once (#405).
   newScores(ctx);
   if (event) event.detail = { before, after };

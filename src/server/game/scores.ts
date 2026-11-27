@@ -18,6 +18,7 @@ import { pointsOf } from '../../core/points.ts';
 import { settle, settleR } from '../../core/settle.ts';
 import type { Levels } from '../../core/types.ts';
 import { type Ctx, universe } from './context.ts';
+import { recheckHolds } from './holding.ts';
 import { sumLevels } from '../../core/economy.ts';
 
 /** A category in both of its modes (#422): by number and by points. */
@@ -154,6 +155,9 @@ export function storedScores(ctx: Ctx): ScorePass {
     return kept.pass;
   const pass = scorePass(ctx);
   stored.set(ctx.db, { pass, round });
+  // Every score pass checks the running holds again (#440): a change that
+  // no action names still turns a hold home at the latest here.
+  recheckHolds(ctx);
   return pass;
 }
 

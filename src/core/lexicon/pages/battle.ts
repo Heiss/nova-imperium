@@ -12,6 +12,7 @@ import {
   techFactor,
 } from '../../battle.ts';
 import { FIGHTERS } from '../../catalog.ts';
+import { HOLD_LEXICON } from '../../hold-texts.ts';
 import { EASY_RAPID_FIRE, strength } from '../../components/combat.ts';
 import {
   LOOT_SHARE,
@@ -139,9 +140,11 @@ const afterSection = (): PageSection =>
       },
     ),
     say(
-      'Gewinnt der Angreifer, lädt er bis zu {share} jedes Rohstoffs des Planeten ein, soweit der Laderaum seiner übrigen Schiffe reicht. Der Laderaum wird in fester Reihenfolge gefüllt: zuerst Adamant, dann Psikristall, dann Promethium, und was danach noch Platz hat, füllt wieder mit Adamant und Psikristall auf. Danach nimmt er die Ladung der Flotten mit, die am Planeten Wache gehalten haben, soweit noch Platz ist; diese Flotten sind dann verloren.',
+      'Gewinnt der Angreifer, lädt er bis zu {share} jedes Rohstoffs des Planeten ein, soweit der Laderaum seiner übrigen Schiffe reicht. Der Laderaum wird in fester Reihenfolge gefüllt: zuerst Adamant, dann Psikristall, dann Promethium, und was danach noch Platz hat, füllt wieder mit Adamant und Psikristall auf.',
       { share: percent(LOOT_SHARE) },
     ),
+    // The held cargo is no loot since #440 (233b): the words are the owner's.
+    say(HOLD_LEXICON.noLoot),
     table(
       `Beute bei einem Planeten mit ${number(STOCK.m)} Adamant, ${number(STOCK.c)} Psikristall und ${number(STOCK.d)} Promethium`,
       ['Freier Laderaum', 'Adamant', 'Psikristall', 'Promethium'],

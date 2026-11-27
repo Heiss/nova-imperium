@@ -7,6 +7,7 @@ import {
   PROTECTION_RATIO,
   unprotectedFrom,
 } from '../../protection.ts';
+import { HOLD_LEXICON } from '../../hold-texts.ts';
 import { formulas, number, percent, say, section, table } from '../say.ts';
 import type { PageDef, PageSection } from '../types.ts';
 
@@ -17,9 +18,12 @@ const noobSection = (): PageSection =>
     'noob',
     'Noobschutz',
     say(
-      'Wer viel weniger Punkte hat als du, ist vor dir geschützt: Du kannst ihn nicht angreifen und nicht erkunden, ihn nicht mit einem Mondbruch oder Raketen treffen und bei ihm keine Wache stellen. Als geschützt gilt, wer weniger als {share} deiner Punkte hat. Es zählen die Punkte der Gesamtwertung ([[rule-highscore]]). Der Schutz gilt nur gegen Stärkere: Ein Spieler mit wenig Punkten darf einen mit vielen angreifen. Versorgungsflüge sind nicht betroffen. Auf der Sternenkarte sind geschützte Spieler mit (n) markiert.',
+      'Wer viel weniger Punkte hat als du, ist vor dir geschützt: Du kannst ihn nicht angreifen und nicht erkunden, ihn nicht mit einem Mondbruch oder Raketen treffen. Als geschützt gilt, wer weniger als {share} deiner Punkte hat. Es zählen die Punkte der Gesamtwertung ([[rule-highscore]]). Der Schutz gilt nur gegen Stärkere: Ein Spieler mit wenig Punkten darf einen mit vielen angreifen. Versorgungsflüge sind nicht betroffen. Auf der Sternenkarte sind geschützte Spieler mit (n) markiert.',
       { share: percent(1 / PROTECTION_RATIO) },
     ),
+    // Where a foreign fleet holds, the protection lapses for attacks and
+    // espionage (#440, 238c, 281b): the words are the owner's.
+    say(HOLD_LEXICON.lapsedProtection),
     formulas({
       text: 'Geschützt, wenn Punkte des Ziels · {ratio} < deine Punkte',
       values: { ratio: number(PROTECTION_RATIO) },
@@ -39,7 +43,7 @@ const noobSection = (): PageSection =>
       POINTS.map((mine) => [mine, unprotectedFrom(mine)]),
     ),
     say(
-      'Der Noobschutz gilt für die Aufträge [[mission-attack]], [[mission-spy]], [[mission-moonbreak]], [[mission-missile]] und [[mission-hold]].',
+      'Der Noobschutz gilt für die Aufträge [[mission-attack]], [[mission-spy]], [[mission-moonbreak]] und [[mission-missile]].',
     ),
   );
 
