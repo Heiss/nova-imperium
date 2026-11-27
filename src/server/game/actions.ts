@@ -36,6 +36,7 @@ import {
   networkLab,
 } from '../../core/research.ts';
 import { feelsResearch, settle, settleR } from '../../core/settle.ts';
+import { CLOSED } from '../../core/market-text.ts';
 import { text } from '../../core/text.ts';
 import { YARD_LOCK, yardLockedBy } from '../../core/yard.ts';
 import type { Cost, Planet, Queue, ResearchState } from '../../core/types.ts';
@@ -154,6 +155,8 @@ const PLACE_ERROR = {
 const BUILD_ERROR: Readonly<
   Record<Exclude<BuildError, 'place' | 'noEnergy'>, string>
 > = {
+  // The Handelsposten while the marketplace is off (#442, the text of the marketplace).
+  off: CLOSED,
   locked: LOCKED,
   // Every building level takes a field (#51).
   full: 'Keine freien Felder.',
