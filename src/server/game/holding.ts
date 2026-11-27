@@ -89,13 +89,15 @@ const placeOf = (ctx: Ctx, f: Fleet): string => {
 };
 
 /**
- * A hold turns home at `at`, from where it is (#440): one that holds flies
- * home as at the end of its holding time, without the rest of it; one on its
- * way turns back like a recall (231a), as long as it has flown. The fuel of
- * the unused hours is not refunded, as after a recall.
+ * A hold turns home at `at`, from where it is (#440): one that holds, or
+ * has just arrived (4a), flies home as at the end of its holding time,
+ * without the rest of it, as `sendHome`; one on its way turns back like a
+ * recall (231a), as long as it has flown. The fuel of the unused hours is not
+ * refunded, as after a recall.
  */
 export function turnHome(ctx: Ctx, f: Fleet, at: number = ctx.now()): void {
-  if (f.state === 'hold') turnBack(ctx, f, { ret: homeAt(f, at) });
+  if (f.state === 'hold' || at >= f.arr)
+    turnBack(ctx, f, { ret: homeAt(f, at) });
   else turnBack(ctx, f, { ret: at + (at - f.dep), recalled: true });
 }
 

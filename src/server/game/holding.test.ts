@@ -321,12 +321,11 @@ describe('sending a fleet to hold', () => {
       send(ctx, user(ctx, 'Anna'), hold({ to: { g: 1, s: 4, p: 8 } })),
     ).toThrow('An dieser Position gibt es keinen Planeten.');
   });
-  it('refuses a guild member in the noob protection (#55 [V])', () => {
+  it('sends a hold to a guild member in the noob protection (#440, 238c)', () => {
     const ctx = setup();
     ctx.players.save({ ...user(ctx, 'Bert'), research: {} });
-    expect(() => send(ctx, user(ctx, 'Anna'), hold())).toThrow(
-      'Dieser Spieler steht unter Noobschutz.',
-    );
+    send(ctx, user(ctx, 'Anna'), hold());
+    expect(holdersAt(ctx, 'p1_2_6')).toEqual(['u_Anna']);
   });
   it('keeps the limits of a planet: 15 fleets of four players besides the owner', () => {
     const ctx = setup();
@@ -571,7 +570,7 @@ describe('a battle at a planet where fleets hold (#55)', () => {
     expect(reports).toHaveLength(1);
     expect((reports[0]!.held as unknown[]).length).toBe(2);
   });
-  it('loots half of the planet first, then the cargo of the fleets that held; they are gone', () => {
+  it('loots half of the planet only: the cargo of the fleets that held is no loot, they are gone (#440, 233b)', () => {
     const ctx = setup();
     ctx.planets.save({
       ...ctx.planets.get('p1_2_6')!,
@@ -585,7 +584,7 @@ describe('a battle at a planet where fleets hold (#55)', () => {
     const r = ctx.reports.ofPlayer('u_Cora')[0]!;
     expect(r).toMatchObject({
       winner: 'att',
-      loot: { m: 5000 + 1000, c: 3000 + 2000, d: 500 },
+      loot: { m: 5000, c: 3000, d: 0 },
       held: [{ name: 'Anna', before: { lf: 1 }, after: {} }],
       // 30 % of the Lichter Jäger (3,000 Adamant, 1,000 Psikristall).
       debris: { m: 900, c: 300 },
@@ -594,10 +593,10 @@ describe('a battle at a planet where fleets hold (#55)', () => {
     expect(ctx.planets.get('p1_2_6')!.res).toEqual({ m: 5000, c: 3000, d: 0 });
     expect(ctx.fleets.get('att')).toMatchObject({
       state: 'back',
-      cargo: { m: 6000, c: 5000, d: 500 },
+      cargo: { m: 5000, c: 3000, d: 0 },
     });
   });
-  it('takes of the held cargo only what the holds still carry', () => {
+  it('takes none of the held cargo, though the holds still carry it (#440, 233b)', () => {
     const ctx = setup();
     ctx.planets.save({
       ...ctx.planets.get('p1_2_6')!,
@@ -607,10 +606,10 @@ describe('a battle at a planet where fleets hold (#55)', () => {
       ships: { lf: 1 },
       cargo: { m: 100000, c: 0, d: 0 },
     });
-    // One Schlachtschiff carries 1,500: 1,000 of the planet, 500 of the cargo.
+    // One Schlachtschiff carries 1,500: 1,000 of the planet, none of the cargo.
     attack(ctx, { bs: 1 });
     expect(ctx.reports.ofPlayer('u_Cora')[0]!.loot).toEqual({
-      m: 1500,
+      m: 1000,
       c: 0,
       d: 0,
     });

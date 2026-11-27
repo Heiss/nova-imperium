@@ -178,10 +178,24 @@ describe('the flights of the classic features seen by the defender (#228 with #5
   });
 
   it('shows every mission of the registry by the thresholds only, none by a flag of its own', () => {
+    // A Wache stellen needs a bond with its host, or the score pass of the
+    // state turns it home (#440).
+    const bonded = (ctx: TestCtx, mission: string): TestCtx => {
+      if (mission === 'hold') {
+        ctx.friends.request('u_Vex', 'u_Anna');
+        ctx.friends.accept('u_Vex', 'u_Anna');
+      }
+      return ctx;
+    };
     for (const mission of Object.keys(MISSION))
       for (const spy of [0, 1, 2, 3, 4, 7, 8, 9])
         expect(
-          seenBy(world(spy, { mission: mission as Fleet['mission'] })),
+          seenBy(
+            bonded(
+              world(spy, { mission: mission as Fleet['mission'] }),
+              mission,
+            ),
+          ),
           `${mission} at ${spy}`,
         ).toEqual([
           {
