@@ -76,8 +76,9 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   email login codes and raw request bodies. See [SQLite storage](/data/sqlite.md).
 
 * **[E]** The player record lists the player's planets; at a planet without
-  a moon the admin can „Mond anlegen“ with a chance of 1 to 20 %, which only
-  decides the diameter. It is an admin write in the audit log (`createMoon`
+  a moon the admin can „Mond anlegen“ with a chance of 1 to 20 % (since
+  #433: 1 % up to the cap of the round, 210a), which only decides the
+  diameter. It is an admin write in the audit log (`createMoon`
   with the planet, the moon, the chance and the diameter) (owner,
   2026-11-14, #53, see [Moons](/features/moons.md)).
 
@@ -135,6 +136,7 @@ universe settings) and their ranges are not decided yet.
 | Planet limit per player and the colony research („Maximale Planeten ohne Forschung“, „Kolonieforschung aktivieren“, „Zusätzliche Planeten je Forschungsstufe“, „Maximale Forschungsstufe“, [Colonization](/features/colonization.md#planet-limit-per-player-237)) | #237 D1 to D6 | **[E]** (owner, 2026-11-17): per round, editable during the round; base 0 = unlimited, at most 20 planets in total. **[V]** default: no limit, research off, +2 per level, highest level 4; ranges 0 to 20, 1 to 20 and 0 to 20; one fieldset „Planetengrenze“, orders 440 to 470 in `src/core/colony-limit.ts`, in the dialog „Neue Runde“ and the universe settings (X1); the research switch is refused with a base of 0 through the entry rule `agrees` |
 | Refund factor of a [demolition](/features/demolition.md), −100 % to +100 % („Rückbau-Erstattung (%)“) | #202 D4, D7 | +50 % [E]; built as the first entry of `roundSettings` in `src/core/demolition.ts` (order 180), in the dialog „Neue Runde“ and the universe settings (X1) |
 | Demolition time as a share of the build time, 1 to 200 % („Rückbau-Dauer (% der Bauzeit)“, [Demolition](/features/demolition.md)) | #202 D3 | 50 % [E]; built as the second entry of `roundSettings` in `src/core/demolition.ts` (order 190), in the dialog „Neue Runde“ and the universe settings (X1) |
+| Cap of the [moon](/features/moons.md) chance and resources per percent („Mondchance höchstens (%)“, „Rohstoffe je 1 % Mondchance“ [V]) | #433 207b, 208a, 212a | **[E]** (owner, 2026-11-27): cap 20 % from 1 to 100, 100,000 from 10,000 to 1,000,000 in steps of 10,000, as before; built as `roundSettings` in `src/core/moon.ts` (orders 510, 520, section „Monde“ [V]), live, in the dialog „Neue Runde“ and the universe settings |
 
 * **[E]** Each of these is set by the admin per round (owner, 2026-11-16).
   The classic defaults are decided where the table says „classic value“,

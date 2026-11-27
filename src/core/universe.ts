@@ -25,6 +25,8 @@ export interface UniverseSpec {
   size?: 'g' | 's' | 'p';
   /** Named values instead of a number field (a setting of the round, #283). */
   choices?: readonly { value: number; label: string }[];
+  /** The step of the number field of a setting of the round (#433, 218a). */
+  step?: number;
   /** A rule between settings of the round (#237), with its wording. */
   agrees?: RoundNumber['agrees'];
   refusal?: string;
@@ -44,6 +46,7 @@ export const liveSpecs = (
             max: s.max,
             def: s.unstored ?? s.def,
             ...(s.choices ? { choices: s.choices } : {}),
+            ...(s.step ? { step: s.step } : {}),
             ...(s.agrees ? { agrees: s.agrees, refusal: s.refusal } : {}),
           },
         ]

@@ -15,13 +15,34 @@ model of places (#119, O11) and fields (#51, [Planet fields](/features/fields.md
 * **[E]** Built in this release in three pull requests: moons with the
   Mondzitadelle, then the Auspex-Phalanx, then the Warp-Tor (owner,
   2026-11-13).
-* **[E]** Moon chance after a battle at a planet: min(⌊debris / 100,000⌋,
+* **[E, cap and divisor replaced by #433 on 2026-11-27]** Moon chance after a battle at a planet: min(⌊debris / 100,000⌋,
   20) %, counted from the **whole** Trümmerfeld at the position after the
   battle (owner, 2026-11-13; owiki.de counts only the new debris of the
   battle). At most one moon per planet; it belongs to the planet's owner.
+* **[E]** Since #433 (owner, 2026-11-27, 207b): the chance is
+  ⌊(Adamant + Psikristall) / resources per percent⌋ %, at most the cap,
+  both round settings of the admin: „Mondchance höchstens (%)“ (211), 1 to
+  100 (208a), default 20; „Rohstoffe je 1 % Mondchance“ ([V], accepted with
+  211), 10,000 to 1,000,000 in steps of 10,000 (212a), default 100,000.
+  The step is the setting's own check (`agrees`) with its own refusal
+  „Rohstoffe je 1 % Mondchance: ganze Zahl von 10.000 bis 1.000.000 in
+  Schritten von 10.000.“, and the field has the step 10,000 (owner,
+  2026-11-27, 218a; `step` of a number entry, field only).
+  The defaults give the chance of before. In the Endzeit of the first round
+  no moon formed despite huge battles, which the owner found
+  counter-intuitive.
+* **[V]** Both settings live in `src/core/moon.ts` (`roundSettings`, section
+  „Monde“ in „Neue Runde“ [V], order 510 and 520) and are live rows of the
+  universe settings: they take effect at once, for the next battle.
 * **[E]** Diameter = ⌊√(x + 3 · chance) · 1000⌋ km, x a whole number from 10
   to 20, all equally likely (owiki.de „Mond“, Mondgröße): 3,605 to 8,944 km
   (owner, 2026-11-13). It decides the destruction chance of #95.
+* **[E]** For the diameter the chance counts at most up to 20 (#433, 209a):
+  moons stay as big as before, also above 20 %, and the Mondbruch keeps
+  working; `breakChance` is unchanged. The Lexikon formula reads
+  „Durchmesser in km = ⌊√(x + 3 · Chance) · 1.000⌋, mit x ausgelost von 10
+  bis 20 und der Chance höchstens 20“, its table keeps 1, 5, 10 and 20 %
+  (owner, 2026-11-27, 219a).
 * **[E]** Fields: a moon starts with 1 field, every Mondzitadelle level adds
   3 and takes one itself, without an upper limit (owner, 2026-11-13; the
   diameter limit was removed in v0.77c).
@@ -55,6 +76,8 @@ model of places (#119, O11) and fields (#51, [Planet fields](/features/fields.md
 * **[E]** Moons come from battles and from the admin: in the admin area, at
   a planet of a player without a moon, „Mond anlegen“ with a chance of 1 to
   20 %; the diameter follows the formula; audited (owner, 2026-11-13).
+  Since #433 it takes 1 % up to the cap of the round (210a), checked on the
+  server and in the client.
 * **[E]** Display (owner, 2026-11-13, proposal A): a moon symbol at the
   planet in the Sternenkarte, visible to everyone, with a link; the moon is
   its own entry „<Planetenname> (Mond)“ in the planet list; the battle
@@ -90,7 +113,7 @@ The owner's answers to the open questions of the first build (owner,
   when a moon forms, the sentence about the Trabant follows (the decided
   wording above with Adamant and Psikristall, [V] as the adaptation of the
   classic „Metall und Kristall“).
-* **[E]** Admin „Mond anlegen“ with 1 to 20 %: always creates the moon; the
+* **[E]** Admin „Mond anlegen“ with 1 to 20 % (since #433: up to the cap of the round, 210a): always creates the moon; the
   chance only goes into the diameter formula. It sits at each planet in the
   player record of the admin tab „Spieler“.
 * **[E]** Name: a moon starts with the name „Mond“, can be renamed like a
@@ -111,9 +134,10 @@ places (#119) and the fields (#51).
   `m<g>_<s>_<p>`, as migration 15 allows; no new migration. A fleet's target
   kind comes from the prefix of `to_planet`. `planets.home()` takes only a
   planet, so a moon is never the home planet.
-* Moon step: `src/core/moon.ts` (`moonChance` ⌊(Adamant + Psikristall) /
-  100,000⌋ at most 20, `formsMoon` one draw `rng() < chance / 100`,
-  `moonDiameter` ⌊√(10 + ⌊draw · 11⌋ + 3 · chance) · 1000⌋, `placeName`
+* Moon step: `src/core/moon.ts` (`moonChance(field, rules)` ⌊(Adamant +
+  Psikristall) / `moonPerPercent`⌋ at most `moonChanceMax` of the round
+  (#433), `formsMoon` one draw `rng() < chance / 100`, `moonDiameter`
+  ⌊√(10 + ⌊draw · 11⌋ + 3 · min(chance, 20)) · 1000⌋, `placeName`
   „<Name> (Mond)“); `src/server/game/moons.ts` (`addMoon`, `rollMoon`,
   `createMoon`, `moonAt`, the start name „Mond“). The attack runs it after
   the debris step and before the rebuilt defense, at a planet without a
@@ -147,7 +171,8 @@ places (#119) and the fields (#51).
   arrive, report and come home at a moon like at a planet; their reports
   name the moon „<Name> (Mond)“.
 * Admin: the player record lists the player's planets; at a planet without a
-  moon „Mond anlegen“ with a chance of 1 to 20 % (`POST /api/admin/moon`,
+  moon „Mond anlegen“ with a chance of 1 % up to the cap of the round
+  (`POST /api/admin/moon`; the client's field takes `max` from the round, #433,
   audit `admin.write` / `createMoon` with the planet, the moon, the chance
   and the diameter).
 * Interface: the state lists moons in `galaxy` with their kind; the
@@ -177,8 +202,8 @@ places (#119) and the fields (#51).
   * the messages „An dieser Position gibt es keinen Mond.“, „Ein Mond kann
     nicht das Ziel dieses Auftrags sein.“, „Nur auf einem Mond baubar.“,
     „Auf einem Mond nicht baubar.“, „Planet nicht gefunden.“, „Dieser Planet
-    hat schon einen Mond.“, „Die Mondchance muss zwischen 1 und 20 %
-    liegen.“, „Mond angelegt.“; „kein Mond“ beside the target; „Aktiver
+    hat schon einen Mond.“, „Die Mondchance muss zwischen 1 und <cap> %
+    liegen.“ (the cap of the round since #433), „Mond angelegt.“; „kein Mond“ beside the target; „Aktiver
     Mond“ on the Sternenkarte; „Zielart“ as the label of the select; the
     table „Planeten“ of the player record with „vorhanden“ and the field
     „Mondchance in %“.

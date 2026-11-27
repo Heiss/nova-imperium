@@ -13,14 +13,26 @@ import Admin from '../client/views/Admin.svelte';
 import Auth from '../client/views/Auth.svelte';
 import EndzeitDialog from '../client/views/EndzeitDialog.svelte';
 import RoundDialog from '../client/views/RoundDialog.svelte';
+import { roundDefaults } from './fixtures.ts';
 import { normalize, stripComments } from './markup.ts';
 
-/** The page; a state of a test that has no players has none (the diagnostics list them). */
+/**
+ * The page; a state of a test that has no players has none (the diagnostics
+ * list them), and one without the rules of the round has the defaults (the
+ * cap of „Mond anlegen“, #433).
+ */
 export const adminView = (v: V): string =>
   stripComments(
     render(Admin, {
       props: {
-        page: adminPage({ ...v, s: { ...v.s, players: v.s.players ?? {} } }),
+        page: adminPage({
+          ...v,
+          s: {
+            ...v.s,
+            players: v.s.players ?? {},
+            round: v.s.round ?? (roundDefaults() as V['s']['round']),
+          },
+        }),
       },
     }).body,
   );
