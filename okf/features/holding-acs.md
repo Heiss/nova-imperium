@@ -43,17 +43,17 @@ The battle with several parties is built with #55
   different players and 15 fleets per planet, besides the owner's own
   fleet (owner, 2026-11-16, classic values verified, owiki
   „Allianzkampfsystem“).
-* **[E]** Loot (owner, 2026-11-16, D3): the cargo of held fleets can be
-  plundered too. This is a Nova rule: no classic source documents it;
+* **[E]** Loot (owner, 2026-11-16, D3; replaced by #440, 233b: held
+  cargo is no loot): the cargo of held fleets can be plundered too. This is a Nova rule: no classic source documents it;
   classic loot is 50 % of the planet's stock (owiki „Beute“), and owiki
   contradicts itself on whether held fleets keep their cargo.
 * **[U]** How the cargo of held fleets enters the loot (its share and the
   order against the planet's stock) is not decided.
-* **[V]** No holding at a player in vacation mode or in noob protection,
-  as in classic (owiki „Allianzkampfsystem“; see
+* **[V]** No holding at a player in vacation mode or in noob protection
+  (the noob protection part replaced by #440, 238c), as in classic (owiki „Allianzkampfsystem“; see
   [Vacation mode](/features/vacation-mode.md)).
-* **[E]** Loot (owner, 2026-11-17, completing the [U] above): when a
-  planet with held fleets is raided, the loot takes the classic 50 % of
+* **[E]** Loot (owner, 2026-11-17, completing the [U] above; replaced by
+  #440, 233b): when a planet with held fleets is raided, the loot takes the classic 50 % of
   the planet's stock first, then the cargo of the held fleets with the
   capacity that is left.
 * **[E]** Who may hold is a value per round, set in the dialog „Neue
@@ -449,3 +449,61 @@ Everything below is [V] unless it names an owner's decision.
 * **[V]** The fragment `changes/wacht-halten.md` names friends too („zum
   Planeten eines Gildenmitglieds oder Freundes“), as friends may hold (#55,
   #227).
+
+# Rework of 2026-11-27 (#440)
+
+The owner's decisions on #440, built on `claude/hold-rework`.
+
+* **[E]** Round setting „Wache stellen“ An/Aus, default An, order 105,
+  live (240a): off, the fleet form does not offer the mission, the server
+  refuses a launch, and every running hold turns home. A universe without
+  the key reads An (`roundHoldOn`, as `roundMarketOn`; no migration).
+* **[E]** Every hold, flying or holding, is checked again (229a, 282a):
+  when a friendship ends, when a guild member leaves or is removed, when a
+  guild is dissolved, when the settings of the round are saved („Wache
+  stellen“, „Verbündete“), at a new round, at every score pass, when a host
+  switches „Keine Wachen annehmen“ on, and at the start of the server
+  (which also covers an update); no timer of its own. A hold that is no
+  longer allowed turns home at once from where it is: one that holds as
+  at the end of its holding time, one on its way like a recall (231a). Its
+  owner gets the info report „Deine Wache bei {Planet} kehrt zurück:
+  {Grund}.“ with the reason `off`, `refused` or `bond`.
+* **[E]** A hold that is no longer allowed at its arrival turns home there
+  with the same report (4a). The vacation report stays as it was.
+* **[E]** „Wegschicken“ per hold under „Gehaltene Flotten“, holding or on
+  its way (230b); the owner gets „{Spieler} hat deine Wache bei {Planet}
+  weggeschickt. Deine Flotte kehrt zurück.“.
+* **[E]** The player option „Keine Wachen annehmen“, default off (230b):
+  on, a launch to the player is refused and the running holds turn home
+  (282a). Table `hold_refusals` (migration `20261127T1800-hold-refusals`),
+  kept across rounds.
+* **[E]** A hold at a weak host is allowed (238c). While a fleet of another
+  player than the host holds at a place, the host's noob protection does
+  not apply there for attacks and espionage (281b); missiles keep it. A
+  fleet on its way does not count yet.
+* **[E]** Held cargo is no loot (233b); the debris and the moon chance of
+  destroyed held fleets stay.
+* **[E]** The host gets „{Spieler} schickt eine Wache zu {Planet}.
+  Ankunft: {Zeit}.“ at the launch and „{Spieler} hält mit einer Flotte
+  Wache bei {Planet} bis {Zeit}.“ at the arrival (242c). All hold reports,
+  to host and owner, are pushed under the topic „Wachen“ (order 75; 243b,
+  283a); the vacation report stays under „Flotte“.
+* **[V]** The Mondbruch counts as an attack here: it asks the same check
+  of the target as the Sturmangriff, so it loses the protection at that
+  place too.
+* **[V]** The Sternenkarte: the state lists the places of the shown system
+  whose protection lapsed (`lapsed`), and the (n) is not shown there; the
+  missile refusal stays the server's.
+* **[V]** „Gehaltene Flotten“ lists a hold on its way with the words of an
+  incoming fleet and its arrival as the countdown; it is no movement then.
+* **[V]** The option is a box of its own in „Optionen“ (order 35, section
+  „Spiel“); the checkbox saves at once with the action `holdOption`.
+* **[V]** The Lexicanum: the clauses that a hold at a weak host is refused
+  and that held cargo is loot are removed from „Wache stellen und
+  Verbandsangriff“, „Kampf“ and „Schutz der Schwachen“; the Noobschutz list
+  of missions no longer names „Wache stellen“.
+* **[U]** Texts not decided yet, built as marked placeholders
+  (`src/core/hold-texts.ts`): the three {Grund} texts, the two refusals,
+  the four report titles, the title of the option box, the two Lexicanum
+  lines (lapsed protection, held cargo no loot) and the changelog
+  fragment `changes/wache-stellen-ueberarbeitet.md`.

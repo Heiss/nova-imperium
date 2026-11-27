@@ -118,9 +118,10 @@ for (const phone of ['', ' @phone'])
     await expect(held).toContainText(`Flotte von ${guard}`, { timeout: 15000 });
     await held.getByRole('button', { name: 'Wegschicken' }).click();
     await expect(page.getByText('Gehaltene Flotten')).toHaveCount(0);
+    // The owner has a report for each, whether or not the fleet is home yet.
     await pg.reload();
-    await nav(pg, 'fleet');
-    await expect(pg.locator('.fl-back')).toHaveCount(2);
+    await nav(pg, 'messages');
+    await expect(pg.locator('.rep').filter({ hasText: away })).toHaveCount(2);
 
     expect(problems.flat()).toEqual([]);
   });
@@ -148,7 +149,9 @@ test('„Wache stellen“ off turns a guard home and hides the mission (#440)', 
     await nav(pg, 'fleet');
     await pg.reload();
     await nav(pg, 'messages');
-    await expect(pg.locator('#view')).toContainText('kehrt zurück');
+    await expect(pg.locator('#view')).toContainText(
+      /Deine Wache bei .* kehrt zurück: /,
+    );
     await pg.reload();
     await aimAt(pg, host);
     await expect(
