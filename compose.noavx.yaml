@@ -1,0 +1,19 @@
+# CI only: the app on an emulated CPU without AVX (owner, 2026-11-27, #449).
+# The server is an Intel Celeron J4104 without AVX (okf/overview.md). QEMU in
+# user mode with the CPU model Denverton (an Atom of the same Goldmont family,
+# no AVX) runs the image's Node; an instruction this CPU lacks stops the
+# process with "Illegal instruction". The runner provides the static QEMU
+# binary (package qemu-user-static); -xsavec only silences a QEMU warning.
+#   COMPOSE_FILE=compose.yaml:compose.demo.yaml:compose.noavx.yaml docker compose up --wait
+services:
+  app:
+    entrypoint:
+      [
+        '/usr/local/bin/qemu-x86_64-static',
+        '-cpu',
+        'Denverton,-xsavec',
+        '/usr/local/bin/node',
+      ]
+    command: ['src/server/main.ts']
+    volumes:
+      - /usr/bin/qemu-x86_64-static:/usr/local/bin/qemu-x86_64-static:ro

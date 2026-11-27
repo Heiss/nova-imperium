@@ -827,6 +827,22 @@ jobs:
           grep 'NOVA_SESSION_DAYS' wrong.txt
       - name: Smoke test (headers, invitation mail, registration, data after a restart)
         run: docker/smoke.sh
+      # The server has no CPU with AVX (owner, 2026-11-27, #449, 291a): the
+      # app starts again on an emulated CPU without AVX (compose.noavx.yaml,
+      # QEMU user mode, CPU model Denverton) on the same data, and the same
+      # smoke test runs against it. A package or binary that needs AVX stops
+      # the process with "Illegal instruction", so the stack never gets
+      # healthy and the step fails. The check of PID 1 proves that the app
+      # really runs under QEMU.
+      - name: The app runs on a CPU without AVX (#449)
+        env:
+          COMPOSE_FILE: compose.yaml:compose.demo.yaml:compose.noavx.yaml
+        run: |
+          sudo apt-get update -q || true
+          sudo apt-get install -y -q --no-install-recommends qemu-user-static
+          docker compose up --detach --no-build --wait
+          docker compose exec -T app sh -c 'tr "\0" " " < /proc/1/cmdline' | grep -q 'qemu-x86_64-static -cpu Denverton'
+          docker/smoke.sh
       - name: Logs
         if: failure()
         run: docker compose logs --no-color --tail 60
