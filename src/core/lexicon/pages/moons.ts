@@ -80,6 +80,10 @@ const chanceSection = ({ round }: LexState): PageSection =>
         max: `${number(round.moonChanceMax)} %`,
       },
     ),
+    // Who can start the battle (#445, owner, 2026-11-27, 271c, 275b).
+    say(
+      'Selbst erzeugen kannst du einen Mond nicht, denn eigene Planeten lassen sich nicht angreifen. Er entsteht nur nach einem Kampf, den ein anderer Spieler an deinem Planeten auslöst: ein [[mission-attack|Sturmangriff]], auch der eines Freundes, oder entdeckte [[probe|Spähschädel]] einer [[mission-spy|Auspex-Erkundung]]. Außerdem kann der Admin einen Mond anlegen.',
+    ),
     formulas({
       text: 'Mondchance in % = ⌊(Adamant + Psikristall im Trümmerfeld) ÷ {per}⌋, höchstens {max}',
       values: {
