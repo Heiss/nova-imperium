@@ -59,12 +59,7 @@ import { lockedUntil, positionLockedText } from './position-lock.ts';
 import { type Ctx, coords, fail, int, universe } from './context.ts';
 import { colonyRoom, limitRefusal } from './colony-limit.ts';
 import { attackEvent } from './guild-events.ts';
-import {
-  heldByOthers,
-  holdersAt,
-  holdLaunched,
-  isAllyOf,
-} from './holding.ts';
+import { heldByOthers, holdersAt, holdLaunched, isAllyOf } from './holding.ts';
 import { joinPlan, joinUnion, recalledWith } from './union.ts';
 import { isProtected } from './points.ts';
 import { exactPoints } from './scores.ts';

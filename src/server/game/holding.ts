@@ -16,7 +16,8 @@ import { HOLD_REASON_TEXT, HOLD_REPORT_TITLE } from '../../core/hold-texts.ts';
 import { missionRules } from '../../core/missions.ts';
 import { placeName } from '../../core/moon.ts';
 import type { Fleet, Levels, Planet } from '../../core/types.ts';
-import type { ServerFeature } from './feature.ts';
+import type { StateShape } from '../../core/state/holding.ts';
+import type { ServerFeature, StatePart } from './feature.ts';
 import type { Handler } from './actions.ts';
 import { type Ctx, addReport, coords, fail } from './context.ts';
 import { lockEndText } from './main-planet.ts';
@@ -95,7 +96,7 @@ const placeOf = (ctx: Ctx, f: Fleet): string => {
  * recall (231a), as long as it has flown. The fuel of the unused hours is not
  * refunded, as after a recall.
  */
-export function turnHome(ctx: Ctx, f: Fleet, at: number = ctx.now()): void {
+function turnHome(ctx: Ctx, f: Fleet, at: number = ctx.now()): void {
   if (f.state === 'hold' || at >= f.arr)
     turnBack(ctx, f, { ret: homeAt(f, at) });
   else turnBack(ctx, f, { ret: at + (at - f.dep), recalled: true });
@@ -259,7 +260,7 @@ export const serverFeature = {
     order: 240,
     keys: ['holdsRefused'],
     build: (ctx, u) => ({ holdsRefused: ctx.holdRefusals.refuses(u.id) }),
-  },
+  } satisfies StatePart<StateShape>,
 } satisfies ServerFeature;
 
 /** A fleet that holds at the target as a spy report shows it apart. */
