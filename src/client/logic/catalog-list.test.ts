@@ -951,14 +951,37 @@ describe('the Handelsposten while the marketplace is off (#442, 226b)', () => {
     expect(off).toEqual(keys(withMarket(1)).filter((k) => k !== 'market'));
   });
 
-  it('is listed again with its level once the marketplace is on again', () => {
-    expect(
-      row(withMarket(1, { b: { robot: 4, market: 3 } }), 'building', 'market'),
-    ).toMatchObject({
+  it('is listed while off only where it has a level, with the refusal and „Zurückbauen“ (278a)', () => {
+    const built = { b: { robot: 4, market: 3 } };
+    expect(row(withMarket(0, built), 'building', 'market')).toMatchObject({
       key: 'market',
+      action: {
+        kind: 'note',
+        cls: 'req',
+        text: 'Der Marktplatz ist in dieser Runde geschlossen.',
+      },
+      demolish: true,
     });
-    expect(keys(withMarket(0, { b: { robot: 4, market: 3 } }))).not.toContain(
-      'market',
-    );
+    // On again: the build button is back, with its level.
+    const on = row(withMarket(1, built), 'building', 'market');
+    expect(on.action.kind).not.toBe('note');
+    expect(on.demolish).toBe(true);
+  });
+
+  it('is listed while off with a level in the queue, the running order shown (277a)', () => {
+    const queued = withMarket(0, {
+      b: { robot: 4 },
+      bq: { key: 'market', lvl: 1, start: 0, end: 1000, cost: [0, 0, 0] },
+    });
+    expect(row(queued, 'building', 'market').action).toMatchObject({
+      kind: 'upgrading',
+      level: 1,
+    });
+    // Another order in the queue does not list it.
+    const other = withMarket(0, {
+      b: { robot: 4 },
+      bq: { key: 'metal', lvl: 1, start: 0, end: 1000, cost: [0, 0, 0] },
+    });
+    expect(keys(other)).not.toContain('market');
   });
 });

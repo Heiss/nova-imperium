@@ -27,6 +27,7 @@ import { activeDrive, shipSpeed } from '../../core/flight.ts';
 import { researchListed, researchNote } from '../../core/colony-limit.ts';
 import { hasLab } from '../../core/lab.ts';
 import { TRADING_POST, tradingPostOfferedIn } from '../../core/market.ts';
+import { CLOSED } from '../../core/market-text.ts';
 import { placeName } from '../../core/moon.ts';
 import {
   energyNeed,
@@ -272,6 +273,8 @@ function siloLines(v: V, key: string): string[] {
  * the list holds only what stands on it, and the energy shows the shortfall.
  */
 const BUILD_WAITS: Partial<Record<BuildState, Note>> = {
+  // The Handelsposten while the marketplace is off (#442, 278a), the server's words.
+  off: note('req', CLOSED),
   locked: LOCKED,
   busy: note('dim', 'Bauschleife belegt'),
   yardBusy: note('dim', 'Schiffsschmiede arbeitet gerade'),
@@ -580,9 +583,16 @@ function yardPage(
   };
 }
 
-/** Whether „Gebäude“ lists a building: every one but the Handelsposten while the round does not offer it (#442). */
+/**
+ * Whether „Gebäude“ lists a building: every one, but the Handelsposten
+ * while the round does not offer it only on a place where it has a level or
+ * one in the queue, for „Zurückbauen“ and the running order (#442, 278a).
+ */
 const buildingListed = (v: V, key: string): boolean =>
-  key !== TRADING_POST || tradingPostOfferedIn(v.s.cfg);
+  key !== TRADING_POST ||
+  tradingPostOfferedIn(v.s.cfg) ||
+  (v.P.b[key] ?? 0) > 0 ||
+  v.P.bq?.key === key;
 
 // ----- the pages -----
 
@@ -594,7 +604,7 @@ const PAGES: Readonly<Record<CatalogKind, (v: V) => CatalogPage>> = {
     line: { id: 'fields', text: fieldsLine(v.P, v.s.cfg) },
     queue: [],
     warn: null,
-    // The Handelsposten only while the round offers it (#442, 226b).
+    // The Handelsposten only while the round offers it, or where it stands (#442, 226b, 278a).
     rows: Object.keys(BUILD)
       .filter((k) => buildable(k, v.P.kind) && buildingListed(v, k))
       .map((k) => buildingRow(v, k)),
