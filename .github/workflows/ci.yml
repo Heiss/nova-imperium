@@ -829,7 +829,8 @@ jobs:
         run: docker/smoke.sh
       # The server has no CPU with AVX (owner, 2026-11-27, #449, 291a): the
       # app starts again on an emulated CPU without AVX (compose.noavx.yaml,
-      # QEMU user mode, CPU model Denverton) on the same data, and the same
+      # QEMU user mode, CPU model Denverton) on an empty data volume, so the
+      # fresh database is created and migrated under QEMU, and the same
       # smoke test runs against it. A package or binary that needs AVX stops
       # the process with "Illegal instruction", so the stack never gets
       # healthy and the step fails. The check of PID 1 proves that the app
@@ -848,6 +849,7 @@ jobs:
             echo "::error::$NOVA_QEMU is not a static binary"; exit 1
           fi
           export NOVA_QEMU
+          docker compose down --volumes
           docker compose up --detach --no-build --wait
           docker compose exec -T app sh -c 'tr "\0" " " < /proc/1/cmdline' | grep -q 'qemu-x86_64-static -cpu Denverton'
           docker/smoke.sh

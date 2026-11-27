@@ -45,7 +45,9 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   emulated CPU without AVX and runs the smoke test against it (291a).
 * **[V]** How: `compose.noavx.yaml` runs the image's Node under QEMU user
   mode with the CPU model Denverton (an Atom of the Goldmont family, no AVX)
-  in the job „Docker image and Compose stack“. Shown on 2026-11-27: a
+  in the job „Docker image and Compose stack“, on an empty data volume, so
+  the fresh database is created and migrated under QEMU. The release image
+  is not checked this way yet (#456). Shown on 2026-11-27: a
   binary built with `-mavx` stops there with „Illegal instruction“, and the
   server starts, creates its database and answers.
 
