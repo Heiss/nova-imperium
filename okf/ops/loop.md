@@ -35,34 +35,14 @@ tasks).
   request, so the loop stops there (since 2026-11-23 after its tag and
   its merged retrospective [V], see below) and a restarted `/loop` plans
   next.
-* **[E]** The owner's GitHub Project (`users/Heiss/projects/5`) shows the
-  status labels in its field „Status“ (owner, 2026-11-14; replaces „the
-  owner filters it by the labels“): the workflow „Project status“
-  (`.github/workflows/project-status.yml`, `scripts/project-status.ts`,
-  tests in `src/test/project-status.test.ts`) runs on every issue that is
-  opened, reopened, labelled or unlabelled. The labels lead, the board
-  follows; the loop still only sets labels.
-  * Only one status label holds: the one added last in the issue's
-    timeline stays, the workflow removes the others.
-  * No status label is „Backlog“; the options are `Backlog`,
-    `In discussion`, `Ready`, `In progress`, `In review`, `Done`.
-  * The project's own „Auto-add to project“ adds the issues; the workflow
-    waits up to a minute for the item and fails when it does not appear.
-  * Closed issues are left to the project's own workflow „Item closed“
-    („Done“); „Pull request linked to issue“ is switched off.
-  * Run by hand (`workflow_dispatch`), it syncs every open issue once,
-    reading each right before its sync, and lists the ones not in the
-    project. A run on an issue event for the same issue at the same moment
-    can still race it and remove both status labels; the owner accepts
-    that risk, because the manual run is rare (owner, 2026-11-14,
-    CodeRabbit on #194).
-  * Secret `PROJECT_TOKEN`: a classic personal access token with the scope
-    `project` [U: a fine-grained token not checked], because a GitHub App
-    cannot reach a project of a user; variable `PROJECT_NUMBER`.
 * **[V]** Questions to the owner are asked with the question tool inside the
   iteration; the iteration waits for the answer and continues with it. An
   issue counts as clarified when it has a comment that starts with
   `Geklärt` and lists the decisions with the OKF link.
+* **[E]** The owner's decisions are written into the body of the issue,
+  not only into comments (owner, 2026-11-27, 203b, the retrospective of
+  26.11.29): the check „Linked Issues“ of CodeRabbit reads only the body,
+  and it missed decisions recorded in comments (#418, #421).
 * **[E]** The loop asks the owner first what a release should bring, with
   proposals from the open issues; **infrastructure first**, features after
   it (owner, 2026-11-12). The chosen issues get the label `ready`
@@ -257,7 +237,9 @@ tasks).
   changed mutated file run before every push to a pull request as well
   (the rule „Before every push“ below).
 * **[E]** Small patches are slotted in between features (owner,
-  2026-11-16): the main agent merges Renovate's green patch and minor pull
+  2026-11-16); they are the only pull requests that may be bundled, a
+  feature is one issue in one pull request (owner, 2026-11-27, 204b): the
+  main agent merges Renovate's green patch and minor pull
   requests (one at a time, CI Gate green on a head up to date with `main`;
   a major update and a minor one below 1.0 wait for the owner) and follows
   up Dependabot alerts without a
@@ -382,6 +364,10 @@ tasks).
   changes go with the next code push, or are pushed before the pull request
   is marked ready. Every push cancels the running CI and starts all jobs
   again (owner, 2026-11-12).
+* **[E]** No branch update while a review of CodeRabbit of that pull
+  request runs, and a review of CodeRabbit is requested at most about once
+  an hour (owner, 2026-11-27, 203b, the retrospective of 26.11.29): a
+  branch update aborted a running review.
 * **[V]** Guards from loop engineering practice: a stop condition a machine
   can check (release pull request merged, then its tag and its
   retrospective), the state read
