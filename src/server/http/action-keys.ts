@@ -13,7 +13,7 @@ import { GameError } from '../game/context.ts';
 import type { Reply } from './app.ts';
 
 /** The header of the key; Node gives header names in lower case. */
-export const KEY_HEADER = 'idempotency-key';
+const KEY_HEADER = 'idempotency-key';
 
 /** How long a key is kept, in milliseconds (60 s, [V]). */
 export const KEPT_MS = 60_000;
