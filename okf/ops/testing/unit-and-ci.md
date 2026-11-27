@@ -13,7 +13,9 @@ description: 'The rules of muffelblog this project follows, which pushes run the
 * **[E]** Every push to `main` and `hotfix/**` runs the full suite, except
   an expensive job that already succeeded on the identical tree in the pull
   request the push merged (owner, 2026-11-21, #342, [Proofs of a push
-  run](/ops/testing/push-proofs.md)); a pull request runs what its changes
+  run](/ops/testing/push-proofs.md)), and except the mutation jobs of a
+  push to `main`, which never run there: the nightly run tests `main`
+  (owner, 2026-11-26, #370, 195a, 200a); a pull request runs what its changes
   need (owner, 2026-11-12): a change of
   documentation only (`okf/`, `docs/`, `changes/`, `website/`, Markdown
   at the top level) skips the code checks (lint, unit, E2E and mutation

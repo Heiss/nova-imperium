@@ -147,7 +147,7 @@ when the second built on the first.
 | About ten files conflicted in every feature branch and at every merge of main (#228, #202, #223, #55, #175). | The registry of the round settings was one hand-written list, and tests listed the whole registry, counted its fieldsets or took „the last four“ by position, so every new setting changed the tests of the others. | Every feature tests its own entries and one test checks the rules for all (#310); a feature registers its settings in its own file. |
 | Agents waited minutes for each other's E2E run. | All runs used the same three ports. | `E2E_PORT` moves them; every brief gives an own value. |
 | A pull request of a feature ran the complete mutation run although #312 had made it partial. | It changed `mutation-standard.json`, and every change of the mutation setup forced the complete run. | A change of floors only adds the files of those floors to the partial run (#313); the main agent checks in the review what triggers the complete run. |
-| The partial mutation job took 62 minutes for 33 files. | One job without a cache, and no limit on the number of files. | More than 12 changed files run the six shards (#321). |
+| The partial mutation job took 62 minutes for 33 files. | One job without a cache, and no limit on the number of files. | More than 12 changed files ran the shards (#321); since #370 the partial run is split into parts of about 12 files by the weights. |
 | A merged floor was below the one on main. | The brief said „take the lower floor“ for a conflict in `mutation-standard.json`. | For a file both sides changed: the value of main or the higher one, never a value below main's. |
 | Every branch that touched a floor conflicted in `mutation-standard.json`, and every branch that changed `src/client/main.ts` in `size-ratchet.json` (#317 part 4). | Both were files with one entry per branch, in one JSON object (a comma on the last line) and one number everybody had to set to the same value. | The floors are one line per file, sorted, in `mutation-floors.txt` (`merge=union`), and a branch does not write them; the size of `main.ts` is compared with the base by git and no file holds it. |
 | A reference test that draws 300 random cases failed after a merge. | A rare mark was no longer among the drawn cases. | Rare cases are built by hand next to the sample; `numRuns` is not raised. |
@@ -175,9 +175,15 @@ when the second built on the first.
 * **[E]** Finished features are bundled into one pull request; at most four
   own pull requests are open, and the queue is drained before new work
   starts.
-* **[E]** A pull request runs the mutation tests of its changed files only;
-  the complete run stays in the nightly run and in the release pull
-  request (#309). Unit tests and E2E stay complete in every pull request.
+* **[E]** A pull request runs the mutation tests of its changed files only,
+  at any size, in parts of about 12 files (#309; owner, 2026-11-26, #370,
+  189a, 190a). The complete run comes from the nightly run of
+  `mutation.yml` on `main`; a pull request runs it only for a change of the
+  mutation configuration or the test tool chain, into a hotfix branch, or
+  while the last nightly complete run is red or missing (then a pull request
+  with a non-empty partial set runs it, 194a via 197b, 201a). A push to
+  `main` runs no mutation job (195a, 200a). A red nightly run is fixed first
+  (loop step 1). Unit tests and E2E stay complete in every pull request.
 * **[E]** When failures of one kind repeat (the same files conflict in
   every branch, one file grows with every feature), the main agent proposes
   a design pattern instead of fixing each case (#310, #317).

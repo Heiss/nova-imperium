@@ -44,6 +44,8 @@ description: 'When a push to main or a hotfix branch skips a job that succeeded 
   another workflow, a red, cancelled or running run, a different tree, an answer of another shape and every error of the API prove nothing,
   and so does a failure of the step itself (it writes no proof then, and only
   the five proof lines reach the outputs). Each job is proven on its own.
+  The mutation jobs of a push to `main` are the exception since #370: they
+  do not run without a proof either (200a, below).
 * **[V]** The job „Detect changes“ gets `actions: read` and
   `pull-requests: read` besides `contents: read` and `checks: read`. On a
   push it checks out its own commit, the folder `scripts/` only, and runs the
@@ -55,6 +57,12 @@ description: 'When a push to main or a hotfix branch skips a job that succeeded 
   tree: CI run <id>, job "<name>" (<url>), head <sha>, tree <tree>“. The
   mutation plan, the shards and „Mutation tests“ share the proof of
   „Mutation tests“. Every other case of the gate is unchanged.
+* **[E]** A push to `main` runs no mutation job (owner, 2026-11-26, #370,
+  195a and 200a): „Detect changes“ writes `mutation=nightly`, the proof of
+  the pull request is still looked up and printed by the CI Gate, and
+  without one the gate passes and says that the nightly complete run
+  (`mutation.yml`) tests the tree. A push to `hotfix/**` keeps the rule
+  below.
 * **[V]** A proven push runs no mutation job, so it does not refresh the
   caches of `main` (the state, the incremental results of the shards, the
   weights); the nightly run of `.github/workflows/mutation.yml` on `main`
