@@ -188,6 +188,21 @@ export const homeAt = (
   t: number,
 ): number => Math.min(t, holdEnd(f)) + (f.arr - f.dep);
 
+/**
+ * How a hold turns home at `at`, from where it is (#440): one that holds, or
+ * has just arrived (4a), flies home as at the end of its holding time,
+ * without the rest of it (`homeAt`); one on its way turns back like a recall
+ * (231a), as long as it has flown. The fuel of the unused hours is not
+ * refunded, as after a recall.
+ */
+export const turnHomeAt = (
+  f: Pick<Fleet, 'state' | 'dep' | 'arr' | 'hold'>,
+  at: number,
+): { ret: number; recalled?: true } =>
+  f.state === 'hold' || at >= f.arr
+    ? { ret: homeAt(f, at) }
+    : { ret: at + (at - f.dep), recalled: true };
+
 /** When the next event of a fleet is due: its arrival, the end of holding or its return. */
 export function dueAt(
   f: Pick<Fleet, 'state' | 'arr' | 'ret' | 'hold'>,

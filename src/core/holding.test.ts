@@ -5,6 +5,7 @@ import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import {
   holdOpen,
+  turnHomeAt,
   ALLIES,
   ALLIES_RANGE,
   HELD_SPY,
@@ -57,6 +58,30 @@ describe('the switch „Wache stellen“ (#440, 261a)', () => {
     expect(holdOpen({})).toBe(true);
     expect(holdOpen({ holdOn: undefined })).toBe(true);
     expect(holdOpen({ holdOn: 0 })).toBe(false);
+  });
+});
+
+describe('a hold that turns home (#440, 231a, 4a)', () => {
+  const f = { dep: 1000, arr: 1600, hold: 10_000 };
+  it('flies home from its place as at the end of its holding time when it holds', () => {
+    expect(turnHomeAt({ ...f, state: 'hold' }, 5000)).toEqual({
+      ret: 5000 + 600,
+    });
+    // Its holding time already over: it left at its end.
+    expect(turnHomeAt({ ...f, state: 'hold' }, 20_000)).toEqual({
+      ret: 11_600 + 600,
+    });
+  });
+  it('flies home from its arrival when it turns there', () => {
+    expect(turnHomeAt({ ...f, state: 'out' }, 1600)).toEqual({
+      ret: 1600 + 600,
+    });
+  });
+  it('turns back like a recall on its way, as long as it has flown', () => {
+    expect(turnHomeAt({ ...f, state: 'out' }, 1200)).toEqual({
+      ret: 1200 + 200,
+      recalled: true,
+    });
   });
 });
 

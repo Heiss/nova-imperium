@@ -121,8 +121,9 @@ The battle with several parties is built with #55
   * A fleet can be called back while it holds; it is home after the time
     of its flight there. The fuel of the unused hours is not refunded (no
     source names a refund).
-  * The arrival writes no report; the owner sees the fleet in the fleet
-    movements („hält bei“), the host under „Gehaltene Flotten“ in the
+  * The arrival writes no report (superseded by #440, 2026-11-27, 242c:
+    the host gets a report at the launch and at the arrival); the owner
+    sees the fleet in the fleet movements („hält bei“), the host under „Gehaltene Flotten“ in the
     overview with the owner, the origin, the ships and the time left.
   * **[E]** Seen by the host (owner, 2026-11-19, #55; the ships of #228):
     a fleet that **is holding** at the host's planet (state `hold`) shows to
@@ -146,7 +147,8 @@ The battle with several parties is built with #55
     battle.
   * The cargo of the held fleets is taken whole (not half) with the room
     left; the rest is lost with the fleets, which are destroyed when the
-    attacker wins. 1 hour is preselected in the form.
+    attacker wins (superseded by #440, 2026-11-27, 233b: held cargo is no
+    loot; it is lost with the fleets). 1 hour is preselected in the form.
   * „alles“ of the fleet form (#240) leaves the fuel of the holding time
     on the planet too, as the flight fuel.
   * The spy report (`withHeldFleets` in `src/server/game/holding.ts`, one
@@ -172,7 +174,8 @@ The battle with several parties is built with #55
     diesem Planeten halten bereits Flotten von 4 Spielern.“, „Bitte eine
     Haltezeit auswählen.“ and „Bitte auswählen, wer in der neuen Runde
     halten darf.“; a holding planet of a player in noob protection keeps
-    „Dieser Spieler steht unter Noobschutz.“.
+    „Dieser Spieler steht unter Noobschutz.“ (superseded by #440,
+    2026-11-27, 238c: a hold at a weak host is allowed).
 
 # The three decisions of 2026-11-19 (#55)
 
