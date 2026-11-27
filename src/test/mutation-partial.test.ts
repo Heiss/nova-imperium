@@ -1,4 +1,14 @@
-import { existsSync, globSync, readFileSync } from 'node:fs';
+import {
+  existsSync,
+  globSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   filesOf,
@@ -12,6 +22,7 @@ import {
   partPlanOf,
   partsOf,
   plan,
+  reportsIn,
   sources,
 } from '../../scripts/mutation-partial.ts';
 import { isMutated } from '../../scripts/mutation-changes.ts';
@@ -1050,62 +1061,152 @@ describe('partial mutation run: the command', () => {
     vi.unstubAllEnvs();
   });
 
-  it('merges the reports of the parts and writes the merged one', () => {
+  /** Writes the reports of the parts as download-artifact lays them out. */
+  const downloaded = (layout: Record<string, unknown>): string => {
+    const dir = mkdtempSync(join(tmpdir(), 'parts-'));
+    for (const [file, report] of Object.entries(layout)) {
+      mkdirSync(dirname(join(dir, file)), { recursive: true });
+      writeFileSync(join(dir, file), JSON.stringify(report));
+    }
+    return dir;
+  };
+  const ran = (mutate: string[]) => ({ config: { mutate }, files: {} });
+  /** merge with the real file system below <dir>, the stryker config faked. */
+  const mergeIn = (dir: string, plan: string, write = vi.fn()) => ({
+    code: main(['merge', 'out.json', dir], {
+      read: (file) =>
+        file === 'stryker.config.json'
+          ? JSON.stringify(stryker)
+          : readFileSync(file, 'utf8'),
+      write,
+      plan,
+    }),
+    write,
+  });
+
+  it('merges a single part whose report lies straight in the folder (one artifact, #370)', () => {
     const { log } = output();
-    const written: [string, string][] = [];
-    const part = (mutate: string[]): string =>
-      JSON.stringify({ config: { mutate }, files: {} });
-    const reports: Record<string, string> = {
-      'r/1.json': part(['src/a.ts']),
-      'r/2.json': part(['src/b.ts']),
-    };
-    const reads = (file: string): string => reports[file] ?? read(file);
-    expect(
-      main(['merge', 'out.json', 'r/1.json', 'r/2.json'], {
-        read: reads,
-        write: (f, t) => written.push([f, t]),
-        plan: '[["src/a.ts"],["src/b.ts"]]',
-      }),
-    ).toBe(0);
-    expect(written).toHaveLength(1);
-    expect(written[0]![0]).toBe('out.json');
-    expect(JSON.parse(written[0]![1])).toEqual({
-      config: { mutate: ['src/a.ts', 'src/b.ts'] },
+    const dir = downloaded({ 'mutation.json': ran(['src/a.ts']) });
+    const { code, write } = mergeIn(dir, '[["src/a.ts"]]');
+    expect(code).toBe(0);
+    expect(write).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(write.mock.calls[0]![1] as string)).toEqual({
+      config: { mutate: ['src/a.ts'] },
       files: {},
       thresholds: stryker.thresholds,
     });
     expect(log.mock.calls).toEqual([
+      ['1 reports of the parts merged into out.json.'],
+    ]);
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('merges the parts whose reports lie in a folder each (several artifacts)', () => {
+    const { log } = output();
+    const dir = downloaded({
+      'mutation-partial-part-1/mutation.json': ran(['src/a.ts']),
+      'mutation-partial-part-2/mutation.json': ran(['src/b.ts']),
+      'mutation-partial-part-2/other.json': { x: 1 },
+    });
+    const { code, write } = mergeIn(dir, '[["src/a.ts"],["src/b.ts"]]');
+    expect(code).toBe(0);
+    expect(write.mock.calls[0]![0]).toBe('out.json');
+    expect(JSON.parse(write.mock.calls[0]![1] as string).config).toEqual({
+      mutate: ['src/a.ts', 'src/b.ts'],
+    });
+    expect(log.mock.calls).toEqual([
       ['2 reports of the parts merged into out.json.'],
     ]);
+    rmSync(dir, { recursive: true, force: true });
   });
 
-  it('writes nothing and fails when a part is missing', () => {
+  it('writes nothing and fails when a report is missing', () => {
     const { log } = output();
-    const write = vi.fn();
-    const reads = (file: string): string =>
-      file === 'r/1.json'
-        ? JSON.stringify({ config: { mutate: ['src/a.ts'] }, files: {} })
-        : read(file);
-    expect(
-      main(['merge', 'out.json', 'r/1.json'], {
-        read: reads,
-        write,
-        plan: '[["src/a.ts"],["src/b.ts"]]',
-      }),
-    ).toBe(1);
+    const dir = downloaded({
+      'mutation-partial-part-1/mutation.json': ran(['src/a.ts']),
+    });
+    const { code, write } = mergeIn(dir, '[["src/a.ts"],["src/b.ts"]]');
+    expect(code).toBe(1);
     expect(write).not.toHaveBeenCalled();
     expect(log.mock.calls).toEqual([
-      ['::error::Partial mutation run: shard 2 has 0 reports'],
+      [
+        `::error::Partial mutation run: 1 reports below ${dir} (${join(dir, 'mutation-partial-part-1/mutation.json')}), the plan has 2 parts`,
+      ],
     ]);
+    rmSync(dir, { recursive: true, force: true });
   });
 
-  it('needs the merged file and at least one report', () => {
+  it('writes nothing and fails for a folder without any report', () => {
+    const { log } = output();
+    const dir = downloaded({});
+    const { code, write } = mergeIn(dir, '[["src/a.ts"]]');
+    expect(code).toBe(1);
+    expect(write).not.toHaveBeenCalled();
+    expect(log.mock.calls).toEqual([
+      [
+        `::error::Partial mutation run: 0 reports below ${dir} (none), the plan has 1 parts`,
+      ],
+    ]);
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('writes nothing and fails for an extra report', () => {
+    const { log } = output();
+    const dir = downloaded({
+      'mutation-partial-part-1/mutation.json': ran(['src/a.ts']),
+      'mutation-partial-part-2/mutation.json': ran(['src/a.ts']),
+    });
+    const { code, write } = mergeIn(dir, '[["src/a.ts"]]');
+    expect(code).toBe(1);
+    expect(write).not.toHaveBeenCalled();
+    expect(log.mock.calls[0]![0]).toMatch(
+      /^::error::Partial mutation run: 2 reports below .*, the plan has 1 parts$/,
+    );
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('keeps the check that each part ran exactly its files', () => {
+    const { log } = output();
+    const dir = downloaded({
+      'mutation-partial-part-1/mutation.json': ran(['src/a.ts']),
+      'mutation-partial-part-2/mutation.json': ran(['src/a.ts']),
+    });
+    const { code, write } = mergeIn(dir, '[["src/a.ts"],["src/b.ts"]]');
+    expect(code).toBe(1);
+    expect(write).not.toHaveBeenCalled();
+    expect(log.mock.calls).toEqual([
+      ['::error::Partial mutation run: shard 1 has 2 reports'],
+      ['::error::Partial mutation run: shard 2 has 0 reports'],
+    ]);
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('finds every mutation.json below a folder, at any depth, sorted', () => {
+    const dir = downloaded({
+      'b/mutation.json': {},
+      'a/deep/mutation.json': {},
+      'mutation.json': {},
+      'a/report.json': {},
+    });
+    expect(reportsIn(dir)).toEqual(
+      [
+        join(dir, 'a/deep/mutation.json'),
+        join(dir, 'b/mutation.json'),
+        join(dir, 'mutation.json'),
+      ].sort(),
+    );
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('needs the merged file and exactly one folder', () => {
     const { error } = output();
     expect(main(['merge'], { read })).toBe(1);
     expect(main(['merge', 'out.json'], { read })).toBe(1);
+    expect(main(['merge', 'out.json', 'a', 'b'], { read })).toBe(1);
     expect(error.mock.calls).toEqual([
-      ['Usage: mutation-partial.ts merge <out> <report>...'],
-      ['Usage: mutation-partial.ts merge <out> <report>...'],
+      ['Usage: mutation-partial.ts merge <out> <dir>'],
+      ['Usage: mutation-partial.ts merge <out> <dir>'],
+      ['Usage: mutation-partial.ts merge <out> <dir>'],
     ]);
   });
 
@@ -1115,10 +1216,10 @@ describe('partial mutation run: the command', () => {
     expect(main(['split'], {})).toBe(1);
     expect(error.mock.calls).toEqual([
       [
-        'Usage: mutation-partial.ts plan <from> [<to>] | parts | config <n> | merge <out> <report>...',
+        'Usage: mutation-partial.ts plan <from> [<to>] | parts | config <n> | merge <out> <dir>',
       ],
       [
-        'Usage: mutation-partial.ts plan <from> [<to>] | parts | config <n> | merge <out> <report>...',
+        'Usage: mutation-partial.ts plan <from> [<to>] | parts | config <n> | merge <out> <dir>',
       ],
     ]);
   });

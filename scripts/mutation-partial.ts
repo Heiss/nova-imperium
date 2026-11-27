@@ -41,14 +41,22 @@
 //        writes reports/stryker-partial.config.json for part n (1-based) of
 //        the plan in MUTATION_PLAN: the configuration of stryker.config.json
 //        with only its files, no incremental file and no break threshold
-//   node scripts/mutation-partial.ts merge <out> <report>...
-//        merges the reports of the parts into <out> and fails unless each
-//        part of the plan in MUTATION_PLAN ran exactly once with exactly its
-//        files, as the merge of the shards checks it; <out> names all files
-//        of the plan as the files Stryker ran, so that
-//        scripts/mutation-gate.ts --partial checks it as one run
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname } from 'node:path';
+//   node scripts/mutation-partial.ts merge <out> <dir>
+//        merges the reports of the parts, every mutation.json below <dir>
+//        (download-artifact puts a single artifact straight into <dir> and
+//        several into a folder each), into <out>; it fails unless there is
+//        one report per part of the plan in MUTATION_PLAN and each part ran
+//        exactly once with exactly its files, as the merge of the shards
+//        checks it; <out> names all files of the plan as the files Stryker
+//        ran, so that scripts/mutation-gate.ts --partial checks it as one run
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  writeFileSync,
+} from 'node:fs';
+import { dirname, join } from 'node:path';
 import { runCli } from './cli.ts';
 import {
   changedFiles,
@@ -261,6 +269,8 @@ export interface Deps {
   exists: (file: string) => boolean;
   read: (file: string) => string;
   write: (file: string, text: string) => void;
+  /** Every file named mutation.json below a directory, sorted. */
+  reports: (dir: string) => string[];
   files: string | undefined;
   plan: string | undefined;
 }
@@ -273,7 +283,20 @@ const real: Omit<Deps, 'files' | 'plan'> = {
     mkdirSync(dirname(file), { recursive: true });
     writeFileSync(file, text);
   },
+  reports: (dir) => reportsIn(dir),
 };
+
+/**
+ * Every file named mutation.json below <dir>, at any depth, sorted: one
+ * downloaded artifact lies straight in <dir>, several lie in a folder each
+ * (actions/download-artifact with a pattern, #370).
+ */
+export function reportsIn(dir: string): string[] {
+  return readdirSync(dir, { recursive: true, withFileTypes: true })
+    .filter((e) => e.isFile() && e.name === 'mutation.json')
+    .map((e) => join(e.parentPath, e.name))
+    .sort();
+}
 
 function planCommand([from, to = 'HEAD']: readonly string[], d: Deps): number {
   if (!from) {
@@ -366,12 +389,19 @@ export function mergeParts(
   };
 }
 
-function mergeCommand([out, ...inputs]: readonly string[], d: Deps): number {
-  if (!out || inputs.length === 0) {
-    console.error('Usage: mutation-partial.ts merge <out> <report>...');
+function mergeCommand([out, dir, ...rest]: readonly string[], d: Deps): number {
+  if (!out || !dir || rest.length > 0) {
+    console.error('Usage: mutation-partial.ts merge <out> <dir>');
     return 1;
   }
   const plan = partPlanOf(d.plan);
+  const inputs = d.reports(dir);
+  if (inputs.length !== plan.length) {
+    console.log(
+      `::error::Partial mutation run: ${inputs.length} reports below ${dir} (${inputs.join(', ') || 'none'}), the plan has ${plan.length} parts`,
+    );
+    return 1;
+  }
   const reports = inputs.map((f) => JSON.parse(d.read(f)) as Report);
   const { thresholds } = JSON.parse(d.read(STRYKER)) as StrykerConfig;
   const merged = mergeParts(plan, reports, thresholds);
@@ -402,7 +432,7 @@ export function main(
   if (command === 'config') return configCommand(rest, d);
   if (command === 'merge') return mergeCommand(rest, d);
   console.error(
-    'Usage: mutation-partial.ts plan <from> [<to>] | parts | config <n> | merge <out> <report>...',
+    'Usage: mutation-partial.ts plan <from> [<to>] | parts | config <n> | merge <out> <dir>',
   );
   return 1;
 }

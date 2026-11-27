@@ -681,7 +681,7 @@ jobs:
           pattern: mutation-partial-part-*
           path: reports/parts
       - name: Merge the reports of the parts
-        run: node scripts/mutation-partial.ts merge reports/mutation/mutation.json reports/parts/*/mutation.json
+        run: node scripts/mutation-partial.ts merge reports/mutation/mutation.json reports/parts
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
