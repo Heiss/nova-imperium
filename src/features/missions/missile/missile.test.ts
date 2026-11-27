@@ -183,13 +183,21 @@ describe('missile: vacation mode, highscore and a broken moon', () => {
     expect(ctx.planets.get('p1_1_5')!.def).toEqual({ ipm: 10 });
   });
 
-  it('keeps the missiles out of the defense category and counts them in the total (#78, #54)', () => {
+  it('counts the missiles in Militär and in the total (#422, 160a; #54)', () => {
     const { ctx } = setup();
     const before = categoryScores(ctx);
     const total = pointsMap(ctx);
     const home = ctx.planets.get('p1_1_5')!;
+    const had = { ipm: home.def.ipm ?? 0, abm: home.def.abm ?? 0 };
     ctx.planets.save({ ...home, def: { ...home.def, ipm: 410, abm: 200 } });
-    expect(categoryScores(ctx).u_Anna!.defense).toBe(before.u_Anna!.defense);
+    const after = categoryScores(ctx).u_Anna!;
+    expect(after.military.count).toBe(
+      before.u_Anna!.military.count + 410 - had.ipm + 200 - had.abm,
+    );
+    expect(after.military.points).toBeGreaterThan(
+      before.u_Anna!.military.points,
+    );
+    expect(after.economy).toEqual(before.u_Anna!.economy);
     expect(pointsMap(ctx).u_Anna!).toBeGreaterThan(total.u_Anna!);
   });
 

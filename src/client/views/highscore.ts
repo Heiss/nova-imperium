@@ -1,4 +1,5 @@
 import { mount, unmount } from 'svelte';
+import { highscoreOffered } from '../../core/highscore-categories.ts';
 import { highscorePage } from '../logic/highscore.ts';
 import type { V } from './common.ts';
 import Highscore from './Highscore.svelte';
@@ -23,5 +24,7 @@ export const clientViews = [
     mount: mountHighscore,
     anew: true,
     menu: { order: 110, label: 'Highscore' },
+    // Hidden with its menu entry while the highscore shows nothing (#422, 176a).
+    offered: highscoreOffered,
   },
 ] satisfies readonly ClientView[];

@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  isCoarse,
+  valueOf,
   placeCounts,
   playtimeMs,
   playtimePayload,
@@ -142,5 +144,28 @@ describe('the play time payload of the archive (#235 × #232)', () => {
   it('is a measured zero without time: empty lists', () => {
     expect(playtimePayload([], 1000)).toEqual({ methods: [], intervals: [] });
     expect(playtimeMs({ methods: [], intervals: [] })).toBe(0);
+  });
+});
+
+describe('the two shapes of a valuation (#422, 171b)', () => {
+  const legacy = { total: 9, buildings: 5, research: 1, fleet: 2, defense: 3 };
+  const coarse = {
+    total: 9,
+    economy: 6,
+    military: 4,
+    modes: { economy: 0, military: 1 } as const,
+  };
+
+  it('tells a record of #422 by its modes', () => {
+    expect(isCoarse(coarse)).toBe(true);
+    expect(isCoarse(legacy)).toBe(false);
+  });
+
+  it('gives the points of a category, 0 for one of the other shape', () => {
+    expect(valueOf(legacy, 'fleet')).toBe(2);
+    expect(valueOf(coarse, 'military')).toBe(4);
+    expect(valueOf(coarse, 'total')).toBe(9);
+    expect(valueOf(legacy, 'economy')).toBe(0);
+    expect(valueOf(coarse, 'buildings')).toBe(0);
   });
 });

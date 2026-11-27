@@ -50,6 +50,36 @@ describe('guilds', () => {
     expect(guildState(ctx, founder.id, {}).management?.pending).toEqual([]);
   });
 
+  it('lists the members by name without points while the highscore shows nothing (#422, 182a)', () => {
+    const ctx = testCtx();
+    const founder = addUser(ctx, 'Zora');
+    const member = addUser(ctx, 'Ben');
+    runAction(ctx, founder.id, {
+      type: 'createGuild',
+      name: 'Outer Rim',
+      tag: 'or',
+    });
+    const id = guildState(ctx, founder.id, {}).own!.id;
+    runAction(ctx, member.id, { type: 'applyToGuild', id });
+    runAction(ctx, founder.id, {
+      type: 'reviewGuildApplication',
+      uid: member.id,
+      accept: true,
+    });
+    expect(guildState(ctx, founder.id, null).directory).toEqual([
+      {
+        id,
+        tag: 'OR',
+        name: 'Outer Rim',
+        html: '',
+        members: [
+          { id: member.id, name: 'Ben' },
+          { id: founder.id, name: 'Zora' },
+        ],
+      },
+    ]);
+  });
+
   it('supports rejecting and withdrawing applications, leadership transfer, and leaving', () => {
     const ctx = testCtx();
     const a = addUser(ctx, 'Anna');

@@ -1,6 +1,8 @@
-// The rule page „Highscore“ (#288, #78): the categories and how they count
-// their points. The numbers come from `src/core/points.ts`; the words are a
-// draft of Claude for the owner to check ([V], #288).
+// The rule page „Highscore“ (#288, #78, #422): the categories and how they
+// count their points. The numbers come from `src/core/points.ts`; the words
+// are a draft of Claude for the owner to check ([V], #288; the categories of
+// #422 as drafted for the owner, 2026-11-26, 172b: „Entwurf zur Prüfung
+// durch den Owner“).
 import { POINT_COST, pointsOf } from '../../points.ts';
 import { formulas, number, say, section, table } from '../say.ts';
 import type { PageDef, PageSection } from '../types.ts';
@@ -10,7 +12,7 @@ const pointsSection = (): PageSection =>
     'points',
     'So zählen die Punkte',
     say(
-      'Die Highscore kennt mehrere Wertungen, und jeder Spieler sieht jede: Gesamt, Gebäude, Forschung, Flotte und Verteidigung. Gebäude, Verteidigung und die Gesamtwertung zählen einen Punkt je {cost} Rohstoffe, die in sie gesteckt sind, abgerundet. Die Forschung zählt einen Punkt je erforschter Stufe und die Flotte einen Punkt je Schiff, ganz gleich, was es gekostet hat, auch Sonnenreliquiare. Die Wertungen ergeben zusammen nicht die Gesamtwertung. Reißt du eine Stufe ab, sinken deine Punkte um die Kosten dieser Stufe.',
+      'Die Highscore kennt drei Wertungen, und jeder Spieler sieht jede: Gesamt, Wirtschaft und Militär. Die Gesamtwertung zählt einen Punkt je {cost} Rohstoffe, die in Gebäude, Forschung, Schiffe und Verteidigung gesteckt sind, abgerundet. Ob Wirtschaft und Militär nach Anzahl oder nach verbauten Rohstoffen zählen, stellt der Admin ein. Reißt du eine Stufe ab, sinken deine Punkte um die Kosten dieser Stufe.',
       { cost: number(POINT_COST) },
     ),
     formulas({
@@ -28,17 +30,22 @@ const pointsSection = (): PageSection =>
           'Gesamt',
           `ein Punkt je ${number(POINT_COST)} Rohstoffe in Gebäuden, Forschung, Schiffen und Verteidigung`,
         ],
-        ['Gebäude', `ein Punkt je ${number(POINT_COST)} Rohstoffe in Gebäuden`],
-        ['Forschung', 'ein Punkt je erforschter Stufe'],
-        ['Flotte', 'ein Punkt je Schiff'],
         [
-          'Verteidigung',
-          `ein Punkt je ${number(POINT_COST)} Rohstoffe in Verteidigung`,
+          'Wirtschaft',
+          `Gebäude- und Forschungsstufen und Sonnenreliquiare: je Stück einen Punkt oder ein Punkt je ${number(POINT_COST)} verbaute Rohstoffe`,
+        ],
+        [
+          'Militär',
+          `Schiffe, Verteidigungsanlagen und Raketen: je Stück einen Punkt oder ein Punkt je ${number(POINT_COST)} verbaute Rohstoffe`,
         ],
       ],
     ),
     say(
       'Die Gesamtwertung entscheidet über den [[rule-protection|Noobschutz]].',
+    ),
+    // The owner's sentence (2026-11-26, 181a, #422).
+    say(
+      'Der Admin kann die Highscore auf die Gesamtwertung beschränken oder ganz ausschalten.',
     ),
   );
 

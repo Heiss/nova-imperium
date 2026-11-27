@@ -73,6 +73,58 @@ describe('the passes of the highscore (#405)', () => {
     expect(passHolds(at(9, 0), at(8, 59), 3)).toBe(false);
   });
 
+  it('has the settings of Wirtschaft and Militär, by number by default (#422, 166a, 167a)', () => {
+    const choices = [
+      { value: 0, label: 'Anzahl' },
+      { value: 1, label: 'Rohstoffen' },
+    ];
+    expect(roundSettings.slice(2)).toEqual([
+      {
+        kind: 'number',
+        key: 'roundHighscoreEconomy',
+        name: 'highscoreEconomy',
+        label: 'Wirtschaft zählt nach',
+        order: 490,
+        min: 0,
+        max: 1,
+        def: 0,
+        choices,
+        live: true,
+      },
+      {
+        kind: 'number',
+        key: 'roundHighscoreMilitary',
+        name: 'highscoreMilitary',
+        label: 'Militär zählt nach',
+        order: 500,
+        min: 0,
+        max: 1,
+        def: 0,
+        choices,
+        live: true,
+      },
+    ]);
+  });
+
+  it('has the setting „Highscore zeigt“, every category by default (#422, 175a, 181a)', () => {
+    expect(roundSettings[1]).toEqual({
+      kind: 'number',
+      key: 'roundHighscoreShows',
+      name: 'highscoreShows',
+      label: 'Highscore zeigt',
+      order: 485,
+      min: 0,
+      max: 2,
+      def: 0,
+      choices: [
+        { value: 0, label: 'alle Wertungen' },
+        { value: 1, label: 'nur Gesamt' },
+        { value: 2, label: 'nichts' },
+      ],
+      live: true,
+    });
+  });
+
   it('keeps a live pass 10 s', () => {
     expect(LIVE_MS).toBe(10_000);
     const t = at(12, 0);

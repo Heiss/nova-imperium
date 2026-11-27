@@ -39,7 +39,7 @@ import type { ClientFleet, Players, Report } from './types.ts';
 export function ranks(players: Players): Record<string, number> {
   const out: Record<string, number> = {};
   Object.entries(players)
-    .sort((a, b) => b[1].points - a[1].points)
+    .sort((a, b) => (b[1].points ?? 0) - (a[1].points ?? 0))
     .forEach(([id], i) => (out[id] = i + 1));
   return out;
 }

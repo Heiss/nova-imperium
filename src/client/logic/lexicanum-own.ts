@@ -9,7 +9,7 @@ import type { V } from '../views/common.ts';
 /** The own state the personal parts of a page are computed from. */
 export function ownState(v: V): Own {
   const me = v.s.me.id;
-  const points = Object.values(v.s.players).map((p) => p.points);
+  const points = Object.values(v.s.players).map((p) => p.points ?? 0);
   return {
     planet: v.P,
     // A moon is no planet of the limit; every planet has an owner.
