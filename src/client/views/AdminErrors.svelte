@@ -4,6 +4,7 @@
   // paging of the event log, and the download of a ZIP for a time range
   // (default: the last 7 days). From errorsPage() of logic/admin-panels.ts;
   // what was loaded and typed is the state of logic/admin-panels.svelte.ts.
+  import { lockedSubmit } from '../logic/act-lock.ts';
   import { errorsPage } from '../logic/admin-panels.ts';
   import {
     downloadErrorRange,
@@ -33,10 +34,7 @@
   id="errors-download"
   class="flex"
   oninput={(e) => (panels.range = fieldsOf(e.currentTarget))}
-  onsubmit={(event) => {
-    event.preventDefault();
-    void downloadErrorRange();
-  }}
+  onsubmit={lockedSubmit(() => downloadErrorRange())}
 >
   <label
     >Zeitraum von

@@ -7,8 +7,9 @@
 import { pairOf } from '../../core/market.ts';
 import { amountOf, fixed, marketOf, maxAmount } from '../logic/market.ts';
 import { draft } from '../logic/market-form.svelte.ts';
+import { runLocked } from '../logic/act-lock.ts';
 import { client } from '../logic/state.svelte.ts';
-import type { ClientFeature } from './contract.ts';
+import type { ClientCtx, ClientFeature } from './contract.ts';
 
 /** The market of the shown planet, or null while no state is shown. */
 const current = () =>
@@ -18,22 +19,11 @@ const current = () =>
 export const clientFeature = {
   listen: ({ act, refresh }) => {
     document.addEventListener('submit', (e) => {
-      if ((e.target as HTMLFormElement).id !== 'marketform') return;
+      const form = e.target as HTMLFormElement;
+      if (form.id !== 'marketform') return;
       e.preventDefault();
-      const d = fixed(draft);
-      const m = current();
-      const pair = pairOf(d.give, d.get);
-      void act('trade', {
-        give: d.give,
-        get: d.get,
-        amount: amountOf(d.amount),
-        // The price the player sees in the preview (#406).
-        price: m && pair ? m.prices[pair] : 0,
-      }).then(async (done) => {
-        if (done) draft.amount = '';
-        // A refusal, a changed price above all: the form shows the price now.
-        else await refresh();
-      });
+      // Locked while it runs, like every form (#428).
+      void runLocked(form, () => trade(act, refresh));
     });
   },
   acts: () => ({
@@ -43,3 +33,24 @@ export const clientFeature = {
     },
   }),
 } satisfies ClientFeature;
+
+/** The trade of the form, at the price the player sees. */
+function trade(
+  act: ClientCtx['act'],
+  refresh: ClientCtx['refresh'],
+): Promise<void> {
+  const d = fixed(draft);
+  const m = current();
+  const pair = pairOf(d.give, d.get);
+  return act('trade', {
+    give: d.give,
+    get: d.get,
+    amount: amountOf(d.amount),
+    // The price the player sees in the preview (#406).
+    price: m && pair ? m.prices[pair] : 0,
+  }).then(async (done) => {
+    if (done) draft.amount = '';
+    // A refusal, a changed price above all: the form shows the price now.
+    else await refresh();
+  });
+}

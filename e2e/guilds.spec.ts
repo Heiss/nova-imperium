@@ -2,7 +2,9 @@
 // handing over the lead, leaving and removing a member (#68).
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import {
+  countActions,
   guildTag,
+  holdActions,
   lastToast,
   nav,
   register,
@@ -35,6 +37,29 @@ test('creates a guild and restores its profile after reload', async ({
     page.locator('strong', { hasText: 'Gemeinsam ins All' }),
   ).toBeVisible();
   await expect(page.getByRole('cell', { name, exact: true })).toBeVisible();
+  expect(w.problems).toEqual([]);
+});
+
+test('a double click on „Gilde gründen“ founds one guild and shows no error (#428)', async ({
+  page,
+}) => {
+  const w = watch(page);
+  const tag = guildTag('D');
+  await register(page, uniqueName('Doppelt'));
+  await nav(page, 'guilds');
+  await page.getByLabel('Kürzel').fill(tag);
+  await page.getByLabel('Name', { exact: true }).fill(`Doppel ${tag}`);
+  const sent = countActions(page, 'createGuild');
+  // Held at the network, so the second submit comes before the answer.
+  const held = await holdActions(page, 'createGuild');
+  await page.getByRole('button', { name: 'Gilde gründen' }).dblclick();
+  await held.release();
+  await expect(page).toHaveURL(/view=guilds&guild=/);
+  await expect(
+    page.getByRole('heading', { name: `[${tag}] Doppel ${tag}` }),
+  ).toBeVisible();
+  expect(await sent.sent()).toBe(1);
+  await expect(page.locator('.toast.err')).toHaveCount(0);
   expect(w.problems).toEqual([]);
 });
 
