@@ -4,7 +4,7 @@
 // mark of what is new there. Pure, so the components Menu.svelte,
 // TabBar.svelte and MoreList.svelte only render what this module computes.
 import type { Ui } from '../views/common.ts';
-import { menu, type MenuEntry, phoneMenu } from '../views/index.ts';
+import { menu, MENU_HINTS, type MenuEntry, phoneMenu } from '../views/index.ts';
 import { offered } from '../views/offered.ts';
 import { catalogKind } from './catalog-list.ts';
 import { unread } from './game.ts';
@@ -52,7 +52,7 @@ export function navigation(
 ): Navigation {
   // The one mark of „Nachrichten“ counts the reports and the private messages (#226).
   const fresh = unread(state.reports, state.me.readAt) + privateUnread(state);
-  const hints = menuHints(state, completed, fresh);
+  const hints = menuHints(MENU_HINTS, state, completed, fresh);
   const news = newsHint(ui.news, ui.newsSeen);
   if (news) hints.set('news', news);
   const link = (entry: MenuEntry): NavLink => ({
