@@ -58,7 +58,7 @@ description: 'A pull request mutates only what it changes: when the jobs start, 
   `mutate` globs that it changes and for the source of each test file it
   changes, in one job „Mutation tests (changed files)“ without shards
   (since #370 in parts of about 12 files, below). The
-  complete run in 12 shards (6 until 2026-11-20) stays for pushes to `main` and `hotfix/**`,
+  complete run in 12 shards (6 until 2026-11-20) stays for pushes to `hotfix/**` (to `main` until #370),
   the pull requests into a hotfix branch and the
   nightly run, with their caches, weights and plan state (the release pull
   requests ran it too until #387; the pushes to `main` until #370, since

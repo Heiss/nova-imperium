@@ -44,6 +44,8 @@ description: 'When a push to main or a hotfix branch skips a job that succeeded 
   another workflow, a red, cancelled or running run, a different tree, an answer of another shape and every error of the API prove nothing,
   and so does a failure of the step itself (it writes no proof then, and only
   the five proof lines reach the outputs). Each job is proven on its own.
+  The mutation jobs of a push to `main` are the exception since #370: they
+  do not run without a proof either (200a, below).
 * **[V]** The job „Detect changes“ gets `actions: read` and
   `pull-requests: read` besides `contents: read` and `checks: read`. On a
   push it checks out its own commit, the folder `scripts/` only, and runs the
