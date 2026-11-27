@@ -167,9 +167,11 @@ when the second built on the first.
   request, turned into floors by `node scripts/mutation-floors.ts
   <report.json>`, which never lowers a floor (`okf/ops/testing.md`).
   `node scripts/mutation-gate.ts --update` is gone.
-* **[E]** Finished features are bundled into one pull request; at most four
-  own pull requests are open, and the queue is drained before new work
-  starts.
+* **[E]** Finished features are no longer bundled into one pull request
+  (owner, 2026-11-27, 204b, the retrospective of 26.11.28): one issue is one
+  pull request, at most four own pull requests are open, and the queue is
+  drained before new work starts. Bundling stays allowed for small patches
+  only.
 * **[E]** A pull request runs the mutation tests of its changed files only;
   the complete run stays in the nightly run and in the release pull
   request (#309). Unit tests and E2E stay complete in every pull request.
