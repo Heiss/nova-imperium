@@ -127,7 +127,9 @@ when the second built on the first.
   `mount`). `mount.ts`, `index.ts` and `main.ts` are not edited; the list
   `views.gen.ts` is generated, a view key, a menu number or a tab number that
   exists twice stops the start, and `src/client/views/registry.test.ts`
-  checks the rules for all (#317).
+  checks the rules for all (#317). The mark of its menu entry is `hint: {
+  mark: ({ state, unread }) => …, join? }` on the same entry, the function
+  in `src/client/logic/` (#426).
 * Stop after two failed attempts at the same problem and report.
 * A new E2E test goes into the spec of its feature, `e2e/<feature>.spec.ts`
   (a new file for a new feature), never into a collecting file; new seed

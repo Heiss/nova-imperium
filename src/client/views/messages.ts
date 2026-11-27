@@ -1,3 +1,4 @@
+import { messagesHint } from '../logic/menu-hints.ts';
 import { mount, unmount } from 'svelte';
 import { writable } from 'svelte/store';
 import type { V } from './common.ts';
@@ -23,6 +24,7 @@ function mountMessages(target: HTMLElement, initial: V) {
 export const clientViews = [
   {
     key: 'messages',
+    hint: { mark: ({ unread }) => messagesHint(unread) },
     mount: mountMessages,
     menu: { order: 100, label: 'Nachrichten' },
     glyph: glyph(
