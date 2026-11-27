@@ -141,6 +141,24 @@ pull request.
   `closed` of `trade`), and the state still carries the prices. The closed
   notice of `marketPage` stays for a state without prices; in the game the
   view is not mounted while the market is off.
+* **[E]** The Handelsposten while the market is off (#442; owner,
+  2026-11-27, 226b, 227b): a special rule of this building, no general
+  mechanism. It is not listed under „Gebäude“, and its next level cannot be
+  ordered; the server refuses the order with „Der Marktplatz ist in dieser
+  Runde geschlossen.“ ([V], `CLOSED`, the code `off` of `buildErrors`).
+  Built levels stay and can be demolished, with the refund of the
+  demolition. With the market on again, the building and its levels are
+  back. **[V]** The built levels keep counting for the points. **[V]** Its
+  Lexicanum article follows the page „Marktplatz“: not listed, found or
+  linked while the market is off (`opens` of `logic/lexicanum.ts`).
+  **[V]** A level already in the build queue when the market is switched
+  off finishes as ordered, like a running level of the Kolonialverwaltung
+  (its rule is asked only at the start of a level); „Abbrechen“ with the
+  refund stays possible.
+  * The one place of the rule is `tradingPostOffered` in `src/core/market.ts`
+    (and `tradingPostOfferedIn` for the universe, whose live rows carry
+    `roundMarketOn`). With the Börse (#386, 245a) it becomes „the
+    marketplace or the Börse is open“.
 * **[V]** Existing universes start with the market on and the defaults;
   nobody has a Handelsposten there yet.
 
