@@ -115,6 +115,12 @@ when the second built on the first.
   migration that rewrites the CHECK of `guild_rank_rights.right_key`:
   `src/server/db/guild-rights-check.test.ts` fails without one (#426, 192a).
   Its German label is a decided text, never invented.
+* A new line of the overview cards „Achtung“ or „Bereit“ is an entry
+  `{ card, order, lines }` of `overviewLines` in a file of
+  `src/client/logic/overview-cards/`, with an unused order between its
+  neighbours in the card; `overview-cards.ts` is not edited (the list
+  `lines.gen.ts` is generated, a card and an order that exist twice stop the
+  start, #426).
 * A new push kind is an entry `{ key, order, label, guild? }` of
   `pushTopics` in a file of `src/core/push-topics/`, with an unused order
   between its neighbours in the options; `src/core/push.ts` and the options
@@ -134,7 +140,9 @@ when the second built on the first.
   `mount`). `mount.ts`, `index.ts` and `main.ts` are not edited; the list
   `views.gen.ts` is generated, a view key, a menu number or a tab number that
   exists twice stops the start, and `src/client/views/registry.test.ts`
-  checks the rules for all (#317).
+  checks the rules for all (#317). The mark of its menu entry is `hint: {
+  mark: ({ state, unread }) => …, join? }` on the same entry, the function
+  in `src/client/logic/` (#426).
 * Stop after two failed attempts at the same problem and report.
 * A new E2E test goes into the spec of its feature, `e2e/<feature>.spec.ts`
   (a new file for a new feature), never into a collecting file; new seed
