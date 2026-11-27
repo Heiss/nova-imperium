@@ -35,6 +35,9 @@ the muffelblog bundle whose rules this project follows:
   ogame.fandom.com is the second source. A value counts as classic when the
   owiki page dates it before 1.0 (owner, 2026-11-12).
 * **[E]** No premium, no paid boosts.
+* **[E]** Every feature outside the core gets an on/off switch per round, so
+  a round can be played with the classic rules alone or with new features
+  (owner, 2026-11-27, see [A switch for every feature](/ops/feature-switches.md)).
 * **[E]** Scope: the core (planets, resources, buildings, research, shipyard,
   defense, galaxy, attacks, espionage, transports and [colonization](/features/colonization.md)).
 * **[E]** Universe of version 1: speed x5, 2 galaxies × 50 systems × 15
