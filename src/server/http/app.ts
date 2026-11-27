@@ -24,6 +24,12 @@ import {
   savePushSubscription,
   vapidKeys,
 } from '../web-push.ts';
+import {
+  type ActionKeys,
+  actionKeys,
+  freshState,
+  keyOf,
+} from './action-keys.ts';
 import { actionLimit, type ActionLimit } from './action-limit.ts';
 import { RateLimiter } from './rate-limit.ts';
 import { clientIp, cookies, readJson } from './request.ts';
@@ -412,17 +418,21 @@ function actionReply(ctx: Ctx, u: User, call: Call): Reply {
       ok: true,
       msg: answer.msg,
       ...(answer.data ? { data: answer.data } : {}),
-      state: stateFor(
-        ctx,
-        ctx.players.get(u.id)!,
-        call.body.planet,
-        pmOpenOf(call.body),
-        // The system of the open Sternenkarte (151a).
-        call.body.galaxy,
-      ),
+      state: actionState(ctx, u, call),
     },
   };
 }
+
+/** The state an action answers with, for the place the request shows. */
+const actionState = (ctx: Ctx, u: User, call: Call) =>
+  stateFor(
+    ctx,
+    ctx.players.get(u.id)!,
+    call.body.planet,
+    pmOpenOf(call.body),
+    // The system of the open Sternenkarte (151a).
+    call.body.galaxy,
+  );
 
 /**
  * The actions that ask for the password (#224): limited per address like
@@ -435,6 +445,7 @@ function gameRoutes(
   d: AppDeps,
   guard: Guard,
   actions: ActionLimit,
+  keys: ActionKeys,
 ): Record<string, Handler> {
   const { ctx } = d;
   return {
@@ -469,15 +480,24 @@ function gameRoutes(
     'POST /api/action': (call) => {
       // String() like runAction, so `["abandon"]` is limited too.
       if (PASSWORD_ACTIONS.has(String(call.body.type))) guard(call.req);
-      // Per account; every action counts, refused ones too (#328).
       const user = sessionUserOf(ctx, call);
-      actions.check(user, call.requestId);
-      return actionReply(ctx, user, call);
+      // A repeat of a kept key runs nothing and is not counted (#450, 6A).
+      return keys.once(
+        user.id,
+        keyOf(call.req),
+        () => {
+          // Per account; every action counts, refused ones too (#328).
+          actions.check(user, call.requestId);
+          return actionReply(ctx, user, call);
+        },
+        (reply) => freshState(reply, () => actionState(ctx, user, call)),
+      );
     },
     ...adminRoutes(
       d,
       (call) => sessionUserOf(ctx, call),
       (call, u) => invite(d, u, call.body.email, call.requestId),
+      keys,
     ),
   };
 }
@@ -677,11 +697,12 @@ export function createApp(d: AppDeps): {
   );
   const guard = limitGuard(limiter, d.cfg);
   const actions = actionLimit(d.ctx);
+  const keys = actionKeys(d.ctx.now);
   const errors = errorRoutes(d, (call) => sessionUserOf(d.ctx, call));
   const table = Object.entries({
     ...accountRoutes(d, guard),
     ...authenticatorRoutes(d, guard, (call) => sessionUserOf(d.ctx, call)),
-    ...gameRoutes(d, guard, actions),
+    ...gameRoutes(d, guard, actions, keys),
     ...pushRoutes(d),
     ...errors.routes,
     ...countedPlaytime(d, actions),
@@ -691,6 +712,7 @@ export function createApp(d: AppDeps): {
     sweep: () => {
       limiter.sweep();
       actions.sweep();
+      keys.sweep();
       errors.sweep();
       security.purgeAccountTokens(d.ctx);
       passkeys.purgePasskeyChallenges(d.ctx);

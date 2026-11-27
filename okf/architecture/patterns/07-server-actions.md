@@ -60,3 +60,35 @@ description: 'Server actions as commands, their checks in pure functions of the 
   refuses a number used twice); `live: true` also puts it into the universe
   settings (X1). The rules are in
   [Admin](/features/admin.md#the-registry-of-the-round-settings-283).
+
+## A repeated action runs once (#450)
+
+* **[E]** The server ensures by itself that a repeated action runs only
+  once, in its own issue on `main`, with #408 (v3) building on it (owner,
+  2026-11-27, 292a). The locks in the browser (#425, #428) stay.
+* **[V]** The key: `createApi` (`src/client/logic/transport.ts`) makes one
+  key per call with a body, `crypto.randomUUID()`, and sends it in the header
+  `Idempotency-Key`, the same on its own resend after a busy database. A
+  header, not a body field, because actions have a body field `key` of their
+  own (`pct`, `tearDownMissiles`).
+* **[V]** The check: `once` of `src/server/http/action-keys.ts`, keyed by the
+  player and the key, after the session and before the handler, wraps
+  `POST /api/action` (game, guild and admin actions) and the admin writes
+  (`/api/admin/{invite, revoke, announce, moderate, moon, bot-check,
+  totp-reset}`). Sign-in, registration, passkeys and passwords are not
+  wrapped.
+* **[V]** Kept in memory per player for 60 s, at most 50 keys per player (the
+  oldest goes first), swept on access and with the app's sweep; a restart
+  forgets them. Kept are only final outcomes: an answer below 500 or a
+  refusal of the game. A busy database (503 `ACTION_DB_BUSY`), a server
+  error, a missing session and every other failure are forgotten, so a
+  resend runs again.
+* **[V]** A repeat gets the outcome of the first run, an answer with a
+  `state` with the state of now (`freshState`); it runs no handler, writes
+  no audit entry, records no activity and is not counted against the limit
+  of actions. A repeat of a run still in progress (the invitation awaits its
+  mail) waits for it.
+* **[V]** A request without a key, or with an invalid one (not 1 to 64
+  letters, digits or dashes), runs as before, the transition until the key
+  is required (#408). No new German text: a repeat shows the answer of the
+  first.

@@ -7,6 +7,7 @@ import { createInvitation } from '../auth.ts';
 import type { Mail } from '../mail.ts';
 import { addPlanet, addUser } from '../test-helpers.ts';
 import { asAdmin, start } from '../../test/http.ts';
+import { actionKeys } from './action-keys.ts';
 import { adminRoutes } from './admin.ts';
 import { COOKIE, type AppDeps } from './app.ts';
 
@@ -1083,6 +1084,7 @@ describe('the admin routes of an admin in vacation mode (#223, owner, 2026-11-18
         () => ({
           json: {},
         }),
+        actionKeys(s.ctx.now),
       ),
     );
 

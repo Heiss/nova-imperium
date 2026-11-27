@@ -1,7 +1,9 @@
 // The transport of the client (#118, package 8; formerly in main.ts): every
 // call to the server goes through `api()`. A 401 ends the session, a
 // maintenance answer shows the banner, and a busy database is tried once
-// more for an action. The browser, the banner and the error log are handed
+// more for an action. Every call with a body carries a key of its own in the
+// header `Idempotency-Key`, the same on its resend, so the server runs a
+// repeated request once (#450). The browser, the banner and the error log are handed
 // in, so the rules are tested without a page.
 import { apiFailure, type ClientError, failedCall } from './error-report.ts';
 import { maintenanceNotice } from './maintenance.ts';
@@ -40,6 +42,8 @@ export interface TransportDeps {
   /** The id the server gave this request, for „Problem melden“. */
   requestId: (id: string) => void;
   wait: (ms: number) => Promise<void>;
+  /** A new key for one call with a body (#450): `crypto.randomUUID()`. */
+  key: () => string;
 }
 
 type Body = Record<string, unknown>;
@@ -63,11 +67,17 @@ function apiError(response: Response, error: unknown): ApiError {
 export function createApi(
   deps: TransportDeps,
 ): (url: string, body?: unknown, retryBusy?: boolean) => Promise<Body> {
-  async function request(url: string, body?: unknown): Promise<Response> {
+  async function request(
+    url: string,
+    body: unknown,
+    key: string | undefined,
+  ): Promise<Response> {
     try {
       return await deps.fetch(url, {
         method: body ? 'POST' : 'GET',
-        headers: body ? { 'content-type': 'application/json' } : {},
+        headers: key
+          ? { 'content-type': 'application/json', 'idempotency-key': key }
+          : {},
         body: body ? JSON.stringify(body) : undefined,
         credentials: 'same-origin',
       });
@@ -77,12 +87,13 @@ export function createApi(
     }
   }
 
-  async function api(
+  async function call(
     url: string,
-    body?: unknown,
-    retryBusy = true,
+    body: unknown,
+    retryBusy: boolean,
+    key: string | undefined,
   ): Promise<Body> {
-    const r = await request(url, body);
+    const r = await request(url, body, key);
     const id = r.headers.get('x-request-id');
     if (id) deps.requestId(id);
     const j = (await r
@@ -100,7 +111,8 @@ export function createApi(
     if (r.status === 401) deps.signedOut(j.error);
     if (isRetryableAction(r, j, retryBusy)) {
       await deps.wait(RETRY_AFTER_MS);
-      return api(url, body, false);
+      // The same key: the server runs the action once whatever arrives.
+      return call(url, body, false, key);
     }
     if (!r.ok) {
       if (failedCall(r.status))
@@ -109,5 +121,7 @@ export function createApi(
     }
     return j;
   }
-  return api;
+  // One key per call with a body, made before the first try.
+  return (url, body, retryBusy = true) =>
+    call(url, body, retryBusy, body ? deps.key() : undefined);
 }

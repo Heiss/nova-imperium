@@ -14,4 +14,5 @@ export const api = createApi({
   signedOut,
   requestId: (id) => void (client.ui.lastRequestId = id),
   wait: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+  key: () => crypto.randomUUID(),
 });
