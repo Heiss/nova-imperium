@@ -145,7 +145,12 @@ test('„Wache stellen“ off turns a guard home and hides the mission (#440)', 
   cli('admin', host);
   try {
     await page.reload();
+    await nav(page, 'help');
+    await expect(page.getByLabel('Keine Wachen annehmen')).toHaveCount(1);
     await switchHold(page, '0');
+    // The option „Keine Wachen annehmen“ is hidden while it is off.
+    await nav(page, 'help');
+    await expect(page.getByLabel('Keine Wachen annehmen')).toHaveCount(0);
     await nav(pg, 'fleet');
     await pg.reload();
     await nav(pg, 'messages');
