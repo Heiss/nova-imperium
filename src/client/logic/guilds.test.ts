@@ -79,6 +79,42 @@ const onGuild = (p: GuildsPageResult): GuildPage => {
   return p;
 };
 
+describe('a guild while the highscore shows nothing (#422, 182a)', () => {
+  const pointless = (): Guild => ({
+    ...guild(),
+    members: guild().members.map(({ id, name }) => ({ id, name })),
+    score: undefined,
+    average: undefined,
+  });
+
+  it('lists the guilds without the columns of the points', () => {
+    const p = page(
+      'u_x',
+      [],
+      { directory: [pointless()], own: null, ranks: null, management: null },
+      { shown: null },
+    );
+    if (p.kind !== 'directory') throw new Error('not the directory');
+    expect(p.points).toBe(false);
+    expect(p.rows[0]).toMatchObject({ score: null, average: null });
+  });
+
+  it('shows the members without points and no sums', () => {
+    const p = onGuild(
+      page('u_x', [], {
+        directory: [pointless()],
+        own: null,
+        ranks: null,
+        management: null,
+      }),
+    );
+    expect(p.score).toBeNull();
+    expect(p.average).toBeNull();
+    expect(p.roster.points).toBe(false);
+    expect(p.roster.rows.map((r) => r.points)).toEqual([null, null, null]);
+  });
+});
+
 describe('the directory', () => {
   it('lists every guild with its link, and a form for a player without one', () => {
     const p = page(
@@ -91,6 +127,7 @@ describe('the directory', () => {
     );
     expect(p).toEqual({
       kind: 'directory',
+      points: true,
       rows: [
         {
           id: 'g1',
@@ -142,6 +179,8 @@ describe('the directory', () => {
     expect(none).toEqual({
       kind: 'directory',
       rows: [],
+      // No guild: no points to show.
+      points: false,
       create: { edit: false, tag: '', name: '', description: '' },
     });
   });
@@ -208,6 +247,7 @@ describe('the members', () => {
     );
     expect(p.roster).toEqual({
       ranked: false,
+      points: true,
       rows: [
         {
           id: 'u_lea',

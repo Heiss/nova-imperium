@@ -7,7 +7,12 @@
 // points of its two players (`exactPoints`), the archive of a round a fresh
 // pass. [V] The pass is kept in the memory of the server: a restart makes a
 // new one at the first reader.
-import { BUILD, FIGHTERS, RES, SHIPS, UNIT } from '../../core/catalog.ts';
+import { BUILD, RES } from '../../core/catalog.ts';
+import {
+  addUnits,
+  type CategoryTally,
+  type Tally,
+} from '../../core/highscore-categories.ts';
 import { passHolds, roundSettings } from '../../core/highscore-passes.ts';
 import { pointsOf } from '../../core/points.ts';
 import { settle, settleR } from '../../core/settle.ts';
@@ -15,23 +20,19 @@ import type { Levels } from '../../core/types.ts';
 import { type Ctx, universe } from './context.ts';
 import { sumLevels } from '../../core/economy.ts';
 
-/** The categories of the highscore besides the total (#78). */
-interface CategoryScores {
-  buildings: number;
-  research: number;
-  fleet: number;
-  defense: number;
+/** A category in both of its modes (#422): by number and by points. */
+interface CategoryValue {
+  /** „Anzahl“: pieces and levels. */
+  count: number;
+  /** „Rohstoffe“: the resources spent, 1 point per 1,000. */
+  points: number;
 }
 
-/** The resources in units: what their costs sum to. */
-const unitValue = (units: Levels, defs: typeof UNIT): number => {
-  let s = 0;
-  for (const [k, n] of Object.entries(units)) {
-    const d = defs[k];
-    if (d) s += (d.cost[0] + d.cost[1] + d.cost[2]) * n;
-  }
-  return s;
-};
+/** Wirtschaft and Militär of a player (#422, core/highscore-categories.ts). */
+export interface CategoryScores {
+  economy: CategoryValue;
+  military: CategoryValue;
+}
 
 /** The resources in the levels of buildings or research. */
 const levelValue = (have: Levels, defs: typeof BUILD | typeof RES): number => {
@@ -48,45 +49,40 @@ export interface ScorePass {
   categories: Record<string, CategoryScores>;
 }
 
-/**
- * The units that fight: a missile does not, and counts only in the total
- * (#54, okf/features/highscore-categories.md).
- */
-const DEFENSE: typeof UNIT = Object.fromEntries(
-  Object.keys(FIGHTERS).map((k) => [k, UNIT[k]!]),
-);
-
+/** The levels of `have` over the entries of `defs`. */
 const count = (have: Levels, defs: Record<string, unknown>): number => {
   let n = 0;
   for (const k of Object.keys(defs)) n += have[k] ?? 0;
   return n;
 };
 
-interface Raw {
-  value: number;
-  scores: CategoryScores;
-}
+const tally = (): Tally => ({ count: 0, value: 0 });
+
+const valueOf = (t: Tally): CategoryValue => ({
+  count: t.count,
+  points: pointsOf(t.value),
+});
 
 /**
  * One pass now, over every player or only the players of `only`: each
- * planet is settled once for the total and the categories.
+ * planet is settled once for the total and the categories. The total is
+ * all resources spent / 1,000, as before (#422: Gesamt unchanged); it is the
+ * resources of Wirtschaft and Militär together.
  */
 export function scorePass(ctx: Ctx, only?: ReadonlySet<string>): ScorePass {
   const t = ctx.now();
   const u = universe(ctx);
   const takes = (id: string): boolean => !only || only.has(id);
-  const raw: Record<string, Raw> = {};
+  const raw: Record<string, CategoryTally> = {};
   for (const user of ctx.players.all()) {
     if (!takes(user.id)) continue;
     const research = settleR(user, t).research;
     raw[user.id] = {
-      value: levelValue(research, RES),
-      scores: {
-        buildings: 0,
-        research: count(research, RES),
-        fleet: 0,
-        defense: 0,
+      economy: {
+        count: count(research, RES),
+        value: levelValue(research, RES),
       },
+      military: tally(),
     };
   }
   // Every planet and fleet has an owner (foreign keys of the database).
@@ -96,27 +92,22 @@ export function scorePass(ctx: Ctx, only?: ReadonlySet<string>): ScorePass {
   for (const p of planets) {
     const s = settle(p, t, u);
     const r = raw[p.owner]!;
-    const buildings = levelValue(s.b, BUILD);
-    r.value += buildings + unitValue({ ...s.ships, ...s.def }, UNIT);
-    r.scores.buildings += buildings;
-    r.scores.fleet += count(s.ships, SHIPS);
-    r.scores.defense += unitValue(s.def, DEFENSE);
+    r.economy.count += count(s.b, BUILD);
+    r.economy.value += levelValue(s.b, BUILD);
+    addUnits(r, { ...s.ships, ...s.def });
   }
-  // Missiles in flight count in the total until their impact (#54, owiki).
+  // Ships and missiles in flight count until they are back or hit (#54, owiki).
   for (const f of ctx.fleets.all()) {
     const r = raw[f.owner];
-    if (!r) continue;
-    r.value += unitValue(f.ships, UNIT);
-    r.scores.fleet += count(f.ships, SHIPS);
+    if (r) addUnits(r, f.ships);
   }
   const total: Record<string, number> = {};
   const categories: Record<string, CategoryScores> = {};
   for (const [id, r] of Object.entries(raw)) {
-    total[id] = pointsOf(r.value);
+    total[id] = pointsOf(r.economy.value + r.military.value);
     categories[id] = {
-      ...r.scores,
-      buildings: pointsOf(r.scores.buildings),
-      defense: pointsOf(r.scores.defense),
+      economy: valueOf(r.economy),
+      military: valueOf(r.military),
     };
   }
   return { at: t, total, categories };

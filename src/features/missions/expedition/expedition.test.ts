@@ -814,16 +814,16 @@ describe('what an expedition meets', () => {
       ]);
     });
 
-    it('lands the ships on the planet with the fleet, and counts them for the fleet score', () => {
+    it('lands the ships on the planet with the fleet, and counts them for Militär', () => {
       const { ctx } = world();
-      const before = categoryScores(ctx).u_Anna!.fleet;
+      const before = categoryScores(ctx).u_Anna!.military.count;
       ctx.rng = queue(0, 0.5, 0.99, 0, 0.99);
       expedition(ctx, stayed(ctx, { lc: 10 }), {
         kind: 'ships',
         size: 'normal',
       });
-      // The ten ships away count for the fleet (#78) and now four more.
-      expect(categoryScores(ctx).u_Anna!.fleet).toBe(before + 10 + 4);
+      // The ten ships away count for Militär (#422) and now four more.
+      expect(categoryScores(ctx).u_Anna!.military.count).toBe(before + 10 + 4);
       const back = ctx.fleets.get('f1')!;
       ctx.clock.t = back.ret;
       comeHome(ctx, back);
@@ -1272,10 +1272,10 @@ describe('an expedition and the other rules of the game', () => {
     expect(ctx.planets.get('p1_1_5')!.ships.lc).toBe(100 + 10);
   });
 
-  it('counts the ships of an expedition for the fleet score while it is away (#78)', () => {
+  it('counts the ships of an expedition for Militär while it is away (#422)', () => {
     const { ctx } = world();
-    const before = categoryScores(ctx).u_Anna!.fleet;
+    const before = categoryScores(ctx).u_Anna!.military;
     go(ctx);
-    expect(categoryScores(ctx).u_Anna!.fleet).toBe(before);
+    expect(categoryScores(ctx).u_Anna!.military).toEqual(before);
   });
 });

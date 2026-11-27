@@ -59,7 +59,7 @@ okf_version: "0.2"
 * [Activity indicators](/features/activity-indicators.md) - activity per planet and inactivity per account in the Sternenkarte, set by a login and manual actions (v0.77b), classic thresholds per round (#229)
 * [Missiles](/features/missiles.md) - silo, anti-ballistic and interplanetary missiles with classic values (#54)
 * [Expeditions and position 16](/features/expeditions.md) - Expeditionstechnik, outcomes, slots and holding time, debris at position 16 (#93)
-* [Highscore categories](/features/highscore-categories.md) - buildings, research, fleet, defense and total; fleet and research by count (#78)
+* [Highscore categories](/features/highscore-categories.md) - Gesamt, Wirtschaft and Militär, by number or by resources (#422; the four of #78 before)
 * [Round archive, reports and history](/features/round-archive.md) - the archive of an ended round written at the close, reports, history across rounds, the thin Runden-Rewind (#235)
 * [Demolition of buildings](/features/demolition.md) - one level per order, refund factor −100 % to +100 % and time share per round (#202)
 * [Surveying free positions](/features/survey.md) - the mission „Vermessung“ with Spähschädel, the research „Auspex-Kartographie“, report tiers, loss and the values fixed for the colony (#190)

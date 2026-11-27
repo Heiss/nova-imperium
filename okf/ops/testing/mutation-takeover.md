@@ -35,11 +35,13 @@ description: 'Which files start the mutation jobs, and when a pull request takes
   `typescript`, the check of #146). Other files from `main`
   (documentation, `okf/`, other tests, other code) do not block. This
   replaces „no file the pull request changes“ and lifts „no test file“
-  of the first decision. The push run of `main` and the nightly complete
-  run still test everything. Risk: a change from `main` can change the
+  of the first decision. The nightly complete run still tests everything
+  (the push run of `main` did too until #370, which runs no mutation job on
+  a push to `main`). Risk: a change from `main` can change the
   result of the pull request's code without touching its files (a shared
   helper, another test, a mutation configuration the pull request leaves
-  alone); the push run of `main` after the merge finds it.
+  alone); the nightly complete run after the merge finds it (until #370 the
+  push run of `main`).
 
 * **[E]** The takeover happens once in a row (owner, 2026-11-13, #167): a
   head that took over a result has a skipped „Mutation tests“, so the
@@ -57,3 +59,8 @@ description: 'Which files start the mutation jobs, and when a pull request takes
   on its head commit, not on the merge commit `refs/pull/N/merge`
   (checked on #165: „Mutation tests“ of head `666a75d` from the run of
   event `pull_request`). The first run in a pull request proves the token.
+
+* **[E]** Every push to a pull request mutates all files it changes against
+  `main`; there is no takeover of files from an earlier head beyond #167
+  (owner, 2026-11-26, #370, 191a). The takeover of #167 applies to the
+  complete run only, the partial run in parts runs again on every head.

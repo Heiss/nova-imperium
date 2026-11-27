@@ -221,7 +221,7 @@ test('a guild with the longest tag and name stays within a 360 px phone (#274) @
   expect(wo.problems).toEqual([]);
 });
 
-test('the highscore stays within a 360 px phone with the largest numbers, in every category (#78, #189) @phone', async ({
+test('the highscore stays within a 360 px phone with the largest numbers, in every category (#422, #189) @phone', async ({
   page,
 }) => {
   const w = watch(page);
@@ -243,13 +243,7 @@ test('the highscore stays within a 360 px phone with the largest numbers, in eve
   await page.goto('/?view=highscore');
   await expect(page.locator('.scores tr.me td').nth(1)).toHaveText(name);
   const found: string[] = [];
-  for (const category of [
-    'Gesamt',
-    'Gebäude',
-    'Forschung',
-    'Flotte',
-    'Verteidigung',
-  ]) {
+  for (const category of ['Gesamt', 'Wirtschaft', 'Militär']) {
     await page.getByRole('button', { name: category }).click();
     await expect(page.getByRole('button', { name: category })).toHaveAttribute(
       'aria-pressed',

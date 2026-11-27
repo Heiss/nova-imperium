@@ -10,14 +10,16 @@ beforeEach(() => {
 describe('the categories of the Bestenliste', () => {
   it('shows the category of the button and renders without dropping drafts', () => {
     const ctx = fakeCtx();
-    clientFeature.acts(ctx).highscore({ cat: 'research' });
-    expect(client.ui.highscore).toBe('research');
+    clientFeature.acts(ctx).highscore({ cat: 'military' });
+    expect(client.ui.highscore).toBe('military');
     expect(ctx.render).toHaveBeenCalledExactlyOnceWith();
   });
 
-  it('falls back to the total for a name it does not know', () => {
-    client.ui.highscore = 'research';
-    clientFeature.acts(fakeCtx()).highscore({ cat: 'nonsense' });
-    expect(client.ui.highscore).toBe('total');
+  it('falls back to the total for a name it does not know, also an old category (#422)', () => {
+    for (const cat of ['nonsense', 'research']) {
+      client.ui.highscore = 'economy';
+      clientFeature.acts(fakeCtx()).highscore({ cat });
+      expect(client.ui.highscore).toBe('total');
+    }
   });
 });

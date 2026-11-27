@@ -12,7 +12,9 @@ description: 'Stryker mutation tests, the score that blocks, static mutants, the
   head before, #167; the release pull request of `main` ran it
   completely in its full run, #147, until #387: since then a release pull
   request runs no mutation job) and on
-  pushes to `main` (unchanged code keeps its cached result),
+  pushes to `main` (unchanged code keeps its cached result; until #370,
+  since then a push to `main` runs no mutation job and pull requests mutate
+  only their changed files unless the last nightly run is red or missing),
   complete every night (owner, 2026-11-11). Tag workflows verify the
   earlier CI result.
 
@@ -42,7 +44,8 @@ description: 'Stryker mutation tests, the score that blocks, static mutants, the
   about 12 to 15 minutes; with 6 the measured times give about 41.5
   mutant-minutes per job, about 12 to 16 minutes; 8 would gain nothing,
   because the largest piece of `catalog.ts` alone weighs 40): pull
-  requests and pushes to `main` (incremental) and the nightly run
+  requests and pushes to `main` (incremental; pushes to `main` until #370)
+  and the nightly run
   (complete); the release pull request (complete) until #387. A script splits the mutated files by their
   estimated run time, heaviest first onto the emptiest job (since #141
   every file stays on its job, below): the test time of their mutants in
@@ -82,7 +85,7 @@ description: 'Stryker mutation tests, the score that blocks, static mutants, the
 * **[E]** More shards and a split that does not trust a missing weight
   (owner, 2026-11-20, #309, #321; the owner decided both): the complete
   runs, in `mutation.yml` (nightly and „Run workflow“) and in the sharded
-  job of `ci.yml` (pull requests above 12 changed files, the release pull
+  job of `ci.yml` (pull requests above 12 changed files until #370, the release pull
   request until #387, #321), run in 12 shards instead of 6, and the plan weighs a file
   without a weight by the rule below. The change does not touch which tests
   run, a floor or the gate (the owner rejected changing the tests). Why:
@@ -108,7 +111,7 @@ description: 'Stryker mutation tests, the score that blocks, static mutants, the
   change: a previous plan of another number of shards is not used (`settle`),
   so every file goes by its weight; the caches of the shards 1 to 6 are
   pruned to the new files of their shard (`config`) and the shards 7 to 12
-  start without one, so an incremental run (a push to `main`) tests most
+  start without one, so an incremental run (then a push to `main`) tests most
   mutants once; a complete run is not affected. Twelve shard jobs run next
   to the other jobs of a pull request: where the account allows fewer
   concurrent jobs the rest waits in the queue. [U]

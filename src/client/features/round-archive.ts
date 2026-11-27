@@ -7,12 +7,12 @@
 import type { ActionArgs, ActionName } from '../../core/actions.ts';
 import {
   archive,
+  archiveCategory,
   closeText,
   deleteText,
   forgetArchive,
   needsLoad,
 } from '../logic/round-archive.ts';
-import { highscoreCategory } from '../logic/highscore.ts';
 import { resetRewind } from '../logic/round-rewind.svelte.ts';
 import { client } from '../logic/state.svelte.ts';
 import type { ClientCtx, ClientFeature, Data } from './contract.ts';
@@ -144,7 +144,7 @@ export const clientFeature = {
       ...adminActs(ctx),
       ...rewindActs(ctx),
       roundCat: (d) => {
-        archive.category = highscoreCategory(d.cat);
+        archive.category = archiveCategory(d.cat);
         ctx.render();
       },
       roundClose: async () => {

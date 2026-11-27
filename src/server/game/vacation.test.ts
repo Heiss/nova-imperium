@@ -1201,18 +1201,20 @@ describe('the state', () => {
       u_Anna: {
         name: 'Anna',
         points: 19,
-        scores: { buildings: 19, research: 0, fleet: 0, defense: 0 },
+        // metal 12 by number (#422: Anzahl by default)
+        scores: { economy: 12, military: 0 },
         vacation: true,
       },
       u_Bert: {
         name: 'Bert',
         points: 71,
-        scores: { buildings: 8, research: 0, fleet: 18, defense: 0 },
+        // metal 10; lf 10, sc 5 and probe 3 by number
+        scores: { economy: 10, military: 18 },
       },
       u_Carl: {
         name: 'Carl',
         points: 0,
-        scores: { buildings: 0, research: 0, fleet: 0, defense: 0 },
+        scores: { economy: 0, military: 0 },
       },
     };
     // The same list for every player who is not in vacation mode.

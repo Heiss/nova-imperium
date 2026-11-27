@@ -433,6 +433,18 @@ describe('a foreign planet', () => {
     expect(rowAt(v, 8).planet).toMatchObject({ protected: false });
   });
 
+  it('shows no rank while the highscore shows nothing, and keeps the (n) (#422, 182a, 179a)', () => {
+    const v = view({
+      galaxy: [place('planet', 6, 'u2')],
+      listed: { g: 1, s: 2, owners: ['u2'] },
+    });
+    expect(rowAt(v, 6).planet!.rank).toBe('3');
+    const none = { ...v, s: { ...v.s, round: { highscoreShows: 2 } } } as V;
+    expect(rowAt(none, 6).planet).toMatchObject({ rank: '', protected: true });
+    const total = { ...v, s: { ...v.s, round: { highscoreShows: 1 } } } as V;
+    expect(rowAt(total, 6).planet!.rank).toBe('3');
+  });
+
   it('marks no noob protection before the list of the shown system is there (151a)', () => {
     const galaxy = [place('planet', 6, 'u2')];
     // Bert has a tenth of Anna's stored points, but no list came yet.
