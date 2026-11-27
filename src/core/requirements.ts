@@ -157,9 +157,11 @@ const RESEARCH_WAITS: Readonly<Partial<Record<ResearchError, string>>> = {
 function refusedHere(
   errors: readonly string[],
   kind: Planet['kind'],
+  build: boolean,
 ): string | null {
   if (errors.includes('place')) return PLACE_REASON[kind];
-  return errors.includes('off') ? CLOSED : null;
+  // Only a building: the list never names a research the round does not have.
+  return build && errors.includes('off') ? CLOSED : null;
 }
 
 /**
@@ -184,7 +186,7 @@ export function needState(n: Need, pl: Places): NeedState {
   const errors: readonly string[] = build
     ? buildErrors(p, pl.research, n.key, pl.cfg, n.have)
     : researchErrors(p, pl.research, n.key, pl.cfg, n.have);
-  const refused = refusedHere(errors, p.kind);
+  const refused = refusedHere(errors, p.kind, build);
   if (refused) return { ...base, reason: refused };
   if (errors.includes('locked'))
     return {

@@ -191,6 +191,13 @@ describe('need state', () => {
     expect(needState(need('market', 'b'), on)).toMatchObject({ ready: true });
   });
 
+  it('names no refusal for a research the round does not have, as before (#442)', () => {
+    const h = home({ b: { lab: 1 }, res: { m: 1e9, c: 1e9, d: 1e9 } });
+    expect(needState(need('colonial', 'r'), places(h, R()))).not.toMatchObject({
+      reason: 'Der Marktplatz ist in dieser Runde geschlossen.',
+    });
+  });
+
   it('names the missing requirements of the next level', () => {
     const h = home({ res: { m: 1e6, c: 1e6, d: 1e6 } });
     expect(needState(need('yard', 'b'), places(h, R()))).toMatchObject({
