@@ -161,6 +161,12 @@ describe('the hints of the own state', () => {
       );
     expect(near(1)).toContain('near-market');
     expect(near(0)).not.toContain('near-market');
+    // The other steps stay: as many as with it, the next one moves up.
+    const steps = (ids: string[]) =>
+      ids.filter((id) => typeof id === 'string' && id.startsWith('near-'));
+    expect(steps(near(0))).toHaveLength(steps(near(1)).length);
+    expect(steps(near(1))).toHaveLength(3);
+    expect(near(0).every((id) => typeof id === 'string')).toBe(true);
   });
 
   it('does not name a building the shown place cannot hold', () => {
