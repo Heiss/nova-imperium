@@ -17,7 +17,7 @@ const mountAchievements = keptMount(Achievements, achievementsPage);
 export const clientViews = [
   {
     key: 'achievements',
-    hint: ({ state }) => rewardHint(state),
+    hint: { mark: ({ state }) => rewardHint(state) },
     mount: mountAchievements,
     fresh: true,
     // The rewards only while achievements or daily rewards are on.

@@ -36,13 +36,16 @@ export function rewardHint(state: GameState): string | undefined {
 /** A mark of a menu entry with its view (views/index.ts, MENU_HINTS, #426). */
 export interface ViewHint {
   view: string;
-  hint: (source: { state: GameState; unread: number }) => string | undefined;
+  hint: {
+    mark: (source: { state: GameState; unread: number }) => string | undefined;
+    join?: boolean;
+  };
 }
 
 /**
  * The marks of the menu (#426): the completed upgrades, orders and flights,
- * and the mark of every view that has one, joined with „ · “ to a completed
- * text of the same view. Only „Flotte“ has both (completions.ts).
+ * and the mark of every view that has one. A mark replaces a completed text
+ * of its view, or, with `join`, follows it after „ · “ („Flotte“).
  */
 export function menuHints(
   hints: readonly ViewHint[],
@@ -52,9 +55,9 @@ export function menuHints(
 ): Map<string, string> {
   const marks = new Map(completed);
   for (const { view, hint } of hints) {
-    const mark = hint({ state, unread });
+    const mark = hint.mark({ state, unread });
     if (!mark) continue;
-    const done = marks.get(view);
+    const done = hint.join ? marks.get(view) : undefined;
     marks.set(view, done ? `${done} · ${mark}` : mark);
   }
   return marks;

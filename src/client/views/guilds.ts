@@ -48,7 +48,7 @@ export const adminChatDialog = (
 export const clientViews = [
   {
     key: 'guilds',
-    hint: ({ state }) => guildHint(state),
+    hint: { mark: ({ state }) => guildHint(state) },
     mount: mountGuilds,
     // The guild the page shows (#163).
     address: ['guild'],

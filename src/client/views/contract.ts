@@ -38,17 +38,21 @@ export interface MenuItem {
 }
 
 /** What the mark of a menu entry is computed from (#426). */
-export interface HintSource {
+interface HintSource {
   state: GameState;
   /** The unread reports and private messages. */
   unread: number;
 }
 
 /**
- * The mark of a menu entry: a short line, or nothing. It joins a completed
- * upgrade, order or flight of the same view with „ · “ (#426).
+ * The mark of a menu entry (#426): `mark` gives a short line, or nothing. It
+ * replaces a completed upgrade, order or flight of the same view, or, with
+ * `join`, follows it after „ · “ (only „Flotte“, as before #426).
  */
-export type Hint = (source: HintSource) => string | undefined;
+export interface Hint {
+  mark: (source: HintSource) => string | undefined;
+  join?: boolean;
+}
 
 /** The place of a view in the bottom tab bar of a phone. */
 export interface Tab {

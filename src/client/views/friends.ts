@@ -13,7 +13,7 @@ const mountFriends = keptMount(Friends, friendsPage);
 export const clientViews = [
   {
     key: 'friends',
-    hint: ({ state }) => friendsHint(state),
+    hint: { mark: ({ state }) => friendsHint(state) },
     mount: mountFriends,
     fresh: true,
     menu: { order: 130, label: 'Freunde' },

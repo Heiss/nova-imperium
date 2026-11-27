@@ -24,7 +24,7 @@ function mountMessages(target: HTMLElement, initial: V) {
 export const clientViews = [
   {
     key: 'messages',
-    hint: ({ unread }) => messagesHint(unread),
+    hint: { mark: ({ unread }) => messagesHint(unread) },
     mount: mountMessages,
     menu: { order: 100, label: 'Nachrichten' },
     glyph: glyph(

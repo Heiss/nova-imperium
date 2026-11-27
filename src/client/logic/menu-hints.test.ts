@@ -163,3 +163,36 @@ it('marks „Freunde“ while requests to the player are open (#227)', () => {
     false,
   );
 });
+
+it('lets a mark replace a completed text of its view, and „Flotte“ follow it (#426)', () => {
+  const state = {
+    me: { id: 'me' },
+    round: { achievements: false, daily: false },
+    fleets: [{ owner: 'enemy', state: 'out' }],
+    guilds: { chat: { unread: true } },
+  } as unknown as GameState;
+  const marks = menuHints(
+    MENU_HINTS,
+    state,
+    new Map([
+      ['fleet', 'Die Flotte kehrt heim'],
+      ['guilds', 'Fertig'],
+      ['research', 'Forschung fertig'],
+    ]),
+    0,
+  );
+  expect(Object.fromEntries(marks)).toEqual({
+    fleet: 'Die Flotte kehrt heim · Anfliegende Flotte',
+    guilds: 'Neue Nachrichten im Gilden-Chat',
+    research: 'Forschung fertig',
+  });
+  // Without a mark the completed text stays as it is.
+  expect(
+    menuHints(
+      MENU_HINTS,
+      { ...state, fleets: [], guilds: undefined } as unknown as GameState,
+      new Map([['fleet', 'Die Flotte kehrt heim']]),
+      0,
+    ).get('fleet'),
+  ).toBe('Die Flotte kehrt heim');
+});

@@ -17,7 +17,7 @@ const mountFleet = keptMount(Fleet, fleetPage);
 export const clientViews = [
   {
     key: 'fleet',
-    hint: ({ state }) => incomingHint(state),
+    hint: { mark: ({ state }) => incomingHint(state), join: true },
     mount: mountFleet,
     fresh: true,
     menu: { order: 80, label: 'Flotte', divider: true },
