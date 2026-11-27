@@ -8,7 +8,7 @@ import { PROTECTION_RATIO } from '../../protection.ts';
 import { facts, number, percent, say, section } from '../say.ts';
 import type { PageDef } from '../types.ts';
 
-export const page: PageDef = {
+const page: PageDef = {
   id: 'faq-defend',
   kind: 'question',
   title: 'Wie schütze ich mich vor Angriffen?',
@@ -51,3 +51,6 @@ export const page: PageDef = {
     ),
   ],
 };
+
+// Its place on the start page of the Lexicanum (#426).
+export const lexiconPage = { order: 320, page };

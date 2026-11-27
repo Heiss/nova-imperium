@@ -266,7 +266,7 @@ const slotsSection = (s: LexState): PageSection =>
     },
   );
 
-export const page: PageDef = {
+const page: PageDef = {
   id: 'rule-flight',
   kind: 'rule',
   title: 'Flug und Treibstoff',
@@ -281,3 +281,6 @@ export const page: PageDef = {
     slotsSection(s),
   ],
 };
+
+// Its place on the start page of the Lexicanum (#426).
+export const lexiconPage = { order: 30, page };

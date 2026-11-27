@@ -182,7 +182,7 @@ const impactSection = (): PageSection =>
     ),
   );
 
-export const page: PageDef = {
+const page: PageDef = {
   id: 'rule-missiles',
   kind: 'rule',
   title: 'Raketen',
@@ -206,3 +206,6 @@ export const page: PageDef = {
   ],
   sections: (s) => [siloSection(), launchSection(s), impactSection()],
 };
+
+// Its place on the start page of the Lexicanum (#426).
+export const lexiconPage = { order: 90, page };

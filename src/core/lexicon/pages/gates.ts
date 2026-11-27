@@ -57,7 +57,7 @@ const scanSection = (): PageSection =>
     }),
   );
 
-export const page: PageDef = {
+const page: PageDef = {
   id: 'rule-gates',
   kind: 'rule',
   title: 'Warp-Tor und Auspex-Phalanx',
@@ -66,3 +66,6 @@ export const page: PageDef = {
   seeAlso: ['jumpgate', 'phalanx', 'moonbase', 'rule-moons', 'rule-allies'],
   sections: (s) => [jumpSection(), cooldownSection(s), scanSection()],
 };
+
+// Its place on the start page of the Lexicanum (#426).
+export const lexiconPage = { order: 60, page };

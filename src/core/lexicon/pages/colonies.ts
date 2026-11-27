@@ -133,7 +133,7 @@ const mainSection = (s: LexState): PageSection =>
     ),
   );
 
-export const page: PageDef = {
+const page: PageDef = {
   id: 'rule-colonies',
   kind: 'rule',
   title: 'Kolonien und Planetengrenze',
@@ -153,3 +153,6 @@ export const page: PageDef = {
     mainSection(s),
   ],
 };
+
+// Its place on the start page of the Lexicanum (#426).
+export const lexiconPage = { order: 80, page };

@@ -9,7 +9,7 @@ import { marketOpen, type MarketRound } from '../../market.ts';
 import { facts, percent, say, section } from '../say.ts';
 import type { PageDef } from '../types.ts';
 
-export const page: PageDef = {
+const page: PageDef = {
   id: 'faq-resources',
   kind: 'question',
   title: 'Wie komme ich an mehr Rohstoffe?',
@@ -59,3 +59,6 @@ export const page: PageDef = {
     ),
   ],
 };
+
+// Its place on the start page of the Lexicanum (#426).
+export const lexiconPage = { order: 310, page };

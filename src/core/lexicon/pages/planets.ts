@@ -146,7 +146,7 @@ const demolishSection = (s: LexState): PageSection =>
     ),
   );
 
-export const page: PageDef = {
+const page: PageDef = {
   id: 'rule-planets',
   kind: 'rule',
   title: 'Planeten und Felder',
@@ -155,3 +155,6 @@ export const page: PageDef = {
   seeAlso: ['terraformer', 'deut', 'rule-colonies', 'rule-moons'],
   sections: (s) => [fieldsSection(s), positionSection(s), demolishSection(s)],
 };
+
+// Its place on the start page of the Lexicanum (#426).
+export const lexiconPage = { order: 70, page };

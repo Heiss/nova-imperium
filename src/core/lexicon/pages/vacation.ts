@@ -44,7 +44,7 @@ const endSection = (s: LexState): PageSection =>
     }),
   );
 
-export const page: PageDef = {
+const page: PageDef = {
   id: 'rule-vacation',
   kind: 'rule',
   title: 'Urlaubsmodus',
@@ -53,3 +53,6 @@ export const page: PageDef = {
   seeAlso: ['rule-protection', 'rule-vision'],
   sections: (s) => [enterSection(), duringSection(), endSection(s)],
 };
+
+// Its place on the start page of the Lexicanum (#426).
+export const lexiconPage = { order: 160, page };

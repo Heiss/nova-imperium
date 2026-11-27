@@ -8,7 +8,7 @@ import type { Block, PageDef } from '../types.ts';
 
 const NAMES = { m: 'Adamant', c: 'Psikristall', d: 'Promethium' } as const;
 
-export const page: PageDef = {
+const page: PageDef = {
   id: 'faq-mine',
   kind: 'question',
   title: 'Warum fördert meine Mine weniger als angegeben?',
@@ -66,3 +66,6 @@ export const page: PageDef = {
     ];
   },
 };
+
+// Its place on the start page of the Lexicanum (#426).
+export const lexiconPage = { order: 300, page };

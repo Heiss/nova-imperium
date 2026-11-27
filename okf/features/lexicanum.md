@@ -167,7 +167,17 @@ their own.
   before the Kogitator-Doktrin for „Flottenslot“.
 * **[V]** Code: a page is a `PageDef` in its own file under
   `src/core/lexicon/pages/` (id, kind, title, one line, keywords, links,
-  `sections(state)`), listed in `pages/index.ts` (a guard checks the folder);
+  `sections(state)`). Since #426 (owner, 2026-11-26, 193b) it registers
+  itself: the file ends with `export const lexiconPage = { order: 190, page
+  };`, and `scripts/gen-features.ts` lists every file of the folder that
+  exports `lexiconPage` in `pages/pages.gen.ts` (not checked in);
+  `pages/index.ts` names no page and sorts them by `order` ([V]: the order
+  of the start page as before #426, in steps of ten, rules 10 to 240,
+  questions 250 to 320, guides 330 to 370; a new page takes an unused order
+  between its neighbours, in steps of ten where there is room, for example
+  245 between 240 and 250), and an order or an address
+  defined twice stops the start with both files named. A guard still checks
+  that every file of the folder is listed;
   the builders are in `src/core/lexicon/say.ts` (`say`, `formulas`, `table`,
   `facts`, `steps`), `state.ts` holds the default state of the review list.
   A text block carries its values (`values`), so its words hold no digit and

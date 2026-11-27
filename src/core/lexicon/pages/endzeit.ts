@@ -53,7 +53,7 @@ const levelsSection = (): PageSection =>
     table('Forschung', ['Forschung', 'Stufe'], rows(giftLevels().r)),
   );
 
-export const page: PageDef = {
+const page: PageDef = {
   id: 'rule-endzeit',
   kind: 'rule',
   title: 'Endzeit',
@@ -62,3 +62,6 @@ export const page: PageDef = {
   seeAlso: ['rule-universe', 'mission-deploy'],
   sections: (s) => [giftSection(s), levelsSection()],
 };
+
+// Its place on the start page of the Lexicanum (#426).
+export const lexiconPage = { order: 220, page };
