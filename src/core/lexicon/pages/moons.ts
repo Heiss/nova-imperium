@@ -50,13 +50,15 @@ const diameterBlocks = () => [
     'Der Durchmesser des neuen Mondes wird ausgelost und fällt im Mittel größer aus, wenn die Chance hoch war. Die Tabelle zeigt die kleinsten und größten Monde, die bei einer Chance möglich sind.',
   ),
   formulas({
-    text: 'Durchmesser in km = ⌊√(x + 3 · Chance) · 1.000⌋, mit x ausgelost von 10 bis 20',
-    fn: (chance, x) => Math.floor(Math.sqrt(x! + 3 * chance!) * 1000),
+    text: 'Durchmesser in km = ⌊√(x + 3 · Chance) · 1.000⌋, mit x ausgelost von 10 bis 20 und der Chance höchstens 20',
+    fn: (chance, x) =>
+      Math.floor(Math.sqrt(x! + 3 * Math.min(chance!, 20)) * 1000),
     rule: (chance, x) => moonDiameter(chance!, () => (x! - 9.5) / 11),
     samples: [
       [1, 10],
       [5, 15],
       [20, 20],
+      [100, 20],
     ],
   }),
   table(

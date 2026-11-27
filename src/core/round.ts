@@ -93,6 +93,11 @@ export interface RoundNumber<N extends string = string> extends Common<N> {
   refusal?: string;
   /** Named values instead of a number field (each lies in the range). */
   choices?: readonly { value: number; label: string }[];
+  /**
+   * The step of the number field (default 1). Only the field takes it; the
+   * server checks a step with `agrees` and words it with `refusal` (#433, 218a).
+   */
+  step?: number;
   /** Also a row of the universe settings, changed during the round (X1). */
   live?: true;
   /**

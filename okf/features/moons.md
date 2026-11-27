@@ -24,6 +24,10 @@ model of places (#119, O11) and fields (#51, [Planet fields](/features/fields.md
   both round settings of the admin: „Mondchance höchstens (%)“ (211), 1 to
   100 (208a), default 20; „Rohstoffe je 1 % Mondchance“ ([V], accepted with
   211), 10,000 to 1,000,000 in steps of 10,000 (212a), default 100,000.
+  The step is the setting's own check (`agrees`) with its own refusal
+  „Rohstoffe je 1 % Mondchance: ganze Zahl von 10.000 bis 1.000.000 in
+  Schritten von 10.000.“, and the field has the step 10,000 (owner,
+  2026-11-27, 218a; `step` of a number entry, field only).
   The defaults give the chance of before. In the Endzeit of the first round
   no moon formed despite huge battles, which the owner found
   counter-intuitive.
@@ -35,7 +39,10 @@ model of places (#119, O11) and fields (#51, [Planet fields](/features/fields.md
   (owner, 2026-11-13). It decides the destruction chance of #95.
 * **[E]** For the diameter the chance counts at most up to 20 (#433, 209a):
   moons stay as big as before, also above 20 %, and the Mondbruch keeps
-  working; `breakChance` is unchanged.
+  working; `breakChance` is unchanged. The Lexikon formula reads
+  „Durchmesser in km = ⌊√(x + 3 · Chance) · 1.000⌋, mit x ausgelost von 10
+  bis 20 und der Chance höchstens 20“, its table keeps 1, 5, 10 and 20 %
+  (owner, 2026-11-27, 219a).
 * **[E]** Fields: a moon starts with 1 field, every Mondzitadelle level adds
   3 and takes one itself, without an upper limit (owner, 2026-11-13; the
   diameter limit was removed in v0.77c).

@@ -85,6 +85,53 @@ const round = {
   days: 12,
 } as unknown as RoundRules;
 
+describe('the step of a number field (#433, 218a)', () => {
+  it('is the step of the setting in „Neue Runde“, none without one', () => {
+    const stepped = [
+      make({
+        kind: 'number',
+        name: 'per',
+        label: 'Je',
+        min: 10,
+        max: 100,
+        def: 20,
+        step: 10,
+      }),
+      make({
+        kind: 'number',
+        name: 'days',
+        label: 'Tage',
+        min: 1,
+        max: 9,
+        def: 2,
+      }),
+    ];
+    const { rows } = roundDialogPage(
+      { number: 1, per: 30, days: 3 } as unknown as RoundRules,
+      stepped,
+    );
+    expect(rows.map((r) => r.kind === 'field' && r.field)).toEqual([
+      {
+        kind: 'number',
+        id: 'round-per',
+        label: 'Je',
+        min: 10,
+        max: 100,
+        step: 10,
+        value: 30,
+      },
+      {
+        kind: 'number',
+        id: 'round-days',
+        label: 'Tage',
+        min: 1,
+        max: 9,
+        value: 3,
+      },
+    ]);
+  });
+});
+
 describe('the dialog „Neue Runde“', () => {
   it('has a row per setting, a group of members in one fieldset at the place of its first member', () => {
     const { rows } = roundDialogPage(round, settings);

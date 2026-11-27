@@ -127,6 +127,18 @@ describe('moon chance by the round (#433, 207b, 208a, 212a)', () => {
     ]);
     expect(PER_PERCENT.step).toBe(10000);
   });
+
+  it('takes the resources per percent in steps of 10,000 only (212a, 218a)', () => {
+    const per = roundSettings[1];
+    expect(per.step).toBe(10000);
+    expect(per.refusal).toBe(
+      'Rohstoffe je 1 % Mondchance: ganze Zahl von 10.000 bis 1.000.000 in Schritten von 10.000.',
+    );
+    for (const ok of [10000, 20000, 100000, 1000000])
+      expect(per.agrees(ok)).toBe(true);
+    for (const wrong of [15000, 10001, 99999, 1005000])
+      expect(per.agrees(wrong)).toBe(false);
+  });
 });
 
 describe('moon roll', () => {

@@ -54,11 +54,16 @@ test('the admin sets the cap of the moon chance; a big battle then forms a moon 
   await expect(per).toHaveValue('100000');
   await expect(per).toHaveAttribute('min', '10000');
   await expect(per).toHaveAttribute('max', '1000000');
+  await expect(per).toHaveAttribute('step', '10000');
   // In „Neue Runde“ too; the dialog is closed without a new round.
   await universe.getByRole('button', { name: 'Neue Runde starten' }).click();
   const modal = page.locator('#modal');
   await expect(modal.getByLabel(CAP, { exact: true })).toHaveValue('20');
   await expect(modal.getByLabel(PER, { exact: true })).toHaveValue('100000');
+  await expect(modal.getByLabel(PER, { exact: true })).toHaveAttribute(
+    'step',
+    '10000',
+  );
   await page.keyboard.press('Escape');
   try {
     await saveCap(page, '100');

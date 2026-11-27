@@ -723,6 +723,14 @@ describe('Monde and „Was bleibt nach einer Schlacht übrig?“ with the moon v
     );
   });
 
+  it('says that the chance counts at most up to 20 for the diameter (219a)', () => {
+    expect(
+      texts('rule-moons', 'chance', state({ moonChanceMax: 100 })),
+    ).toContain(
+      'Durchmesser in km = ⌊√(x + 3 · Chance) · 1.000⌋, mit x ausgelost von 10 bis 20 und der Chance höchstens 20',
+    );
+  });
+
   it('keeps the diameters of 1 to 20 %, whatever the cap', () => {
     const at = (round: Record<string, number>) =>
       cellsOf('rule-moons', 'Durchmesser eines neuen Mondes', state(round));

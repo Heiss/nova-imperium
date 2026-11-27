@@ -67,6 +67,11 @@ export const roundSettings = [
     min: PER_PERCENT.min,
     max: PER_PERCENT.max,
     def: PER_PERCENT.def,
+    // Steps of 10,000 (212a): the setting's own check and wording (218a).
+    step: PER_PERCENT.step,
+    agrees: (value) => value % PER_PERCENT.step === 0,
+    refusal:
+      'Rohstoffe je 1 % Mondchance: ganze Zahl von 10.000 bis 1.000.000 in Schritten von 10.000.',
     live: true,
   },
 ] as const satisfies readonly RoundSetting[];

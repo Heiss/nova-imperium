@@ -64,6 +64,7 @@
                 aria-invalid={isInvalid(`set_${row.key}`) || undefined}
                 min={row.min}
                 max={row.max}
+                step={row.step}
                 value={row.value}
               />
               <span class="dim">{row.range}</span>
