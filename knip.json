@@ -19,6 +19,7 @@
     "src/client/views/options/boxes.gen.ts",
     "src/core/push-topics/topics.gen.ts",
     "src/core/lexicon/pages/pages.gen.ts",
+    "src/client/logic/overview-cards/lines.gen.ts",
     "src/server/db/migrations/**/*.ts",
     "scripts/*.ts",
     ".github/scripts/*.mjs"
