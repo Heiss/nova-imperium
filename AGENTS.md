@@ -19,3 +19,5 @@ Rules: do not invent anything. Take a recommendation that is consistent with
 the owner's earlier decisions as [V]; ask with 3 to 5 options only when
 unsure (`okf/ops/loop.md`). Development is in English, the game interface is
 German. A pull request goes to review only with a green CI Gate.
+Every feature outside the core gets an on/off switch per round
+(`okf/ops/feature-switches.md`).
