@@ -68,12 +68,14 @@
 // The events of the guild chat (#426): every file of src/core/chat-events
 // that exports `chatEvents` (key, order, sentence) is listed in
 // src/core/chat-events/events.gen.ts (`CHAT_EVENT_LISTS`), which only
-// src/core/guild-chat.ts imports, so an event registers itself with its line.
+// src/core/guild-chat.ts and its tests import (a rule of
+// .dependency-cruiser.cjs), so an event registers itself with its line.
 //
 // The rights of the guild ranks (#426): every file of src/core/guild-rights
 // that exports `guildRights` (key, order, label, member) is listed in
 // src/core/guild-rights/rights.gen.ts (`GUILD_RIGHT_LISTS`), which only
-// src/core/guild-ranks.ts imports, so a right registers itself with its name.
+// src/core/guild-ranks.ts and its tests import (a rule of
+// .dependency-cruiser.cjs), so a right registers itself with its label.
 //
 // The lines of the overview cards (#426): every file of
 // src/client/logic/overview-cards that exports `overviewLines` (its lines of
