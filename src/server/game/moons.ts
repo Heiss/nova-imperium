@@ -7,7 +7,6 @@ import { SILO_MISSIONS } from '../../core/missions.ts';
 import { placeId } from '../../core/place.ts';
 import {
   formsMoon,
-  MAX_MOON_CHANCE,
   MIN_MOON_CHANCE,
   moonChance,
   moonDiameter,
@@ -17,6 +16,7 @@ import type { AuditEntry } from '../audit.ts';
 import { cancelScheduledPush } from '../push-store.ts';
 import { type Ctx, addReport, coords, fail, str } from './context.ts';
 import { heldAt } from './holding.ts';
+import { roundRules } from './round.ts';
 
 /** The name a new moon starts with; it is renamed like a planet. */
 export const MOON_NAME = 'Mond';
@@ -74,7 +74,7 @@ export function rollMoon(ctx: Ctx, t: Planet, time: number): MoonRoll {
   const field = ctx.debris.get(
     placeId({ g: t.g, s: t.s, p: t.p, kind: 'debris' }),
   );
-  const chance = field ? moonChance(field) : 0;
+  const chance = field ? moonChance(field, roundRules(ctx)) : 0;
   if (chance <= 0) return null;
   const moon = formsMoon(chance, ctx.rng);
   if (moon) addMoon(ctx, t, chance, time);
@@ -83,8 +83,8 @@ export function rollMoon(ctx: Ctx, t: Planet, time: number): MoonRoll {
 
 /**
  * „Mond anlegen“ in the player record of the admin (owner, 2026-11-14):
- * always a moon at a planet without one; the chance of 1 to 20 % only goes
- * into the diameter. The audit entry names the owner, the planet, the moon,
+ * always a moon at a planet without one; the chance of 1 % up to the cap of
+ * the round (#433, 210a) only goes into the diameter. The audit entry names the owner, the planet, the moon,
  * the chance and the diameter.
  */
 export function createMoon(
@@ -99,13 +99,10 @@ export function createMoon(
   entry.target = planet.owner;
   if (moonAt(ctx, planet)) return fail('Dieser Planet hat schon einen Mond.');
   const chance = Number(body.chance);
-  if (
-    !Number.isInteger(chance) ||
-    chance < MIN_MOON_CHANCE ||
-    chance > MAX_MOON_CHANCE
-  )
+  const cap = roundRules(ctx).moonChanceMax;
+  if (!Number.isInteger(chance) || chance < MIN_MOON_CHANCE || chance > cap)
     fail(
-      `Die Mondchance muss zwischen ${MIN_MOON_CHANCE} und ${MAX_MOON_CHANCE} % liegen.`,
+      `Die Mondchance muss zwischen ${MIN_MOON_CHANCE} und ${cap} % liegen.`,
     );
   const moon = addMoon(ctx, planet, chance, ctx.now());
   entry.detail = {
