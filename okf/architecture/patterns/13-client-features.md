@@ -61,9 +61,16 @@ description: 'A client feature exports its handlers as clientFeature from its ow
   a `WeakSet` by `runLocked` of `src/client/logic/act-lock.ts` and called by
   `src/client/dispatch.ts`: it blocks no other button, sets no `disabled` or
   `aria-busy` (so a `disabled` the view sets is never removed), and a node
-  that a render puts in place of the locked one is free at once. Forms are
-  not locked (186a, not 186c); nothing in the submit listener stops a
-  double submit from sending its action twice.
+  that a render puts in place of the locked one is free at once.
+* **[E]** Every form, the chats included, is locked the same way while the
+  promise of its handler runs: two quick Enter or a double click on its
+  submit button send it once, and it is free again at once when the action
+  ended, also after a refusal or a network error (owner, 2026-11-27, 284a,
+  #428; before, forms were not locked, 186a). A handler without a promise
+  locks nothing. **[V]** `submitLocked` of `src/client/logic/act-lock.ts`,
+  keyed by the form, is the submit listener of `src/client/dispatch.ts`; a
+  form without a handler keeps its default. The server recognising repeated
+  actions itself is #450 (292a).
 * **[V]** Small reads of the page that `main.ts` and the modules share are in
   `src/client/dom.ts` (`$`, `val`, `byId`, `setById`, `keepChatScroll`).
 * **[V]** Built: `abandon`, `round`, `market`, `social`, `options`, `fleet`
