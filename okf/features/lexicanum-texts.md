@@ -558,7 +558,7 @@ code and here in the same pull request.
 * **[V]** Table: „Mondchance nach dem Trümmerfeld“
 * **[V]** Table: „Adamant und Psikristall im Feld | Mondchance“
 * **[V]** Text: „Der Durchmesser des neuen Mondes wird ausgelost und fällt im Mittel größer aus, wenn die Chance hoch war. Die Tabelle zeigt die kleinsten und größten Monde, die bei einer Chance möglich sind.“
-* **[V]** Formula: „Durchmesser in km = ⌊√(x + 3 · Chance) · 1.000⌋, mit x ausgelost von 10 bis 20“
+* **[E]** Formula: „Durchmesser in km = ⌊√(x + 3 · Chance) · 1.000⌋, mit x ausgelost von 10 bis 20 und der Chance höchstens 20“ (owner, 2026-11-27, #433, 219a)
 * **[V]** Table: „Durchmesser eines neuen Mondes“
 * **[V]** Table: „Mondchance | kleinster Mond in km | größter Mond in km“
 * **[V]** Heading: „Felder und Gebäude“
