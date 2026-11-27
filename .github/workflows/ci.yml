@@ -839,7 +839,15 @@ jobs:
           COMPOSE_FILE: compose.yaml:compose.demo.yaml:compose.noavx.yaml
         run: |
           sudo apt-get update -q || true
-          sudo apt-get install -y -q --no-install-recommends qemu-user-static
+          # Newer Ubuntu ships the static binaries in qemu-user, older ones in
+          # qemu-user-static; the binary must be static to run in the image.
+          sudo apt-get install -y -q --no-install-recommends qemu-user \
+            || sudo apt-get install -y -q --no-install-recommends qemu-user-static
+          NOVA_QEMU=$(command -v qemu-x86_64-static || command -v qemu-x86_64)
+          if ! ldd "$NOVA_QEMU" 2>&1 | grep -q -E 'statically linked|not a dynamic executable'; then
+            echo "::error::$NOVA_QEMU is not a static binary"; exit 1
+          fi
+          export NOVA_QEMU
           docker compose up --detach --no-build --wait
           docker compose exec -T app sh -c 'tr "\0" " " < /proc/1/cmdline' | grep -q 'qemu-x86_64-static -cpu Denverton'
           docker/smoke.sh
