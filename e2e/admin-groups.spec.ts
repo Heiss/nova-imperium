@@ -28,6 +28,8 @@ const ROUND_HEADINGS = [
   'Planetengrenze',
   // How often the highscore is computed (#405), a live setting.
   'Highscore',
+  // The cap and the resources per percent of the moon chance (#433), live.
+  'Monde',
 ];
 
 /** The tab „Universum“: the base values, then the features with live settings, in the same order. */
@@ -47,6 +49,8 @@ const UNIVERSE_HEADINGS = [
   'Planetengrenze',
   // How often the highscore is computed (#405), a live setting.
   'Highscore',
+  // The cap and the resources per percent of the moon chance (#433), live.
+  'Monde',
 ];
 
 async function violations(page: Page): Promise<string[]> {
