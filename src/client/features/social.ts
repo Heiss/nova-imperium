@@ -2,6 +2,7 @@
 // of main.ts (ratchet #242): the buttons and forms of both send their
 // action and empty their field once it went through. Which action a button
 // sends is decided in logic/friends.ts and logic/guild-chat.ts.
+import { runLocked } from '../logic/act-lock.ts';
 import { drafts } from '../logic/drafts.svelte.ts';
 import { friendCall, type FriendCall } from '../logic/friends.ts';
 import { clearsChat } from '../logic/guild-chat.ts';
@@ -52,14 +53,15 @@ async function friend(act: Act, d: Data): Promise<void> {
 /** The data-act handlers of both; their forms are handled here too. */
 export const clientFeature = {
   listen: ({ act }) => {
+    // Each form is locked while its action runs, like every form (#428).
     document.addEventListener('submit', (e) => {
-      const id = (e.target as HTMLElement).id;
-      if (id === 'guildchatform') {
+      const form = e.target as HTMLElement;
+      if (form.id === 'guildchatform') {
         e.preventDefault();
-        void submitChat(act);
-      } else if (id === 'friendform') {
+        void runLocked(form, () => submitChat(act));
+      } else if (form.id === 'friendform') {
         e.preventDefault();
-        void friend(act, { op: 'request' });
+        void runLocked(form, () => friend(act, { op: 'request' }));
       }
     });
   },

@@ -61,9 +61,27 @@ description: 'A client feature exports its handlers as clientFeature from its ow
   a `WeakSet` by `runLocked` of `src/client/logic/act-lock.ts` and called by
   `src/client/dispatch.ts`: it blocks no other button, sets no `disabled` or
   `aria-busy` (so a `disabled` the view sets is never removed), and a node
-  that a render puts in place of the locked one is free at once. Forms are
-  not locked (186a, not 186c); nothing in the submit listener stops a
-  double submit from sending its action twice.
+  that a render puts in place of the locked one is free at once.
+* **[E]** Every form, the chats included, is locked the same way while the
+  promise of its handler runs: two quick Enter or a double click on its
+  submit button send it once, and it is free again at once when the action
+  ended, also after a refusal or a network error (owner, 2026-11-27, 284a,
+  #428; before, forms were not locked, 186a). A handler without a promise
+  locks nothing. **[V]** Every place that sends a form goes through
+  `runLocked` of `src/client/logic/act-lock.ts`, keyed by the form:
+  * the forms of the features' `forms` maps: `submitLocked`, the submit
+    listener of `src/client/dispatch.ts` (a form without a handler keeps its
+    default);
+  * the forms with a submit listener of their own: `guildchatform` and
+    `friendform` (`features/social.ts`), `abandonform`
+    (`features/abandon.ts`), `marketform` (`features/market.ts`);
+  * the `onsubmit` of the forms of the views, through `lockedSubmit` (it
+    always stops the default): the private messages (`PmCompose`,
+    `PmSettings`), the deletion of the account (`DeleteAccountDialog`), and
+    the admin's forms (`AdminDiagnostics`: filter and moderation,
+    `AdminErrors`: download, `AdminTable`: „Mond anlegen“). The second form
+    of `AdminErrors`, the filter, sends nothing and only stops its default.
+  The server recognising repeated actions itself is #450 (292a).
 * **[V]** Small reads of the page that `main.ts` and the modules share are in
   `src/client/dom.ts` (`$`, `val`, `byId`, `setById`, `keepChatScroll`).
 * **[V]** Built: `abandon`, `round`, `market`, `social`, `options`, `fleet`

@@ -12,6 +12,7 @@
   // dialog with the server's words (`role="alert"`, coordinator, 2026-11-24),
   // not as a note below the backdrop; it goes when the player changes the
   // recipient or the text, and with the dialog (it starts without one).
+  import { lockedSubmit } from '../logic/act-lock.ts';
   import { MAX_PM_TEXT } from '../../core/private-messages.ts';
   import {
     countText,
@@ -120,7 +121,7 @@
   }
 </script>
 
-<form class="pm-form" onsubmit={submit}>
+<form class="pm-form" onsubmit={lockedSubmit(submit)}>
   {#if reply}
     <p class="pm-to">{PM_DIALOG_LABELS.to} <b>{to}</b></p>
     {#if quote !== undefined}

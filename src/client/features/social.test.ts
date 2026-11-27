@@ -79,6 +79,36 @@ describe('the guild chat form', () => {
     expect(drafts.get('guildChat')).toBe('Neuer Entwurf');
     expect(input.focus).not.toHaveBeenCalled();
   });
+  it('sends once while the message is on its way, two quick Enter (#428)', async () => {
+    let done!: (ok: boolean) => void;
+    const ctx = fakeCtx({
+      act: vi.fn(() => new Promise<boolean>((r) => (done = r))),
+    });
+    acts(ctx);
+    fields['#chat_text'] = field();
+    drafts.set('guildChat', 'Hallo');
+    // One form, as the page has it: both submits come from it.
+    const form = { id: 'guildchatform' };
+    submit({ target: form, preventDefault: vi.fn() });
+    submit({ target: form, preventDefault: vi.fn() });
+    expect(ctx.act).toHaveBeenCalledTimes(1);
+    done(true);
+    await settle();
+    drafts.set('guildChat', 'Noch eine');
+    submit({ target: form, preventDefault: vi.fn() });
+    expect(ctx.act).toHaveBeenCalledTimes(2);
+  });
+
+  it('sends a friend request once while it is on its way (#428)', () => {
+    const ctx = fakeCtx({ act: vi.fn(() => new Promise<boolean>(() => {})) });
+    acts(ctx);
+    drafts.set('friendName', 'Ada');
+    const form = { id: 'friendform' };
+    submit({ target: form, preventDefault: vi.fn() });
+    submit({ target: form, preventDefault: vi.fn() });
+    expect(ctx.act).toHaveBeenCalledTimes(1);
+  });
+
   it('ignores the submit of any other form', async () => {
     const ctx = fakeCtx();
     acts(ctx);
