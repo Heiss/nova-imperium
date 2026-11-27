@@ -64,7 +64,7 @@ tasks).
   issue counts as clarified when it has a comment that starts with
   `Geklärt` and lists the decisions with the OKF link.
 * **[E]** The owner's decisions are written into the body of the issue,
-  not only into comments (owner, 2026-11-27, 203b and 205a, the retrospective of
+  not only into comments (owner, 2026-11-27, 203b, the retrospective of
   26.11.29): the check „Linked Issues“ of CodeRabbit reads only the body,
   and it missed decisions recorded in comments (#418, #421).
 * **[E]** The loop asks the owner first what a release should bring, with
@@ -390,7 +390,7 @@ tasks).
   again (owner, 2026-11-12).
 * **[E]** No branch update while a review of CodeRabbit of that pull
   request runs, and a review of CodeRabbit is requested at most about once
-  an hour (owner, 2026-11-27, 203b and 205a, the retrospective of 26.11.29): a
+  an hour (owner, 2026-11-27, 203b, the retrospective of 26.11.29): a
   branch update aborted a running review.
 * **[V]** Guards from loop engineering practice: a stop condition a machine
   can check (release pull request merged, then its tag and its

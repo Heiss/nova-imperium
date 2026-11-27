@@ -24,7 +24,8 @@ task. These parts were needed every time:
 1. **The state.** The branch, its head commit, the pull request if one
    exists, and what an earlier agent already did or left unchecked.
 2. **The decisions.** Where the owner's „Geklärt“ comments are, and that
-   they are binding. A text or value the owner has not decided is never
+   they are binding; the decisions are also written into the body of the
+   issue (owner, 2026-11-27, 203b). A text or value the owner has not decided is never
    invented: the subagent stops that part and reports 3 to 5 options.
 3. **What changed on main.** Each merged pull request the branch has to
    take in, named with what it moved. An old branch fails on exactly these.
