@@ -123,9 +123,14 @@ export const roundSettings = [
   },
 ] as const satisfies readonly RoundSetting[];
 
-/** Whether „Wache stellen“ is on in the round (#440). */
-export const holdOpen = (round: { holdOn: number }): boolean =>
-  round.holdOn === 1;
+/**
+ * Whether „Wache stellen“ is on in the round (#440): „An“ by default (261a),
+ * so a round without the value, such as a state of a running universe before
+ * the update, reads „An“; only an explicit 0 is off, as the marketplace
+ * reads a missing switch (#451).
+ */
+export const holdOpen = (round: { holdOn?: number }): boolean =>
+  round.holdOn !== 0;
 
 /** Whether a spy with Auspex-Lehre `spy` sees the held fleets apart. */
 export const showsHeldApart = (spy: number, from: number): boolean =>

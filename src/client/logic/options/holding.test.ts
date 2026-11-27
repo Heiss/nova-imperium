@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { holdPart, holdShown } from './holding.ts';
 import type { OptionsState } from './state.ts';
 
-const at = (holdOn: number, holdsRefused?: boolean): OptionsState =>
+const at = (holdOn?: number, holdsRefused?: boolean): OptionsState =>
   ({ s: { round: { holdOn }, holdsRefused }, now: 0, ui: {} }) as never;
 
 describe('the box „Keine Wachen annehmen“ (#440)', () => {
@@ -16,5 +16,7 @@ describe('the box „Keine Wachen annehmen“ (#440)', () => {
   it('is hidden while „Wache stellen“ is off (okf/ops/feature-switches.md)', () => {
     expect(holdShown(holdPart(at(1)))).toBe(true);
     expect(holdShown(holdPart(at(0, true)))).toBe(false);
+    // A round without the value reads „An“ (261a).
+    expect(holdShown(holdPart(at(undefined)))).toBe(true);
   });
 });

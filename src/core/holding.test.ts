@@ -4,6 +4,7 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import {
+  holdOpen,
   ALLIES,
   ALLIES_RANGE,
   HELD_SPY,
@@ -49,6 +50,15 @@ const HELD_SPY_ROW = {
   max: 30,
   def: 2,
 };
+
+describe('the switch „Wache stellen“ (#440, 261a)', () => {
+  it('is on with 1 and without a value, off only with an explicit 0', () => {
+    expect(holdOpen({ holdOn: 1 })).toBe(true);
+    expect(holdOpen({})).toBe(true);
+    expect(holdOpen({ holdOn: undefined })).toBe(true);
+    expect(holdOpen({ holdOn: 0 })).toBe(false);
+  });
+});
 
 describe('holding times', () => {
   it('are the classic 0, 1, 2, 4, 8, 16 and 32 hours', () => {
