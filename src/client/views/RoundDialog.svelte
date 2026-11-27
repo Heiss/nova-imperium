@@ -48,7 +48,7 @@
       aria-invalid={isInvalid(f.id) || undefined}
       min={f.min}
       max={f.max}
-      step="1"
+      step={f.step ?? 1}
       value={f.value}
       required
     />

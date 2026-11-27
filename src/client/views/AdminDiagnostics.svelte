@@ -23,11 +23,12 @@
   import AdminPager from './AdminPager.svelte';
   import AdminTable from './AdminTable.svelte';
 
-  let { players }: { players: Players } = $props();
+  let { players, moonCap }: { players: Players; moonCap: number } = $props();
   const tab = $derived(panels.tab);
   const events = $derived(panels.events && eventsPage(panels.events, players));
   const record = $derived(
-    panels.record && playerPage(panels.record.person, panels.record.detail),
+    panels.record &&
+      playerPage(panels.record.person, panels.record.detail, moonCap),
   );
   const orders = $derived(
     panels.orders &&

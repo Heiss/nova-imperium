@@ -30,6 +30,8 @@ export interface Shown {
   record?: { person: PlayerStats; detail: PlayerDetail };
   orders?: { orders: Order[]; now: number };
   notice?: string;
+  /** The cap of the moon chance of the round (#433); 20 by default. */
+  moonCap?: number;
 }
 
 export const diagnosticsView = (players: Players, x: Shown): string => {
@@ -42,7 +44,11 @@ export const diagnosticsView = (players: Players, x: Shown): string => {
     orders: x.orders ?? null,
     notice: x.notice ?? null,
   });
-  return stripComments(render(AdminDiagnostics, { props: { players } }).body);
+  // The default cap of the moon chance, as the frozen HTML had it (#433).
+  const moonCap = x.moonCap ?? 20;
+  return stripComments(
+    render(AdminDiagnostics, { props: { players, moonCap } }).body,
+  );
 };
 
 export const errorsView = (

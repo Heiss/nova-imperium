@@ -84,6 +84,7 @@ okf_version: "0.2"
 * [Briefs for subagents](/ops/subagent-briefs.md) - what a task for a building subagent contains, the rules to state every time, and what went wrong before
 * [Languages](/ops/language.md) - development in English, game interface in German
 * [Defaults stay inside](/ops/defaults.md) - a fresh instance is closed and talks to nobody
+* [A switch for every feature](/ops/feature-switches.md) - every feature outside the core gets an on/off switch per round, classic and comfort features included
 * [Documentation website](/ops/website.md) - Starlight site on GitHub Pages from okf/ and docs/, with agents.md
 
 # Log

@@ -72,7 +72,15 @@ const choicesOf = (
 /** One row of the settings of the universe: a field with its name, a number or a choice. */
 type SettingRow = { key: string; label: string } & (
   | { choices: Choice[] }
-  | { choices: null; min: number; max: number; value: string; range: string }
+  | {
+      choices: null;
+      min: number;
+      max: number;
+      /** The step of the field; none is 1 (#433, 218a). */
+      step?: number;
+      value: string;
+      range: string;
+    }
 );
 
 /** One row of the settings of the universe (the live ones of the round included). */
@@ -88,6 +96,7 @@ function settingRow(s: GameState, x: AdminState['specs'][number]): SettingRow {
     choices: null,
     min: x.min,
     max: x.max,
+    ...(x.step ? { step: x.step } : {}),
     value: String(value),
     range: `${fmt(x.min)} bis ${fmt(x.max)}${hint}`,
   };
@@ -137,6 +146,8 @@ export interface AdminPage {
   archive: ArchivePage;
   /** The players, by id, for the names in the diagnostics. */
   players: Players;
+  /** The cap of the moon chance in the round: „Mond anlegen“ takes up to it (#433, 210a). */
+  moonCap: number;
 }
 
 const settingsOf = (
@@ -171,6 +182,7 @@ export function adminPage(v: V): AdminPage | null {
     endzeitDone: a.endzeit.done ? ENDZEIT_NOTE.done : null,
     archive: archivePage(shownArchive(v.s), true),
     players: v.s.players,
+    moonCap: v.s.round.moonChanceMax,
   };
 }
 
@@ -178,7 +190,14 @@ export function adminPage(v: V): AdminPage | null {
 export type RoundField = { id: string; label: string } & (
   | { kind: 'switch'; checked: boolean; note: string | null }
   | { kind: 'choice'; choices: Choice[] }
-  | { kind: 'number'; min: number; max: number; value: number }
+  | {
+      kind: 'number';
+      min: number;
+      max: number;
+      /** The step of the field; none is 1 (#433, 218a). */
+      step?: number;
+      value: number;
+    }
 );
 
 function roundField(s: RoundSetting, value: number | boolean): RoundField {
@@ -196,6 +215,7 @@ function roundField(s: RoundSetting, value: number | boolean): RoundField {
     kind: 'number',
     min: s.min,
     max: s.max,
+    ...(s.step ? { step: s.step } : {}),
     value: Number(value),
   };
 }

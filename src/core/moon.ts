@@ -5,23 +5,87 @@
 // A moon is a row of the planets with the kind `moon` (#119, O11).
 import type { Rng } from './battle.ts';
 import type { Debris } from './debris.ts';
+import type { RoundSetting } from './round.ts';
 import type { Planet } from './types.ts';
 
-/** 1 % moon chance per 100,000 Adamant and Psikristall in the Trümmerfeld. */
-export const PER_PERCENT = 100000;
+/**
+ * The cap of the moon chance in % (#433, owner, 2026-11-27, 207b, 208a):
+ * set by the admin per round from 1 to 100, 20 by default as before.
+ */
+const CAP = { min: 1, max: 100, def: 20 } as const;
 
-/** The moon chance never exceeds 20 %. */
-export const MAX_MOON_CHANCE = 20;
+/**
+ * The Adamant and Psikristall in the Trümmerfeld for 1 % of moon chance
+ * (#433, 207b, 212a): 10,000 to 1,000,000 in steps of 10,000, 100,000 by
+ * default as before.
+ */
+export const PER_PERCENT = {
+  min: 10_000,
+  max: 1_000_000,
+  step: 10_000,
+  def: 100_000,
+} as const;
 
-/** The least chance the admin can give a moon (owner, 2026-11-13: 1 to 20 %). */
+/** The least chance the admin can give a moon (owner, 2026-11-13; up to the cap since #433, 210a). */
 export const MIN_MOON_CHANCE = 1;
 
 /**
- * The moon chance in whole percent: ⌊debris / 100,000⌋, at most 20, counted
- * from the whole Trümmerfeld at the position after the battle.
+ * The chance that counts for the diameter at most (#433, 209a): moons stay
+ * as big as before, so the Mondbruch keeps working.
  */
-export const moonChance = (field: Debris): number =>
-  Math.min(Math.floor((field.m + field.c) / PER_PERCENT), MAX_MOON_CHANCE);
+export const DIAMETER_CHANCE = 20;
+
+/** The moon values of a round, by the names of its settings. */
+export interface MoonRules {
+  moonChanceMax: number;
+  moonPerPercent: number;
+}
+
+/** The section of the moon settings in „Neue Runde“ [V]: the title of the Lexikon page. */
+export const roundHeading = 'Monde';
+
+// The cap and the resources per percent, effective at once for the next
+// battle [V] (#433, 207b, 211).
+export const roundSettings = [
+  {
+    kind: 'number',
+    key: 'roundMoonChanceMax',
+    name: 'moonChanceMax',
+    label: 'Mondchance höchstens (%)',
+    order: 510,
+    min: CAP.min,
+    max: CAP.max,
+    def: CAP.def,
+    live: true,
+  },
+  {
+    kind: 'number',
+    key: 'roundMoonPerPercent',
+    name: 'moonPerPercent',
+    label: 'Rohstoffe je 1 % Mondchance',
+    order: 520,
+    min: PER_PERCENT.min,
+    max: PER_PERCENT.max,
+    def: PER_PERCENT.def,
+    // Steps of 10,000 (212a): the setting's own check and wording (218a).
+    step: PER_PERCENT.step,
+    agrees: (value) => value % PER_PERCENT.step === 0,
+    refusal:
+      'Rohstoffe je 1 % Mondchance: ganze Zahl von 10.000 bis 1.000.000 in Schritten von 10.000.',
+    live: true,
+  },
+] as const satisfies readonly RoundSetting[];
+
+/**
+ * The moon chance in whole percent: ⌊debris / resources per percent⌋, at
+ * most the cap of the round, counted from the whole Trümmerfeld at the
+ * position after the battle (#433, 207b).
+ */
+export const moonChance = (field: Debris, rules: MoonRules): number =>
+  Math.min(
+    Math.floor((field.m + field.c) / rules.moonPerPercent),
+    rules.moonChanceMax,
+  );
 
 /** One draw: whether a moon forms at a chance of `chance` %. */
 export const formsMoon = (chance: number, rng: Rng): boolean =>
@@ -30,11 +94,13 @@ export const formsMoon = (chance: number, rng: Rng): boolean =>
 /**
  * The diameter of a new moon in km, by the owiki.de formula
  * ⌊√(x + 3 · chance) · 1000⌋ with x a whole number from 10 to 20, all
- * equally likely: 3,605 to 8,944 km.
+ * equally likely, and the chance at most 20 (#433, 209a): 3,605 to 8,944 km.
  */
 export function moonDiameter(chance: number, rng: Rng): number {
   const x = 10 + Math.floor(rng() * 11);
-  return Math.floor(Math.sqrt(x + 3 * chance) * 1000);
+  return Math.floor(
+    Math.sqrt(x + 3 * Math.min(chance, DIAMETER_CHANCE)) * 1000,
+  );
 }
 
 /** A moon is always shown as „<Name> (Mond)“ (owner, 2026-11-14). */

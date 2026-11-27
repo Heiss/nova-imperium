@@ -7,7 +7,10 @@
 // `errorsPanel()` and `invitationList()` put the parts together as the
 // browser showed them after the panel had opened a tab. The date for the
 // download of the errors is the helper of the new code (a calendar, no markup).
-import { MAX_MOON_CHANCE, MIN_MOON_CHANCE } from '../core/moon.ts';
+import { MIN_MOON_CHANCE } from '../core/moon.ts';
+
+/** The cap of the moon chance when this HTML was frozen; the default since #433. */
+const MAX_MOON_CHANCE = 20;
 import { dt, esc, fmt } from '../client/logic/format.ts';
 import { dateValue } from '../client/logic/admin-panels.ts';
 import type {

@@ -251,7 +251,7 @@ describe('the player records and the orders', () => {
 
   it('shows the state of the access, with the end of a ban or without', () => {
     const status = (suspension: object | null) =>
-      playerPage(stats(), detail({ suspension })).status;
+      playerPage(stats(), detail({ suspension }), 20).status;
     expect(status(null)).toBe('Spielerzugang aktiv');
     expect(status({ reason: 'Spam', until: null })).toBe(
       'Gesperrt bis zur Freigabe · Spam',
@@ -262,8 +262,10 @@ describe('the player records and the orders', () => {
   });
 
   it('offers the moderation for a player who is no admin only', () => {
-    expect(playerPage(stats(), detail()).moderation).toBe(true);
-    expect(playerPage(stats({ admin: 1 }), detail()).moderation).toBe(false);
+    expect(playerPage(stats(), detail(), 20).moderation).toBe(true);
+    expect(playerPage(stats({ admin: 1 }), detail(), 20).moderation).toBe(
+      false,
+    );
   });
 
   it('lists the days in UTC and the planets, a moon form for a planet without one (#53)', () => {
@@ -276,6 +278,7 @@ describe('the player records and the orders', () => {
           { id: 'p2', name: 'Kolonie', g: 4, s: 5, p: 6, moon: true },
         ],
       }),
+      20,
     );
     expect(page.heading).toBe('Spielerakte · Sturm');
     expect(page.days.rows).toEqual([['2026-11-20', '1', '5']]);
@@ -283,6 +286,16 @@ describe('the player records and the orders', () => {
       ['Heim', '[1:2:3]', { kind: 'moon', planet: 'p1', min: 1, max: 20 }],
       ['Kolonie', '[4:5:6]', 'vorhanden'],
     ]);
+  });
+
+  it('offers a moon of 1 % up to the cap of the round (#433, 210a)', () => {
+    const planets = [{ id: 'p1', name: 'Heim', g: 1, s: 2, p: 3, moon: false }];
+    for (const cap of [1, 37, 100])
+      expect(
+        playerPage(stats(), detail({ planets }), cap).planets.rows,
+      ).toEqual([
+        ['Heim', '[1:2:3]', { kind: 'moon', planet: 'p1', min: 1, max: cap }],
+      ]);
   });
 });
 

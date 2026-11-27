@@ -64,6 +64,7 @@
                 aria-invalid={isInvalid(`set_${row.key}`) || undefined}
                 min={row.min}
                 max={row.max}
+                step={row.step}
                 value={row.value}
               />
               <span class="dim">{row.range}</span>
@@ -104,7 +105,7 @@
   >
     <Box title="Diagnose und Protokoll"
       ><div id="admin-diagnostics">
-        <AdminDiagnostics players={page.players} />
+        <AdminDiagnostics players={page.players} moonCap={page.moonCap} />
       </div>
       <AdminBotCheck /><AdminTotp /></Box
     >

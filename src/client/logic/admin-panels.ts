@@ -7,7 +7,7 @@
 // logic/admin-panels.svelte.ts. The texts and the columns are those of the
 // DOM modules these panels were before.
 import type { BotDay } from '../../core/bot-hints.ts';
-import { MAX_MOON_CHANCE, MIN_MOON_CHANCE } from '../../core/moon.ts';
+import { MIN_MOON_CHANCE } from '../../core/moon.ts';
 import { dt, fmt } from './format.ts';
 import type { Players } from './types.ts';
 
@@ -391,7 +391,11 @@ export function botCheckBlock(check: BotCheck) {
 }
 
 /** The record of a player: the state of the access, the days, the planets and, for a player who is no admin, the moderation. */
-export function playerPage(person: PlayerStats, detail: PlayerDetail) {
+export function playerPage(
+  person: PlayerStats,
+  detail: PlayerDetail,
+  moonCap: number,
+) {
   const blocked = detail.suspension;
   return {
     heading: `Spielerakte · ${person.name}`,
@@ -413,14 +417,14 @@ export function playerPage(person: PlayerStats, detail: PlayerDetail) {
       detail.planets.map((x): Cell[] => [
         x.name,
         `[${x.g}:${x.s}:${x.p}]`,
-        // A planet without a moon: a chance of 1 to 20 % for the diameter (#53; owner, 2026-11-14).
+        // A planet without a moon: a chance of 1 % up to the cap of the round for the diameter (#53, #433, 210a).
         x.moon
           ? 'vorhanden'
           : {
               kind: 'moon',
               planet: x.id,
               min: MIN_MOON_CHANCE,
-              max: MAX_MOON_CHANCE,
+              max: moonCap,
             },
       ]),
     ),
