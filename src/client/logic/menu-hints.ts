@@ -1,7 +1,6 @@
 import { ACHIEVEMENTS } from '../../core/achievements.ts';
 import { isShip } from '../../core/catalog.ts';
 import type { Planet } from '../../core/types.ts';
-import { friendsHint } from './friends.ts';
 import type { GameState } from './types.ts';
 
 export function finishedYardOrders(planet: Planet, now: number): Set<string> {
@@ -34,38 +33,50 @@ export function rewardHint(state: GameState): string | undefined {
   if (daily) return 'Tagesbelohnung abholbar';
 }
 
+/** A mark of a menu entry with its view (views/index.ts, MENU_HINTS, #426). */
+export interface ViewHint {
+  view: string;
+  hint: (source: { state: GameState; unread: number }) => string | undefined;
+}
+
+/**
+ * The marks of the menu (#426): the completed upgrades, orders and flights,
+ * and the mark of every view that has one, joined with „ · “ to a completed
+ * text of the same view. Only „Flotte“ has both (completions.ts).
+ */
 export function menuHints(
+  hints: readonly ViewHint[],
   state: GameState,
   completed: ReadonlyMap<string, string>,
   unread: number,
 ): Map<string, string> {
-  const hints = new Map(completed);
-  if (unread) hints.set('messages', `${unread} ungelesene Nachrichten`);
-  const reward = rewardHint(state);
-  if (reward) hints.set('achievements', reward);
-  if (
-    state.fleets.some(
-      (fleet) => fleet.owner !== state.me.id && fleet.state === 'out',
-    )
-  ) {
-    const done = hints.get('fleet');
-    hints.set(
-      'fleet',
-      done ? `${done} · Anfliegende Flotte` : 'Anfliegende Flotte',
-    );
+  const marks = new Map(completed);
+  for (const { view, hint } of hints) {
+    const mark = hint({ state, unread });
+    if (!mark) continue;
+    const done = marks.get(view);
+    marks.set(view, done ? `${done} · ${mark}` : mark);
   }
-  const guilds = guildHint(state);
-  if (guilds) hints.set('guilds', guilds);
-  const friends = friendsHint(state);
-  if (friends) hints.set('friends', friends);
-  return hints;
+  return marks;
 }
+
+/** The mark of „Nachrichten“: the unread reports and private messages (#226). */
+export const messagesHint = (unread: number): string | undefined =>
+  unread ? `${unread} ungelesene Nachrichten` : undefined;
+
+/** The mark of „Flotte“: a fleet of another player on its way here. */
+export const incomingHint = (state: GameState): string | undefined =>
+  state.fleets.some(
+    (fleet) => fleet.owner !== state.me.id && fleet.state === 'out',
+  )
+    ? 'Anfliegende Flotte'
+    : undefined;
 
 /**
  * Open applications and, since the last visit to the own guild, news in its
  * chat (#169; owner, 2026-11-15).
  */
-function guildHint(state: GameState): string {
+export function guildHint(state: GameState): string {
   return [
     state.guilds?.management?.pending.length && 'Offene Gildenbewerbungen',
     state.guilds?.chat?.unread && 'Neue Nachrichten im Gilden-Chat',

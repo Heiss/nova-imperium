@@ -1,3 +1,4 @@
+import { rewardHint } from '../logic/menu-hints.ts';
 import { rewardsOn } from '../../core/achievements.ts';
 import { achievementsPage } from '../logic/achievements.ts';
 import Achievements from './Achievements.svelte';
@@ -16,6 +17,7 @@ const mountAchievements = keptMount(Achievements, achievementsPage);
 export const clientViews = [
   {
     key: 'achievements',
+    hint: ({ state }) => rewardHint(state),
     mount: mountAchievements,
     fresh: true,
     // The rewards only while achievements or daily rewards are on.

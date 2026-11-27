@@ -1,4 +1,4 @@
-import { friendsPage } from '../logic/friends.ts';
+import { friendsHint, friendsPage } from '../logic/friends.ts';
 import Friends from './Friends.svelte';
 import type { ClientView } from './contract.ts';
 import { keptMount } from './kept.ts';
@@ -13,6 +13,7 @@ const mountFriends = keptMount(Friends, friendsPage);
 export const clientViews = [
   {
     key: 'friends',
+    hint: ({ state }) => friendsHint(state),
     mount: mountFriends,
     fresh: true,
     menu: { order: 130, label: 'Freunde' },

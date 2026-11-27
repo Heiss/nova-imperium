@@ -4,6 +4,7 @@
 // (scripts/gen-features.ts, views.gen.ts), so `mount.ts` and `index.ts` name
 // no new view and a new one edits no shared place.
 import type { RoundRules } from '../../core/round.ts';
+import type { GameState } from '../logic/types.ts';
 import type { V } from './common.ts';
 
 /** A mounted Svelte view: its name, its update (a list follows the state) and how to take it down. */
@@ -35,6 +36,19 @@ export interface MenuItem {
   /** A divider line before the entry. */
   divider?: boolean;
 }
+
+/** What the mark of a menu entry is computed from (#426). */
+export interface HintSource {
+  state: GameState;
+  /** The unread reports and private messages. */
+  unread: number;
+}
+
+/**
+ * The mark of a menu entry: a short line, or nothing. It joins a completed
+ * upgrade, order or flight of the same view with „ · “ (#426).
+ */
+export type Hint = (source: HintSource) => string | undefined;
 
 /** The place of a view in the bottom tab bar of a phone. */
 export interface Tab {
@@ -76,5 +90,7 @@ export interface ClientView {
   menu?: MenuItem;
   /** The line icon (an `<svg>` string) of the menu entry and the tab. */
   glyph?: string;
+  /** The mark of its menu entry (#426): what is new or waiting there. */
+  hint?: Hint;
   tab?: Tab;
 }

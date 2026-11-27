@@ -1,3 +1,4 @@
+import { guildHint } from '../logic/menu-hints.ts';
 import { type ComponentProps, mount, unmount } from 'svelte';
 import { guildsOn } from '../../core/guild-chat.ts';
 import {
@@ -47,6 +48,7 @@ export const adminChatDialog = (
 export const clientViews = [
   {
     key: 'guilds',
+    hint: ({ state }) => guildHint(state),
     mount: mountGuilds,
     // The guild the page shows (#163).
     address: ['guild'],

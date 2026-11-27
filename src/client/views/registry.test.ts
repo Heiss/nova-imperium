@@ -44,6 +44,7 @@ const MEMBERS = [
   'fresh',
   'menu',
   'glyph',
+  'hint',
   'tab',
   'offered',
   'address',

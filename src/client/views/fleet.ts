@@ -1,3 +1,4 @@
+import { incomingHint } from '../logic/menu-hints.ts';
 import { fleetPage } from '../logic/fleet.ts';
 import Fleet from './Fleet.svelte';
 import type { ClientView } from './contract.ts';
@@ -16,6 +17,7 @@ const mountFleet = keptMount(Fleet, fleetPage);
 export const clientViews = [
   {
     key: 'fleet',
+    hint: ({ state }) => incomingHint(state),
     mount: mountFleet,
     fresh: true,
     menu: { order: 80, label: 'Flotte', divider: true },
