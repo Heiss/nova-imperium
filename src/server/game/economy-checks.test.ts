@@ -44,6 +44,7 @@ const BUILD_MESSAGES: Record<
   Exclude<BuildError, 'place' | 'noEnergy'>,
   string
 > = {
+  off: 'Der Marktplatz ist in dieser Runde geschlossen.',
   locked: LOCKED,
   full: 'Keine freien Felder.',
   busy: 'Es wird bereits gebaut.',

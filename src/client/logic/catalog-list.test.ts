@@ -932,3 +932,33 @@ describe('the notes of the checks of #214', () => {
     });
   });
 });
+
+describe('the Handelsposten while the marketplace is off (#442, 226b)', () => {
+  const withMarket = (marketOn: number, P: Partial<Planet> = {}): V => {
+    const v = view({ P: { res: RICH, b: { robot: 4 }, ...P } });
+    return { ...v, s: { ...v.s, cfg: { ...U, roundMarketOn: marketOn } } };
+  };
+  const keys = (v: V) => rows(catalogPage(v, 'building')).map((r) => r.key);
+
+  it('is listed with the marketplace on, with or without the switch stored', () => {
+    expect(keys(withMarket(1))).toContain('market');
+    expect(keys(view())).toContain('market');
+  });
+
+  it('is not listed while the marketplace is off; every other building is', () => {
+    const off = keys(withMarket(0));
+    expect(off).not.toContain('market');
+    expect(off).toEqual(keys(withMarket(1)).filter((k) => k !== 'market'));
+  });
+
+  it('is listed again with its level once the marketplace is on again', () => {
+    expect(
+      row(withMarket(1, { b: { robot: 4, market: 3 } }), 'building', 'market'),
+    ).toMatchObject({
+      key: 'market',
+    });
+    expect(keys(withMarket(0, { b: { robot: 4, market: 3 } }))).not.toContain(
+      'market',
+    );
+  });
+});
