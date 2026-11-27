@@ -440,6 +440,31 @@ const actionState = (ctx: Ctx, u: User, call: Call) =>
  */
 const PASSWORD_ACTIONS: ReadonlySet<string> = new Set(['abandon']);
 
+/** POST /api/action: a game, guild or admin action. */
+function actionRoute(
+  ctx: Ctx,
+  guard: Guard,
+  actions: ActionLimit,
+  keys: ActionKeys,
+): Handler {
+  return (call) => {
+    // String() like runAction, so `["abandon"]` is limited too.
+    if (PASSWORD_ACTIONS.has(String(call.body.type))) guard(call.req);
+    const user = sessionUserOf(ctx, call);
+    // A repeat of a kept key runs nothing and is not counted (#450, 6A).
+    return keys.once(
+      user.id,
+      keyOf(call.req),
+      () => {
+        // Per account; every action counts, refused ones too (#328).
+        actions.check(user, call.requestId);
+        return actionReply(ctx, user, call);
+      },
+      (reply) => freshState(reply, () => actionState(ctx, user, call)),
+    );
+  };
+}
+
 /** The game and the admin functions; all need a session. */
 function gameRoutes(
   d: AppDeps,
@@ -477,22 +502,7 @@ function gameRoutes(
       recordActivity(ctx, sessionUserOf(ctx, call), 'action');
       return { json: { ok: true } };
     },
-    'POST /api/action': (call) => {
-      // String() like runAction, so `["abandon"]` is limited too.
-      if (PASSWORD_ACTIONS.has(String(call.body.type))) guard(call.req);
-      const user = sessionUserOf(ctx, call);
-      // A repeat of a kept key runs nothing and is not counted (#450, 6A).
-      return keys.once(
-        user.id,
-        keyOf(call.req),
-        () => {
-          // Per account; every action counts, refused ones too (#328).
-          actions.check(user, call.requestId);
-          return actionReply(ctx, user, call);
-        },
-        (reply) => freshState(reply, () => actionState(ctx, user, call)),
-      );
-    },
+    'POST /api/action': actionRoute(ctx, guard, actions, keys),
     ...adminRoutes(
       d,
       (call) => sessionUserOf(ctx, call),

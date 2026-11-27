@@ -75,84 +75,92 @@ export interface ActionKeys {
   sweep(): void;
 }
 
+/** The kept keys of every player, with the clock. */
+interface Store {
+  players: Map<string, Map<string, Kept>>;
+  now: () => number;
+}
+
+/** The player's keys still in their time; the older ones are dropped. */
+function keysOf(store: Store, player: string): Map<string, Kept> {
+  const keys = store.players.get(player) ?? new Map<string, Kept>();
+  const oldest = store.now() - KEPT_MS;
+  for (const [key, kept] of keys) if (kept.at <= oldest) keys.delete(key);
+  store.players.set(player, keys);
+  return keys;
+}
+
+function keep(store: Store, player: string, key: string, kept: Kept): void {
+  const keys = keysOf(store, player);
+  keys.set(key, kept);
+  for (const old of keys.keys()) {
+    if (keys.size <= KEYS_PER_PLAYER) break;
+    keys.delete(old);
+  }
+}
+
+function forget(store: Store, player: string, key: string, kept: Kept): void {
+  const keys = store.players.get(player);
+  if (keys?.get(key) === kept) keys.delete(key);
+}
+
+function replay(
+  outcome: Outcome | Promise<Outcome>,
+  fresh: (reply: Reply) => Reply,
+): Reply | Promise<Reply> {
+  if (outcome instanceof Promise) return outcome.then((o) => fresh(unwrap(o)));
+  return fresh(unwrap(outcome));
+}
+
+/** The first run of a key: its outcome is kept when it is final. */
+function first(
+  store: Store,
+  player: string,
+  key: string,
+  run: () => Reply | Promise<Reply>,
+): Reply | Promise<Reply> {
+  let result: Reply | Promise<Reply>;
+  try {
+    result = run();
+  } catch (error) {
+    const outcome = { error };
+    if (final(outcome)) keep(store, player, key, { at: store.now(), outcome });
+    throw error;
+  }
+  if (!(result instanceof Promise)) {
+    const outcome = { reply: result };
+    if (final(outcome)) keep(store, player, key, { at: store.now(), outcome });
+    return result;
+  }
+  // A run that awaits (the mail of an invitation): a repeat meanwhile waits
+  // for it, and a run that ends without a final outcome is forgotten.
+  const pending = result.then(
+    (reply): Outcome => ({ reply }),
+    (error: unknown): Outcome => ({ error }),
+  );
+  const kept: Kept = { at: store.now(), outcome: pending };
+  keep(store, player, key, kept);
+  return pending.then((o) => {
+    if (final(o)) kept.outcome = o;
+    else forget(store, player, key, kept);
+    return unwrap(o);
+  });
+}
+
 export function actionKeys(now: () => number): ActionKeys {
-  const players = new Map<string, Map<string, Kept>>();
-
-  /** The player's keys still in their time; the older ones are dropped. */
-  function keysOf(player: string): Map<string, Kept> {
-    const keys = players.get(player) ?? new Map<string, Kept>();
-    const oldest = now() - KEPT_MS;
-    for (const [key, kept] of keys) if (kept.at <= oldest) keys.delete(key);
-    players.set(player, keys);
-    return keys;
-  }
-
-  function keep(player: string, key: string, kept: Kept): void {
-    const keys = keysOf(player);
-    keys.set(key, kept);
-    for (const old of keys.keys()) {
-      if (keys.size <= KEYS_PER_PLAYER) break;
-      keys.delete(old);
-    }
-  }
-
-  function forget(player: string, key: string, kept: Kept): void {
-    const keys = players.get(player);
-    if (keys?.get(key) === kept) keys.delete(key);
-  }
-
-  function replay(
-    outcome: Outcome | Promise<Outcome>,
-    fresh: (reply: Reply) => Reply,
-  ): Reply | Promise<Reply> {
-    if (outcome instanceof Promise)
-      return outcome.then((o) => fresh(unwrap(o)));
-    return fresh(unwrap(outcome));
-  }
-
-  function first(
-    player: string,
-    key: string,
-    run: () => Reply | Promise<Reply>,
-  ): Reply | Promise<Reply> {
-    let result: Reply | Promise<Reply>;
-    try {
-      result = run();
-    } catch (error) {
-      const outcome = { error };
-      if (final(outcome)) keep(player, key, { at: now(), outcome });
-      throw error;
-    }
-    if (!(result instanceof Promise)) {
-      const outcome = { reply: result };
-      if (final(outcome)) keep(player, key, { at: now(), outcome });
-      return result;
-    }
-    // A run that awaits (the mail of an invitation): a repeat meanwhile waits
-    // for it, and a run that ends without a final outcome is forgotten.
-    const pending = result.then(
-      (reply): Outcome => ({ reply }),
-      (error: unknown): Outcome => ({ error }),
-    );
-    const kept: Kept = { at: now(), outcome: pending };
-    keep(player, key, kept);
-    return pending.then((o) => {
-      if (final(o)) kept.outcome = o;
-      else forget(player, key, kept);
-      return unwrap(o);
-    });
-  }
-
+  const store: Store = { players: new Map(), now };
   return {
     once(player, key, run, fresh = (reply) => reply) {
       if (key === null) return run();
-      const kept = keysOf(player).get(key);
-      return kept ? replay(kept.outcome, fresh) : first(player, key, run);
+      const kept = keysOf(store, player).get(key);
+      return kept
+        ? replay(kept.outcome, fresh)
+        : first(store, player, key, run);
     },
     sweep() {
-      for (const [player, keys] of players) {
-        keysOf(player);
-        if (keys.size === 0) players.delete(player);
+      for (const [player, keys] of store.players) {
+        keysOf(store, player);
+        if (keys.size === 0) store.players.delete(player);
       }
     },
   };

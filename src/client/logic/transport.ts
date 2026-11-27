@@ -63,37 +63,39 @@ function apiError(response: Response, error: unknown): ApiError {
   return new ApiError(String(error ?? 'Fehler') + shown, id);
 }
 
+/** One request: a GET, or a POST with its body and its key (#450). */
+async function request(
+  deps: TransportDeps,
+  url: string,
+  body: unknown,
+  key: string | undefined,
+): Promise<Response> {
+  try {
+    return await deps.fetch(url, {
+      method: body ? 'POST' : 'GET',
+      headers: key
+        ? { 'content-type': 'application/json', 'idempotency-key': key }
+        : {},
+      body: body ? JSON.stringify(body) : undefined,
+      credentials: 'same-origin',
+    });
+  } catch (error) {
+    deps.report(apiFailure(url, null));
+    throw error;
+  }
+}
+
 /** The call `api(url, body?)`: a GET, or a POST with a body; the answer is the JSON. */
 export function createApi(
   deps: TransportDeps,
 ): (url: string, body?: unknown, retryBusy?: boolean) => Promise<Body> {
-  async function request(
-    url: string,
-    body: unknown,
-    key: string | undefined,
-  ): Promise<Response> {
-    try {
-      return await deps.fetch(url, {
-        method: body ? 'POST' : 'GET',
-        headers: key
-          ? { 'content-type': 'application/json', 'idempotency-key': key }
-          : {},
-        body: body ? JSON.stringify(body) : undefined,
-        credentials: 'same-origin',
-      });
-    } catch (error) {
-      deps.report(apiFailure(url, null));
-      throw error;
-    }
-  }
-
   async function call(
     url: string,
     body: unknown,
     retryBusy: boolean,
     key: string | undefined,
   ): Promise<Body> {
-    const r = await request(url, body, key);
+    const r = await request(deps, url, body, key);
     const id = r.headers.get('x-request-id');
     if (id) deps.requestId(id);
     const j = (await r
