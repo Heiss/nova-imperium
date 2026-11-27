@@ -1,7 +1,12 @@
 import { expect, it } from 'vitest';
 import type { Planet } from '../../core/types.ts';
 import { MENU_HINTS } from '../views/index.ts';
-import { chatToSee, finishedYardOrders, menuHints } from './menu-hints.ts';
+import {
+  chatToSee,
+  finishedYardOrders,
+  incomingHint,
+  menuHints,
+} from './menu-hints.ts';
 import type { GameState } from './types.ts';
 
 it('distinguishes completed ship and defense orders in the same queue', () => {
@@ -195,4 +200,19 @@ it('lets a mark replace a completed text of its view, and „Flotte“ follow it
       0,
     ).get('fleet'),
   ).toBe('Die Flotte kehrt heim');
+});
+
+it('marks „Flotte“ only for a fleet of another player on its way out', () => {
+  const marks = (fleets: { owner: string; state: string }[]) =>
+    incomingHint({ me: { id: 'me' }, fleets } as unknown as GameState);
+  expect(marks([{ owner: 'enemy', state: 'out' }])).toBe('Anfliegende Flotte');
+  expect(marks([])).toBeUndefined();
+  expect(marks([{ owner: 'me', state: 'out' }])).toBeUndefined();
+  expect(marks([{ owner: 'enemy', state: 'back' }])).toBeUndefined();
+  expect(
+    marks([
+      { owner: 'me', state: 'out' },
+      { owner: 'enemy', state: 'hold' },
+    ]),
+  ).toBeUndefined();
 });
