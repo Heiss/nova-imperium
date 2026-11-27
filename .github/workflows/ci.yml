@@ -36,6 +36,8 @@ name: CI
 # any other file, and it runs no expensive job; it relies on the results of
 # its base (owner, 2026-11-23 and 2026-11-24, #387).
 # The documentation website is built when its sources change (#144).
+# A pull request into main whose head lacks the base of its event fails in
+# "Detect changes" before any expensive job (#431).
 # Only the gate job "CI Gate" is the required check of main.
 on:
   pull_request:

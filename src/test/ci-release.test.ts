@@ -304,10 +304,11 @@ describe('Detect changes: the mutation jobs of a pull request (#309)', () => {
     const fine = detectIn(['src/core/economy.ts']);
     expect(fine.code).toBe(0);
     expect(fine.out).not.toContain('#431');
-    for (const extra of [
+    const left: Record<string, string>[] = [
       { PR_BASE_REF: 'hotfix/x' },
       { PR_HEAD_REF: 'release/main' },
-    ]) {
+    ];
+    for (const extra of left) {
       const env: Record<string, string> = { ...extra };
       const changed = extra.PR_HEAD_REF ? ['VERSION'] : ['src/core/economy.ts'];
       // The moved main of a release changes a fragment only, so that the
