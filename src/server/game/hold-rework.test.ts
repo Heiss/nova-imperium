@@ -186,6 +186,14 @@ describe('the switch „Wache stellen“ of the round (#440, 240a)', () => {
     holdTo(ctx);
   });
 
+  it('leaves no hold in a new round: the round empties the fleets, whatever its rules', () => {
+    const ctx = world();
+    guard(ctx);
+    flying(ctx);
+    act(ctx, 'u_Ada', { type: 'reset', holdOn: 0 });
+    expect(ctx.fleets.all()).toEqual([]);
+  });
+
   it('is a choice of „Neue Runde“ too', () => {
     const ctx = world();
     act(ctx, 'u_Ada', { type: 'reset', holdOn: 0 });

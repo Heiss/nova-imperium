@@ -461,7 +461,8 @@ The owner's decisions on #440, built on `claude/hold-rework`.
 * **[E]** Every hold, flying or holding, is checked again (229a, 282a):
   when a friendship ends, when a guild member leaves or is removed, when a
   guild is dissolved, when the settings of the round are saved („Wache
-  stellen“, „Verbündete“), at a new round, at every score pass, when a host
+  stellen“, „Verbündete“), at a new round (which empties the fleets, so no
+  hold outlives it and no call is needed), at every score pass, when a host
   switches „Keine Wachen annehmen“ on, and at the start of the server
   (which also covers an update); no timer of its own. [V] (review of #455)
   The score pass checks in the beat of the clock, once per stored pass and

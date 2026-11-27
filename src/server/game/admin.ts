@@ -102,9 +102,9 @@ export const reset: Handler<'reset'> = (ctx, u, data, event) => {
   closeActiveRound(ctx);
   const after = startRoundRules(ctx, data);
   openRound(ctx);
+  // No hold outlives it: the new round empties the fleets (#440 needs no
+  // re-check here).
   newRound(ctx, after);
-  // The rules of the new round may no longer allow a hold (#440).
-  recheckHolds(ctx);
   // A new round computes the highscore at once (#405).
   newScores(ctx);
   if (event) event.detail = { before, after };

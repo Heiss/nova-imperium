@@ -196,7 +196,8 @@ export function endNotAllowed(
 /**
  * Checks every hold again, on its way or holding, and turns home those that
  * are no longer allowed (#440). Called when a friendship or a guild
- * membership changes, when the settings of the round change, at every pass
+ * membership changes, when the settings of the round change (a new round
+ * empties the fleets, so it needs none), at every pass
  * of the highscore, when a host switches „Keine Wachen annehmen“ on, and at
  * the start of the server (which also handles the update); no timer of its
  * own [V].
