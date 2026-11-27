@@ -85,6 +85,69 @@ const round = {
   days: 12,
 } as unknown as RoundRules;
 
+describe('a legend under a heading of „Neue Runde“', () => {
+  it('stays when it differs from the heading, and goes when it repeats it (owner, 2026-11-22)', () => {
+    const members = settings.filter((s) => s.group === group);
+    const groupOf = (heading: string) =>
+      roundDialogPage(round, settings, {}, [{ heading, settings: members }])
+        .sections.flatMap((x) => x.rows)
+        .find((r) => r.kind === 'group')!;
+    expect(groupOf('Andere')).toMatchObject({ legend: 'Grenze' });
+    expect(groupOf('Andere')).not.toHaveProperty('labelledBy');
+    expect(groupOf('Grenze')).toMatchObject({
+      legend: null,
+      labelledBy: expect.stringMatching(/^round-heading-\d+$/),
+    });
+  });
+});
+
+describe('the step of a number field (#433, 218a)', () => {
+  it('is the step of the setting in „Neue Runde“, none without one', () => {
+    const stepped = [
+      make({
+        kind: 'number',
+        name: 'per',
+        label: 'Je',
+        min: 10,
+        max: 100,
+        def: 20,
+        step: 10,
+      }),
+      make({
+        kind: 'number',
+        name: 'days',
+        label: 'Tage',
+        min: 1,
+        max: 9,
+        def: 2,
+      }),
+    ];
+    const { rows } = roundDialogPage(
+      { number: 1, per: 30, days: 3 } as unknown as RoundRules,
+      stepped,
+    );
+    expect(rows.map((r) => r.kind === 'field' && r.field)).toEqual([
+      {
+        kind: 'number',
+        id: 'round-per',
+        label: 'Je',
+        min: 10,
+        max: 100,
+        step: 10,
+        value: 30,
+      },
+      {
+        kind: 'number',
+        id: 'round-days',
+        label: 'Tage',
+        min: 1,
+        max: 9,
+        value: 3,
+      },
+    ]);
+  });
+});
+
 describe('the dialog „Neue Runde“', () => {
   it('has a row per setting, a group of members in one fieldset at the place of its first member', () => {
     const { rows } = roundDialogPage(round, settings);

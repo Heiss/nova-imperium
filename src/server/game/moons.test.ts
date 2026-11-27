@@ -129,6 +129,35 @@ describe('the moon step of a battle', () => {
     ctx.debris.add({ g: 1, s: 2, p: 7 }, { m: 5e9, c: 5e9 });
     expect(rollMoon(ctx, t, 0)).toBeNull();
   });
+
+  it('takes the cap and the resources per percent of the round, at once (#433)', () => {
+    const { ctx, t } = setup();
+    ctx.admin.putSettings([['roundMoonChanceMax', 100]]);
+    ctx.debris.add(t, { m: 6e6, c: 4e6 });
+    // 100 %: even the highest draw forms the moon, as big as at 20 %.
+    ctx.rng = draws(0.9999, 0.9999);
+    expect(rollMoon(ctx, t, 0)).toEqual({ moonChance: 100, moon: true });
+    expect(moonAt(ctx, t)?.diameter).toBe(8944);
+  });
+
+  it('gives 100 % from 1,000,000 at 10,000 per percent and a cap of 100 (#433)', () => {
+    const { ctx, t } = setup();
+    ctx.admin.putSettings([
+      ['roundMoonChanceMax', 100],
+      ['roundMoonPerPercent', 10000],
+    ]);
+    ctx.debris.add(t, { m: 600000, c: 400000 });
+    ctx.rng = draws(0.5);
+    expect(rollMoon(ctx, t, 0)).toEqual({ moonChance: 100, moon: true });
+  });
+
+  it('caps the chance at a lower cap of the round (#433)', () => {
+    const { ctx, t } = setup();
+    ctx.admin.putSettings([['roundMoonChanceMax', 3]]);
+    ctx.debris.add(t, { m: 5e9, c: 5e9 });
+    ctx.rng = draws(0.5);
+    expect(rollMoon(ctx, t, 0)).toEqual({ moonChance: 3, moon: false });
+  });
 });
 
 describe('„Mond anlegen“ by the admin', () => {
@@ -173,6 +202,37 @@ describe('„Mond anlegen“ by the admin', () => {
       ).toThrow('Die Mondchance muss zwischen 1 und 20 % liegen.');
       expect(moonAt(ctx, { g: 1, s: 2, p: 6 })).toBeNull();
     }
+  });
+
+  it('takes 1 % up to the cap of the round and refuses more (#433, 210a)', () => {
+    for (const [cap, ok, refused] of [
+      [100, [1, 21, 100], [0, 101]],
+      [5, [1, 5], [6, 20]],
+    ] as const) {
+      for (const chance of ok) {
+        const { ctx } = setup();
+        ctx.admin.putSettings([['roundMoonChanceMax', cap]]);
+        expect(createMoon(ctx, { planet: 'p1_2_6', chance }, entry()).id).toBe(
+          'm1_2_6',
+        );
+      }
+      for (const chance of refused) {
+        const { ctx } = setup();
+        ctx.admin.putSettings([['roundMoonChanceMax', cap]]);
+        expect(() =>
+          createMoon(ctx, { planet: 'p1_2_6', chance }, entry()),
+        ).toThrow(`Die Mondchance muss zwischen 1 und ${cap} % liegen.`);
+        expect(moonAt(ctx, { g: 1, s: 2, p: 6 })).toBeNull();
+      }
+    }
+  });
+
+  it('gives a moon above 20 % the diameter of 20 % (#433, 209a)', () => {
+    const { ctx } = setup();
+    ctx.admin.putSettings([['roundMoonChanceMax', 100]]);
+    ctx.rng = draws(0);
+    const moon = createMoon(ctx, { planet: 'p1_2_6', chance: 100 }, entry());
+    expect(moon.diameter).toBe(Math.floor(Math.sqrt(70) * 1000));
   });
 
   it('refuses a planet that has a moon, a moon and an unknown planet', () => {

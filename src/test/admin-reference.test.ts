@@ -83,7 +83,7 @@ function settingsForm(s: GameState, a: AdminState): string {
       // A setting of the round with named choices is a selection (#283).
       const field = x.choices
         ? `<select id="set_${x.key}" data-setting="${x.key}" data-nokeep>${choiceOptions(x.choices, Number(value))}</select>`
-        : `<input type="number" id="set_${x.key}" data-setting="${x.key}" min="${x.min}" max="${x.max}" value="${value}" data-nokeep> <span class="dim">${fmt(x.min)} bis ${fmt(x.max)}${hint}</span>`;
+        : `<input type="number" id="set_${x.key}" data-setting="${x.key}" min="${x.min}" max="${x.max}"${x.step ? ` step="${x.step}"` : ''} value="${value}" data-nokeep> <span class="dim">${fmt(x.min)} bis ${fmt(x.max)}${hint}</span>`;
       return `<tr><td><label for="set_${x.key}">${esc(x.label)}</label></td><td>${field}</td></tr>`;
     })
     .join('');
@@ -116,7 +116,7 @@ function roundField(s: RoundSetting, value: number | boolean): string {
   }
   const field = s.choices
     ? `<select id="${id}">${choiceOptions(s.choices, Number(value))}</select>`
-    : `<input type="number" id="${id}" min="${s.min}" max="${s.max}" step="1" value="${Number(value)}" required> <span class="dim">${s.min} bis ${s.max}</span>`;
+    : `<input type="number" id="${id}" min="${s.min}" max="${s.max}" step="${s.step ?? 1}" value="${Number(value)}" required> <span class="dim">${s.min} bis ${s.max}</span>`;
   return `<label for="${id}">${label}</label> ${field}`;
 }
 
