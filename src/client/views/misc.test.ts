@@ -50,22 +50,23 @@ describe('highscore', () => {
   });
 });
 
-describe('the categories of the highscore (#78)', () => {
+describe('the categories of the highscore (#422)', () => {
   const s = {
     me: { id: 'u_Bert' },
     players: {
       u_Anna: {
         name: 'Anna',
         points: 90,
-        scores: { buildings: 80, research: 3, fleet: 1, defense: 0 },
+        scores: { economy: 80, military: 1 },
       },
       u_Bert: {
         name: 'Bert',
         points: 40,
-        scores: { buildings: 5, research: 7, fleet: 250, defense: 2 },
+        scores: { economy: 5, military: 250 },
       },
     },
     galaxy: [],
+    round: { highscoreEconomy: 1, highscoreMilitary: 0 },
   } as unknown as GameState;
   const rows = (html: string): string[] =>
     [
@@ -86,24 +87,24 @@ describe('the categories of the highscore (#78)', () => {
   });
 
   it('ranks by the chosen category and keeps the own row marked', () => {
-    const html = highscore({ s, ui: { highscore: 'fleet' } } as V);
+    const html = highscore({ s, ui: { highscore: 'military' } } as V);
     expect(rows(html)).toEqual(['1 Bert 250 me', '2 Anna 1']);
     expect(html).toContain(
-      'aria-pressed="true" data-act="highscore" data-cat="fleet" type="button">Flotte<',
+      'aria-pressed="true" data-act="highscore" data-cat="military" type="button">Militär<',
     );
     expect(html).toContain(
       'aria-pressed="false" data-act="highscore" data-cat="total" type="button">Gesamt<',
     );
     expect(html).toContain(
-      '<div class="dim">1 Punkt pro Schiff (auch Sonnenreliquiare).</div>',
+      '<div class="dim">1 Punkt pro Schiff, Verteidigungsanlage und Rakete.</div>',
     );
   });
 
-  it('shows the note of a category at 1 point per 1,000 resources', () => {
-    const html = highscore({ s, ui: { highscore: 'buildings' } } as V);
+  it('shows the note of a category counted by resources (168a)', () => {
+    const html = highscore({ s, ui: { highscore: 'economy' } } as V);
     expect(rows(html)).toEqual(['1 Anna 80', '2 Bert 5 me']);
     expect(html).toContain(
-      '<div class="dim">1 Punkt = 1.000 verbaute Rohstoffe (Gebäude).</div>',
+      '<div class="dim">1 Punkt = 1.000 verbaute Rohstoffe (Gebäude, Forschung, Sonnenreliquiare).</div>',
     );
   });
 

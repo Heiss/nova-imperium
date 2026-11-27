@@ -870,11 +870,12 @@ code and here in the same pull request.
 
 * **[V]** Line: „Wie die Punkte zählen und was die Wertungen unterscheidet.“
 * **[V]** Heading: „So zählen die Punkte“
-* **[V]** Text: „Die Highscore kennt mehrere Wertungen, und jeder Spieler sieht jede: Gesamt, Gebäude, Forschung, Flotte und Verteidigung. Gebäude, Verteidigung und die Gesamtwertung zählen einen Punkt je 1.000 Rohstoffe, die in sie gesteckt sind, abgerundet. Die Forschung zählt einen Punkt je erforschter Stufe und die Flotte einen Punkt je Schiff, ganz gleich, was es gekostet hat, auch Sonnenreliquiare. Die Wertungen ergeben zusammen nicht die Gesamtwertung. Reißt du eine Stufe ab, sinken deine Punkte um die Kosten dieser Stufe.“
+* **[V]** Text (#422, Entwurf zur Prüfung durch den Owner, 172b): „Die Highscore kennt drei Wertungen, und jeder Spieler sieht jede: Gesamt, Wirtschaft und Militär. Die Gesamtwertung zählt einen Punkt je 1.000 Rohstoffe, die in Gebäude, Forschung, Schiffe und Verteidigung gesteckt sind, abgerundet. Ob Wirtschaft und Militär nach Anzahl oder nach verbauten Rohstoffen zählen, stellt der Admin ein. Reißt du eine Stufe ab, sinken deine Punkte um die Kosten dieser Stufe.“
 * **[V]** Formula: „Punkte = ⌊verbaute Rohstoffe ÷ 1.000⌋“
 * **[V]** Table: „Wie jede Wertung zählt“
 * **[V]** Table: „Wertung | Zählt“
 * **[V]** Text: „Die Gesamtwertung entscheidet über den Noobschutz.“
+* **[E]** Text (owner, 2026-11-26, 181a): „Der Admin kann die Highscore auf die Gesamtwertung beschränken oder ganz ausschalten.“
 * **[V]** Keywords: Punkte, Platz, Rangliste, Wertung, Statistik
 
 ### Marktplatz (`rule-market`)

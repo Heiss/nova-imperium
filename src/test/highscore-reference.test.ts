@@ -13,9 +13,12 @@ import { describe, expect, it } from 'vitest';
 import { coords, esc, fmt } from '../client/logic/format.ts';
 import { homePlanetOf } from '../client/logic/friends.ts';
 import {
+  categoryModes,
   HIGHSCORE_CATEGORIES,
-  highscoreCategory,
   highscoreNote,
+} from '../core/highscore-categories.ts';
+import {
+  highscoreCategory,
   highscoreStand,
   highscoreRanking,
 } from '../client/logic/highscore.ts';
@@ -31,6 +34,10 @@ const homeCell = (pl: GalaxyPlanet | null): string =>
     ? `<span class="home">${esc(pl.name)}</span> <span class="lnk" data-act="gto" data-g="${pl.g}" data-s="${pl.s}">${coords(pl)}</span>`
     : '-';
 
+/**
+ * Changed on purpose since #118: the categories Gesamt, Wirtschaft and
+ * Militär with the note of the mode of the round (owner, 2026-11-26, #422).
+ */
 const highscoreButtonsHTML = (cat: keyof typeof HIGHSCORE_CATEGORIES): string =>
   `<div class="flex" role="group" aria-labelledby="highscore-h">${Object.entries(
     HIGHSCORE_CATEGORIES,
@@ -58,7 +65,7 @@ function highscore(v: V): string {
     const home = homeCell(homePlanetOf(v.s.galaxy, id));
     return `<tr class="${id === v.s.me.id ? 'me' : ''}"><td class="n">${i + 1}</td><td>${esc(x.name)}</td><td>${home}</td><td class="n">${fmt(x.points)}</td></tr>`;
   });
-  return `<h2 id="highscore-h">Highscore</h2>${highscoreButtonsHTML(cat)}<div class="scores-wrap"><div class="box"><table class="scores"><tr><th class="n">Platz</th><th>Spieler</th><th>Heimatplanet</th><th class="n">Punkte</th></tr>${rows.join('')}</table></div>${stand(v)}</div><div class="dim">${highscoreNote(cat)}</div>`;
+  return `<h2 id="highscore-h">Highscore</h2>${highscoreButtonsHTML(cat)}<div class="scores-wrap"><div class="box"><table class="scores"><tr><th class="n">Platz</th><th>Spieler</th><th>Heimatplanet</th><th class="n">Punkte</th></tr>${rows.join('')}</table></div>${stand(v)}</div><div class="dim">${highscoreNote(cat, categoryModes(v.s.round))}</div>`;
 }
 
 // ----- the comparison -----
@@ -72,10 +79,8 @@ const player = fc.record({
   points: fc.integer({ min: 0, max: 5_000_000 }),
   scores: fc.option(
     fc.record({
-      buildings: fc.integer({ min: 0, max: 3_000_000 }),
-      research: fc.integer({ min: 0, max: 300 }),
-      fleet: fc.integer({ min: 0, max: 20_000 }),
-      defense: fc.integer({ min: 0, max: 3_000_000 }),
+      economy: fc.integer({ min: 0, max: 3_000_000 }),
+      military: fc.integer({ min: 0, max: 3_000_000 }),
     }),
     { nil: undefined },
   ),
@@ -103,22 +108,29 @@ const state = fc
       fc.constantFrom(
         ...Object.keys(HIGHSCORE_CATEGORIES),
         'resources',
+        'fleet',
         'toString',
         '',
       ),
       { nil: undefined },
     ),
+    modes: fc.record({
+      highscoreEconomy: fc.constantFrom(0, 1),
+      highscoreMilitary: fc.constantFrom(0, 1),
+    }),
   })
-  .map((x) => viewOf(x.players, x.me, x.places, x.category));
+  .map((x) => viewOf(x.players, x.me, x.places, x.category, x.modes));
 
 function viewOf(
   players: [string, Record<string, unknown>][],
   me: string,
   places: Record<string, unknown>[],
   category?: string,
+  round: Record<string, number> = {},
 ): V {
   return {
     s: {
+      round,
       me: { id: me },
       players: Object.fromEntries(players),
       galaxy: places.map((p, i) => ({
@@ -169,7 +181,7 @@ const HAND_BUILT: [string, V][] = [
           {
             name: 'Anna',
             points: 90,
-            scores: { buildings: 8, research: 3, fleet: 1, defense: 0 },
+            scores: { economy: 8, military: 1 },
           },
         ],
         ['u_b', { name: 'Bert', points: 40 }],
@@ -177,6 +189,21 @@ const HAND_BUILT: [string, V][] = [
       'u_b',
       [],
       cat,
+    ),
+  ]),
+  ...(['economy', 'military'] as const).map((cat): [string, V] => [
+    `the category ${cat} counted by resources (#422)`,
+    viewOf(
+      [
+        [
+          'u_a',
+          { name: 'Anna', points: 90, scores: { economy: 8, military: 1 } },
+        ],
+      ],
+      'u_a',
+      [],
+      cat,
+      { highscoreEconomy: 1, highscoreMilitary: 1 },
     ),
   ]),
 ];

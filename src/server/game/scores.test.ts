@@ -1,12 +1,12 @@
 // The points and the highscore in one pass, N times a day (#405, owner,
 // 2026-11-25): the stored pass between two slots, live at most every 10 s,
 // the exact points of a check, a fresh pass for a new round, and the one
-// pass equal to the two passes before #405 at the same moment.
+// pass equal to the total before #405 at the same moment, with Wirtschaft
+// and Militär by the rule of #422.
 import fc from 'fast-check';
 import { describe, expect, it, vi } from 'vitest';
-import { BUILD, RES, SHIPS, UNIT } from '../../core/catalog.ts';
+import { BUILD, RES, SHIPS, UNIT, canFly } from '../../core/catalog.ts';
 import { addPlanet, addUser, testCtx, type TestCtx } from '../test-helpers.ts';
-import { FIGHTERS } from '../../core/catalog.ts';
 import { sumLevels } from '../../core/economy.ts';
 import { pointsOf } from '../../core/points.ts';
 import { settle, settleR } from '../../core/settle.ts';
@@ -242,7 +242,7 @@ describe('the one pass (#405)', () => {
       maxKeys: 4,
     });
 
-  it('gives the total and the categories of the two passes before it, at the same moment', () => {
+  it('gives the total of the pass before it, and Wirtschaft and Militär by the rule of #422, at the same moment', () => {
     fc.assert(
       fc.property(
         fc.array(
@@ -270,8 +270,9 @@ describe('the one pass (#405)', () => {
             );
           });
           const pass = scorePass(ctx);
+          // Gesamt unchanged (#422): the total of the pass before #405.
           expect(pass.total).toEqual(pointsMap(ctx));
-          expect(pass.categories).toEqual(categoryScores(ctx));
+          expect(pass.categories).toEqual(coarseScores(ctx));
         },
       ),
       { numRuns: 60, seed: 405 },
@@ -319,21 +320,10 @@ function pointsMap(ctx: Ctx): Record<string, number> {
   return pts;
 }
 
-interface CategoryScores {
-  buildings: number;
-  research: number;
-  fleet: number;
-  defense: number;
-}
-
-/**
- * The units that fight: a missile does not, and counts only in the total
- * (#54, okf/features/highscore-categories.md). Only the defense of a place is
- * valued with it, and that holds no ship, so the ships of the list stay out.
- */
-const DEFENSE: typeof UNIT = Object.fromEntries(
-  Object.keys(FIGHTERS).map((k) => [k, UNIT[k]!]),
-);
+// ----- the rule of #422, written apart from the pass -----
+// Wirtschaft: building levels, research levels and Sonnenreliquiare, by
+// number and by the resources in them; Militär: every other ship, the
+// defense and the missiles, the same way (issue #422, 160a).
 
 /** The levels or pieces in `have` of the entries of `defs`. */
 const count = (have: Levels, defs: Record<string, unknown>): number => {
@@ -342,31 +332,44 @@ const count = (have: Levels, defs: Record<string, unknown>): number => {
   return n;
 };
 
-/** The categories of every player, from the same settled state as the total. */
-function categoryScores(ctx: Ctx): Record<string, CategoryScores> {
+/** The units of `defs` that are not a ship that stays at its planet. */
+const pick = (keep: (k: string) => boolean): typeof UNIT =>
+  Object.fromEntries(Object.entries(UNIT).filter(([k]) => keep(k)));
+const SOLAR = pick((k) => Object.hasOwn(SHIPS, k) && !canFly(k));
+const ARMED = pick((k) => !Object.hasOwn(SOLAR, k));
+
+function coarseScores(ctx: Ctx) {
   const t = ctx.now();
   const u = universe(ctx);
-  const raw: Record<string, CategoryScores> = {};
-  for (const user of ctx.players.all())
+  const raw: Record<string, { e: [number, number]; m: [number, number] }> = {};
+  for (const user of ctx.players.all()) {
+    const research = settleR(user, t).research;
     raw[user.id] = {
-      buildings: 0,
-      research: count(settleR(user, t).research, RES),
-      fleet: 0,
-      defense: 0,
+      e: [count(research, RES), levelValue(research, RES)],
+      m: [0, 0],
     };
-  // Every planet and fleet has an owner (foreign keys of the database).
+  }
   for (const p of ctx.planets.all()) {
     const s = settle(p, t, u);
-    const c = raw[p.owner]!;
-    c.buildings += levelValue(s.b, BUILD);
-    c.fleet += count(s.ships, SHIPS);
-    c.defense += unitValue(s.def, DEFENSE);
+    const r = raw[p.owner]!;
+    const units = { ...s.ships, ...s.def };
+    r.e[0] += count(s.b, BUILD) + count(units, SOLAR);
+    r.e[1] += levelValue(s.b, BUILD) + unitValue(units, SOLAR);
+    r.m[0] += count(units, ARMED);
+    r.m[1] += unitValue(units, ARMED);
   }
-  for (const f of ctx.fleets.all())
-    raw[f.owner]!.fleet += count(f.ships, SHIPS);
-  for (const c of Object.values(raw)) {
-    c.buildings = pointsOf(c.buildings);
-    c.defense = pointsOf(c.defense);
+  for (const f of ctx.fleets.all()) {
+    const r = raw[f.owner]!;
+    r.m[0] += count(f.ships, ARMED);
+    r.m[1] += unitValue(f.ships, ARMED);
   }
-  return raw;
+  return Object.fromEntries(
+    Object.entries(raw).map(([id, r]) => [
+      id,
+      {
+        economy: { count: r.e[0], points: pointsOf(r.e[1]) },
+        military: { count: r.m[0], points: pointsOf(r.m[1]) },
+      },
+    ]),
+  );
 }

@@ -129,9 +129,14 @@ describe('the archive of the running round (#235)', () => {
           research,
         ).m,
     );
+    // Wirtschaft and Militär in the mode of the round's end, stored with it
+    // (#422, 171b): by number by default.
+    const c = categoryScores(ctx).u_Anna!;
     expect(anna.valuation).toEqual({
       total: pointsMap(ctx).u_Anna,
-      ...categoryScores(ctx).u_Anna,
+      economy: c.economy.count,
+      military: c.military.count,
+      modes: { economy: 0, military: 0 },
     });
     expect(anna.research).toEqual({ energy: 3, laser: 2 });
     expect(anna.places.map((p) => p.kind).sort()).toEqual(['moon', 'planet']);
@@ -142,6 +147,24 @@ describe('the archive of the running round (#235)', () => {
     });
     expect(anna.flying).toEqual({ lc: 3 });
     expect(facts.players[0]!.final.flying).toEqual({});
+  });
+});
+
+describe('Wirtschaft and Militär in the archive (#422, 171b)', () => {
+  it('stores them in the mode the round has at its end, with the modes', () => {
+    const ctx = setup();
+    ctx.admin.putSettings([['roundHighscoreEconomy', 1]]);
+    const c = categoryScores(ctx).u_Anna!;
+    const anna = roundFacts(ctx).players.find((p) => p.user.id === 'u_Anna')!;
+    expect(anna.final.valuation).toEqual({
+      total: pointsMap(ctx).u_Anna,
+      economy: c.economy.points,
+      military: c.military.count,
+      modes: { economy: 1, military: 0 },
+    });
+    // No value of the four categories of #78 in a new record.
+    for (const old of ['buildings', 'research', 'fleet', 'defense'])
+      expect(anna.final.valuation).not.toHaveProperty(old);
   });
 });
 

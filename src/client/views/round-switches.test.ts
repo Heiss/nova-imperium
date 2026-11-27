@@ -48,6 +48,14 @@ const TURNS_OFF: Readonly<
     views: [],
     none: 'divides the stay of an expedition by the speed: a rule, no feature',
   },
+  highscoreEconomy: {
+    views: [],
+    none: 'chooses whether Wirtschaft counts by number or by resources (#422): a rule, no feature',
+  },
+  highscoreMilitary: {
+    views: [],
+    none: 'chooses whether Militär counts by number or by resources (#422): a rule, no feature',
+  },
 };
 
 const VIEWS: readonly ClientView[] = CLIENT_VIEWS.flatMap(
@@ -126,5 +134,26 @@ describe('the switches of the round (#404)', () => {
         PAGES.some((p) => p.offered === ruleOf(key)),
         `the Lexicanum page of ${key}`,
       ).toBe(true);
+  });
+});
+
+// „Highscore zeigt“ (#422, 175a, 176a) has three values, so it is no switch
+// of the list above; „nichts“ turns the Highscore off.
+describe('„Highscore zeigt“ (#422)', () => {
+  it('hides the Highscore with „nichts“ only, for every player and the admin', () => {
+    const rule = VIEWS.find((v) => v.key === 'highscore')!.offered!;
+    expect(typeof rule).toBe('function');
+    for (const admin of [false, true]) {
+      for (const shows of [0, 1])
+        expect(
+          rule(
+            { ...defaultRound(), highscoreShows: shows } as RoundRules,
+            admin,
+          ),
+        ).toBe(true);
+      expect(
+        rule({ ...defaultRound(), highscoreShows: 2 } as RoundRules, admin),
+      ).toBe(false);
+    }
   });
 });

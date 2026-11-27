@@ -214,23 +214,27 @@ describe('moonbreak: the arrival', () => {
     expect(bert(ctx)).not.toHaveProperty('moonbreak');
   });
 
-  it('changes the highscore like an attack: the moon leaves the buildings of its owner, the lost Weltenbrecher the fleet of the attacker (#78, #95)', () => {
+  it('changes the highscore like an attack: the moon leaves the Wirtschaft of its owner, the lost Weltenbrecher the Militär of the attacker (#422, #95)', () => {
     const { ctx, f, at } = setup(
       { dstar: 1, lc: 2 },
       { b: { moonbase: 8, phalanx: 3 } },
     );
     const before = categoryScores(ctx);
     const total = pointsMap(ctx);
-    expect(before.u_Bert!.buildings).toBeGreaterThan(0);
-    expect(before.u_Anna!.fleet).toBe(3);
+    expect(before.u_Bert!.economy.count).toBeGreaterThan(0);
+    expect(before.u_Bert!.economy.points).toBeGreaterThan(0);
+    expect(before.u_Anna!.military.count).toBe(3);
     // The moon breaks (0.39 < 40 %) and the Weltenbrecher are torn apart (0.2 < 30 %).
     ctx.rng = draws(0.39, 0.2);
     onArrive(ctx, f, at);
     const after = categoryScores(ctx);
     expect(ctx.planets.get('m1_2_6')).toBeNull();
-    expect(after.u_Bert!.buildings).toBe(0);
-    expect(after.u_Anna!.fleet).toBe(2);
-    expect(after.u_Anna!.buildings).toBe(before.u_Anna!.buildings);
+    expect(after.u_Bert!.economy).toEqual({ count: 0, points: 0 });
+    expect(after.u_Anna!.military.count).toBe(2);
+    expect(after.u_Anna!.military.points).toBeLessThan(
+      before.u_Anna!.military.points,
+    );
+    expect(after.u_Anna!.economy).toEqual(before.u_Anna!.economy);
     expect(pointsMap(ctx).u_Bert!).toBeLessThan(total.u_Bert!);
     expect(pointsMap(ctx).u_Anna!).toBeLessThan(total.u_Anna!);
   });
