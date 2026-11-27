@@ -13,16 +13,9 @@ case "$DIGEST" in
   sha256:*) ;;
   *) echo "::error::No digest of the pushed release image."; exit 1 ;;
 esac
-sudo apt-get update -q || true
-# Newer Ubuntu ships the static binaries in qemu-user, older ones in
-# qemu-user-static; the binary must be static to run in the image.
-sudo apt-get install -y -q --no-install-recommends qemu-user \
-  || sudo apt-get install -y -q --no-install-recommends qemu-user-static
-qemu=$(command -v qemu-x86_64-static || command -v qemu-x86_64)
-# ldd exits 1 for a binary that is not dynamic, so its words are read first.
-linked=$(ldd "$qemu" 2>&1 || true)
-if ! printf '%s\n' "$linked" | grep -q -E 'statically linked|not a dynamic executable'; then
-  echo "::error::$qemu is not a static binary"; exit 1
+# The static QEMU binary, by the same rule as the check of CI (#449).
+if ! qemu=$("$(dirname "$0")/static-qemu.sh"); then
+  echo "::error::No static QEMU binary for the check without AVX."; exit 1
 fi
 ref="$IMAGE@$DIGEST"
 # The entrypoint of compose.noavx.yaml; -xsavec only silences a

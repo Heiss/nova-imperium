@@ -1,8 +1,9 @@
-// The release image on a CPU without AVX (#456): scripts/release-noavx.sh,
+// The release image on a CPU without AVX (#456): scripts/release-noavx.sh
+// and its helper scripts/static-qemu.sh (shared with ci.yml),
 // the job "noavx" of .github/workflows/release.yml, runs here with stubs of
 // sudo, apt-get, ldd, docker, curl and sleep that write down their calls, as
 // bash runs it on the runner. The real release is never run.
-import { execFileSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 import {
   chmodSync,
   mkdirSync,
@@ -35,7 +36,7 @@ interface Stubs {
 }
 
 /** Runs the script with the stubs; its exit code, its output and the calls. */
-function run(env: Record<string, string>, stubs: Stubs = {}) {
+function run(env: Record<string, string>, stubs: Stubs = {}, script = SCRIPT) {
   const dir = mkdtempSync(join(root, 'run-'));
   const bin = join(dir, 'bin');
   mkdirSync(bin);
@@ -71,21 +72,15 @@ function run(env: Record<string, string>, stubs: Stubs = {}) {
     'docker',
     `case "$1" in exec) echo "${stubs.cmdline ?? '/usr/local/bin/qemu-x86_64-static -cpu Denverton,-xsavec /usr/local/bin/node src/server/main.ts'}" ;; logs) echo "Illegal instruction" ;; esac`,
   );
-  let code = 0;
-  let out: string;
-  try {
-    out = execFileSync('bash', ['--noprofile', '--norc', SCRIPT], {
-      env: { PATH: `${bin}:${process.env.PATH}`, TRIES: '3', ...env },
-      encoding: 'utf8',
-      stdio: 'pipe',
-    });
-  } catch (error) {
-    const e = error as { status: number; stdout: string; stderr: string };
-    code = e.status;
-    out = e.stdout + e.stderr;
-  }
+  const result = spawnSync('bash', ['--noprofile', '--norc', script], {
+    env: { PATH: `${bin}:${process.env.PATH}`, TRIES: '3', ...env },
+    encoding: 'utf8',
+  });
+  const code = result.status ?? 1;
+  const stdout = result.stdout;
+  const out = result.stdout + result.stderr;
   const calls = readFileSync(log, 'utf8').trim().split('\n').filter(Boolean);
-  return { code, out, calls, bin };
+  return { code, out, stdout, calls, bin };
 }
 
 const ENV = { IMAGE: 'ghcr.io/heiss/nova-imperium', DIGEST };
@@ -164,6 +159,34 @@ describe('the release image on a CPU without AVX (#456)', () => {
       );
       expect(r.calls).toEqual([]);
     }
+  });
+});
+
+describe('the static QEMU binary, one rule for CI and the release (#449, #456)', () => {
+  const HELPER = resolve('scripts/static-qemu.sh');
+
+  it('prints only the path of the binary on stdout, whichever way ldd says static', () => {
+    for (const [words, code] of [
+      ['statically linked', 0],
+      ['not a dynamic executable', 1],
+    ] as const) {
+      const r = run(ENV, { ldd: words, lddCode: code }, HELPER);
+      expect(r.code, r.out).toBe(0);
+      expect(r.stdout).toBe(`${r.bin}/qemu-x86_64-static\n`);
+    }
+  });
+
+  it('fails with the reason on stderr for a binary that is not static', () => {
+    const r = run(ENV, { ldd: 'libc.so.6 => /lib/libc.so.6' }, HELPER);
+    expect(r.code).toBe(1);
+    expect(r.stdout).toBe('');
+    expect(r.out).toContain('is not a static binary: libc.so.6');
+  });
+
+  it('is what the check of CI runs, with its error on stdout', () => {
+    const ci = readFileSync('.github/workflows/ci.yml', 'utf8');
+    expect(ci).toContain('if ! NOVA_QEMU=$(scripts/static-qemu.sh); then');
+    expect(ci).not.toContain('ldd "$NOVA_QEMU"');
   });
 });
 
