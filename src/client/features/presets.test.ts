@@ -5,7 +5,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ROUND_SETTINGS, roundFieldId } from '../../core/round.ts';
 import { askPreset, presetAsk } from '../logic/presets.svelte.ts';
 import { clientFeature, fillPreset } from './presets.ts';
-import { fakeCtx } from './test-ctx.ts';
 
 type Field = {
   type: string;
@@ -77,12 +76,12 @@ describe('„Umstellen“ in the tab „Universum“ (#441, 237a)', () => {
 });
 
 describe('the handlers of the presets (#441)', () => {
-  const acts = () => clientFeature.acts(fakeCtx());
+  const acts = () => clientFeature.acts();
 
   it('asks for a known place and preset only', () => {
     acts().askPreset!({ place: 'round', id: 'standard' });
     expect(presetAsk).toEqual({ place: 'round', id: 'standard' });
-    acts().cancelPreset!({});
+    acts().cancelPreset!();
     expect(presetAsk).toEqual({ place: null, id: null });
     acts().askPreset!({ place: 'elsewhere', id: 'standard' });
     acts().askPreset!({ place: 'round', id: 'nope' });
@@ -90,19 +89,18 @@ describe('the handlers of the presets (#441)', () => {
   });
 
   it('fills on „Umstellen“ and closes the question; nothing is sent', () => {
-    const ctx = fakeCtx();
     const one = ROUND_SETTINGS.find((s) => s.kind === 'number' && s.live)!;
     fields[`set_${one.key}`] = field();
     askPreset('universe', 'standard');
-    clientFeature.acts(ctx).applyPreset!({ place: 'universe', id: 'standard' });
+    acts().applyPreset!({ place: 'universe', id: 'standard' });
     expect(fields[`set_${one.key}`]!.value).toBe(String(one.def));
     expect(presetAsk).toEqual({ place: null, id: null });
-    expect(ctx.act).not.toHaveBeenCalled();
-    expect(ctx.api).not.toHaveBeenCalled();
+    // No handler of the server is reached: the acts get no context to send with.
+    expect(clientFeature.acts.length).toBe(0);
     // An unknown place fills nothing and still closes.
     fields[`set_${one.key}`] = field();
     askPreset('universe', 'standard');
-    clientFeature.acts(ctx).applyPreset!({ place: 'x', id: 'standard' });
+    acts().applyPreset!({ place: 'x', id: 'standard' });
     expect(fields[`set_${one.key}`]!.value).toBe('999');
     expect(presetAsk.place).toBeNull();
   });

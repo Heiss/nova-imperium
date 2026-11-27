@@ -15,17 +15,15 @@ import {
   type PresetPlace,
   presetOf,
 } from '../logic/presets.svelte.ts';
+import { setField } from '../dom.ts';
 import type { ClientFeature } from './contract.ts';
 
-/** A field of the page: an input (a checkbox too) or a select. */
-type Field = Pick<HTMLInputElement, 'type' | 'value' | 'checked'> &
-  Pick<EventTarget, 'dispatchEvent'>;
+type Field = HTMLInputElement | HTMLSelectElement;
 
 /** Puts a value into a field and tells the page, as a typed one does. */
 function fill(field: Field | null, value: number | boolean): void {
   if (!field) return;
-  if (field.type === 'checkbox') field.checked = Boolean(value);
-  else field.value = String(Number(value));
+  setField(field, String(value));
   field.dispatchEvent(new Event('input', { bubbles: true }));
 }
 

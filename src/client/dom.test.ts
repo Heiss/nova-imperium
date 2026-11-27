@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { byId, keepChatScroll, setById, val } from './dom.ts';
+import { byId, keepChatScroll, setById, setField, val } from './dom.ts';
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -23,6 +23,17 @@ describe('reading and writing a field', () => {
     setById('b', 'z');
     setById('none', 'q');
     expect(field.value).toBe('z');
+  });
+
+  it('checks a checkbox by „true“ and unchecks it otherwise, its value unchanged (#441)', () => {
+    const box = { type: 'checkbox', value: 'on', checked: false };
+    setField(box as unknown as HTMLInputElement, 'true');
+    expect(box).toEqual({ type: 'checkbox', value: 'on', checked: true });
+    setField(box as unknown as HTMLInputElement, 'false');
+    expect(box.checked).toBe(false);
+    const text = { type: 'number', value: '1', checked: false };
+    setField(text as unknown as HTMLInputElement, 'true');
+    expect(text).toEqual({ type: 'number', value: 'true', checked: false });
   });
 });
 
