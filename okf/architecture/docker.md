@@ -46,10 +46,20 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 * **[V]** How: `compose.noavx.yaml` runs the image's Node under QEMU user
   mode with the CPU model Denverton (an Atom of the Goldmont family, no AVX)
   in the job „Docker image and Compose stack“, on an empty data volume, so
-  the fresh database is created and migrated under QEMU. The release image
-  is not checked this way yet (#456). Shown on 2026-11-27: a
+  the fresh database is created and migrated under QEMU. Shown on 2026-11-27: a
   binary built with `-mavx` stops there with „Illegal instruction“, and the
   server starts, creates its database and answers.
+* **[V]** The release image too (#456): the job „The release image runs on
+  a CPU without AVX“ of `release.yml` (`scripts/release-noavx.sh`) starts
+  the pushed amd64 image by digest under QEMU, with the entrypoint of
+  `compose.noavx.yaml` and the static binary of `qemu-user` (or
+  `qemu-user-static`), on a fresh volume, and waits up to 90 tries two
+  seconds apart for `/healthz`; then it checks that PID 1 runs under QEMU. A
+  failure shows the log of the container and stops the aliases. It differs
+  from the CI check: no Caddy, no mail and no smoke test, only the server,
+  its fresh database and `/healthz`, as the issue asks. The script is tested
+  with stubs (`src/test/release-noavx.test.ts`); the real release is not run
+  for it.
 
 # Hardening (proposals, in place)
 
