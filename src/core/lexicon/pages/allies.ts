@@ -218,7 +218,7 @@ const unionLootRecall = (): PageSection =>
     ),
   );
 
-export const page: PageDef = {
+const page: PageDef = {
   id: 'rule-allies',
   kind: 'rule',
   title: 'Wache stellen und Verbandsangriff',
@@ -241,3 +241,6 @@ export const page: PageDef = {
     unionLootRecall(),
   ],
 };
+
+// Its place on the start page of the Lexicanum (#426).
+export const lexiconPage = { order: 120, page };

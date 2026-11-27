@@ -140,7 +140,7 @@ const playtimeSection = (): PageSection =>
     ),
   );
 
-export const page: PageDef = {
+const page: PageDef = {
   id: 'rule-vision',
   kind: 'rule',
   title: 'Sichtbarkeit und Aktivität',
@@ -154,3 +154,6 @@ export const page: PageDef = {
     playtimeSection(),
   ],
 };
+
+// Its place on the start page of the Lexicanum (#426).
+export const lexiconPage = { order: 170, page };

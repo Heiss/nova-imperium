@@ -3,6 +3,7 @@
 // whether a device gets pushes at all stays its own opt-in. Every kind is on
 // unless the player switched it off, so a new kind is on for everyone.
 
+import { ownedOnce } from './owned-once.ts';
 import { PUSH_TOPIC_LISTS } from './push-topics/topics.gen.ts';
 
 /** What a file of src/core/push-topics declares for a kind (#426). */
@@ -24,15 +25,7 @@ type ListedTopics = readonly (readonly [string, readonly TopicEntry[]])[];
  * key or an order defined twice stops the start with both files named.
  */
 export function assembleTopics(listed: ListedTopics): readonly TopicEntry[] {
-  const owner = new Map<string, string>();
-  const once = (what: string, key: string, file: string): void => {
-    const first = owner.get(`${what} ${key}`);
-    if (first !== undefined)
-      throw new Error(
-        `Push kind ${what} ${key} is defined twice: in ${first} and in ${file}.`,
-      );
-    owner.set(`${what} ${key}`, file);
-  };
+  const once = ownedOnce('Push kind');
   const entries = listed.flatMap(([name, topics]) =>
     topics.map((topic) => ({ file: `src/core/push-topics/${name}.ts`, topic })),
   );

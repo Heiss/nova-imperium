@@ -9,7 +9,7 @@ import type { PageDef } from '../types.ts';
 
 const LEVELS = [0, 1, 2, 5, 10, 15];
 
-export const page: PageDef = {
+const page: PageDef = {
   id: 'faq-slots',
   kind: 'question',
   title: 'Wie bekomme ich mehr Flottenslots?',
@@ -61,3 +61,6 @@ export const page: PageDef = {
     ];
   },
 };
+
+// Its place on the start page of the Lexicanum (#426).
+export const lexiconPage = { order: 270, page };

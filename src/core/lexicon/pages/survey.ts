@@ -206,7 +206,7 @@ const lossSection = (): PageSection =>
     ),
   );
 
-export const page: PageDef = {
+const page: PageDef = {
   id: 'rule-survey',
   kind: 'rule',
   title: 'Vermessung',
@@ -227,3 +227,6 @@ export const page: PageDef = {
     lossSection(),
   ],
 };
+
+// Its place on the start page of the Lexicanum (#426).
+export const lexiconPage = { order: 100, page };

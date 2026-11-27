@@ -89,8 +89,14 @@ const rank = (kind: PageDef['kind']): number =>
 
 describe('the written pages of the Lexicanum (#288, #289)', () => {
   it('lists every file of the folder once, with its own address', () => {
+    // Every page file registers itself (#426): the generated list
+    // pages/pages.gen.ts names each file that exports lexiconPage.
     const files = readdirSync('src/core/lexicon/pages').filter(
-      (f) => f.endsWith('.ts') && f !== 'index.ts' && !f.endsWith('.test.ts'),
+      (f) =>
+        f.endsWith('.ts') &&
+        f !== 'index.ts' &&
+        !f.endsWith('.test.ts') &&
+        !f.endsWith('.gen.ts'),
     );
     expect(PAGES).toHaveLength(files.length);
     expect(new Set(PAGES.map((p) => p.id)).size).toBe(PAGES.length);

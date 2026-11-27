@@ -6,7 +6,7 @@ import { colonyRules, limitLine } from '../../colony-limit.ts';
 import { requires, say, section, steps } from '../say.ts';
 import type { Block, PageDef } from '../types.ts';
 
-export const page: PageDef = {
+const page: PageDef = {
   id: 'faq-colony',
   kind: 'question',
   title: 'Wie gründe ich eine Kolonie?',
@@ -45,3 +45,6 @@ export const page: PageDef = {
     ];
   },
 };
+
+// Its place on the start page of the Lexicanum (#426).
+export const lexiconPage = { order: 290, page };

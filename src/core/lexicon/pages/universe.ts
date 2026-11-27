@@ -73,7 +73,7 @@ const settingsSection = (s: LexState): PageSection =>
     ),
   );
 
-export const page: PageDef = {
+const page: PageDef = {
   id: 'rule-universe',
   kind: 'rule',
   title: 'Dieses Universum',
@@ -89,3 +89,6 @@ export const page: PageDef = {
   ],
   sections: (s) => [sizeSection(s), settingsSection(s)],
 };
+
+// Its place on the start page of the Lexicanum (#426).
+export const lexiconPage = { order: 230, page };

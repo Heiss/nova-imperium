@@ -49,7 +49,7 @@ const pointsSection = (): PageSection =>
     ),
   );
 
-export const page: PageDef = {
+const page: PageDef = {
   id: 'rule-highscore',
   kind: 'rule',
   title: 'Highscore',
@@ -58,3 +58,6 @@ export const page: PageDef = {
   seeAlso: ['rule-protection', 'rule-endzeit'],
   sections: () => [pointsSection()],
 };
+
+// Its place on the start page of the Lexicanum (#426).
+export const lexiconPage = { order: 190, page };

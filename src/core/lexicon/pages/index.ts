@@ -1,84 +1,38 @@
 // The pages of the Lexicanum that are written, in the order of the start
 // page: the rule pages and the questions of stage 2 (#288) and the guides of
-// stage 3 (#289). A guard checks that every file of this folder is listed.
+// stage 3 (#289). Every page file registers itself (#426): it exports
+// `lexiconPage`, its page with its place `order`, and the generated list
+// pages.gen.ts (scripts/gen-features.ts) names every file of this folder that
+// does. The pages go by ascending order; an order or an address defined twice
+// stops the start with both files named, so no page silently replaces another.
+import { ownedOnce } from '../../owned-once.ts';
 import type { PageDef } from '../types.ts';
-import { page as allies } from './allies.ts';
-import { page as battle } from './battle.ts';
-import { page as colonies } from './colonies.ts';
-import { page as debris } from './debris.ts';
-import { page as endzeit } from './endzeit.ts';
-import { page as expeditions } from './expeditions.ts';
-import { page as fairPlay } from './fair-play.ts';
-import { page as faqAftermath } from './faq-aftermath.ts';
-import { page as faqAttack } from './faq-attack.ts';
-import { page as faqColony } from './faq-colony.ts';
-import { page as faqDefend } from './faq-defend.ts';
-import { page as faqIntel } from './faq-intel.ts';
-import { page as faqMine } from './faq-mine.ts';
-import { page as faqResources } from './faq-resources.ts';
-import { page as faqSlots } from './faq-slots.ts';
-import { page as flight } from './flight.ts';
-import { page as gates } from './gates.ts';
-import { page as guilds } from './guilds.ts';
-import { page as guideColony } from './guide-colony.ts';
-import { page as guideDefense } from './guide-defense.ts';
-import { page as guideFleet } from './guide-fleet.ts';
-import { page as guideNext } from './guide-next.ts';
-import { page as guideStart } from './guide-start.ts';
-import { page as highscore } from './highscore.ts';
-import { page as market } from './market.ts';
-import { page as missiles } from './missiles.ts';
-import { page as moons } from './moons.ts';
-import { page as planets } from './planets.ts';
-import { page as production } from './production.ts';
-import { page as protection } from './protection.ts';
-import { page as queues } from './queues.ts';
-import { page as rewards } from './rewards.ts';
-import { page as spy } from './spy.ts';
-import { page as survey } from './survey.ts';
-import { page as universe } from './universe.ts';
-import { page as vacation } from './vacation.ts';
-import { page as vision } from './vision.ts';
+import { LEXICON_PAGES } from './pages.gen.ts';
 
-export const PAGES: readonly PageDef[] = [
-  // The rule pages.
-  battle,
-  spy,
-  flight,
-  debris,
-  moons,
-  gates,
-  planets,
-  colonies,
-  missiles,
-  survey,
-  expeditions,
-  allies,
-  production,
-  queues,
-  protection,
-  vacation,
-  vision,
-  rewards,
-  highscore,
-  market,
-  guilds,
-  endzeit,
-  universe,
-  fairPlay,
-  // The questions.
-  faqIntel,
-  faqAttack,
-  faqSlots,
-  faqAftermath,
-  faqColony,
-  faqMine,
-  faqResources,
-  faqDefend,
-  // The guides (#289).
-  guideStart,
-  guideColony,
-  guideFleet,
-  guideDefense,
-  guideNext,
-];
+/** What a page file exports as `lexiconPage`. */
+interface LexiconPage {
+  /** Its place on the start page: the pages go by ascending order. */
+  order: number;
+  page: PageDef;
+}
+
+/** The modules as the generated list gives them: `[name in this folder, lexiconPage]`. */
+type ListedPages = readonly (readonly [string, LexiconPage])[];
+
+/** The pages of all modules by ascending order, each order and address once. */
+export function assemblePages(listed: ListedPages): readonly PageDef[] {
+  const once = ownedOnce('Lexicanum page');
+  for (const [name, { order, page }] of listed) {
+    const file = `src/core/lexicon/pages/${name}.ts`;
+    if (!Number.isFinite(order))
+      throw new Error(`Lexicanum page ${page.id} in ${file} has no order.`);
+    once('order', String(order), file);
+    once('address', page.id, file);
+  }
+  return [...listed]
+    .map(([, entry]) => entry)
+    .sort((a, b) => a.order - b.order)
+    .map((entry) => entry.page);
+}
+
+export const PAGES: readonly PageDef[] = assemblePages(LEXICON_PAGES);

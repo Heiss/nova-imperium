@@ -7,7 +7,7 @@ import { PROTECTION_RATIO, unprotectedFrom } from '../../protection.ts';
 import { count, facts, number, percent, say, section } from '../say.ts';
 import type { Block, PageDef } from '../types.ts';
 
-export const page: PageDef = {
+const page: PageDef = {
   id: 'faq-attack',
   kind: 'question',
   title: 'Warum kann ich diesen Spieler nicht angreifen?',
@@ -58,3 +58,6 @@ function personal(own: number | undefined): Block[] {
     },
   ];
 }
+
+// Its place on the start page of the Lexicanum (#426).
+export const lexiconPage = { order: 260, page };

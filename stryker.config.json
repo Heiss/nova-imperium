@@ -28,6 +28,7 @@
     "!src/client/views/views.gen.ts",
     "!src/client/views/options/boxes.gen.ts",
     "!src/core/push-topics/topics.gen.ts",
+    "!src/core/lexicon/pages/pages.gen.ts",
     "!src/features/**/lexicon.de.ts",
     "!src/test/**"
   ],

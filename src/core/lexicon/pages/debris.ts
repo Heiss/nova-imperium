@@ -78,7 +78,7 @@ const harvestSection = (): PageSection =>
     ),
   );
 
-export const page: PageDef = {
+const page: PageDef = {
   id: 'rule-debris',
   kind: 'rule',
   title: 'Trümmerfelder und Bergung',
@@ -87,3 +87,6 @@ export const page: PageDef = {
   seeAlso: ['recycler', 'mission-harvest', 'rule-battle', 'rule-moons'],
   sections: () => [fieldSection(), harvestSection()],
 };
+
+// Its place on the start page of the Lexicanum (#426).
+export const lexiconPage = { order: 40, page };
