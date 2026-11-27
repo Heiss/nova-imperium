@@ -5,6 +5,7 @@
 // pages.gen.ts (scripts/gen-features.ts) names every file of this folder that
 // does. The pages go by ascending order; an order or an address defined twice
 // stops the start with both files named, so no page silently replaces another.
+import { ownedOnce } from '../../owned-once.ts';
 import type { PageDef } from '../types.ts';
 import { LEXICON_PAGES } from './pages.gen.ts';
 
@@ -20,15 +21,7 @@ type ListedPages = readonly (readonly [string, LexiconPage])[];
 
 /** The pages of all modules by ascending order, each order and address once. */
 export function assemblePages(listed: ListedPages): readonly PageDef[] {
-  const owner = new Map<string, string>();
-  const once = (what: string, key: string, file: string): void => {
-    const first = owner.get(`${what} ${key}`);
-    if (first !== undefined)
-      throw new Error(
-        `Lexicanum page ${what} ${key} is defined twice: in ${first} and in ${file}.`,
-      );
-    owner.set(`${what} ${key}`, file);
-  };
+  const once = ownedOnce('Lexicanum page');
   for (const [name, { order, page }] of listed) {
     const file = `src/core/lexicon/pages/${name}.ts`;
     if (!Number.isFinite(order))

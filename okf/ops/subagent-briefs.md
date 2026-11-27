@@ -108,6 +108,12 @@ when the second built on the first.
   names no table. `src/server/game/round-reset.test.ts` seeds a row into
   every table of the schema and fails when a table is neither emptied nor
   declared as kept (#317).
+* A new push kind is an entry `{ key, order, label, guild? }` of
+  `pushTopics` in a file of `src/core/push-topics/`, with an unused order
+  between its neighbours in the options; `src/core/push.ts` and the options
+  are not edited (the list `topics.gen.ts` is generated, a key or an order
+  that exists twice stops the start, #426). Its German label is a decided
+  text, never invented.
 * A new page of the Lexicanum is a file of `src/core/lexicon/pages/` that
   ends with `export const lexiconPage = { order: <n>, page };`, with an
   unused order between its neighbours on the start page, in steps of ten

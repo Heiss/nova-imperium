@@ -54,6 +54,11 @@
 // adds its box (key, order, section, component, data) in its own files and
 // neither Options.svelte nor logic/options.ts names it.
 //
+// The push kinds (#426): every file of src/core/push-topics that exports
+// `pushTopics` (key, order, label, guild) is listed in
+// src/core/push-topics/topics.gen.ts (`PUSH_TOPIC_LISTS`), which only
+// src/core/push.ts imports, so a kind registers itself with its label and
+// neither push.ts nor the options name it.
 // The pages of the Lexicanum (#426): every file of src/core/lexicon/pages that
 // exports `lexiconPage` (its page and its place on the start page) is listed in
 // src/core/lexicon/pages/pages.gen.ts (`LEXICON_PAGES`), which only
@@ -125,6 +130,11 @@ export const OPTION_BOXES_DIR = 'src/client/views/options';
 export const OPTION_BOXES_FILE = 'boxes.gen.ts';
 /** The fixed name under which a file exports its boxes of „Optionen“. */
 const OPTION_BOXES_EXPORT = /^export const optionBoxes\b/m;
+/** Where the push kinds are (#426), and the list of them. */
+export const PUSH_TOPICS_DIR = 'src/core/push-topics';
+export const PUSH_TOPICS_FILE = 'topics.gen.ts';
+/** The fixed name under which a file exports its push kinds. */
+const PUSH_TOPICS_EXPORT = /^export const pushTopics\b/m;
 /** Where the pages of the Lexicanum are (#426), and the list of them. */
 export const LEXICON_PAGES_DIR = 'src/core/lexicon/pages';
 export const LEXICON_PAGES_FILE = 'pages.gen.ts';
@@ -457,6 +467,22 @@ export function generateOptionBoxes(dir: string): boolean {
   );
 }
 
+/** The files of the folder of the push kinds that export `pushTopics` (#426). */
+export const scanPushTopics = (dir: string): string[] =>
+  scanExporting(dir, PUSH_TOPICS_EXPORT);
+
+/** The source of the list of the push kinds (#426). */
+export const renderPushTopics = (files: string[]): string =>
+  renderFeatureList(files, 'pushTopics', 'PUSH_TOPIC_LISTS');
+
+/** Writes the list of the push kinds when it changed; true if it did. */
+export function generatePushTopics(dir: string): boolean {
+  return write(
+    join(dir, PUSH_TOPICS_FILE),
+    renderPushTopics(scanPushTopics(dir)),
+  );
+}
+
 /** The files of the folder of the Lexicanum pages that export `lexiconPage` (#426). */
 export const scanLexiconPages = (dir: string): string[] =>
   scanExporting(dir, LEXICON_PAGE_EXPORT);
@@ -554,6 +580,7 @@ if (import.meta.main)
     generateRoundResets(SERVER_DIR);
     generateClientViews(VIEWS_DIR);
     generateOptionBoxes(OPTION_BOXES_DIR);
+    generatePushTopics(PUSH_TOPICS_DIR);
     generateLexiconPages(LEXICON_PAGES_DIR);
     generateActionInputs(ACTIONS_DIR);
     generateStateShapes(ACTIONS_DIR);
