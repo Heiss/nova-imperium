@@ -23,7 +23,8 @@ import { coords, esc, fmt } from '../client/logic/format.ts';
 import { unread } from '../client/logic/game.ts';
 import { headerLine } from '../client/logic/header.ts';
 import { resourceIconURL, type ResourceKey } from '../client/logic/icons.ts';
-import { menuHints } from '../client/logic/menu-hints.ts';
+import { friendsHint } from '../client/logic/friends.ts';
+import { guildHint, rewardHint } from '../client/logic/menu-hints.ts';
 import { ownPlaces } from '../client/logic/moon.ts';
 import { navigation } from '../client/logic/navigation.ts';
 import { newsHint, type NewsData } from '../client/logic/news.ts';
@@ -134,12 +135,44 @@ function renderPhoneMenu(
   };
 }
 
+/**
+ * menuHints() as it was before the marks registered on their views (#426),
+ * frozen like the HTML above, so the marks of the registry are compared with
+ * the hand-kept ones.
+ */
+function frozenMenuHints(
+  state: GameState,
+  completed: ReadonlyMap<string, string>,
+  unread: number,
+): Map<string, string> {
+  const hints = new Map(completed);
+  if (unread) hints.set('messages', `${unread} ungelesene Nachrichten`);
+  const reward = rewardHint(state);
+  if (reward) hints.set('achievements', reward);
+  if (
+    state.fleets.some(
+      (fleet) => fleet.owner !== state.me.id && fleet.state === 'out',
+    )
+  ) {
+    const done = hints.get('fleet');
+    hints.set(
+      'fleet',
+      done ? `${done} · Anfliegende Flotte` : 'Anfliegende Flotte',
+    );
+  }
+  const guilds = guildHint(state);
+  if (guilds) hints.set('guilds', guilds);
+  const friends = friendsHint(state);
+  if (friends) hints.set('friends', friends);
+  return hints;
+}
+
 function renderMenu({ s: state, ui, completed }: Frame): {
   menu: string;
   tabbar: string;
   more: string;
 } {
-  const hints = menuHints(
+  const hints = frozenMenuHints(
     state,
     completed,
     unread(state.reports, state.me.readAt),
