@@ -85,6 +85,22 @@ const round = {
   days: 12,
 } as unknown as RoundRules;
 
+describe('a legend under a heading of „Neue Runde“', () => {
+  it('stays when it differs from the heading, and goes when it repeats it (owner, 2026-11-22)', () => {
+    const members = settings.filter((s) => s.group === group);
+    const groupOf = (heading: string) =>
+      roundDialogPage(round, settings, {}, [{ heading, settings: members }])
+        .sections.flatMap((x) => x.rows)
+        .find((r) => r.kind === 'group')!;
+    expect(groupOf('Andere')).toMatchObject({ legend: 'Grenze' });
+    expect(groupOf('Andere')).not.toHaveProperty('labelledBy');
+    expect(groupOf('Grenze')).toMatchObject({
+      legend: null,
+      labelledBy: expect.stringMatching(/^round-heading-\d+$/),
+    });
+  });
+});
+
 describe('the step of a number field (#433, 218a)', () => {
   it('is the step of the setting in „Neue Runde“, none without one', () => {
     const stepped = [
