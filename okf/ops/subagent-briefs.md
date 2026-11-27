@@ -24,7 +24,8 @@ task. These parts were needed every time:
 1. **The state.** The branch, its head commit, the pull request if one
    exists, and what an earlier agent already did or left unchecked.
 2. **The decisions.** Where the owner's „Geklärt“ comments are, and that
-   they are binding. A text or value the owner has not decided is never
+   they are binding; the decisions are also written into the body of the
+   issue (owner, 2026-11-27, 203b). A text or value the owner has not decided is never
    invented: the subagent stops that part and reports 3 to 5 options.
 3. **What changed on main.** Each merged pull request the branch has to
    take in, named with what it moved. An old branch fails on exactly these.
@@ -168,9 +169,11 @@ when the second built on the first.
   request, turned into floors by `node scripts/mutation-floors.ts
   <report.json>`, which never lowers a floor (`okf/ops/testing.md`).
   `node scripts/mutation-gate.ts --update` is gone.
-* **[E]** Finished features are bundled into one pull request; at most four
-  own pull requests are open, and the queue is drained before new work
-  starts.
+* **[E]** Finished features are no longer bundled into one pull request
+  (owner, 2026-11-27, 204b, the retrospective of 26.11.28): one issue is one
+  pull request, at most four own pull requests are open, and the queue is
+  drained before new work starts. Bundling stays allowed for small patches
+  only.
 * **[E]** A pull request runs the mutation tests of its changed files only,
   at any size, in parts of about 12 files (#309; owner, 2026-11-26, #370,
   189a, 190a). The complete run comes from the nightly run of
