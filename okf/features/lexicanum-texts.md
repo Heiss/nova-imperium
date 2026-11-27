@@ -553,8 +553,8 @@ code and here in the same pull request.
 
 * **[V]** Line: „Wie ein Mond entsteht, was auf ihm Platz hat und wie er zerbricht.“
 * **[V]** Heading: „Wie ein Mond entsteht“
-* **[V]** Text: „Nach einem Kampf an einem Planeten ohne Mond wird gewürfelt, ob ein Mond entsteht. Die Chance ergibt sich aus dem Trümmerfeld, das nach dem Kampf an der Position liegt: je 100.000 Adamant und Psikristall darin ein Prozent, aber nie mehr als 20 %. Gewürfelt wird einmal je Kampf, ein Planet hat höchstens einen Mond, und ein Kampf an einem Mond würfelt nichts. Mehr zum Trümmerfeld steht auf seiner Seite.“
-* **[V]** Formula: „Mondchance in % = ⌊(Adamant + Psikristall im Trümmerfeld) ÷ 100.000⌋, höchstens 20“
+* **[V]** Text: „Nach einem Kampf an einem Planeten ohne Mond wird gewürfelt, ob ein Mond entsteht. Die Chance ergibt sich aus dem Trümmerfeld, das nach dem Kampf an der Position liegt: je 100.000 Adamant und Psikristall darin ein Prozent, aber nie mehr als 20 %. Gewürfelt wird einmal je Kampf, ein Planet hat höchstens einen Mond, und ein Kampf an einem Mond würfelt nichts. Mehr zum Trümmerfeld steht auf seiner Seite.“ The 100.000 per percent and the cap of 20 % are the values of the round (`moonPerPercent` and `moonChanceMax`, #433), shown here at their defaults.
+* **[V]** Formula: „Mondchance in % = ⌊(Adamant + Psikristall im Trümmerfeld) ÷ 100.000⌋, höchstens 20“ The divisor and the cap are the values of the round (#433), at their defaults here, and the table of the moon chance below follows them. The 20 of the diameter formula is fixed (209a).
 * **[V]** Table: „Mondchance nach dem Trümmerfeld“
 * **[V]** Table: „Adamant und Psikristall im Feld | Mondchance“
 * **[V]** Text: „Der Durchmesser des neuen Mondes wird ausgelost und fällt im Mittel größer aus, wenn die Chance hoch war. Die Tabelle zeigt die kleinsten und größten Monde, die bei einer Chance möglich sind.“
@@ -1008,7 +1008,7 @@ the check is on for them.
 * **[V]** Facts: „Verteidigung: 70 % der zerstörten Verteidigung wird wieder aufgebaut. Schiffe werden nie ersetzt, und Raketen kämpfen nicht mit.“
 * **[V]** Facts: „Trümmerfeld: 30 % des Adamants und Psikristalls aller zerstörten Schiffe liegen an der Position und lassen sich mit einer Bergung einsammeln (Trümmerfelder und Bergung).“
 * **[V]** Facts: „Beute: Gewinnt der Angreifer, nimmt er bis zu 50 % jedes Rohstoffs des Planeten mit, soweit sein Laderaum reicht.“
-* **[V]** Facts: „Mond: Aus dem Trümmerfeld kann ein Mond entstehen, mit höchstens 20 % Chance (Monde).“
+* **[V]** Facts: „Mond: Aus dem Trümmerfeld kann ein Mond entstehen, mit höchstens 20 % Chance (Monde).“ The 20 % is the cap of the round (`moonChanceMax`, #433), shown here at its default.
 * **[V]** Keywords: Schlacht, Verluste, Überlebende, Beute, übrig
 
 ### Wie gründe ich eine Kolonie? (`faq-colony`)
