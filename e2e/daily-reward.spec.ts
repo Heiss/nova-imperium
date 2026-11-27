@@ -1,6 +1,15 @@
 // The daily reward and the achievements filter (#220), desktop and phone.
-import { expect, test, type Page, type Route } from '@playwright/test';
-import { nav, register, seed, stock, uniqueName, watch } from './helpers.ts';
+import { expect, test, type Page } from '@playwright/test';
+import {
+  countActions,
+  holdActions,
+  nav,
+  register,
+  seed,
+  stock,
+  uniqueName,
+  watch,
+} from './helpers.ts';
 import { rewardMinutes } from '../src/core/daily-reward.ts';
 
 /** The amount of a resource in the bar, as a number. */
@@ -79,44 +88,6 @@ test('claims the shown daily reward on a phone (#220) @phone', async ({
   await claimsShownDailyReward(page);
   expect(w.problems).toEqual([]);
 });
-
-/**
- * Counts the game actions of one type the page sends and waits for their
- * answers, so a refusal of a second request would already show its toast.
- */
-function countActions(page: Page, type: string) {
-  const answers: Promise<unknown>[] = [];
-  page.on('request', (r) => {
-    if (r.method() === 'POST' && r.postData()?.includes(type))
-      answers.push(r.response());
-  });
-  return {
-    sent: async (): Promise<number> => {
-      await Promise.all(answers);
-      return answers.length;
-    },
-  };
-}
-
-/**
- * Holds every game action of one type at the network until `release`, so the
- * page cannot answer before the second click of a double click: without the
- * hold a fast answer removes the button first, and the test would pass
- * without the lock of #425 (CodeRabbit on #427).
- */
-async function holdActions(page: Page, type: string) {
-  const held: Route[] = [];
-  await page.route('**/api/action', async (route) => {
-    if (route.request().postData()?.includes(type)) held.push(route);
-    else await route.continue();
-  });
-  return {
-    release: async (): Promise<void> => {
-      await Promise.all(held.splice(0).map((r) => r.continue()));
-      await page.unroute('**/api/action');
-    },
-  };
-}
 
 test('a double click on „Abholen“ claims once and shows no error (#425)', async ({
   page,

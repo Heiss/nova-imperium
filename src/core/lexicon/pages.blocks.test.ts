@@ -738,3 +738,18 @@ describe('Monde and „Was bleibt nach einer Schlacht übrig?“ with the moon v
     expect(at({}).map((r) => r[0])).toEqual(['1 %', '5 %', '10 %', '20 %']);
   });
 });
+
+describe('Monde: who can start the battle of a moon (#445, 275b)', () => {
+  it('follows the chance paragraph as its own paragraph, with its links', () => {
+    const texts = blocks('rule-moons', 'chance').flatMap((b) =>
+      b.t === 'text' ? [b.text] : [],
+    );
+    expect(texts[0]).toMatch(/^Nach einem Kampf an einem Planeten ohne Mond/);
+    expect(texts[1]).toBe(
+      'Selbst erzeugen kannst du einen Mond nicht, denn eigene Planeten lassen sich nicht angreifen. Er entsteht nur nach einem Kampf, den ein anderer Spieler an deinem Planeten auslöst: ein [[mission-attack|Sturmangriff]], auch der eines Freundes, oder entdeckte [[probe|Spähschädel]] einer [[mission-spy|Auspex-Erkundung]]. Außerdem kann der Admin einen Mond anlegen.',
+    );
+    const [chance, alone] = blocks('rule-moons', 'chance');
+    expect(chance?.t).toBe('text');
+    expect(alone?.t).toBe('text');
+  });
+});

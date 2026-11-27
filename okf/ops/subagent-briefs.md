@@ -115,6 +115,19 @@ when the second built on the first.
   the CHECK of `guild_chat.kind` (and its other CHECKs where the kind needs
   them): `src/server/db/chat-events-check.test.ts` fails without one (#426,
   192a). Its sentence is a decided text, never invented.
+* A new right of the guild ranks is an entry `{ key, order, label, member? }`
+  of `guildRights` in a file of `src/core/guild-rights/`, with an unused
+  order between its neighbours in the guild view; `src/core/guild-ranks.ts`
+  is not edited (the list `rights.gen.ts` is generated). It also needs a new
+  migration that rewrites the CHECK of `guild_rank_rights.right_key`:
+  `src/server/db/guild-rights-check.test.ts` fails without one (#426, 192a).
+  Its German label is a decided text, never invented.
+* A new line of the overview cards „Achtung“ or „Bereit“ is an entry
+  `{ card, order, lines }` of `overviewLines` in a file of
+  `src/client/logic/overview-cards/`, with an unused order between its
+  neighbours in the card; `overview-cards.ts` is not edited (the list
+  `lines.gen.ts` is generated, a card and an order that exist twice stop the
+  start, #426).
 * A new push kind is an entry `{ key, order, label, guild? }` of
   `pushTopics` in a file of `src/core/push-topics/`, with an unused order
   between its neighbours in the options; `src/core/push.ts` and the options

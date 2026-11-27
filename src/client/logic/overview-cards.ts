@@ -5,28 +5,15 @@
 // another place). Pure, so the component
 // OverviewCards.svelte only renders what this module computes. What counts as
 // „Achtung“ and „Bereit“ is the proposal of the issue (all [V]).
-import { production } from '../../core/economy.ts';
-import { MISSION } from '../../core/missions.ts';
-import { placeName } from '../../core/moon.ts';
-import type { Mission } from '../../core/types.ts';
+import { ownedOnce } from '../../core/owned-once.ts';
 import type { V } from '../views/common.ts';
-import { coords, fmt } from './format.ts';
-import { fleetEnd, nameOf, sortFleets, unread } from './game.ts';
-import { rewardHint } from './menu-hints.ts';
-import { type Countdown, activityRows, countdown } from './overview.ts';
+import { type Countdown, activityRows } from './overview.ts';
+import type { CardItem, OverviewLines } from './overview-cards/contract.ts';
+import { OVERVIEW_LINES } from './overview-cards/lines.gen.ts';
 
-/**
- * The missions that are an attack on the way: the Sturmangriff, the
- * Mondbruch and the missiles. A spy, a transport or a holding fleet is none.
- */
-const HOSTILE: ReadonlySet<Mission> = new Set([
-  'attack',
-  'moonbreak',
-  'missile',
-]);
-
-/** The most incoming attacks the card names; the rest is counted. */
-export const MOST_ATTACKS = 3;
+export type { CardItem } from './overview-cards/contract.ts';
+export { MOST_ATTACKS } from './overview-cards/attacks.ts';
+export { MOST_IDLE } from './overview-cards/idle.ts';
 
 /** An order of the shown place that is working, with its bar. */
 export interface RunningItem {
@@ -39,26 +26,6 @@ export interface RunningItem {
   value: number;
   /** The shipyard counts down to its next unit, „(nächste)“. */
   next: boolean;
-}
-
-/** The most places with an empty build queue the card names; the rest is counted. */
-export const MOST_IDLE = 3;
-
-/** A line of „Achtung“ or „Bereit“; a link opens the view that fixes it. */
-export interface CardItem {
-  /**
-   * The key of the line in its card (#369): the id of the fleet or the
-   * place, or the kind of a line that stands once. The text is no key: two
-   * fleets of one player from one place, or a planet named like its moon,
-   * read the same.
-   */
-  key: string;
-  text: string;
-  /** The countdown of an attack. */
-  due?: Countdown;
-  link?: { view: string; label: string };
-  /** A button that makes this place the shown one (data-act `selectPlanet`). */
-  select?: { id: string; label: string };
 }
 
 export interface OverviewCards {
@@ -89,82 +56,47 @@ export function runningItems(v: V): RunningItem[] {
   });
 }
 
-/** „Achtung“: the hostile fleets on their way to the shown place, then too little energy. */
-export function attentionItems(v: V): CardItem[] {
-  const { s, P, R, now } = v;
-  const incoming = sortFleets(
-    s.fleets.filter(
-      (f) => f.owner !== s.me.id && f.state === 'out' && HOSTILE.has(f.mission),
-    ),
-  );
-  const items: CardItem[] = incoming.slice(0, MOST_ATTACKS).map((f) => ({
-    key: `fleet:${f.id}`,
-    text: `${MISSION[f.mission]} von ${nameOf(s.players, f.owner)} ${coords(f.fromC)}`,
-    due: countdown(fleetEnd(f), now),
-  }));
-  if (incoming.length > MOST_ATTACKS)
-    items.push({
-      key: 'more-fleets',
-      text: `und ${incoming.length - MOST_ATTACKS} weitere Flotten`,
-      link: { view: 'fleet', label: 'Zur Flotte' },
-    });
-  const pr = production(P, s.cfg, R.research);
-  const missing = Math.ceil(pr.eUse - pr.eProd);
-  if (missing > 0)
-    items.push({
-      key: 'energy',
-      text: `Zu wenig Energie: es fehlen ${fmt(missing)}`,
-      link: { view: 'buildings', label: 'Zu den Gebäuden' },
-    });
-  return items;
-}
+/** The modules as the generated list gives them: `[name in the folder, overviewLines]`. */
+type ListedLines = readonly (readonly [string, readonly OverviewLines[]])[];
 
 /**
- * „Bauschleife leer“ for the other own places the server named (`idle`),
- * worded from the galaxy; a place the galaxy does not list is left out. At
- * most `MOST_IDLE` lines, then „und N weitere“.
+ * The sources of each card by ascending order (#426); a card and an order
+ * defined twice stop the start with both files named.
  */
-function idleItems({ s }: V): CardItem[] {
-  const places = (s.idle ?? []).flatMap((id) => {
-    const p = s.galaxy.find((x) => x.id === id);
-    return p ? [{ id, text: `${placeName(p)} ${coords(p)}` }] : [];
-  });
-  const items: CardItem[] = places.slice(0, MOST_IDLE).map((p) => ({
-    key: `idle:${p.id}`,
-    text: `Bauschleife leer: ${p.text}`,
-    select: { id: p.id, label: 'Wechseln' },
-  }));
-  if (places.length > MOST_IDLE)
-    items.push({
-      key: 'more-idle',
-      text: `und ${places.length - MOST_IDLE} weitere`,
-    });
-  return items;
+export function assembleLines(
+  listed: ListedLines,
+): Record<OverviewLines['card'], readonly OverviewLines[]> {
+  const once = ownedOnce('Overview line');
+  const all = listed.flatMap(([name, sources]) =>
+    sources.map((source) => ({
+      file: `src/client/logic/overview-cards/${name}.ts`,
+      source,
+    })),
+  );
+  for (const { file, source } of all) {
+    if (!Number.isFinite(source.order))
+      throw new Error(
+        `Overview line of ${source.card} in ${file} has no order.`,
+      );
+    once(source.card, String(source.order), file);
+  }
+  const of = (card: OverviewLines['card']): readonly OverviewLines[] =>
+    all
+      .map((a) => a.source)
+      .filter((source) => source.card === card)
+      .sort((a, b) => a.order - b.order);
+  return { attention: of('attention'), ready: of('ready') };
 }
 
+const LINES = assembleLines(OVERVIEW_LINES);
+
+/** „Achtung“: the hostile fleets on their way to the shown place, then too little energy. */
+export const attentionItems = (v: V): CardItem[] =>
+  LINES.attention.flatMap((source) => source.lines(v));
+
 /** „Bereit“: a reward to claim, new messages, an empty build queue elsewhere. */
-export function readyItems(v: V): CardItem[] {
-  const { s } = v;
-  const items: CardItem[] = [];
-  const reward = rewardHint(s);
-  if (reward)
-    items.push({
-      key: 'reward',
-      text: reward,
-      link: { view: 'achievements', label: 'Abholen' },
-    });
-  const fresh = unread(s.reports, s.me.readAt);
-  if (fresh)
-    items.push({
-      key: 'unread',
-      text:
-        fresh === 1
-          ? '1 ungelesene Nachricht'
-          : `${fresh} ungelesene Nachrichten`,
-      link: { view: 'messages', label: 'Lesen' },
-    });
-  return [...items, ...idleItems(v)];
-}
+export const readyItems = (v: V): CardItem[] =>
+  LINES.ready.flatMap((source) => source.lines(v));
 
 /** The three cards of the shown place. */
 export const overviewCards = (v: V): OverviewCards => ({

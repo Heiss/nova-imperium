@@ -180,6 +180,24 @@ describe('need state', () => {
     expect(s).toEqual({ ready: true, cost: [400, 120, 200] });
   });
 
+  it('is not ready for the Handelsposten while the marketplace is off (#442)', () => {
+    const h = home({ b: { robot: 4 }, res: { m: 1e6, c: 1e6, d: 1e6 } });
+    const off = { ...places(h, R()), cfg: { ...U, roundMarketOn: 0 } };
+    expect(needState(need('market', 'b'), off)).toMatchObject({
+      ready: false,
+      reason: 'Der Marktplatz ist in dieser Runde geschlossen.',
+    });
+    const on = { ...places(h, R()), cfg: { ...U, roundMarketOn: 1 } };
+    expect(needState(need('market', 'b'), on)).toMatchObject({ ready: true });
+  });
+
+  it('names no refusal for a research the round does not have, as before (#442)', () => {
+    const h = home({ b: { lab: 1 }, res: { m: 1e9, c: 1e9, d: 1e9 } });
+    expect(needState(need('colonial', 'r'), places(h, R()))).not.toMatchObject({
+      reason: 'Der Marktplatz ist in dieser Runde geschlossen.',
+    });
+  });
+
   it('names the missing requirements of the next level', () => {
     const h = home({ res: { m: 1e6, c: 1e6, d: 1e6 } });
     expect(needState(need('yard', 'b'), places(h, R()))).toMatchObject({

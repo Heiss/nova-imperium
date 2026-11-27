@@ -70,6 +70,17 @@
 // src/core/chat-events/events.gen.ts (`CHAT_EVENT_LISTS`), which only
 // src/core/guild-chat.ts imports, so an event registers itself with its line.
 //
+// The rights of the guild ranks (#426): every file of src/core/guild-rights
+// that exports `guildRights` (key, order, label, member) is listed in
+// src/core/guild-rights/rights.gen.ts (`GUILD_RIGHT_LISTS`), which only
+// src/core/guild-ranks.ts imports, so a right registers itself with its name.
+//
+// The lines of the overview cards (#426): every file of
+// src/client/logic/overview-cards that exports `overviewLines` (its lines of
+// „Achtung“ or „Bereit“ with their place) is listed in
+// src/client/logic/overview-cards/lines.gen.ts (`OVERVIEW_LINES`), which only
+// logic/overview-cards.ts imports, so a source of lines registers itself.
+//
 // The round reset (#317): every file of src/server that exports `roundReset`
 // (what a new round empties and what it keeps) is listed in
 // src/server/round-reset.gen.ts (`ROUND_RESETS`), which only
@@ -150,6 +161,16 @@ export const CHAT_EVENTS_DIR = 'src/core/chat-events';
 export const CHAT_EVENTS_FILE = 'events.gen.ts';
 /** The fixed name under which a file exports its events of the guild chat. */
 const CHAT_EVENTS_EXPORT = /^export const chatEvents\b/m;
+/** Where the rights of the guild ranks are (#426), and the list of them. */
+export const GUILD_RIGHTS_DIR = 'src/core/guild-rights';
+export const GUILD_RIGHTS_FILE = 'rights.gen.ts';
+/** The fixed name under which a file exports its rights of the guild ranks. */
+const GUILD_RIGHTS_EXPORT = /^export const guildRights\b/m;
+/** Where the line sources of the overview cards are (#426), and the list of them. */
+export const OVERVIEW_LINES_DIR = 'src/client/logic/overview-cards';
+export const OVERVIEW_LINES_FILE = 'lines.gen.ts';
+/** The fixed name under which a file exports its lines of the overview cards. */
+const OVERVIEW_LINES_EXPORT = /^export const overviewLines\b/m;
 /** The list of the round resets (#317) is in the server folder, next to the server features. */
 export const ROUND_RESET_FILE = 'round-reset.gen.ts';
 /** The fixed name under which a file exports what a new round empties or keeps. */
@@ -525,6 +546,38 @@ export function generateChatEvents(dir: string): boolean {
   );
 }
 
+/** The files of the folder of the guild rights that export `guildRights` (#426). */
+export const scanGuildRights = (dir: string): string[] =>
+  scanExporting(dir, GUILD_RIGHTS_EXPORT);
+
+/** The source of the list of the rights of the guild ranks (#426). */
+export const renderGuildRights = (files: string[]): string =>
+  renderFeatureList(files, 'guildRights', 'GUILD_RIGHT_LISTS');
+
+/** Writes the list of the guild rights when it changed; true if it did. */
+export function generateGuildRights(dir: string): boolean {
+  return write(
+    join(dir, GUILD_RIGHTS_FILE),
+    renderGuildRights(scanGuildRights(dir)),
+  );
+}
+
+/** The files of the folder of the overview lines that export `overviewLines` (#426). */
+export const scanOverviewLines = (dir: string): string[] =>
+  scanExporting(dir, OVERVIEW_LINES_EXPORT);
+
+/** The source of the list of the line sources of the overview cards (#426). */
+export const renderOverviewLines = (files: string[]): string =>
+  renderFeatureList(files, 'overviewLines', 'OVERVIEW_LINES');
+
+/** Writes the list of the overview lines when it changed; true if it did. */
+export function generateOverviewLines(dir: string): boolean {
+  return write(
+    join(dir, OVERVIEW_LINES_FILE),
+    renderOverviewLines(scanOverviewLines(dir)),
+  );
+}
+
 /** The files of the server folder that export `roundReset` (#317). */
 export const scanRoundResets = (dir: string): string[] =>
   scanExporting(dir, ROUND_RESET_EXPORT);
@@ -609,6 +662,8 @@ if (import.meta.main)
     generatePushTopics(PUSH_TOPICS_DIR);
     generateLexiconPages(LEXICON_PAGES_DIR);
     generateChatEvents(CHAT_EVENTS_DIR);
+    generateGuildRights(GUILD_RIGHTS_DIR);
+    generateOverviewLines(OVERVIEW_LINES_DIR);
     generateActionInputs(ACTIONS_DIR);
     generateStateShapes(ACTIONS_DIR);
     return 0;

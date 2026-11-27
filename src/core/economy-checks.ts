@@ -12,6 +12,7 @@ import { BUILD, buildable, PRODUCERS, RES, UNIT } from './catalog.ts';
 import { colonyRules, researchRefused } from './colony-limit.ts';
 import { afford, lvlCost, maxAfford, reqMissing } from './economy.ts';
 import { fieldsFull } from './fields.ts';
+import { TRADING_POST, tradingPostOfferedIn } from './market.ts';
 import { hasLab, labUpgrading, waitsForLab } from './lab.ts';
 import { energyShort } from './research.ts';
 import type { Planet, ResearchState, Universe } from './types.ts';
@@ -30,13 +31,15 @@ export const holding = <T extends string>(
 
 /**
  * Why the next level of a building cannot start on a place: it cannot stand
- * there (#53), its requirements are missing, no field is free (#51), the
+ * there (#53), the round does not offer it (the Handelsposten while the
+ * marketplace is off, #442), its requirements are missing, no field is free (#51), the
  * build queue runs, it waits for the orders of the shipyard (#48) or for
  * the running research, the energy production is short (#51), or the
  * place cannot pay it.
  */
 export type BuildError =
   | 'place'
+  | 'off'
   | 'locked'
   | 'full'
   | 'busy'
@@ -61,6 +64,7 @@ export function buildErrors(
   const level = have + 1;
   return holding<BuildError>({
     place: !buildable(key, p.kind),
+    off: key === TRADING_POST && !tradingPostOfferedIn(u),
     locked: reqMissing(def, p, r).length > 0,
     full: fieldsFull(p, u),
     busy: !!p.bq,

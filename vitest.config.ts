@@ -35,6 +35,8 @@ export default defineConfig({
         'src/core/push-topics/topics.gen.ts',
         'src/core/lexicon/pages/pages.gen.ts',
         'src/core/chat-events/events.gen.ts',
+        'src/core/guild-rights/rights.gen.ts',
+        'src/client/logic/overview-cards/lines.gen.ts',
         'src/server/main.ts',
         'src/server/cli.ts',
         // Runs in a worker thread; tested through maintenance.test.ts.

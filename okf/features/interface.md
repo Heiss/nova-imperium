@@ -271,6 +271,17 @@ Up to 760 px only; the desktop stays as it is (D6).
   title. The section is `phone-only` (hidden above 760 px, like the filter of
   the lists); the fleet movements, the planet and the activities below it are
   unchanged, so the desktop is as before.
+* **[V]** The lines of „Achtung“ and „Bereit“ register themselves (#426 part
+  4; owner, 2026-11-26, 193b; the coordinator's choices of 2026-11-27): each
+  source is a file of `logic/overview-cards/` that exports `overviewLines`,
+  entries of `card`, `order` and `lines(v)` (`attacks.ts` 10 and `energy.ts`
+  20 in „Achtung“; `reward.ts` 10, `unread.ts` 20 and `idle.ts` 30 in
+  „Bereit“), with its constants (`MOST_ATTACKS`, `MOST_IDLE`) and texts;
+  `scripts/gen-features.ts` writes `overview-cards/lines.gen.ts`, and
+  `overview-cards.ts` names no source and stops the start at a card and an
+  order defined twice. „Läuft“ stays `runningItems`: it has one source, the
+  orders of the place. The cards were compared before and after on 400
+  generated states, byte for byte.
 * **[V]** „Läuft“ (always shown): the activities of the shown place, each
   with its countdown (the clock counts it down) and a bar: building and
   research over their whole length, the shipyard over the unit that is being
