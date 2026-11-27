@@ -5,7 +5,15 @@
 // pass, „Stand: {Uhrzeit}“. The universe is shared by the tests: the setting
 // is put back.
 import { expect, test, type Page } from '@playwright/test';
-import { cli, nav, register, seed, uniqueName, watch } from './helpers.ts';
+import {
+  boxes,
+  cli,
+  nav,
+  register,
+  seed,
+  uniqueName,
+  watch,
+} from './helpers.ts';
 
 const LABEL = 'Highscore-Aktualisierungen pro Tag (0 = Echtzeit)';
 
@@ -55,11 +63,17 @@ test('the admin sets how often the highscore is computed; the highscore names th
     await expect(page.locator('h2')).toContainText('Highscore');
     const stand = page.getByText(/^Stand: \d{2}:\d{2}$/);
     await expect(stand).toBeVisible();
-    // Next to the table, on its right (owner, 2026-11-26, B of #418).
-    const line = (await stand.boundingBox())!;
-    const table = (await page.locator('.scores-wrap > .box').boundingBox())!;
-    expect(line.x).toBeGreaterThanOrEqual(table.x + table.width);
-    expect(line.y).toBeLessThan(table.y + table.height);
+    // Next to the table, on its right (owner, 2026-11-26, B of #418); both
+    // boxes in one call, as every render mounts the view anew (`anew`).
+    const [line, table] = await boxes(
+      page,
+      '.scores-wrap > .stand',
+      '.scores-wrap > .box',
+    );
+    expect(line).not.toBeNull();
+    expect(table).not.toBeNull();
+    expect(line!.x).toBeGreaterThanOrEqual(table!.x + table!.width);
+    expect(line!.y).toBeLessThan(table!.y + table!.height);
     const clock = new Date().toLocaleTimeString('de-DE', {
       hour: '2-digit',
       minute: '2-digit',
