@@ -200,8 +200,10 @@ interface is German.
    Record the decisions in the OKF bundle (E, V, U), then write one comment
    on the issue that starts with `Geklärt` and lists the decisions with a
    link to the OKF concept; list the recommendations taken as [V] apart,
-   marked „taken as recommended“. That comment ends this step for the
-   issue.
+   marked „taken as recommended“. Write the same decisions into the body of
+   the issue too (owner, 2026-11-27, 203b): the check „Linked Issues“ of
+   CodeRabbit reads only the body. The comment stays the gate of step 5;
+   it ends this step for the issue.
 5. **Build the next open issue** with the label `ready` that has a
    `Geklärt` comment, in one pull request from `main` (branch `claude/…`).
    When you start it (also in a subagent), replace `ready` by

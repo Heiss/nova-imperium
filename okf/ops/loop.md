@@ -39,6 +39,10 @@ tasks).
   iteration; the iteration waits for the answer and continues with it. An
   issue counts as clarified when it has a comment that starts with
   `Geklärt` and lists the decisions with the OKF link.
+* **[E]** The owner's decisions are written into the body of the issue,
+  not only into comments (owner, 2026-11-27, 203b, the retrospective of
+  26.11.29): the check „Linked Issues“ of CodeRabbit reads only the body,
+  and it missed decisions recorded in comments (#418, #421).
 * **[E]** The loop asks the owner first what a release should bring, with
   proposals from the open issues; **infrastructure first**, features after
   it (owner, 2026-11-12). The chosen issues get the label `ready`
@@ -233,7 +237,9 @@ tasks).
   changed mutated file run before every push to a pull request as well
   (the rule „Before every push“ below).
 * **[E]** Small patches are slotted in between features (owner,
-  2026-11-16): the main agent merges Renovate's green patch and minor pull
+  2026-11-16); they are the only pull requests that may be bundled, a
+  feature is one issue in one pull request (owner, 2026-11-27, 204b): the
+  main agent merges Renovate's green patch and minor pull
   requests (one at a time, CI Gate green on a head up to date with `main`;
   a major update and a minor one below 1.0 wait for the owner) and follows
   up Dependabot alerts without a
@@ -358,6 +364,10 @@ tasks).
   changes go with the next code push, or are pushed before the pull request
   is marked ready. Every push cancels the running CI and starts all jobs
   again (owner, 2026-11-12).
+* **[E]** No branch update while a review of CodeRabbit of that pull
+  request runs, and a review of CodeRabbit is requested at most about once
+  an hour (owner, 2026-11-27, 203b, the retrospective of 26.11.29): a
+  branch update aborted a running review.
 * **[V]** Guards from loop engineering practice: a stop condition a machine
   can check (release pull request merged, then its tag and its
   retrospective), the state read
