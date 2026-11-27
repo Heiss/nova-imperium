@@ -44,6 +44,28 @@ const moonFields = (level: number): number =>
     { extraFields: 0 },
   )!;
 
+/** The diameter of a new moon: its formula and its sizes by the chance. */
+const diameterBlocks = () => [
+  say(
+    'Der Durchmesser des neuen Mondes wird ausgelost und fällt im Mittel größer aus, wenn die Chance hoch war. Die Tabelle zeigt die kleinsten und größten Monde, die bei einer Chance möglich sind.',
+  ),
+  formulas({
+    text: 'Durchmesser in km = ⌊√(x + 3 · Chance) · 1.000⌋, mit x ausgelost von 10 bis 20',
+    fn: (chance, x) => Math.floor(Math.sqrt(x! + 3 * chance!) * 1000),
+    rule: (chance, x) => moonDiameter(chance!, () => (x! - 9.5) / 11),
+    samples: [
+      [1, 10],
+      [5, 15],
+      [20, 20],
+    ],
+  }),
+  table(
+    'Durchmesser eines neuen Mondes',
+    ['Mondchance', 'kleinster Mond in km', 'größter Mond in km'],
+    CHANCES.map((chance) => [`${number(chance)} %`, ...sizes(chance)]),
+  ),
+];
+
 // The cap and the resources per percent are those of the round (#433, 211).
 const chanceSection = ({ round }: LexState): PageSection =>
   section(
@@ -83,24 +105,7 @@ const chanceSection = ({ round }: LexState): PageSection =>
         `${number(moonChance({ m: total, c: 0 }, round))} %`,
       ]),
     ),
-    say(
-      'Der Durchmesser des neuen Mondes wird ausgelost und fällt im Mittel größer aus, wenn die Chance hoch war. Die Tabelle zeigt die kleinsten und größten Monde, die bei einer Chance möglich sind.',
-    ),
-    formulas({
-      text: 'Durchmesser in km = ⌊√(x + 3 · Chance) · 1.000⌋, mit x ausgelost von 10 bis 20',
-      fn: (chance, x) => Math.floor(Math.sqrt(x! + 3 * chance!) * 1000),
-      rule: (chance, x) => moonDiameter(chance!, () => (x! - 9.5) / 11),
-      samples: [
-        [1, 10],
-        [5, 15],
-        [20, 20],
-      ],
-    }),
-    table(
-      'Durchmesser eines neuen Mondes',
-      ['Mondchance', 'kleinster Mond in km', 'größter Mond in km'],
-      CHANCES.map((chance) => [`${number(chance)} %`, ...sizes(chance)]),
-    ),
+    ...diameterBlocks(),
   );
 
 const fieldsSection = (): PageSection =>
