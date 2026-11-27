@@ -5,12 +5,7 @@
 // ([V], #288).
 import { BUILD, buildable } from '../../catalog.ts';
 import { MOON_FIELDS, maxFields } from '../../fields.ts';
-import {
-  MAX_MOON_CHANCE,
-  moonChance,
-  moonDiameter,
-  PER_PERCENT,
-} from '../../moon.ts';
+import { DIAMETER_CHANCE, moonChance, moonDiameter } from '../../moon.ts';
 import { breakChance, lossChance } from '../../moonbreak.ts';
 import { phalanxRange, SCAN_COST } from '../../phalanx.ts';
 import {
@@ -22,7 +17,7 @@ import {
   section,
   table,
 } from '../say.ts';
-import type { PageDef, PageSection } from '../types.ts';
+import type { LexState, PageDef, PageSection } from '../types.ts';
 
 /** The buildings that may stand on a moon, as the catalog lists them. */
 const moonBuildings = (): string =>
@@ -32,7 +27,7 @@ const moonBuildings = (): string =>
     .join(', ');
 
 const FIELDS = [50000, 100000, 500000, 1000000, 2000000, 5000000];
-const CHANCES = [1, 5, 10, MAX_MOON_CHANCE];
+const CHANCES = [1, 5, 10, DIAMETER_CHANCE];
 const LEVELS = [1, 2, 3, 5, 8, 10];
 const DIAMETERS = [3000, 5000, 8000];
 const BREAKERS = [1, 4, 16];
@@ -49,20 +44,30 @@ const moonFields = (level: number): number =>
     { extraFields: 0 },
   )!;
 
-const chanceSection = (): PageSection =>
+// The cap and the resources per percent are those of the round (#433, 211).
+const chanceSection = ({ round }: LexState): PageSection =>
   section(
     'chance',
     'Wie ein Mond entsteht',
     say(
       'Nach einem Kampf an einem Planeten ohne Mond wird gewürfelt, ob ein Mond entsteht. Die Chance ergibt sich aus dem Trümmerfeld, das nach dem Kampf an der Position liegt: je {per} Adamant und Psikristall darin ein Prozent, aber nie mehr als {max}. Gewürfelt wird einmal je Kampf, ein Planet hat höchstens einen Mond, und ein Kampf an einem Mond würfelt nichts. Mehr zum [[rule-debris|Trümmerfeld]] steht auf seiner Seite.',
-      { per: number(PER_PERCENT), max: `${number(MAX_MOON_CHANCE)} %` },
+      {
+        per: number(round.moonPerPercent),
+        max: `${number(round.moonChanceMax)} %`,
+      },
     ),
     formulas({
       text: 'Mondchance in % = ⌊(Adamant + Psikristall im Trümmerfeld) ÷ {per}⌋, höchstens {max}',
-      values: { per: number(PER_PERCENT), max: number(MAX_MOON_CHANCE) },
+      values: {
+        per: number(round.moonPerPercent),
+        max: number(round.moonChanceMax),
+      },
       fn: (m, c) =>
-        Math.min(Math.floor((m! + c!) / PER_PERCENT), MAX_MOON_CHANCE),
-      rule: (m, c) => moonChance({ m: m!, c: c! }),
+        Math.min(
+          Math.floor((m! + c!) / round.moonPerPercent),
+          round.moonChanceMax,
+        ),
+      rule: (m, c) => moonChance({ m: m!, c: c! }, round),
       samples: [
         [0, 0],
         [60000, 40000],
@@ -75,7 +80,7 @@ const chanceSection = (): PageSection =>
       ['Adamant und Psikristall im Feld', 'Mondchance'],
       FIELDS.map((total) => [
         total,
-        `${number(moonChance({ m: total, c: 0 }))} %`,
+        `${number(moonChance({ m: total, c: 0 }, round))} %`,
       ]),
     ),
     say(
@@ -191,8 +196,8 @@ export const page: PageDef = {
   line: 'Wie ein Mond entsteht, was auf ihm Platz hat und wie er zerbricht.',
   keywords: ['Mond', 'Trabant', 'Zitadelle', 'Phalanx', 'zerbrechen'],
   seeAlso: ['moonbase', 'phalanx', 'jumpgate', 'dstar', 'mission-moonbreak'],
-  sections: () => [
-    chanceSection(),
+  sections: (s) => [
+    chanceSection(s),
     fieldsSection(),
     phalanxSection(),
     breakSection(),

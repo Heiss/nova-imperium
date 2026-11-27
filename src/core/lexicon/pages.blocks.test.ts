@@ -678,3 +678,55 @@ describe('„Wie komme ich an mehr Rohstoffe?“ in a round with switches off (o
     ]);
   });
 });
+
+describe('Monde and „Was bleibt nach einer Schlacht übrig?“ with the moon values of the round (#433, 211)', () => {
+  const texts = (id: string, section: string, s: LexState) =>
+    blocks(id, section, s).flatMap((b) =>
+      b.t === 'text'
+        ? [b.text.replace(/\{(\w+)\}/g, (_, k: string) => b.values?.[k] ?? '')]
+        : b.t === 'facts'
+          ? b.items.map((x) => x.text)
+          : b.t === 'formula'
+            ? b.lines
+            : [],
+    );
+
+  it('shows the defaults as before', () => {
+    const s = defaultState();
+    expect(texts('rule-moons', 'chance', s).join('\n')).toContain(
+      'je 100.000 Adamant und Psikristall darin ein Prozent, aber nie mehr als 20 %.',
+    );
+    expect(texts('faq-aftermath', 'answer', s).join('\n')).toContain(
+      'mit höchstens 20 % Chance',
+    );
+  });
+
+  it('shows the set cap and the set resources per percent', () => {
+    const s = state({ moonChanceMax: 100, moonPerPercent: 10000 });
+    const moons = texts('rule-moons', 'chance', s).join('\n');
+    expect(moons).toContain(
+      'je 10.000 Adamant und Psikristall darin ein Prozent, aber nie mehr als 100 %.',
+    );
+    expect(moons).not.toContain('20 %');
+    expect(texts('faq-aftermath', 'answer', s).join('\n')).toContain(
+      'mit höchstens 100 % Chance',
+    );
+    expect(cellsOf('rule-moons', 'Mondchance nach dem Trümmerfeld', s)).toEqual(
+      [
+        [50000, '5 %'],
+        [100000, '10 %'],
+        [500000, '50 %'],
+        [1000000, '100 %'],
+        [2000000, '100 %'],
+        [5000000, '100 %'],
+      ],
+    );
+  });
+
+  it('keeps the diameters of 1 to 20 %, whatever the cap', () => {
+    const at = (round: Record<string, number>) =>
+      cellsOf('rule-moons', 'Durchmesser eines neuen Mondes', state(round));
+    expect(at({ moonChanceMax: 100 })).toEqual(at({}));
+    expect(at({}).map((r) => r[0])).toEqual(['1 %', '5 %', '10 %', '20 %']);
+  });
+});

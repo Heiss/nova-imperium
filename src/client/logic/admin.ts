@@ -137,6 +137,8 @@ export interface AdminPage {
   archive: ArchivePage;
   /** The players, by id, for the names in the diagnostics. */
   players: Players;
+  /** The cap of the moon chance in the round: „Mond anlegen“ takes up to it (#433, 210a). */
+  moonCap: number;
 }
 
 const settingsOf = (
@@ -171,6 +173,7 @@ export function adminPage(v: V): AdminPage | null {
     endzeitDone: a.endzeit.done ? ENDZEIT_NOTE.done : null,
     archive: archivePage(shownArchive(v.s), true),
     players: v.s.players,
+    moonCap: v.s.round.moonChanceMax,
   };
 }
 

@@ -1,12 +1,11 @@
 // The question „Was bleibt nach einer Schlacht übrig?“ (#288): the
 // survivors, the Trümmerfeld, the rebuilt defense, the loot and the moon. The
 // numbers come from `src/core/battle.ts`, `debris.ts`, `loot.ts` and
-// `moon.ts`; the words are a draft of Claude for the owner to check ([V],
+// the round (#433); the words are a draft of Claude for the owner to check ([V],
 // #288).
 import { MAX_ROUNDS } from '../../battle.ts';
 import { DEBRIS_SHARE } from '../../debris.ts';
 import { LOOT_SHARE, REBUILD_SHARE } from '../../loot.ts';
-import { MAX_MOON_CHANCE } from '../../moon.ts';
 import { facts, number, percent, say, section } from '../say.ts';
 import type { PageDef } from '../types.ts';
 
@@ -17,7 +16,7 @@ export const page: PageDef = {
   line: 'Die Überlebenden, ein Trümmerfeld, ein Teil der Verteidigung und die Beute des Siegers.',
   keywords: ['Schlacht', 'Verluste', 'Überlebende', 'Beute', 'übrig'],
   seeAlso: ['rule-battle', 'rule-debris', 'rule-moons', 'mission-attack'],
-  sections: () => [
+  sections: ({ round }) => [
     section(
       'answer',
       'Kurz gesagt',
@@ -43,7 +42,7 @@ export const page: PageDef = {
         ],
         [
           'Mond',
-          `Aus dem Trümmerfeld kann ein Mond entstehen, mit höchstens ${number(MAX_MOON_CHANCE)} % Chance ([[rule-moons|Monde]]).`,
+          `Aus dem Trümmerfeld kann ein Mond entstehen, mit höchstens ${number(round.moonChanceMax)} % Chance ([[rule-moons|Monde]]).`,
         ],
       ]),
     ),
