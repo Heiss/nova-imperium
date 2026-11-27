@@ -259,6 +259,71 @@ describe('Detect changes: the mutation jobs of a pull request (#309)', () => {
   const field = (written: string, name: string): string | undefined =>
     new RegExp(`^${name}=(.*)$`, 'm').exec(written)?.[1];
 
+  /**
+   * An edit that makes a commit on a side branch of the base: a main that
+   * moved on after the head was branched (#431). Its id goes into <env>.
+   */
+  const mainMoved =
+    (env: Record<string, string>, file = 'okf/ops/moved.md') =>
+    (): void => {
+      vcs('checkout', '-q', '-b', 'moved');
+      put(file, 'moved\n');
+      vcs('add', '-A');
+      vcs('commit', '-q', '-m', 'main moved');
+      env.PR_BASE = vcs('rev-parse', 'HEAD');
+      vcs('checkout', '-q', 'main');
+    };
+
+  it('fails a pull request into main whose head lacks main, and says how to fix it (#431)', () => {
+    const env: Record<string, string> = {};
+    const { code, out, written } = detectIn(
+      ['src/core/economy.ts'],
+      env,
+      undefined,
+      mainMoved(env),
+    );
+    expect(code).toBe(1);
+    expect(out).toMatch(
+      /::error::The head [0-9a-f]{40} does not contain the current main [0-9a-f]{40}\. Run: git fetch origin && git merge origin\/main, then push \(#431\)\./,
+    );
+    expect(out).toContain(env.PR_BASE);
+    expect(written).toBe('');
+  });
+
+  it('fails closed when the check itself fails (#431)', () => {
+    const { code, out, written } = detectIn(['src/core/economy.ts'], {
+      PR_BASE: '0123456789abcdef0123456789abcdef01234567',
+    });
+    expect(code).toBe(1);
+    expect(out).toContain('::error::Cannot check whether the head');
+    expect(out).toContain('run the job again (#431).');
+    expect(written).toBe('');
+  });
+
+  it('runs as before when the head contains main, and leaves hotfix and release pull requests to their rules (#431)', () => {
+    const fine = detectIn(['src/core/economy.ts']);
+    expect(fine.code).toBe(0);
+    expect(fine.out).not.toContain('#431');
+    for (const extra of [
+      { PR_BASE_REF: 'hotfix/x' },
+      { PR_HEAD_REF: 'release/main' },
+    ]) {
+      const env: Record<string, string> = { ...extra };
+      const changed = extra.PR_HEAD_REF ? ['VERSION'] : ['src/core/economy.ts'];
+      // The moved main of a release changes a fragment only, so that the
+      // metadata rule of the release (#387) does not refuse it.
+      const moved = extra.PR_HEAD_REF ? 'changes/moved.md' : undefined;
+      const { code, out } = detectIn(
+        changed,
+        env,
+        undefined,
+        mainMoved(env, moved),
+      );
+      expect(out).not.toContain('#431');
+      expect(code, out).toBe(0);
+    }
+  });
+
   it('mutates one changed source file only', () => {
     const { code, written } = detectIn(['src/core/economy.ts']);
     expect(code).toBe(0);
