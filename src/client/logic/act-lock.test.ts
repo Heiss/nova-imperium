@@ -155,5 +155,11 @@ describe('submitLocked (#428, 284a)', () => {
     const none = submit(null);
     expect(submitLocked(none, { '': vi.fn() })).toBeUndefined();
     expect(none.preventDefault).not.toHaveBeenCalled();
+    // A form without an id, as the browser gives it: „“.
+    const nameless = submit({ id: '' });
+    const empty = vi.fn();
+    expect(submitLocked(nameless, { '': empty })).toBeUndefined();
+    expect(empty).not.toHaveBeenCalled();
+    expect(nameless.preventDefault).not.toHaveBeenCalled();
   });
 });

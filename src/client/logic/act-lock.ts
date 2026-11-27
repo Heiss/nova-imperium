@@ -41,8 +41,8 @@ export function submitLocked(
   forms: Readonly<Record<string, () => unknown>>,
 ): Promise<unknown> | undefined {
   const form = e.target as { id?: string } | null;
-  const id = form?.id ?? '';
-  const handle = Object.hasOwn(forms, id) ? forms[id] : undefined;
+  const id = form?.id;
+  const handle = id && Object.hasOwn(forms, id) ? forms[id] : undefined;
   if (!form || !handle) return undefined;
   e.preventDefault();
   return runLocked(form, handle);
