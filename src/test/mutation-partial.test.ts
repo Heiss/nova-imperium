@@ -4,15 +4,23 @@ import {
   filesOf,
   floorChanges,
   main,
+  mergeParts,
+  PART_FILES,
+  partCount,
   partialConfig,
-  PARTIAL_LIMIT,
   partialSet,
+  partPlanOf,
+  partsOf,
   plan,
   sources,
 } from '../../scripts/mutation-partial.ts';
 import { isMutated } from '../../scripts/mutation-changes.ts';
 import { formatFloors } from '../../scripts/mutation-floorfile.ts';
-import { type StrykerConfig } from '../../scripts/mutation-shards.ts';
+import {
+  type Report,
+  SHARDS,
+  type StrykerConfig,
+} from '../../scripts/mutation-shards.ts';
 
 const stryker = JSON.parse(
   readFileSync('stryker.config.json', 'utf8'),
@@ -601,99 +609,205 @@ describe('partial mutation run: the plan with a change of the floors', () => {
   });
 });
 
-describe('partial mutation run: the limit of one job', () => {
+describe('partial mutation run: no limit of the size (#370, 189a)', () => {
   /** n mutated files a0.ts, a1.ts ... of src/core. */
   const names = (n: number): string[] =>
     Array.from({ length: n }, (_, i) => `src/core/a${i}.ts`);
-  const every = has(...names(PARTIAL_LIMIT + 1));
   const diffOf = (files: string[]) =>
     fakeGit({ [diff]: `${files.join('\0')}\0` });
 
-  it('is 12 files', () => {
-    expect(PARTIAL_LIMIT).toBe(12);
+  it('runs a set of any size as a partial run', () => {
+    for (const n of [1, 12, 13, 33, 200]) {
+      const files = names(n);
+      expect(
+        plan('base', 'head', mutate, diffOf(files), has(...files)),
+      ).toEqual({ reasons: [], files: [...files].sort() });
+    }
   });
 
-  it('runs a set at the limit as a partial run', () => {
-    const files = names(PARTIAL_LIMIT);
-    expect(plan('base', 'head', mutate, diffOf(files), every)).toEqual({
-      reasons: [],
-      files: [...files].sort(),
-    });
-  });
-
-  it('runs everything for a set one above the limit, and says why', () => {
+  it('runs everything only for the mutation configuration, not for the size', () => {
+    const files = names(40);
     expect(
-      plan('base', 'head', mutate, diffOf(names(PARTIAL_LIMIT + 1)), every),
+      plan(
+        'base',
+        'head',
+        mutate,
+        diffOf([...files, 'stryker.config.json']),
+        has(...files),
+      ),
     ).toEqual({
-      reasons: ['13 changed files are more than the limit of 12 for one job'],
-      files: [],
-    });
-  });
-
-  it('counts the set, not the changed files: tests, documentation and deleted files do not count', () => {
-    const changed = [
-      ...names(PARTIAL_LIMIT),
-      ...names(PARTIAL_LIMIT).map((f) => f.replace('.ts', '.test.ts')),
-      ...Array.from({ length: 20 }, (_, i) => `okf/log/x${i}.md`),
-      'src/core/deleted.ts',
-    ];
-    expect(plan('base', 'head', mutate, diffOf(changed), every).files).toEqual(
-      names(PARTIAL_LIMIT).sort(),
-    );
-  });
-
-  it('counts the files of a change of the floors too', () => {
-    const floors = (n: number): string =>
-      floorsOf(Object.fromEntries(names(n).map((f) => [f, 70])));
-    const git =
-      (n: number) =>
-      (args: string[]): string => {
-        const call = args.join(' ');
-        if (call === diff) return 'mutation-floors.txt\0';
-        if (call === 'show base:mutation-floors.txt') return '';
-        if (call === 'show head:mutation-floors.txt') return floors(n);
-        throw new Error(`git ${call}`);
-      };
-    expect(
-      plan('base', 'head', mutate, git(PARTIAL_LIMIT), every).files,
-    ).toEqual(names(PARTIAL_LIMIT).sort());
-    expect(plan('base', 'head', mutate, git(PARTIAL_LIMIT + 1), every)).toEqual(
-      {
-        reasons: ['13 changed files are more than the limit of 12 for one job'],
-        files: [],
-      },
-    );
-    // Files from the changes and from the floors are one set.
-    const both = (args: string[]): string =>
-      args.join(' ') === diff
-        ? `mutation-floors.txt\0${names(PARTIAL_LIMIT).join('\0')}\0`
-        : git(PARTIAL_LIMIT)(args);
-    expect(plan('base', 'head', mutate, both, every).files).toHaveLength(12);
-  });
-
-  it('adds its reason to the others without hiding them', () => {
-    const git = diffOf([...names(PARTIAL_LIMIT + 1), 'stryker.config.json']);
-    expect(plan('base', 'head', mutate, git, every)).toEqual({
       reasons: ['stryker.config.json configures the mutation run'],
       files: [],
     });
   });
+});
 
-  it('prints true and the reason on stderr', () => {
-    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
-    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const git = diffOf(names(PARTIAL_LIMIT + 1));
-    const read = () => JSON.stringify(stryker);
-    expect(main(['plan', 'base', 'head'], { git, read, exists: every })).toBe(
-      0,
+describe('partial mutation run: the parts (#370, 190a)', () => {
+  const names = (n: number): string[] =>
+    Array.from(
+      { length: n },
+      (_, i) => `src/core/a${String(i).padStart(3, '0')}.ts`,
     );
-    expect(log.mock.calls).toEqual([['true']]);
-    expect(error.mock.calls).toEqual([
-      [
-        'Complete mutation run: 13 changed files are more than the limit of 12 for one job',
-      ],
+  /** A report whose file <f> has mutants of <ms> milliseconds each. */
+  const reportOf = (files: Record<string, number[]>): Report => ({
+    files: Object.fromEntries(
+      Object.entries(files).map(([f, ms]) => [
+        f,
+        { mutants: ms.map((duration) => ({ duration })) },
+      ]),
+    ),
+  });
+  const lines = (): number => 10;
+
+  it('is one part for each 12 files begun, at most the number of shards', () => {
+    expect(PART_FILES).toBe(12);
+    expect(SHARDS).toBe(12);
+    expect(
+      [1, 11, 12, 13, 24, 25, 36, 37, 144, 145, 1000].map(partCount),
+    ).toEqual([1, 1, 1, 2, 2, 3, 3, 4, 12, 12, 12]);
+    expect(partCount(0)).toBe(1);
+  });
+
+  it('keeps a set of up to 12 files in one part', () => {
+    const files = names(12);
+    expect(partsOf(files, undefined, lines)).toEqual([files]);
+  });
+
+  it('puts every file into exactly one part, sorted in its part', () => {
+    for (const n of [13, 30, 200]) {
+      const files = names(n);
+      const parts = partsOf(files, undefined, lines);
+      expect(parts).toHaveLength(partCount(n));
+      expect(parts.flat().sort()).toEqual(files);
+      for (const part of parts) expect(part).toEqual([...part].sort());
+    }
+  });
+
+  it('splits by the weights: a heavy file gets a part of its own', () => {
+    const files = names(13);
+    const heavy = files[5]!;
+    const report = reportOf(
+      Object.fromEntries(files.map((f) => [f, f === heavy ? [1000] : [1]])),
+    );
+    expect(partsOf(files, report, lines)).toEqual([
+      [heavy],
+      files.filter((f) => f !== heavy),
     ]);
-    vi.restoreAllMocks();
+  });
+
+  it('weighs a file without a report by its lines', () => {
+    const files = names(13);
+    const big = files[0]!;
+    const parts = partsOf(files, undefined, (f) => (f === big ? 500 : 1));
+    expect(parts).toEqual([[big], files.slice(1)]);
+  });
+
+  it('leaves out an empty part', () => {
+    // 13 files where the report knows one with weight and twelve without
+    // mutants: the weightless files all go onto the lightest part.
+    const files = names(13);
+    const report = reportOf(
+      Object.fromEntries(files.map((f, i) => [f, i === 0 ? [5] : []])),
+    );
+    const parts = partsOf(files, report, lines);
+    expect(parts.every((p) => p.length > 0)).toBe(true);
+    expect(parts.flat().sort()).toEqual(files);
+  });
+
+  it('gives the same plan for the same input', () => {
+    const files = names(50);
+    expect(partsOf([...files].reverse(), undefined, lines)).toEqual(
+      partsOf(files, undefined, lines),
+    );
+  });
+});
+
+describe('partial mutation run: the plan of the parts in MUTATION_PLAN', () => {
+  it('reads the JSON list of parts', () => {
+    expect(partPlanOf('[["src/a.ts"],["src/b.ts","src/c.ts"]]')).toEqual([
+      ['src/a.ts'],
+      ['src/b.ts', 'src/c.ts'],
+    ]);
+  });
+
+  it('fails without a list of parts of files', () => {
+    for (const value of [
+      undefined,
+      '',
+      'x',
+      '[]',
+      '[[]]',
+      '["src/a.ts"]',
+      '[["src/a.ts"],[]]',
+      '[[1]]',
+      '[[""]]',
+      '{"a":["src/a.ts"]}',
+    ])
+      expect(() => partPlanOf(value)).toThrow(
+        'MUTATION_PLAN is no JSON list of parts of files.',
+      );
+  });
+});
+
+describe('partial mutation run: the merge of the parts', () => {
+  const thresholds = { high: 90, low: 80, break: 80 };
+  const ran = (mutate: string[], files: Record<string, number>): Report => ({
+    schemaVersion: '2',
+    config: { mutate },
+    testFiles: {},
+    files: Object.fromEntries(
+      Object.entries(files).map(([f, n]) => [
+        f,
+        {
+          mutants: Array.from({ length: n }, (_, i) => ({
+            mutatorName: 'm',
+            replacement: String(i),
+            location: {
+              start: { line: i + 1, column: 1 },
+              end: { line: i + 1, column: 2 },
+            },
+          })),
+        },
+      ]),
+    ),
+  });
+  const plan2 = [['src/a.ts', 'src/b.ts'], ['src/c.ts']];
+
+  it('merges the parts into one report that names every file of the plan', () => {
+    const merged = mergeParts(
+      plan2,
+      [
+        ran(['src/c.ts'], { 'src/c.ts': 2 }),
+        ran(['src/b.ts', 'src/a.ts'], { 'src/a.ts': 1 }),
+      ],
+      thresholds,
+    );
+    expect(merged).not.toHaveProperty('problems');
+    const report = (merged as { report: Report }).report;
+    expect(report.config).toEqual({
+      mutate: ['src/a.ts', 'src/b.ts', 'src/c.ts'],
+    });
+    expect(report.thresholds).toEqual(thresholds);
+    expect(report).not.toHaveProperty('testFiles');
+    expect(Object.keys(report.files).sort()).toEqual(['src/a.ts', 'src/c.ts']);
+    expect(report.files['src/c.ts']!.mutants).toHaveLength(2);
+  });
+
+  it('fails when a part is missing, ran twice or ran other files', () => {
+    const a = ran(['src/a.ts', 'src/b.ts'], { 'src/a.ts': 1 });
+    const c = ran(['src/c.ts'], { 'src/c.ts': 1 });
+    const problemsOf = (reports: Report[]): string[] => {
+      const merged = mergeParts(plan2, reports, thresholds);
+      return 'problems' in merged ? merged.problems : [];
+    };
+    expect(problemsOf([a])).toEqual(['shard 2 has 0 reports']);
+    expect(problemsOf([a, c, c])).toContain('shard 2 has 2 reports');
+    expect(problemsOf([a, ran(['src/c.ts', 'src/d.ts'], {})])).toContain(
+      'report 2 ran files that are no shard of the plan',
+    );
+    expect(
+      problemsOf([a, ran(['src/c.ts'], { 'src/c.ts': 1, 'src/x.ts': 1 })]),
+    ).toContain('src/x.ts is in the report of shard 2, not in its files');
   });
 });
 
@@ -817,54 +931,195 @@ describe('partial mutation run: the command', () => {
     ]);
   });
 
-  it('writes the configuration of the files in MUTATION_FILES', () => {
+  it('prints the plan of the parts of the files in MUTATION_FILES', () => {
+    const { log, error } = output();
+    const files = Array.from({ length: 13 }, (_, i) => `src/core/p${i}.ts`);
+    const reads = (file: string): string => {
+      if (files.includes(file))
+        return file === files[0] ? 'x\n'.repeat(99) : 'x';
+      throw new Error(file);
+    };
+    expect(
+      main(['parts'], {
+        read: reads,
+        exists: () => false,
+        files: JSON.stringify(files),
+      }),
+    ).toBe(0);
+    const parts = [[files[0]], files.slice(1).sort()];
+    expect(log.mock.calls).toEqual([[JSON.stringify(parts)]]);
+    expect(error.mock.calls[0]).toEqual([
+      '13 files in 2 parts, weighed by their lines (no state of a complete run):',
+    ]);
+    expect(error.mock.calls).toHaveLength(3);
+  });
+
+  it('weighs the parts by the restored state of the last complete run', () => {
+    const { log, error } = output();
+    const files = ['src/core/x.ts', 'src/core/y.ts'];
+    const state = {
+      plan: [files],
+      weights: { files: { 'src/core/x.ts': { mutants: [{ duration: 5 }] } } },
+    };
+    const reads = (file: string): string => {
+      if (file === 'reports/mutation-state.json') return JSON.stringify(state);
+      throw new Error(file);
+    };
+    const exists = (file: string): boolean =>
+      file === 'reports/mutation-state.json';
+    expect(
+      main(['parts'], { read: reads, exists, files: JSON.stringify(files) }),
+    ).toBe(0);
+    expect(log.mock.calls).toEqual([[JSON.stringify([files])]]);
+    expect(error.mock.calls[0]).toEqual([
+      '2 files in 1 parts, weighed by the weights of the last complete run:',
+    ]);
+  });
+
+  it('weighs by the lines when the state is broken', () => {
+    const { error } = output();
+    const reads = (file: string): string =>
+      file === 'reports/mutation-state.json' ? '{' : 'x';
+    expect(
+      main(['parts'], {
+        read: reads,
+        exists: () => true,
+        files: '["src/core/x.ts"]',
+      }),
+    ).toBe(0);
+    expect(error.mock.calls[0]![0]).toContain('their lines');
+  });
+
+  it('writes the configuration of part n of MUTATION_PLAN', () => {
     const { log } = output();
     const written: [string, string][] = [];
     const write = (file: string, text: string): void => {
       written.push([file, text]);
     };
-    expect(
-      main(['config'], { read, write, files: '["src/a.ts","src/b.ts"]' }),
-    ).toBe(0);
-    expect(written).toHaveLength(1);
-    expect(written[0]![0]).toBe('reports/stryker-partial.config.json');
+    const planned = '[["src/a.ts","src/b.ts"],["src/c.ts"]]';
+    expect(main(['config', '1'], { read, write, plan: planned })).toBe(0);
+    expect(main(['config', '2'], { read, write, plan: planned })).toBe(0);
+    expect(written.map(([f]) => f)).toEqual([
+      'reports/stryker-partial.config.json',
+      'reports/stryker-partial.config.json',
+    ]);
     expect(written[0]![1].endsWith('}\n')).toBe(true);
     expect(JSON.parse(written[0]![1])).toEqual(
       partialConfig(stryker, ['src/a.ts', 'src/b.ts']),
     );
+    expect(JSON.parse(written[1]![1])).toEqual(
+      partialConfig(stryker, ['src/c.ts']),
+    );
     expect(log.mock.calls).toEqual([
       [
-        '2 files in reports/stryker-partial.config.json:\n  src/a.ts\n  src/b.ts',
+        'Part 1 of 2: 2 files in reports/stryker-partial.config.json:\n  src/a.ts\n  src/b.ts',
+      ],
+      [
+        'Part 2 of 2: 1 files in reports/stryker-partial.config.json:\n  src/c.ts',
       ],
     ]);
   });
 
-  it('writes nothing without files', () => {
+  it('writes nothing without a plan or for a part it does not have', () => {
     const write = vi.fn();
-    expect(() => main(['config'], { read, write, files: undefined })).toThrow(
-      'MUTATION_FILES is no JSON list of files.',
-    );
+    expect(() =>
+      main(['config', '1'], { read, write, plan: undefined }),
+    ).toThrow('MUTATION_PLAN is no JSON list of parts of files.');
+    for (const n of ['0', '3', '1.5', 'x', undefined])
+      expect(() =>
+        main(['config', ...(n === undefined ? [] : [n])], {
+          read,
+          write,
+          plan: '[["src/a.ts"],["src/b.ts"]]',
+        }),
+      ).toThrow(`No part ${n} in a plan of 2 parts.`);
     expect(write).not.toHaveBeenCalled();
   });
 
-  it('reads MUTATION_FILES of the environment by default', () => {
-    vi.stubEnv('MUTATION_FILES', '["src/c.ts"]');
-    output();
+  it('reads MUTATION_FILES and MUTATION_PLAN of the environment by default', () => {
+    vi.stubEnv('MUTATION_PLAN', '[["src/c.ts"]]');
+    vi.stubEnv('MUTATION_FILES', '["src/core/q.ts"]');
+    const { log } = output();
     const write = vi.fn();
-    expect(main(['config'], { read, write })).toBe(0);
+    expect(main(['config', '1'], { read, write })).toBe(0);
     expect(JSON.parse(write.mock.calls[0]![1] as string).mutate).toEqual([
       'src/c.ts',
     ]);
+    expect(main(['parts'], { read: () => 'x', exists: () => false })).toBe(0);
+    expect(log.mock.calls.at(-1)).toEqual(['[["src/core/q.ts"]]']);
     vi.unstubAllEnvs();
+  });
+
+  it('merges the reports of the parts and writes the merged one', () => {
+    const { log } = output();
+    const written: [string, string][] = [];
+    const part = (mutate: string[]): string =>
+      JSON.stringify({ config: { mutate }, files: {} });
+    const reports: Record<string, string> = {
+      'r/1.json': part(['src/a.ts']),
+      'r/2.json': part(['src/b.ts']),
+    };
+    const reads = (file: string): string => reports[file] ?? read(file);
+    expect(
+      main(['merge', 'out.json', 'r/1.json', 'r/2.json'], {
+        read: reads,
+        write: (f, t) => written.push([f, t]),
+        plan: '[["src/a.ts"],["src/b.ts"]]',
+      }),
+    ).toBe(0);
+    expect(written).toHaveLength(1);
+    expect(written[0]![0]).toBe('out.json');
+    expect(JSON.parse(written[0]![1])).toEqual({
+      config: { mutate: ['src/a.ts', 'src/b.ts'] },
+      files: {},
+      thresholds: stryker.thresholds,
+    });
+    expect(log.mock.calls).toEqual([
+      ['2 reports of the parts merged into out.json.'],
+    ]);
+  });
+
+  it('writes nothing and fails when a part is missing', () => {
+    const { log } = output();
+    const write = vi.fn();
+    const reads = (file: string): string =>
+      file === 'r/1.json'
+        ? JSON.stringify({ config: { mutate: ['src/a.ts'] }, files: {} })
+        : read(file);
+    expect(
+      main(['merge', 'out.json', 'r/1.json'], {
+        read: reads,
+        write,
+        plan: '[["src/a.ts"],["src/b.ts"]]',
+      }),
+    ).toBe(1);
+    expect(write).not.toHaveBeenCalled();
+    expect(log.mock.calls).toEqual([
+      ['::error::Partial mutation run: shard 2 has 0 reports'],
+    ]);
+  });
+
+  it('needs the merged file and at least one report', () => {
+    const { error } = output();
+    expect(main(['merge'], { read })).toBe(1);
+    expect(main(['merge', 'out.json'], { read })).toBe(1);
+    expect(error.mock.calls).toEqual([
+      ['Usage: mutation-partial.ts merge <out> <report>...'],
+      ['Usage: mutation-partial.ts merge <out> <report>...'],
+    ]);
   });
 
   it('names its commands', () => {
     const { error } = output();
     expect(main([], {})).toBe(1);
-    expect(main(['merge'], {})).toBe(1);
+    expect(main(['split'], {})).toBe(1);
     expect(error.mock.calls).toEqual([
-      ['Usage: mutation-partial.ts plan <from> [<to>] | config'],
-      ['Usage: mutation-partial.ts plan <from> [<to>] | config'],
+      [
+        'Usage: mutation-partial.ts plan <from> [<to>] | parts | config <n> | merge <out> <report>...',
+      ],
+      [
+        'Usage: mutation-partial.ts plan <from> [<to>] | parts | config <n> | merge <out> <report>...',
+      ],
     ]);
   });
 });
@@ -892,18 +1147,41 @@ describe('partial mutation run: the job in ci.yml', () => {
 
   it('reads and writes no cache and no plan of the complete runs', () => {
     const partial = job('mutation-partial');
-    expect(partial).toContain('Mutation tests (changed files)');
-    for (const word of complete) expect(partial).not.toContain(word);
+    expect(partial).toContain('    name: Mutation tests (changed files)\n');
+    const part = job('mutation-partial-part');
+    expect(part).toContain(
+      'Mutation tests (changed files, part ${{ matrix.part }} of ${{ strategy.job-total }})',
+    );
+    for (const text of [partial, part])
+      for (const word of complete) expect(text).not.toContain(word);
+  });
+
+  it('restores the weights of main in "Detect changes" read only (#370)', () => {
+    const changes = job('changes');
+    expect(changes).toContain('actions/cache/restore@');
+    expect(changes).not.toMatch(/actions\/cache@|actions\/cache\/save@/);
   });
 
   it('runs only for the output "partial" and only after "Detect changes"', () => {
+    const part = job('mutation-partial-part');
+    expect(part).toContain('    needs: changes\n');
+    expect(part).toContain("if: needs.changes.outputs.mutation == 'partial'\n");
+    expect(part).toContain(
+      "part: ${{ fromJSON(needs.changes.outputs.mutation-parts || '[1]') }}",
+    );
+    expect(part).toContain(
+      'MUTATION_PLAN: ${{ needs.changes.outputs.mutation-plan }}',
+    );
     const partial = job('mutation-partial');
-    expect(partial).toContain('needs: changes\n');
+    expect(partial).toContain('needs: [changes, mutation-partial-part]\n');
     expect(partial).toContain(
       "if: needs.changes.outputs.mutation == 'partial'\n",
     );
     expect(partial).toContain(
       'MUTATION_FILES: ${{ needs.changes.outputs.mutation-files }}',
+    );
+    expect(partial).toContain(
+      'MUTATION_PLAN: ${{ needs.changes.outputs.mutation-plan }}',
     );
     for (const name of ['mutation-plan', 'mutation-shard', 'mutation'])
       expect(job(name)).toContain(
@@ -924,6 +1202,10 @@ describe('partial mutation run: the job in ci.yml', () => {
 
   it('is a step of the gate job as well', () => {
     expect(job('gate')).toContain('        mutation-partial,\n');
+    expect(job('gate')).toContain('        mutation-partial-part,\n');
+    expect(job('gate')).toContain(
+      'MUTATION_PARTIAL_PARTS: ${{ needs.mutation-partial-part.result }}',
+    );
     expect(job('gate')).toContain(
       'MUTATION_PARTIAL: ${{ needs.mutation-partial.result }}',
     );
