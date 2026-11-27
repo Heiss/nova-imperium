@@ -1,7 +1,7 @@
 // The lock of a clicked `data-act` element while its handler runs (#425), and
 // of a submitted form (#428, 284a).
 import { describe, expect, it, vi } from 'vitest';
-import { runLocked, submitLocked } from './act-lock.ts';
+import { lockedSubmit, runLocked, submitLocked } from './act-lock.ts';
 
 /** A promise and the functions that settle it. */
 function pending(): {
@@ -96,20 +96,20 @@ describe('submitLocked (#428, 284a)', () => {
   });
 
   it('sends a form once while its handler runs, two quick Enter or a double click', async () => {
-    const form = { id: 'chatform' };
+    const form = { id: 'guildchatform' };
     const p = pending();
     const send = vi.fn(() => p.promise);
     const first = submit(form);
     const second = submit(form);
-    const done = submitLocked(first, { chatform: send });
-    expect(submitLocked(second, { chatform: send })).toBeUndefined();
+    const done = submitLocked(first, { guildchatform: send });
+    expect(submitLocked(second, { guildchatform: send })).toBeUndefined();
     expect(send).toHaveBeenCalledTimes(1);
     // The second submit is still kept from the browser's default.
     expect(first.preventDefault).toHaveBeenCalledTimes(1);
     expect(second.preventDefault).toHaveBeenCalledTimes(1);
     p.resolve(true);
     await expect(done).resolves.toBe(true);
-    submitLocked(submit(form), { chatform: send });
+    submitLocked(submit(form), { guildchatform: send });
     expect(send).toHaveBeenCalledTimes(2);
   });
 
@@ -161,5 +161,39 @@ describe('submitLocked (#428, 284a)', () => {
     expect(submitLocked(nameless, { '': empty })).toBeUndefined();
     expect(empty).not.toHaveBeenCalled();
     expect(nameless.preventDefault).not.toHaveBeenCalled();
+  });
+});
+
+describe('lockedSubmit, the onsubmit of a form of a view (#428)', () => {
+  const event = (form: object | null) => ({
+    currentTarget: form as EventTarget | null,
+    preventDefault: vi.fn(),
+  });
+
+  it('stops the default every time and runs the handler once while it is pending', async () => {
+    const form = { id: 'pm-block' };
+    const p = pending();
+    const handle = vi.fn(() => p.promise);
+    const submit = lockedSubmit(handle);
+    const first = event(form);
+    const second = event(form);
+    submit(first);
+    submit(second);
+    expect(handle).toHaveBeenCalledTimes(1);
+    expect(handle).toHaveBeenCalledWith(first);
+    expect(first.preventDefault).toHaveBeenCalledTimes(1);
+    expect(second.preventDefault).toHaveBeenCalledTimes(1);
+    p.resolve(true);
+    await settle();
+    submit(event(form));
+    expect(handle).toHaveBeenCalledTimes(2);
+  });
+
+  it('runs nothing without a form, but still stops the default', () => {
+    const handle = vi.fn();
+    const none = event(null);
+    lockedSubmit(handle)(none);
+    expect(handle).not.toHaveBeenCalled();
+    expect(none.preventDefault).toHaveBeenCalledTimes(1);
   });
 });

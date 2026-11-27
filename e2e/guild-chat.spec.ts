@@ -17,9 +17,11 @@ import {
 } from '@playwright/test';
 import {
   cli,
+  countActions,
   galaxyAction,
   galaxyRow,
   guildTag,
+  holdActions,
   logout,
   nav,
   register,
@@ -460,6 +462,37 @@ async function eventsFlow(page: Page, browser: Browser): Promise<void> {
   for (const p of [member, vex]) await p.close();
   expect(g.problems.flatMap((w) => w.problems)).toEqual([]);
 }
+
+/** Two quick sends of one message: the form is locked while it is on its way (#428). */
+async function doubleSendFlow(page: Page, browser: Browser): Promise<void> {
+  test.slow();
+  const g = await guild(page, browser);
+  const { lead } = g;
+  const text = `Nur einmal ${g.tag}`;
+  const sent = countActions(lead, 'sendGuildChat');
+  // Held at the network, so the second submit comes before the answer.
+  const held = await holdActions(lead, 'sendGuildChat');
+  const field = lead.getByLabel('Nachricht', { exact: true });
+  await field.fill(text);
+  await field.press('Enter');
+  await field.press('Enter');
+  await lead.getByRole('button', { name: 'Senden' }).dblclick();
+  await held.release();
+  await expect(log(lead)).toContainText(text);
+  expect(await sent.sent()).toBe(1);
+  await lead.reload();
+  await expect(log(lead).locator('li', { hasText: text })).toHaveCount(1);
+  await expect(lead.locator('.toast.err')).toHaveCount(0);
+  await g.member.close();
+  expect(g.problems.flatMap((w) => w.problems)).toEqual([]);
+}
+
+test('two quick Enter and a double click send a chat message once (#428)', async ({
+  page,
+  browser,
+}) => {
+  await doubleSendFlow(page, browser);
+});
 
 test.describe('the guild chat (#169)', () => {
   test('two members chat; plain text, the limits, deleting, leaving and outsiders', async ({

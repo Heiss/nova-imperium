@@ -3,6 +3,7 @@
   // component owns the password and the busy state, so a redraw of the page
   // (the poll of the state) never touches them; `confirm` (features/
   // account-delete.ts) sends the deletion and says whether it went through.
+  import { lockedSubmit } from '../logic/act-lock.ts';
   let {
     text,
     confirm,
@@ -20,7 +21,7 @@
   }
 </script>
 
-<form id="deleteaccountform" onsubmit={submit}>
+<form id="deleteaccountform" onsubmit={lockedSubmit(submit)}>
   <p>{text}</p>
   <p>
     <label for="delete-account-password">Passwort zur Bestätigung</label>

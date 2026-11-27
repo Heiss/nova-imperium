@@ -6,6 +6,7 @@
   // logic/admin-panels.svelte.ts, because the page is mounted anew on every
   // render. The ids and `data-admin`s are those the e2e tests and style.css
   // read.
+  import { lockedSubmit } from '../logic/act-lock.ts';
   import {
     eventsPage,
     ordersPage,
@@ -50,11 +51,10 @@
     );
   }
 
-  function moderation(event: SubmitEvent): void {
-    event.preventDefault();
+  function moderation(event: SubmitEvent): Promise<unknown> | undefined {
     const form = event.currentTarget as HTMLFormElement;
     const values = Object.fromEntries(new FormData(form));
-    if (window.confirm('Diesen Eingriff ausführen?')) void moderate(values);
+    if (window.confirm('Diesen Eingriff ausführen?')) return moderate(values);
   }
 </script>
 
@@ -63,10 +63,7 @@
   hidden={tab !== 'events'}
   oninput={typed}
   onchange={typed}
-  onsubmit={(event) => {
-    event.preventDefault();
-    void showEvents();
-  }}
+  onsubmit={lockedSubmit(() => showEvents())}
 >
   <div class="flex">
     <label for="audit-player">Spieler</label><select
@@ -165,7 +162,11 @@
     <h4>Planeten</h4>
     <AdminTable table={record.planets} />
     {#if record.moderation}
-      <form id="moderation-form" class="flex" onsubmit={moderation}>
+      <form
+        id="moderation-form"
+        class="flex"
+        onsubmit={lockedSubmit(moderation)}
+      >
         <input type="hidden" name="player" value={record.id} />
         <label
           >Eingriff

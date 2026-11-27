@@ -47,3 +47,23 @@ export function submitLocked(
   e.preventDefault();
   return runLocked(form, handle);
 }
+
+/** A submit of a form of a view: its form and the default to prevent. */
+interface ViewSubmit {
+  currentTarget: EventTarget | null;
+  preventDefault(): void;
+}
+
+/**
+ * The `onsubmit` of a form of a view (#428, 284a): the browser's default
+ * is always stopped, and `handle` runs through `runLocked`, keyed by the
+ * form, so a second submit while the promise of the first runs does
+ * nothing. `handle` returns the promise of its action, or nothing locks.
+ */
+export const lockedSubmit =
+  <E extends ViewSubmit>(handle: (e: E) => unknown) =>
+  (e: E): void => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    if (form) void runLocked(form, () => handle(e));
+  };
