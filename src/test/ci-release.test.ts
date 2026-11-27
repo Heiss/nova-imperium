@@ -1303,7 +1303,8 @@ describe('the scan of the release image (owner, 2026-11-24, 79a)', () => {
 
   it('lets the aliases move only after the scan passed', () => {
     const aliases = job('aliases');
-    expect(aliases).toContain('    needs: [image, scan]\n');
+    // The check on a CPU without AVX must pass too (#456).
+    expect(aliases).toContain('    needs: [image, scan, noavx]\n');
     // No always() or failure(): a failed scan skips the aliases.
     expect(aliases).not.toMatch(/always\(\)|failure\(\)|!cancelled\(\)/);
   });

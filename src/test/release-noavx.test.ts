@@ -72,7 +72,7 @@ function run(env: Record<string, string>, stubs: Stubs = {}) {
     `case "$1" in exec) echo "${stubs.cmdline ?? '/usr/local/bin/qemu-x86_64-static -cpu Denverton,-xsavec /usr/local/bin/node src/server/main.ts'}" ;; logs) echo "Illegal instruction" ;; esac`,
   );
   let code = 0;
-  let out = '';
+  let out: string;
   try {
     out = execFileSync('bash', ['--noprofile', '--norc', SCRIPT], {
       env: { PATH: `${bin}:${process.env.PATH}`, TRIES: '3', ...env },
