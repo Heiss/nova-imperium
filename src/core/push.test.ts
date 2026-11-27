@@ -10,7 +10,7 @@ import {
 import { PUSH_TOPIC_LISTS } from './push-topics/topics.gen.ts';
 
 describe('push kinds (#192)', () => {
-  it('lists every kind that sends a push today the two of the guild chat and the private messages', () => {
+  it('lists every kind that sends a push today the two of the guild chat, the private messages and the holds (#440)', () => {
     expect(PUSH_TOPICS).toEqual([
       'buildings',
       'research',
@@ -19,6 +19,7 @@ describe('push kinds (#192)', () => {
       'attacked',
       'spied',
       'delivery',
+      'holds',
       'announcement',
       'news',
       'guild-events',
@@ -46,7 +47,7 @@ describe('the push kinds register themselves (#426)', () => {
     ...(guild === undefined ? {} : { guild }),
   });
 
-  it('is a type of exactly the twelve kinds, not any string', () => {
+  it('is a type of exactly the thirteen kinds, not any string', () => {
     expectTypeOf<PushTopic>().toEqualTypeOf<
       | 'buildings'
       | 'research'
@@ -55,6 +56,7 @@ describe('the push kinds register themselves (#426)', () => {
       | 'attacked'
       | 'spied'
       | 'delivery'
+      | 'holds'
       | 'announcement'
       | 'news'
       | 'guild-events'

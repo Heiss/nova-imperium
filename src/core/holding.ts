@@ -73,6 +73,25 @@ export const roundHeading = 'Wache stellen';
  */
 export const roundSettings = [
   {
+    // The switch of the feature (#440, owner, 2026-11-27; the rule of
+    // okf/ops/feature-switches.md): a number of 1 („An“) and 0 („Aus“),
+    // because a switch of the registry cannot be live, as `roundMarketOn`.
+    // A universe without the key reads the default, „An“ (261a).
+    kind: 'number',
+    key: 'roundHoldOn',
+    name: 'holdOn',
+    label: 'Wache stellen',
+    order: 105,
+    min: 0,
+    max: 1,
+    def: 1,
+    choices: [
+      { value: 1, label: 'An' },
+      { value: 0, label: 'Aus' },
+    ],
+    live: true,
+  },
+  {
     kind: 'number',
     key: 'roundAllies',
     name: 'allies',
@@ -102,6 +121,10 @@ export const roundSettings = [
     live: true,
   },
 ] as const satisfies readonly RoundSetting[];
+
+/** Whether „Wache stellen“ is on in the round (#440). */
+export const holdOpen = (round: { holdOn: number }): boolean =>
+  round.holdOn === 1;
 
 /** Whether a spy with Auspex-Lehre `spy` sees the held fleets apart. */
 export const showsHeldApart = (spy: number, from: number): boolean =>

@@ -3,6 +3,10 @@
 // determines the noob protection and turns the codes into the messages. The
 // mission, the ships, the slots, the holding time, the stay, the cargo, the
 // fuel and the recall are the pure checks of src/core/fleet-checks.ts (#214).
+import {
+  HOLD_OFF_REFUSAL,
+  HOLDS_REFUSED_REFUSAL,
+} from '../../core/hold-texts.ts';
 import type { Wire } from '../../core/actions.ts';
 import { isShip } from '../../core/catalog.ts';
 import {
@@ -136,6 +140,9 @@ const SEND_ERROR: Readonly<Record<WordedError, string>> = {
   expeditionSpace: 'Die Expeditionsposition kann nicht besiedelt werden.',
   // #55 [V]: worded like the other missions, by the setting of the round.
   notAlly: 'Wache stellen nur bei Gildenmitgliedern und Freunden.',
+  // #440: the texts the owner has not decided yet are marked placeholders.
+  notOffered: HOLD_OFF_REFUSAL,
+  holdsRefused: HOLDS_REFUSED_REFUSAL,
   holdFleets: `An diesem Planeten halten bereits ${HOLD_LIMITS.fleets} Flotten.`,
   holdPlayers: `An diesem Planeten halten bereits Flotten von ${HOLD_LIMITS.players} Spielern.`,
 };

@@ -8,6 +8,7 @@
 // mission by its name.
 import { MISSIONS } from '../features/index.gen.ts';
 import type { PlanetCount } from './colony-limit.ts';
+import type { RoundRules } from './round.ts';
 import { missionText } from './text.ts';
 import type { Fleet, Levels, Mission, Planet } from './types.ts';
 import { vacationProtects } from './vacation.ts';
@@ -57,6 +58,8 @@ export type SendError =
   | 'surveyLocked'
   | 'surveyProbesOnly'
   | 'notAlly'
+  | 'notOffered'
+  | 'holdsRefused'
   | 'holdFleets'
   | 'holdPlayers'
   | 'expeditionLocked'
@@ -132,6 +135,16 @@ export interface SendTarget {
    */
   ally?(owner: string): boolean;
   /**
+   * The rules of the round, for a mission that is not offered in every round
+   * (#440). Missing: every mission is offered.
+   */
+  round?: RoundRules;
+  /**
+   * Whether `owner` takes no holds (#440, 230b: „Keine Wachen annehmen“).
+   * The server determines it; only a Halten asks. Missing: takes them.
+   */
+  refusesHolds?(owner: string): boolean;
+  /**
    * The owners of the fleets that hold at the planet or fly there to hold,
    * one per fleet (#55); only a Halten asks.
    */
@@ -185,6 +198,11 @@ export interface MissionRules {
    * does not stay this way.
    */
   readonly maxStay?: (research: Levels, hoursPerLevel: number) => number;
+  /**
+   * Whether the mission is offered in the round (#440: „Wache stellen“ is a
+   * switch of the round). Missing: always.
+   */
+  readonly offered?: (round: RoundRules) => boolean;
   /**
    * The refusal of a launch without ships when it is not the general
    * „no ships“: the Auspex-Erkundung names the probes, as the Sternenkarte
@@ -277,13 +295,19 @@ const OTHER: Partial<Record<TargetKind, SendError>> = {
 };
 
 /** The kinds that fly to a foreign planet, which the noob protection keeps. */
-const FOREIGN: readonly TargetKind[] = ['foreign', 'ally'];
+/**
+ * The kinds of target the noob protection keeps from a player: a foreign
+ * one. A Halten (`ally`) is no longer one (#440, 238c): a hold at a weak host
+ * is allowed, and the protection lapses at the place where it holds.
+ */
+const FOREIGN: readonly TargetKind[] = ['foreign'];
 
 /**
  * The protection of a suitable planet: the vacation mode of its owner for
  * every mission of another player (#223), then the noob protection for a
- * foreign target. No fleet holds at a player in the noob protection either
- * (#55 [V]).
+ * foreign target. Until #440 no fleet held at a player in the noob
+ * protection either (#55 [V]); since then a Halten asks the vacation only
+ * (238c).
  */
 function shieldError(
   kind: TargetKind,
@@ -352,6 +376,9 @@ export function fitError(
   target: SendTarget,
 ): SendError | undefined {
   if (target.moon && NEVER_MOON.includes(rules.target)) return 'moonTarget';
+  // A mission the round switched off is not offered (#440).
+  if (rules.offered && target.round && !rules.offered(target.round))
+    return 'notOffered';
   return rules.target === 'debris'
     ? debrisError(target)
     : placeError(rules.target, fleet, target);

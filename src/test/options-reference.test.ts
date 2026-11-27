@@ -132,6 +132,7 @@ const PUSH_LABELS: Record<PushTopic, string> = {
   attacked: 'Sturmangriff auf deine Planeten',
   spied: 'Auspex-Aktivität bei deinen Planeten',
   delivery: 'Lieferung eines anderen Spielers',
+  holds: 'Wachen',
   announcement: 'Servernachrichten',
   news: 'Neue Version',
   'guild-events': 'Gildenereignisse',
