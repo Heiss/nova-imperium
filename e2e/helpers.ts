@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { expect, type Locator, type Page } from '@playwright/test';
+import { expect, type Locator, type Page, type Route } from '@playwright/test';
 import { E2E_ENV, E2E_MAILBOX, E2E_MAIL_ENV, E2E_MAIL_URL } from './env.ts';
 import { mailsTo } from './mail.ts';
 import {
@@ -425,3 +425,42 @@ export const boxes = (
       }),
     selectors,
   );
+
+/**
+ * Counts the game actions of one type the page sends and waits for their
+ * answers, so a refusal of a second request would already show its toast.
+ */
+export function countActions(page: Page, type: string) {
+  const answers: Promise<unknown>[] = [];
+  page.on('request', (r) => {
+    if (r.method() === 'POST' && r.postData()?.includes(type))
+      answers.push(r.response());
+  });
+  return {
+    sent: async (): Promise<number> => {
+      await Promise.all(answers);
+      return answers.length;
+    },
+  };
+}
+
+/**
+ * Holds every game action of one type at the network until `release`, so the
+ * page cannot answer before the second click of a double click: without the
+ * hold a fast answer removes the button first, and the test would pass
+ * without the lock of #425 (CodeRabbit on #427). Shared with the form lock
+ * of #428.
+ */
+export async function holdActions(page: Page, type: string) {
+  const held: Route[] = [];
+  await page.route('**/api/action', async (route) => {
+    if (route.request().postData()?.includes(type)) held.push(route);
+    else await route.continue();
+  });
+  return {
+    release: async (): Promise<void> => {
+      await Promise.all(held.splice(0).map((r) => r.continue()));
+      await page.unroute('**/api/action');
+    },
+  };
+}

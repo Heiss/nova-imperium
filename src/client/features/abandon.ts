@@ -3,6 +3,7 @@
 // was opened for, with its founding time, and the password and closes on
 // success. The markup is in logic/abandon.ts.
 import { abandonDialog } from '../logic/abandon.ts';
+import { runLocked } from '../logic/act-lock.ts';
 import { client } from '../logic/state.svelte.ts';
 import type { ClientFeature } from './contract.ts';
 
@@ -21,7 +22,10 @@ export const clientFeature = {
         created: Number(form.dataset.created),
         password: value('#abandon-password'),
       };
-      void act('abandon', data).then((done) => done && modal(''));
+      // Locked while it runs, like every form (#428).
+      void runLocked(form, () =>
+        act('abandon', data).then((done) => done && modal('')),
+      );
     });
   },
   acts: ({ modal }) => ({
