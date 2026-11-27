@@ -1,6 +1,12 @@
 import { expect, it } from 'vitest';
 import type { Planet } from '../../core/types.ts';
-import { chatToSee, finishedYardOrders, menuHints } from './menu-hints.ts';
+import { MENU_HINTS } from '../views/index.ts';
+import {
+  chatToSee,
+  finishedYardOrders,
+  incomingHint,
+  menuHints,
+} from './menu-hints.ts';
 import type { GameState } from './types.ts';
 
 it('distinguishes completed ship and defense orders in the same queue', () => {
@@ -32,7 +38,12 @@ it('combines independent live hints and clears claimed rewards', () => {
   } as unknown as GameState;
   expect(
     Object.fromEntries(
-      menuHints(state, new Map([['fleet', 'Flotte zurückgekehrt']]), 2),
+      menuHints(
+        MENU_HINTS,
+        state,
+        new Map([['fleet', 'Flotte zurückgekehrt']]),
+        2,
+      ),
     ),
   ).toEqual({
     messages: '2 ungelesene Nachrichten',
@@ -41,18 +52,22 @@ it('combines independent live hints and clears claimed rewards', () => {
     guilds: 'Offene Gildenbewerbungen',
   });
   state.achievements!.daily!.claimed = true;
-  expect(menuHints(state, new Map(), 0).get('achievements')).toBe(
+  expect(menuHints(MENU_HINTS, state, new Map(), 0).get('achievements')).toBe(
     'Erfolg abholbar',
   );
   state.achievements!.claimed = ['buildings:metal:1'];
-  expect(menuHints(state, new Map(), 0).has('achievements')).toBe(false);
+  expect(menuHints(MENU_HINTS, state, new Map(), 0).has('achievements')).toBe(
+    false,
+  );
   state.achievements!.daily!.claimed = false;
   state.round.achievements = false;
-  expect(menuHints(state, new Map(), 0).get('achievements')).toBe(
+  expect(menuHints(MENU_HINTS, state, new Map(), 0).get('achievements')).toBe(
     'Tagesbelohnung abholbar',
   );
   state.planet = null;
-  expect(menuHints(state, new Map(), 0).has('achievements')).toBe(false);
+  expect(menuHints(MENU_HINTS, state, new Map(), 0).has('achievements')).toBe(
+    false,
+  );
 });
 
 it('marks no guild applications in a round without guilds (#191)', () => {
@@ -65,7 +80,7 @@ it('marks no guild applications in a round without guilds (#191)', () => {
     fleets: [],
     guilds: null,
   } as unknown as GameState;
-  expect(menuHints(state, new Map(), 0).has('guilds')).toBe(false);
+  expect(menuHints(MENU_HINTS, state, new Map(), 0).has('guilds')).toBe(false);
 });
 
 it('marks „Gilden“ for new messages in the guild chat (#169; owner, 2026-11-15)', () => {
@@ -84,7 +99,8 @@ it('marks „Gilden“ for new messages in the guild chat (#169; owner, 2026-11-
         chat,
       },
     }) as unknown as GameState;
-  const hint = (s: GameState) => menuHints(s, new Map(), 0).get('guilds');
+  const hint = (s: GameState) =>
+    menuHints(MENU_HINTS, s, new Map(), 0).get('guilds');
   expect(hint(state(0, { unread: true }))).toBe(
     'Neue Nachrichten im Gilden-Chat',
   );
@@ -145,8 +161,58 @@ it('marks „Freunde“ while requests to the player are open (#227)', () => {
       fleets: [],
       friends: { list: [], incoming, outgoing: ['u_Cora'] },
     }) as unknown as GameState;
-  expect(menuHints(state(['u_Bert']), new Map(), 0).get('friends')).toBe(
-    'Offene Freundschaftsanfragen',
+  expect(
+    menuHints(MENU_HINTS, state(['u_Bert']), new Map(), 0).get('friends'),
+  ).toBe('Offene Freundschaftsanfragen');
+  expect(menuHints(MENU_HINTS, state([]), new Map(), 0).has('friends')).toBe(
+    false,
   );
-  expect(menuHints(state([]), new Map(), 0).has('friends')).toBe(false);
+});
+
+it('lets a mark replace a completed text of its view, and „Flotte“ follow it (#426)', () => {
+  const state = {
+    me: { id: 'me' },
+    round: { achievements: false, daily: false },
+    fleets: [{ owner: 'enemy', state: 'out' }],
+    guilds: { chat: { unread: true } },
+  } as unknown as GameState;
+  const marks = menuHints(
+    MENU_HINTS,
+    state,
+    new Map([
+      ['fleet', 'Die Flotte kehrt heim'],
+      ['guilds', 'Fertig'],
+      ['research', 'Forschung fertig'],
+    ]),
+    0,
+  );
+  expect(Object.fromEntries(marks)).toEqual({
+    fleet: 'Die Flotte kehrt heim · Anfliegende Flotte',
+    guilds: 'Neue Nachrichten im Gilden-Chat',
+    research: 'Forschung fertig',
+  });
+  // Without a mark the completed text stays as it is.
+  expect(
+    menuHints(
+      MENU_HINTS,
+      { ...state, fleets: [], guilds: undefined } as unknown as GameState,
+      new Map([['fleet', 'Die Flotte kehrt heim']]),
+      0,
+    ).get('fleet'),
+  ).toBe('Die Flotte kehrt heim');
+});
+
+it('marks „Flotte“ only for a fleet of another player on its way out', () => {
+  const marks = (fleets: { owner: string; state: string }[]) =>
+    incomingHint({ me: { id: 'me' }, fleets } as unknown as GameState);
+  expect(marks([{ owner: 'enemy', state: 'out' }])).toBe('Anfliegende Flotte');
+  expect(marks([])).toBeUndefined();
+  expect(marks([{ owner: 'me', state: 'out' }])).toBeUndefined();
+  expect(marks([{ owner: 'enemy', state: 'back' }])).toBeUndefined();
+  expect(
+    marks([
+      { owner: 'me', state: 'out' },
+      { owner: 'enemy', state: 'hold' },
+    ]),
+  ).toBeUndefined();
 });

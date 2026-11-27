@@ -29,6 +29,21 @@ description: 'A view exports clientViews (key, mount or html, anew or fresh, men
   glyph helper is `glyph.ts`. The menu, the labels, the glyphs and the tabs
   stay as they were (`index.test.ts` and `frame-reference.test.ts` check it).
 
+* **[V]** The mark of a menu entry is on the view too (#426 part 3; owner,
+  2026-11-26, 193b; the coordinator's choices of 2026-11-27): `hint: { mark,
+  join? }`, where `mark({ state, unread })` gives the line or nothing; the
+  functions stay in `src/client/logic/` (`menu-hints.ts`, `friends.ts`).
+  `assembleHints` collects them as `MENU_HINTS` (`views/index.ts`, a view
+  with two stops the start), `navigation.ts` hands them to `menuHints()`,
+  and „Nachrichten“, „Achievements“, „Flotte“, „Gilden“ and „Freunde“ have
+  one. A mark replaces a completed text of its view (`completions.ts`), or
+  with `join` follows it after „ · “; only „Flotte“ joins, as before #426.
+  Two modes, not one rule: `frame-reference.test.ts` generates a completed
+  text for every view, and only the two modes keep it byte-identical. The
+  mark of „Neuigkeiten“ is the one still set by hand in `navigation.ts`: it
+  needs the news and the version seen, which are not in the state of the
+  server.
+
 * **[E]** Whether a view is offered is one rule on the view (#373; owner,
   2026-11-22, #351: a refactor of the v3 foundation without a change of
   behaviour, in a normal release). **[V]** The member `offered(round,

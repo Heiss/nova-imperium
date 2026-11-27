@@ -11,6 +11,7 @@ import {
   assembleMenu,
   assembleAddress,
   assembleMounts,
+  assembleHints,
   assembleOffered,
   assembleTabs,
   type Listed,
@@ -26,6 +27,7 @@ import {
   TAB_GLYPHS,
   TAB_VIEWS,
   VIEWS,
+  MENU_HINTS,
 } from './index.ts';
 import { offered } from './offered.ts';
 import { ANEW, FRESH, MOUNTED, mountsAnew } from './mount.ts';
@@ -44,6 +46,7 @@ const MEMBERS = [
   'fresh',
   'menu',
   'glyph',
+  'hint',
   'tab',
   'offered',
   'address',
@@ -347,6 +350,46 @@ describe('whether a view is offered (#373)', () => {
     expect(phoneMenu(items).tabs.map((t) => t.view)).toEqual(
       TAB_VIEWS.slice(1),
     );
+  });
+
+  it('collects the marks of the menu by view, once per view (#426)', () => {
+    const mark = () => 'x';
+    expect(
+      assembleHints([
+        ['a', [{ key: 'x', html: () => '', hint: { mark } }]],
+        [
+          'b',
+          [
+            { key: 'y', html: () => '' },
+            { key: 'z', html: () => '', hint: { mark, join: true } },
+          ],
+        ],
+      ]),
+    ).toEqual([
+      { view: 'x', hint: { mark } },
+      { view: 'z', hint: { mark, join: true } },
+    ]);
+    expect(() =>
+      assembleHints([
+        ['a', [{ key: 'x', html: () => '', hint: { mark } }]],
+        ['b', [{ key: 'x', html: () => '', hint: { mark } }]],
+      ]),
+    ).toThrow(
+      'hint "x" is defined in src/client/views/a.ts and in src/client/views/b.ts.',
+    );
+  });
+
+  it('marks the five views of #426, and only „Flotte“ joins a completed text', () => {
+    expect(MENU_HINTS.map((h) => h.view).sort()).toEqual([
+      'achievements',
+      'fleet',
+      'friends',
+      'guilds',
+      'messages',
+    ]);
+    expect(MENU_HINTS.filter((h) => h.hint.join).map((h) => h.view)).toEqual([
+      'fleet',
+    ]);
   });
 
   it('is defined once per view', () => {

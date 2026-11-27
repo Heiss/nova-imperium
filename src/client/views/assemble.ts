@@ -2,7 +2,14 @@
 // A view key, a menu number, a tab number or a glyph defined twice stops the
 // start with both files named, so no view silently replaces another.
 import type { V } from './common.ts';
-import type { ClientView, MenuItem, Mount, Offered, Tab } from './contract.ts';
+import type {
+  ClientView,
+  Hint,
+  MenuItem,
+  Mount,
+  Offered,
+  Tab,
+} from './contract.ts';
 
 /** The modules as the generated list gives them: `[name in this folder, clientViews]`. */
 export type Listed = readonly (readonly [string, readonly ClientView[]])[];
@@ -141,6 +148,17 @@ export const assembleOffered = (listed: Listed): ReadonlyMap<string, Offered> =>
       ),
     ].map(([key, owned]) => [key, owned.value]),
   );
+
+/** The marks of the menu entries, by view key (#426); one per view. */
+export const assembleHints = (
+  listed: Listed,
+): readonly { view: string; hint: Hint }[] =>
+  [
+    ...collect(
+      'hint',
+      declared(listed, 'hint').map((d) => [d.view.key, d.file, d.value]),
+    ),
+  ].map(([view, owned]) => ({ view, hint: owned.value }));
 
 /** The address parameters of the views that have some, by view key; each name belongs to one view (#379). */
 export function assembleAddress(
