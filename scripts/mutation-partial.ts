@@ -1,7 +1,8 @@
 // The partial mutation run of a pull request (owner, 2026-11-18, #309). A
 // pull request that is no release pull request and goes into no hotfix
-// branch mutates only what it changes, in one job, instead of every file in
-// the shards (about an hour with 6, 12 since 2026-11-20). The set holds
+// branch mutates only what it changes, at any size (owner, 2026-11-26, #370,
+// 189a), instead of every file in the shards (about an hour with 6, 12 since
+// 2026-11-20). The set holds
 //   - the files of the "mutate" globs of stryker.config.json that the pull
 //     request changed (a deleted file is gone, so it is not in the set), and
 //   - for a changed test file the source file it tests, when that file is
@@ -18,9 +19,10 @@
 //     security) runs everything.
 // A test file with no such source adds nothing, and neither does a test
 // helper (src/test/** and src/server/test-helpers.ts that are no *.test.ts):
-// the nightly complete run (mutation.yml) tests them. A set of more than
-// PARTIAL_LIMIT files runs everything too: one job is slower than the shards
-// for it (#309). A change of the mutation configuration (as
+// the nightly complete run (mutation.yml) tests them. The set is split into
+// parts of about PART_FILES files, by the measured weights as the shards
+// are (#370, 190a); each part is a job, and their reports are merged and
+// checked as one. A change of the mutation configuration (as
 // scripts/mutation-changes.ts, #146, but mutation-floors.txt counts only as
 // above) or of the versions of Stryker, Vitest or TypeScript in the lockfile
 // still runs everything, in the shards.
@@ -29,12 +31,22 @@
 //        prints "true" when everything runs, else the JSON list of the
 //        files to mutate ("[]": none, the mutation jobs are skipped); the
 //        reasons on stderr
-//   node scripts/mutation-partial.ts config
-//        writes reports/stryker-partial.config.json for the files of the
-//        JSON list in MUTATION_FILES: the configuration of
-//        stryker.config.json with only these files, no incremental file and
-//        no break threshold (scripts/mutation-gate.ts --partial checks the
-//        report)
+//   node scripts/mutation-partial.ts parts
+//        prints the plan of the parts for the files of the JSON list in
+//        MUTATION_FILES, a JSON list of lists of files: one part for each
+//        PART_FILES files begun, at most SHARDS, split by the weights of
+//        reports/mutation-state.json (the last complete run, restored read
+//        only), else by their lines; whole files, no part empty
+//   node scripts/mutation-partial.ts config <n>
+//        writes reports/stryker-partial.config.json for part n (1-based) of
+//        the plan in MUTATION_PLAN: the configuration of stryker.config.json
+//        with only its files, no incremental file and no break threshold
+//   node scripts/mutation-partial.ts merge <out> <report>...
+//        merges the reports of the parts into <out> and fails unless each
+//        part of the plan in MUTATION_PLAN ran exactly once with exactly its
+//        files, as the merge of the shards checks it; <out> names all files
+//        of the plan as the files Stryker ran, so that
+//        scripts/mutation-gate.ts --partial checks it as one run
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { runCli } from './cli.ts';
@@ -47,11 +59,22 @@ import {
   runGit,
 } from './mutation-changes.ts';
 import { FLOORS_FILE, parseFloors } from './mutation-floorfile.ts';
-import { shardConfig, type StrykerConfig } from './mutation-shards.ts';
+import {
+  coverage,
+  merge,
+  type Report,
+  shardConfig,
+  SHARDS,
+  split,
+  stateOf,
+  type StrykerConfig,
+  weigh,
+} from './mutation-shards.ts';
 
 const TEST = '.test.ts';
 const STRYKER = 'stryker.config.json';
 const PARTIAL_CONFIG = 'reports/stryker-partial.config.json';
+const STATE = 'reports/mutation-state.json';
 
 /**
  * The files a test file may test, by name (they may not exist or not be
@@ -93,17 +116,34 @@ export function partialSet(
 }
 
 /**
- * The most files one partial job mutates; a set above it runs the complete
- * run in the shards (the coordinator, 2026-11-19, #309). One job has no cache
- * and no parallel jobs, so its time grows with the number of files while the
- * complete run takes about 60 minutes whatever the set. Measured on
- * 2026-11-19: the partial run of #281 (11 files, among them `types.ts` and
- * `index.ts` without mutants) took 9 minutes, that of #318 (33 files) more
- * than 60 without an end. 12 is the first number above the largest set seen
- * to be fast; it is a count, not a weight [V]: a few big files such as
- * `catalog.ts` can be slower than many small ones.
+ * The files of one part of the partial run (#370, 190a, [V]): a set of more
+ * files is split into more parts, one for each PART_FILES files begun, at
+ * most SHARDS. Measured on 2026-11-19 (#309): one job of 11 files took 9
+ * minutes, one of 33 files more than 60. The weights decide which files go
+ * together, so a heavy file such as `catalog.ts` gets a part of its own.
  */
-export const PARTIAL_LIMIT = 12;
+export const PART_FILES = 12;
+
+/** The number of parts for a set of <count> files. */
+export const partCount = (count: number): number =>
+  Math.min(SHARDS, Math.max(1, Math.ceil(count / PART_FILES)));
+
+/**
+ * The plan of the parts of <files>: weighed as the shards are (the test time
+ * of their mutants in <report>, a file it does not know as the mean file,
+ * without a report by its lines), split greedily onto partCount parts, empty
+ * parts left out. The same input gives the same plan.
+ */
+export function partsOf(
+  files: readonly string[],
+  report: Report | undefined,
+  lines: (file: string) => number,
+): string[][] {
+  return split(weigh(files, report, lines), partCount(files.length)).filter(
+    (part) => part.length > 0,
+  );
+}
+
 /**
  * What a change of the floors file from <before> to <after> (its texts) runs:
  * the files whose floor was added, changed or removed. The file is nothing
@@ -173,13 +213,6 @@ export function plan(
   const files = reasons.length
     ? []
     : partialSet([...changed, ...floors], mutate, exists);
-  if (files.length > PARTIAL_LIMIT)
-    return {
-      reasons: [
-        `${files.length} changed files are more than the limit of ${PARTIAL_LIMIT} for one job`,
-      ],
-      files: [],
-    };
   return { reasons, files };
 }
 
@@ -200,6 +233,28 @@ export function filesOf(value: string | undefined): string[] {
   return files as string[];
 }
 
+/** The plan of the parts in MUTATION_PLAN; a missing or broken one fails. */
+export function partPlanOf(value: string | undefined): string[][] {
+  let plan: unknown;
+  try {
+    plan = JSON.parse(value ?? '');
+  } catch {
+    plan = undefined;
+  }
+  if (
+    !Array.isArray(plan) ||
+    plan.length === 0 ||
+    !plan.every(
+      (part) =>
+        Array.isArray(part) &&
+        part.length > 0 &&
+        part.every((f) => typeof f === 'string' && f !== ''),
+    )
+  )
+    throw new Error('MUTATION_PLAN is no JSON list of parts of files.');
+  return plan as string[][];
+}
+
 /** What the commands read and write; the defaults are the real ones. */
 export interface Deps {
   git: (args: string[]) => string;
@@ -207,9 +262,10 @@ export interface Deps {
   read: (file: string) => string;
   write: (file: string, text: string) => void;
   files: string | undefined;
+  plan: string | undefined;
 }
 
-const real: Omit<Deps, 'files'> = {
+const real: Omit<Deps, 'files' | 'plan'> = {
   git: runGit,
   exists: existsSync,
   read: (file) => readFileSync(file, 'utf8'),
@@ -248,16 +304,84 @@ export function partialConfig(
   return { ...shardConfig(config, [[...files]], 1), incremental: false };
 }
 
-function configCommand(d: Deps): number {
+/** The weights of the last complete run, when the state was restored. */
+function lastWeights(d: Deps): Report | undefined {
+  if (!d.exists(STATE)) return undefined;
+  try {
+    return stateOf(JSON.parse(d.read(STATE)))?.weights;
+  } catch {
+    return undefined;
+  }
+}
+
+function partsCommand(d: Deps): number {
   const files = filesOf(d.files);
+  const weights = lastWeights(d);
+  const plan = partsOf(files, weights, (f) => d.read(f).split('\n').length);
+  console.error(
+    `${files.length} files in ${plan.length} parts, weighed by ${weights ? 'the weights of the last complete run' : 'their lines (no state of a complete run)'}:`,
+  );
+  plan.forEach((part, i) =>
+    console.error(`  part ${i + 1}: ${part.join(', ')}`),
+  );
+  console.log(JSON.stringify(plan));
+  return 0;
+}
+
+function configCommand([n]: readonly string[], d: Deps): number {
+  const plan = partPlanOf(d.plan);
+  const part = Number(n);
+  const files = plan[part - 1];
+  if (!Number.isInteger(part) || !files)
+    throw new Error(`No part ${n} in a plan of ${plan.length} parts.`);
   const config = JSON.parse(d.read(STRYKER)) as StrykerConfig;
   d.write(
     PARTIAL_CONFIG,
     `${JSON.stringify(partialConfig(config, files), null, 2)}\n`,
   );
   console.log(
-    `${files.length} files in ${PARTIAL_CONFIG}:\n  ${files.join('\n  ')}`,
+    `Part ${part} of ${plan.length}: ${files.length} files in ${PARTIAL_CONFIG}:\n  ${files.join('\n  ')}`,
   );
+  return 0;
+}
+
+/**
+ * The reports of the parts of <plan> as one report of the partial run, or
+ * the problems: every part ran once with exactly its files (coverage of the
+ * shards). The merged report names all files of the plan as the files
+ * Stryker ran.
+ */
+export function mergeParts(
+  plan: readonly string[][],
+  reports: readonly Report[],
+  thresholds: StrykerConfig['thresholds'],
+): { report: Report } | { problems: string[] } {
+  const problems = coverage(plan, reports);
+  if (problems.length) return { problems };
+  return {
+    report: {
+      ...merge(reports, thresholds),
+      config: { mutate: plan.flat().sort() },
+    },
+  };
+}
+
+function mergeCommand([out, ...inputs]: readonly string[], d: Deps): number {
+  if (!out || inputs.length === 0) {
+    console.error('Usage: mutation-partial.ts merge <out> <report>...');
+    return 1;
+  }
+  const plan = partPlanOf(d.plan);
+  const reports = inputs.map((f) => JSON.parse(d.read(f)) as Report);
+  const { thresholds } = JSON.parse(d.read(STRYKER)) as StrykerConfig;
+  const merged = mergeParts(plan, reports, thresholds);
+  if ('problems' in merged) {
+    for (const p of merged.problems)
+      console.log(`::error::Partial mutation run: ${p}`);
+    return 1;
+  }
+  d.write(out, `${JSON.stringify(merged.report, null, 2)}\n`);
+  console.log(`${inputs.length} reports of the parts merged into ${out}.`);
   return 0;
 }
 
@@ -267,10 +391,19 @@ export function main(
   deps: Partial<Deps> = {},
 ): number {
   const [command, ...rest] = args;
-  const d = { ...real, files: process.env.MUTATION_FILES, ...deps };
+  const d = {
+    ...real,
+    files: process.env.MUTATION_FILES,
+    plan: process.env.MUTATION_PLAN,
+    ...deps,
+  };
   if (command === 'plan') return planCommand(rest, d);
-  if (command === 'config') return configCommand(d);
-  console.error('Usage: mutation-partial.ts plan <from> [<to>] | config');
+  if (command === 'parts') return partsCommand(d);
+  if (command === 'config') return configCommand(rest, d);
+  if (command === 'merge') return mergeCommand(rest, d);
+  console.error(
+    'Usage: mutation-partial.ts plan <from> [<to>] | parts | config <n> | merge <out> <report>...',
+  );
   return 1;
 }
 

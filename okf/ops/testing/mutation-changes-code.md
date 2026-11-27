@@ -32,7 +32,11 @@ description: 'The scripts that choose what a pull request mutates and reuse a gr
   `src/test/mutation-partial.test.ts`, #309): `true` (everything, in the
   shards, with the check of #167 for `reuse`), or the JSON list of the
   files to mutate, which „Detect changes“ writes as `mutation=partial` and
-  `mutation-files=<list>`, `[]` as `mutation=false`.
+  `mutation-files=<list>`, `[]` as `mutation=false`. Since #370 a partial
+  set of a pull request into `main` asks `scripts/mutation-nightly.ts check`
+  first (a red or missing nightly run turns it into `true`), then
+  `scripts/mutation-partial.ts parts` writes the parts as `mutation-plan` and
+  `mutation-parts`; a push to `main` writes `mutation=nightly`.
 
 * **[V]** `scripts/mutation-reuse.ts` (tests in
   `src/test/mutation-reuse.test.ts`, #167). „Detect changes“ calls

@@ -17,13 +17,20 @@ name: CI
 # the mutation configuration or the test tool chain (#146), and take over the
 # green result of the previous head when the newest head only merged main
 # (#167). A pull request that goes into no hotfix branch mutates only the
-# files it changes and the sources of the tests it changes, in one job (#309);
-# the complete run in 12 shards stays for the pushes (unless proven on the
-# identical tree, #342), the nightly run and a change of the mutation
-# configuration or the
-# test tool chain; a change of the floors alone
-# in mutation-floors.txt adds those files to the partial run, and a set of
-# more than 12 files (PARTIAL_LIMIT) runs the complete run too.
+# files it changes and the sources of the tests it changes, at any size, in
+# parts of about 12 files split by the weights of the last complete run
+# (#309; owner, 2026-11-26, #370, 189a and 190a); a change of the floors
+# alone in mutation-floors.txt adds those files to the partial run. The
+# complete run in 12 shards comes from the nightly run of mutation.yml on
+# main; it runs in a pull request only for a change of the mutation
+# configuration or the test tool chain, into a hotfix branch, and while the
+# last nightly complete run on main is red or missing (a pull request whose
+# partial set is not empty then runs it, until a nightly run is green again;
+# #370, 194a via 197b and 201a; scripts/mutation-nightly.ts, the gate prints
+# the run it looked at). A push to main runs no mutation job: the result of
+# the pull request counts, and without a proof the nightly run tests the
+# tree (#370, 195a and 200a; output "nightly"). A push to hotfix/** runs the
+# complete run unless proven (#342).
 # A release pull request (head release/*, of main or of a hotfix branch)
 # changes only VERSION, CHANGELOG.md and changes/: "Detect changes" refuses
 # any other file, and it runs no expensive job; it relies on the results of
@@ -73,6 +80,9 @@ jobs:
       image: ${{ steps.diff.outputs.image }}
       mutation: ${{ steps.diff.outputs.mutation }}
       mutation-files: ${{ steps.diff.outputs.mutation-files }}
+      mutation-plan: ${{ steps.diff.outputs.mutation-plan }}
+      mutation-parts: ${{ steps.diff.outputs.mutation-parts }}
+      mutation-nightly: ${{ steps.diff.outputs.mutation-nightly }}
       site: ${{ steps.diff.outputs.site }}
       proof-check: ${{ steps.proof.outputs.proof-check }}
       proof-e2e: ${{ steps.proof.outputs.proof-e2e }}
@@ -125,6 +135,18 @@ jobs:
           else
             echo "::warning::No lookup of an earlier run: this push runs everything."
           fi
+      # The weights of the last complete run on main, read only, to split the
+      # partial run into parts (#370, 190a). Nothing is saved here: a partial
+      # result never reaches a plan or a weight. Without it the parts are
+      # weighed by their lines.
+      - name: Weights of the last complete run on main (read only)
+        if: github.event_name == 'pull_request'
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: reports/mutation-state.json
+          key: stryker-state-refs/heads/main-${{ github.sha }}-parts
+          restore-keys: |
+            stryker-state-refs/heads/main-
       - id: diff
         env:
           EVENT: ${{ github.event_name }}
@@ -133,6 +155,7 @@ jobs:
           PR_BASE_REF: ${{ github.base_ref }}
           PR_HEAD: ${{ github.event.pull_request.head.sha }}
           HEAD_SHA: ${{ github.sha }}
+          BRANCH: ${{ github.ref_name }}
           GH_TOKEN: ${{ github.token }}
         run: |
           # The nightly run: everything but the mutation jobs, which
@@ -146,11 +169,18 @@ jobs:
             } >> "$GITHUB_OUTPUT"
             exit 0
           fi
+          # A push to main runs no mutation job: the result of the pull
+          # request counts (identical tree, #342), and without a proof the
+          # nightly complete run tests the tree (owner, 2026-11-26, #370,
+          # 195a and 200a; output "nightly"). A push to hotfix/** runs the
+          # complete run unless proven.
           if [ "$EVENT" = "push" ] || [ -z "$PR_BASE" ]; then
+            mutation=true
+            if [ "$EVENT" = "push" ] && [ "$BRANCH" = main ]; then mutation=nightly; fi
             {
               echo "code=true"
               echo "image=true"
-              echo "mutation=true"
+              echo "mutation=$mutation"
               echo "site=true"
             } >> "$GITHUB_OUTPUT"
             exit 0
@@ -208,18 +238,26 @@ jobs:
           # the lockfile (scripts/mutation-changes.ts, owner, 2026-11-13,
           # #146). A release pull request ran no mutation job above (#387).
           # Every other pull request, one into a hotfix branch excepted, runs
-          # them for the changed files only (output "partial", scripts/
-          # mutation-partial.ts, owner, 2026-11-18, #309): the files of the
-          # mutate globs it changes and the source of each test file it
-          # changes, plus every file whose floor in mutation-floors.txt it
-          # adds, changes or removes, in one job. A change of the mutation
-          # configuration (stryker.config.json, vitest.config.ts,
-          # tsconfig.json, scripts/mutation-*.ts, mutation-standard.json) or
-          # of the test tool chain still runs everything ("true"), and so
-          # does a set of more than
-          # PARTIAL_LIMIT (12) files; no such file means no mutation job
-          # ("false").
+          # them for the changed files only, at any size (output "partial",
+          # scripts/mutation-partial.ts, owner, 2026-11-18, #309, and
+          # 2026-11-26, #370, 189a): the files of the mutate globs it changes
+          # and the source of each test file it changes, plus every file whose
+          # floor in mutation-floors.txt it adds, changes or removes, split
+          # into parts of about 12 files by the weights of the last complete
+          # run (190a). A change of the mutation configuration
+          # (stryker.config.json, vitest.config.ts, tsconfig.json,
+          # scripts/mutation-*.ts, mutation-standard.json) or of the test tool
+          # chain still runs everything ("true"); no such file means no
+          # mutation job ("false"). While the last nightly complete run on
+          # main (mutation.yml) is red or missing, a pull request into main
+          # that would run the partial run runs the complete run instead,
+          # until a nightly run is green again (194a via 197b,
+          # scripts/mutation-nightly.ts; every error of the lookup counts as
+          # missing).
           mutation_files=
+          mutation_plan=
+          mutation_parts=
+          mutation_nightly=
           case "$PR_BASE_REF" in
             hotfix/*) mutation=$(node scripts/mutation-changes.ts "$PR_BASE" "$HEAD_SHA") ;;
             *)
@@ -231,6 +269,18 @@ jobs:
               esac
               ;;
           esac
+          if [ "$mutation" = partial ] && [ "$PR_BASE_REF" = main ]; then
+            nightly=$(node scripts/mutation-nightly.ts check)
+            mutation_nightly=$(sed -n 2p <<< "$nightly")
+            if [ "$(sed -n 1p <<< "$nightly")" != green ]; then
+              mutation=true
+              mutation_files=
+            fi
+          fi
+          if [ "$mutation" = partial ]; then
+            mutation_plan=$(MUTATION_FILES="$mutation_files" node scripts/mutation-partial.ts parts)
+            mutation_parts=$(MUTATION_PLAN="$mutation_plan" node scripts/mutation-shards.ts numbers)
+          fi
           # A pull request into main whose newest head only merged main takes
           # over the green mutation result of the head before (output
           # "reuse", scripts/mutation-reuse.ts, owner, 2026-11-13, #167).
@@ -244,6 +294,9 @@ jobs:
             echo "image=$image"
             echo "mutation=$mutation"
             echo "mutation-files=$mutation_files"
+            echo "mutation-plan=$mutation_plan"
+            echo "mutation-parts=$mutation_parts"
+            echo "mutation-nightly=$mutation_nightly"
             echo "site=$site"
           } >> "$GITHUB_OUTPUT"
           # The push after the merge reads this note: "false" (nothing to
@@ -560,22 +613,31 @@ jobs:
   # The mutation tests of a pull request for the files it changes (owner,
   # 2026-11-18, #309; output mutation "partial"): the changed files of the
   # mutate globs and the source of each changed test file, listed by
-  # scripts/mutation-partial.ts, in one job, because a handful of files
-  # needs no plan, no shards and no merge. Every mutant of those files runs:
-  # the job reads and writes none of the caches of the complete runs
-  # (stryker-shard*, stryker-state-*, stryker-report-*, stryker-weights-*),
-  # so a partial result never reaches the plans, the weights or the cached
-  # results of the shards. The gate step checks every file of the run
-  # against its floor and no total score (scripts/mutation-gate.ts
-  # --partial). What the pull request does not change is tested by the
-  # complete runs: the push to main and the nightly run.
-  mutation-partial:
-    name: Mutation tests (changed files)
+  # scripts/mutation-partial.ts, at any size (2026-11-26, #370, 189a), in
+  # parts of about 12 files that "Detect changes" split by the weights of
+  # the last complete run (190a; output mutation-plan, the matrix in
+  # mutation-parts). Every mutant of those files runs: the jobs read and
+  # write none of the caches of the complete runs (stryker-shard*,
+  # stryker-state-*, stryker-report-*, stryker-weights-*), so a partial
+  # result never reaches the plans, the weights or the cached results of
+  # the shards. The job "Mutation tests (changed files)" merges the reports
+  # of the parts (each part ran once with exactly its files) and checks
+  # every file of the run against its floor and no total score
+  # (scripts/mutation-gate.ts --partial). What the pull request does not
+  # change is tested by the nightly complete run.
+  mutation-partial-part:
+    name: Mutation tests (changed files, part ${{ matrix.part }} of ${{ strategy.job-total }})
     needs: changes
     if: needs.changes.outputs.mutation == 'partial'
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Empty when the job is skipped; the fallback only keeps the
+        # expression valid.
+        part: ${{ fromJSON(needs.changes.outputs.mutation-parts || '[1]') }}
     env:
-      MUTATION_FILES: ${{ needs.changes.outputs.mutation-files }}
+      MUTATION_PLAN: ${{ needs.changes.outputs.mutation-plan }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -586,9 +648,40 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Configuration of the changed files
-        run: node scripts/mutation-partial.ts config
+      - name: Configuration of this part
+        env:
+          PART: ${{ matrix.part }}
+        run: node scripts/mutation-partial.ts config "$PART"
       - run: pnpm test:mutation reports/stryker-partial.config.json
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: mutation-partial-part-${{ matrix.part }}
+          path: reports/mutation/mutation.json
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 7
+
+  mutation-partial:
+    name: Mutation tests (changed files)
+    needs: [changes, mutation-partial-part]
+    if: needs.changes.outputs.mutation == 'partial'
+    runs-on: ubuntu-latest
+    env:
+      MUTATION_FILES: ${{ needs.changes.outputs.mutation-files }}
+      MUTATION_PLAN: ${{ needs.changes.outputs.mutation-plan }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: mutation-partial-part-*
+          path: reports/parts
+      - name: Merge the reports of the parts
+        run: node scripts/mutation-partial.ts merge reports/mutation/mutation.json reports/parts/*/mutation.json
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
@@ -951,6 +1044,7 @@ jobs:
         mutation-plan,
         mutation-shard,
         mutation,
+        mutation-partial-part,
         mutation-partial,
         compose,
         site,
@@ -990,7 +1084,9 @@ jobs:
           MUTATION_PLAN: ${{ needs.mutation-plan.result }}
           MUTATION_SHARDS: ${{ needs.mutation-shard.result }}
           MUTATION: ${{ needs.mutation.result }}
+          MUTATION_PARTIAL_PARTS: ${{ needs.mutation-partial-part.result }}
           MUTATION_PARTIAL: ${{ needs.mutation-partial.result }}
+          NIGHTLY: ${{ needs.changes.outputs.mutation-nightly }}
           COMPOSE: ${{ needs.compose.result }}
           SITE_SOURCES: ${{ needs.changes.outputs.site }}
           SITE: ${{ needs.site.result }}
@@ -1000,6 +1096,7 @@ jobs:
           PROOF_COMPOSE: ${{ needs.changes.outputs.proof-compose }}
           PROOF_SITE: ${{ needs.changes.outputs.proof-site }}
           EVENT: ${{ github.event_name }}
+          BRANCH: ${{ github.ref_name }}
           PR_HEAD: ${{ github.event.pull_request.head.sha }}
           HEAD_REF: ${{ github.head_ref }}
           BASE_REF: ${{ github.base_ref }}
@@ -1039,8 +1136,12 @@ jobs:
           require_success "ReDoS lint" "$REDOS"
           require_success "CodeQL" "$CODEQL"
 
-          if [ "$EVENT" = "push" ] && { [ "$CODE" != "true" ] || [ "$IMAGE" != "true" ] || [ "$MUTATED" != "true" ] || [ "$SITE_SOURCES" != "true" ]; }; then
-            echo "::error::Pushes to main and hotfix/* must run the full suite; a job is skipped only with its proof (#342)."
+          # A push to main runs no mutation job ("nightly", #370, 200a); a
+          # push to hotfix/** runs the complete run unless proven.
+          expected=true
+          if [ "$EVENT" = "push" ] && [ "$BRANCH" = main ]; then expected=nightly; fi
+          if [ "$EVENT" = "push" ] && { [ "$CODE" != "true" ] || [ "$IMAGE" != "true" ] || [ "$MUTATED" != "$expected" ] || [ "$SITE_SOURCES" != "true" ]; }; then
+            echo "::error::Pushes to main and hotfix/* must run the full suite (the mutation jobs: $expected); a job is skipped only with its proof (#342)."
             exit 1
           fi
           # The nightly run runs every job but the mutation jobs (#387).
@@ -1082,7 +1183,11 @@ jobs:
           # over the green result of the head before; the gate finds that
           # green run again (#167). A pull request that is no release pull
           # request and goes into no hotfix branch runs the one job for its
-          # changed files instead of the shards (#309).
+          # changed files instead of the shards (#309), in parts at any size
+          # (#370). The nightly run it looked at is named (#370, 194a).
+          if [ -n "$NIGHTLY" ]; then
+            echo "Last nightly complete mutation run: $NIGHTLY"
+          fi
           case "$MUTATED" in
             true)
               require_success_or_proof "Mutation plan" "$MUTATION_PLAN" "$PROOF_MUTATION"
@@ -1096,13 +1201,29 @@ jobs:
                   exit 1
                   ;;
               esac
+              require_success "Mutation tests (changed files, parts)" "$MUTATION_PARTIAL_PARTS"
               require_success "Mutation tests (changed files)" "$MUTATION_PARTIAL"
               if [ "$MUTATION_PLAN" != "skipped" ] || [ "$MUTATION_SHARDS" != "skipped" ] || [ "$MUTATION" != "skipped" ]; then
                 echo "::error::The mutation shards must not run next to the job for the changed files."
                 exit 1
               fi
               ;;
-            false) echo "No mutated file, test, mutation configuration or test tool chain changed: the mutation jobs run on every push to main and hotfix/** (unless proven on the identical tree) and every night." ;;
+            false) echo "No mutated file, test, mutation configuration or test tool chain changed: the mutation jobs run on every push to hotfix/** (unless proven on the identical tree) and every night." ;;
+            nightly)
+              if [ "$EVENT" != "push" ] || [ "$BRANCH" != main ]; then
+                echo "::error::Only a push to main leaves the mutation run to the nightly run."
+                exit 1
+              fi
+              if [ "$MUTATION_PLAN" != "skipped" ] || [ "$MUTATION_SHARDS" != "skipped" ] || [ "$MUTATION" != "skipped" ] || [ "$MUTATION_PARTIAL_PARTS" != "skipped" ] || [ "$MUTATION_PARTIAL" != "skipped" ]; then
+                echo "::error::A push to main runs no mutation job (#370)."
+                exit 1
+              fi
+              if [ -n "$PROOF_MUTATION" ]; then
+                echo "Mutation tests: no run on a push to main, the pull request proved this tree: $PROOF_MUTATION"
+              else
+                echo "Mutation tests: no run on a push to main and no proof of the pull request; the nightly complete run (mutation.yml) tests this tree (#370, 200a)."
+              fi
+              ;;
             reuse)
               if [ "$EVENT" != "pull_request" ] || [ "$MUTATION_PLAN" != "skipped" ] || [ "$MUTATION_SHARDS" != "skipped" ] || [ "$MUTATION" != "skipped" ]; then
                 echo "::error::A mutation result is taken over only in a pull request whose mutation jobs are skipped."

@@ -528,7 +528,7 @@ export const outputLines = (proofs: Record<JobKey, string>): string[] =>
   KEYS.map((k) => `proof-${k}=${proofs[k].replace(/[\r\n]/g, ' ')}`);
 
 /** The REST API through the command line tool gh, which reads GH_TOKEN. */
-const gh: Api = (path) =>
+export const gh: Api = (path) =>
   JSON.parse(
     execFileSync('gh', ['api', '--method', 'GET', path], {
       encoding: 'utf8',
