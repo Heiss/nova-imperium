@@ -65,6 +65,11 @@
 // pages/index.ts imports, so a page registers itself and no shared list names
 // it; index.ts sorts the pages by their order.
 //
+// The rights of the guild ranks (#426): every file of src/core/guild-rights
+// that exports `guildRights` (key, order, label, member) is listed in
+// src/core/guild-rights/rights.gen.ts (`GUILD_RIGHT_LISTS`), which only
+// src/core/guild-ranks.ts imports, so a right registers itself with its name.
+//
 // The lines of the overview cards (#426): every file of
 // src/client/logic/overview-cards that exports `overviewLines` (its lines of
 // „Achtung“ or „Bereit“ with their place) is listed in
@@ -146,6 +151,11 @@ export const LEXICON_PAGES_DIR = 'src/core/lexicon/pages';
 export const LEXICON_PAGES_FILE = 'pages.gen.ts';
 /** The fixed name under which a file exports its page of the Lexicanum. */
 const LEXICON_PAGE_EXPORT = /^export const lexiconPage\b/m;
+/** Where the rights of the guild ranks are (#426), and the list of them. */
+export const GUILD_RIGHTS_DIR = 'src/core/guild-rights';
+export const GUILD_RIGHTS_FILE = 'rights.gen.ts';
+/** The fixed name under which a file exports its rights of the guild ranks. */
+const GUILD_RIGHTS_EXPORT = /^export const guildRights\b/m;
 /** Where the line sources of the overview cards are (#426), and the list of them. */
 export const OVERVIEW_LINES_DIR = 'src/client/logic/overview-cards';
 export const OVERVIEW_LINES_FILE = 'lines.gen.ts';
@@ -510,6 +520,22 @@ export function generateLexiconPages(dir: string): boolean {
   );
 }
 
+/** The files of the folder of the guild rights that export `guildRights` (#426). */
+export const scanGuildRights = (dir: string): string[] =>
+  scanExporting(dir, GUILD_RIGHTS_EXPORT);
+
+/** The source of the list of the rights of the guild ranks (#426). */
+export const renderGuildRights = (files: string[]): string =>
+  renderFeatureList(files, 'guildRights', 'GUILD_RIGHT_LISTS');
+
+/** Writes the list of the guild rights when it changed; true if it did. */
+export function generateGuildRights(dir: string): boolean {
+  return write(
+    join(dir, GUILD_RIGHTS_FILE),
+    renderGuildRights(scanGuildRights(dir)),
+  );
+}
+
 /** The files of the folder of the overview lines that export `overviewLines` (#426). */
 export const scanOverviewLines = (dir: string): string[] =>
   scanExporting(dir, OVERVIEW_LINES_EXPORT);
@@ -609,6 +635,7 @@ if (import.meta.main)
     generateOptionBoxes(OPTION_BOXES_DIR);
     generatePushTopics(PUSH_TOPICS_DIR);
     generateLexiconPages(LEXICON_PAGES_DIR);
+    generateGuildRights(GUILD_RIGHTS_DIR);
     generateOverviewLines(OVERVIEW_LINES_DIR);
     generateActionInputs(ACTIONS_DIR);
     generateStateShapes(ACTIONS_DIR);
