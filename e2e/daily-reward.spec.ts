@@ -1,5 +1,5 @@
 // The daily reward and the achievements filter (#220), desktop and phone.
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page, type Route } from '@playwright/test';
 import { nav, register, seed, stock, uniqueName, watch } from './helpers.ts';
 import { rewardMinutes } from '../src/core/daily-reward.ts';
 
@@ -98,6 +98,26 @@ function countActions(page: Page, type: string) {
   };
 }
 
+/**
+ * Holds every game action of one type at the network until `release`, so the
+ * page cannot answer before the second click of a double click: without the
+ * hold a fast answer removes the button first, and the test would pass
+ * without the lock of #425 (CodeRabbit on #427).
+ */
+async function holdActions(page: Page, type: string) {
+  const held: Route[] = [];
+  await page.route('**/api/action', async (route) => {
+    if (route.request().postData()?.includes(type)) held.push(route);
+    else await route.continue();
+  });
+  return {
+    release: async (): Promise<void> => {
+      await Promise.all(held.splice(0).map((r) => r.continue()));
+      await page.unroute('**/api/action');
+    },
+  };
+}
+
 test('a double click on „Abholen“ claims once and shows no error (#425)', async ({
   page,
 }) => {
@@ -113,11 +133,15 @@ test('a double click on „Abholen“ claims once and shows no error (#425)', as
     'button[data-act=achievementClaim][data-id="buildings:robot:1"]',
   );
   await expect(claim).toHaveText('Abholen');
+  const claimHeld = await holdActions(page, 'claimAchievement');
   await claim.dblclick();
+  await claimHeld.release();
   await expect(claim).toHaveCount(0);
+  const dailyHeld = await holdActions(page, 'claimDailyReward');
   await page
     .getByRole('button', { name: 'Tagesbelohnung abholen', exact: true })
     .dblclick();
+  await dailyHeld.release();
   await expect(
     page.locator('[data-daily-reward]').getByText('Abgeholt', { exact: true }),
   ).toBeVisible();
