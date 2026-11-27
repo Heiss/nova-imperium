@@ -27,7 +27,6 @@ import { activeDrive, shipSpeed } from '../../core/flight.ts';
 import { researchListed, researchNote } from '../../core/colony-limit.ts';
 import { hasLab } from '../../core/lab.ts';
 import { TRADING_POST, tradingPostOfferedIn } from '../../core/market.ts';
-import { CLOSED } from '../../core/market-text.ts';
 import { placeName } from '../../core/moon.ts';
 import {
   energyNeed,
@@ -273,8 +272,6 @@ function siloLines(v: V, key: string): string[] {
  * the list holds only what stands on it, and the energy shows the shortfall.
  */
 const BUILD_WAITS: Partial<Record<BuildState, Note>> = {
-  // The Handelsposten while the marketplace is off (#442), the server's words.
-  off: note('req', CLOSED),
   locked: LOCKED,
   busy: note('dim', 'Bauschleife belegt'),
   yardBusy: note('dim', 'Schiffsschmiede arbeitet gerade'),

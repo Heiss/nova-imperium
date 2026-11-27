@@ -1239,7 +1239,11 @@ describe('whether the round offers the Handelsposten (#442, 226b, 245a)', () => 
       tradingPostOfferedIn({ ...DEFAULT_UNIVERSE, roundMarketOn: 0 }),
     ).toBe(false);
     // A universe without the stored switch keeps the default: on.
-    expect(tradingPostOfferedIn({ ...DEFAULT_UNIVERSE })).toBe(true);
+    const bare: Record<string, number> = { ...DEFAULT_UNIVERSE };
+    delete bare.roundMarketOn;
+    expect(
+      tradingPostOfferedIn(bare as unknown as typeof DEFAULT_UNIVERSE),
+    ).toBe(true);
   });
 
   it('refuses its next level with `off` first, and no other building', () => {
