@@ -20,6 +20,7 @@ beforeEach(() => {
 afterEach(() => {
   vi.unstubAllGlobals();
   client.game = null;
+  client.ui.holdChoice = undefined;
 });
 
 const box = (checked: boolean, chg = 'holdOption') => ({
@@ -42,6 +43,9 @@ describe('the checkbox „Keine Wachen annehmen“ (#440)', () => {
     await vi.waitFor(() =>
       expect(ctx.act).toHaveBeenCalledWith('holdOption', { on: true }),
     );
+    // Saved: the page renders the server's option again.
+    await vi.waitFor(() => expect(ctx.render).toHaveBeenCalledTimes(1));
+    expect(client.ui.holdChoice).toBeUndefined();
   });
 
   it('never ends on an older click when the answers come late', async () => {
@@ -53,8 +57,11 @@ describe('the checkbox „Keine Wachen annehmen“ (#440)', () => {
     change(box(true));
     change(box(false));
     expect(ctx.act).toHaveBeenCalledTimes(1);
+    expect(client.ui.holdChoice).toBe(false);
     answers.shift()!(true);
     await vi.waitFor(() => expect(ctx.act).toHaveBeenCalledTimes(2));
+    // The newest click stays shown while its save runs.
+    expect(client.ui.holdChoice).toBe(false);
     expect(vi.mocked(ctx.act).mock.calls).toEqual([
       ['holdOption', { on: true }],
       ['holdOption', { on: false }],
