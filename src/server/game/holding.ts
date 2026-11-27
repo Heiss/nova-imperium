@@ -254,6 +254,12 @@ const holdOption: Handler<'holdOption'> = (ctx, u, d) => {
 
 export const serverFeature = {
   actions: { sendAway, holdOption },
+  state: {
+    // The next free ten above the highest (230).
+    order: 240,
+    keys: ['holdsRefused'],
+    build: (ctx, u) => ({ holdsRefused: ctx.holdRefusals.refuses(u.id) }),
+  },
 } satisfies ServerFeature;
 
 /** A fleet that holds at the target as a spy report shows it apart. */

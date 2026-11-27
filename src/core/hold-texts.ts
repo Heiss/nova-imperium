@@ -38,3 +38,6 @@ export const HOLD_LEXICON = {
   /** The cargo of held fleets is no loot (233b). */
   noLoot: '[TEXT PENDING Wache stellen: Lexicanum held cargo no loot]',
 } as const;
+
+/** The title of the box of „Keine Wachen annehmen“ in „Optionen“ (230b). */
+export const HOLD_OPTION_TITLE = '[TEXT PENDING #440: box title]';

@@ -19,7 +19,7 @@ export interface OptionBox<P extends object> {
   key: string;
   /**
    * The place in the page: ascending, each number once. The boxes of today
-   * stand at 10 (Optionen), 20 (Hauptplanet), 30 (Urlaubsmodus), 40 (Meine
+   * stand at 10 (Optionen), 20 (Hauptplanet), 30 (Urlaubsmodus), 35 (Keine Wachen annehmen), 40 (Meine
    * Aktivität & Spielzeit), 50 (Rundenarchiv), 60 (Darstellung), 70 (Passwort
    * ändern), 80 (Passkeys), 90 (App installieren), 100 (Benachrichtigungen),
    * 110 (Browser-Benachrichtigungen), 120 (Problem melden), 130 (Account

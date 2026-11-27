@@ -2,6 +2,7 @@
 // belongs to, and the ids and hooks that stay in the page whichever section is
 // shown (the CSS hides the others up to 760 px only).
 import { afterEach, describe, expect, it } from 'vitest';
+import { HOLD_OPTION_TITLE } from '../../core/hold-texts.ts';
 import { roundDefaults } from '../../test/fixtures.ts';
 import { levelView } from '../../test/level-view.ts';
 import { optionsView } from '../../test/options-view.ts';
@@ -59,6 +60,8 @@ describe('the sections of „Optionen“', () => {
       ['Optionen', 'game'],
       ['Hauptplanet', 'game'],
       ['Urlaubsmodus', 'round'],
+      // „Keine Wachen annehmen“ (#440), its title not decided yet.
+      [HOLD_OPTION_TITLE, 'game'],
       ['Meine Aktivität &amp; Spielzeit', 'round'],
       ['Rundenarchiv', 'round'],
       ['Darstellung', 'device'],
@@ -73,7 +76,7 @@ describe('the sections of „Optionen“', () => {
       ['Account löschen', 'account'],
     ]);
     // No box without a section: it would show in every section.
-    expect(html.match(/<div class="box"/g)).toHaveLength(14);
+    expect(html.match(/<div class="box"/g)).toHaveLength(15);
     expect(html).toContain('<p data-sec="other">Tempo, Größe');
     // Every section has a box, so none of the five buttons shows an empty page.
     const used = new Set(boxes(html).map(([, section]) => section));

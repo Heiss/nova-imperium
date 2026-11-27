@@ -75,6 +75,8 @@ export function fitTarget(
       (l) => l.g === to.g && l.s === to.s && l.p === to.p && l.until > now,
     ),
     expedition: isExpeditionPlace(to, s.cfg),
+    // „Wache stellen“ off hides the mission (#440).
+    round: s.round,
   };
 }
 
