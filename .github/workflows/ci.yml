@@ -827,6 +827,32 @@ jobs:
           grep 'NOVA_SESSION_DAYS' wrong.txt
       - name: Smoke test (headers, invitation mail, registration, data after a restart)
         run: docker/smoke.sh
+      # The server has no CPU with AVX (owner, 2026-11-27, #449, 291a): the
+      # app starts again on an emulated CPU without AVX (compose.noavx.yaml,
+      # QEMU user mode, CPU model Denverton) on an empty data volume, so the
+      # fresh database is created and migrated under QEMU, and the same
+      # smoke test runs against it. A package or binary that needs AVX stops
+      # the process with "Illegal instruction", so the stack never gets
+      # healthy and the step fails. The check of PID 1 proves that the app
+      # really runs under QEMU.
+      - name: The app runs on a CPU without AVX (#449)
+        env:
+          COMPOSE_FILE: compose.yaml:compose.demo.yaml:compose.noavx.yaml
+        run: |
+          sudo apt-get update -q || true
+          # Newer Ubuntu ships the static binaries in qemu-user, older ones in
+          # qemu-user-static; the binary must be static to run in the image.
+          sudo apt-get install -y -q --no-install-recommends qemu-user \
+            || sudo apt-get install -y -q --no-install-recommends qemu-user-static
+          NOVA_QEMU=$(command -v qemu-x86_64-static || command -v qemu-x86_64)
+          if ! ldd "$NOVA_QEMU" 2>&1 | grep -q -E 'statically linked|not a dynamic executable'; then
+            echo "::error::$NOVA_QEMU is not a static binary"; exit 1
+          fi
+          export NOVA_QEMU
+          docker compose down --volumes
+          docker compose up --detach --no-build --wait
+          docker compose exec -T app sh -c 'tr "\0" " " < /proc/1/cmdline' | grep -q 'qemu-x86_64-static -cpu Denverton'
+          docker/smoke.sh
       - name: Logs
         if: failure()
         run: docker compose logs --no-color --tail 60
@@ -967,7 +993,7 @@ jobs:
       - name: zizmor
         env:
           GH_TOKEN: ${{ github.token }}
-        run: pipx run zizmor==1.32.0 --format github .github/workflows
+        run: pipx run zizmor==1.33.1 --format github .github/workflows
 
   # Regular expressions that take polynomial or exponential time
   # (eslint-plugin-redos, eslint.redos.config.js; #367, owner, 2026-11-25,
@@ -1011,11 +1037,11 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: github/codeql-action/init@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+      - uses: github/codeql-action/init@915412ff23e8b7659517e607487dbeae018f2934 # v4.39.5
         with:
           languages: javascript-typescript
           queries: security-extended
-      - uses: github/codeql-action/analyze@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+      - uses: github/codeql-action/analyze@915412ff23e8b7659517e607487dbeae018f2934 # v4.39.5
         with:
           output: sarif
       - name: Findings of severity high or above block
