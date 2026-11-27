@@ -397,3 +397,31 @@ export async function pollRender(page: Page, name: string): Promise<void> {
     timeout: 15000,
   });
 }
+
+/** The box of an element, as the page measures it. */
+export interface Box {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/**
+ * The boxes of the first element of each selector, read in one call in the
+ * page, null for one that is not there. A view mounted anew on every render
+ * (`anew`, the highscore) replaces its nodes with each poll, so two calls of
+ * `boundingBox()` can meet two different nodes, or a node already gone
+ * (null): seen on 2026-11-27 in the phone test of the highscore.
+ */
+export const boxes = (
+  page: Page,
+  ...selectors: string[]
+): Promise<(Box | null)[]> =>
+  page.evaluate(
+    (all) =>
+      all.map((selector) => {
+        const r = document.querySelector(selector)?.getBoundingClientRect();
+        return r ? { x: r.x, y: r.y, width: r.width, height: r.height } : null;
+      }),
+    selectors,
+  );

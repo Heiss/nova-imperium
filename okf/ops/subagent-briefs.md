@@ -24,7 +24,8 @@ task. These parts were needed every time:
 1. **The state.** The branch, its head commit, the pull request if one
    exists, and what an earlier agent already did or left unchecked.
 2. **The decisions.** Where the owner's „Geklärt“ comments are, and that
-   they are binding. A text or value the owner has not decided is never
+   they are binding; the decisions are also written into the body of the
+   issue (owner, 2026-11-27, 203b). A text or value the owner has not decided is never
    invented: the subagent stops that part and reports 3 to 5 options.
 3. **What changed on main.** Each merged pull request the branch has to
    take in, named with what it moved. An old branch fails on exactly these.
@@ -153,6 +154,7 @@ when the second built on the first.
 | Every branch that touched a floor conflicted in `mutation-standard.json`, and every branch that changed `src/client/main.ts` in `size-ratchet.json` (#317 part 4). | Both were files with one entry per branch, in one JSON object (a comma on the last line) and one number everybody had to set to the same value. | The floors are one line per file, sorted, in `mutation-floors.txt` (`merge=union`), and a branch does not write them; the size of `main.ts` is compared with the base by git and no file holds it. |
 | A reference test that draws 300 random cases failed after a merge. | A rare mark was no longer among the drawn cases. | Rare cases are built by hand next to the sample; `numRuns` is not raised. |
 | The phone E2E test of the highscore overflowed after another spec changed. | The specs share one database (#302): one spec seeded a research level that gave a 31-digit score. | Related specs run in one invocation; seeds stay small; the cause is searched with a diagnostic in the test, not guessed. |
+| The phone E2E test of the highscore failed once with `stand!.y` of null (#432, part 4, 2026-11-27). | The view is mounted anew on every render (`anew`), the poll's too, and the test measured „Stand“ and the table with two calls of `boundingBox()`: a render between them detached the node (shown locally: a kept node measures null after `pollRender`). | A layout test of an `anew` view reads all boxes in one call, `boxes(page, ...selectors)` of `e2e/helpers.ts`, after the element is visible; the assertion stays. |
 | An E2E test became flaky after its seed was made realistic. | It depended on a 5 % chance of the game (probes lost). | No E2E test depends on a chance of the game: it repeats the step or seeds the outcome. |
 | An agent invented game values that were not in the issue. | The brief named the feature but not the values. | The brief lists the decided values with their source; the others are asked from the owner before the build. |
 
@@ -173,9 +175,11 @@ when the second built on the first.
   request, turned into floors by `node scripts/mutation-floors.ts
   <report.json>`, which never lowers a floor (`okf/ops/testing.md`).
   `node scripts/mutation-gate.ts --update` is gone.
-* **[E]** Finished features are bundled into one pull request; at most four
-  own pull requests are open, and the queue is drained before new work
-  starts.
+* **[E]** Finished features are no longer bundled into one pull request
+  (owner, 2026-11-27, 204b, the retrospective of 26.11.28): one issue is one
+  pull request, at most four own pull requests are open, and the queue is
+  drained before new work starts. Bundling stays allowed for small patches
+  only.
 * **[E]** A pull request runs the mutation tests of its changed files only,
   at any size, in parts of about 12 files (#309; owner, 2026-11-26, #370,
   189a, 190a). The complete run comes from the nightly run of
