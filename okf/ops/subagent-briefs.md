@@ -48,6 +48,11 @@ when the second built on the first.
   new local name and push with `git push origin HEAD:<branch>`.
 * Never force push, never amend a pushed commit, never use `--no-verify`,
   never push to main, open no pull request.
+* Before every push to a pull request into `main`: `git fetch origin && git
+  merge origin/main` (no rebase), then `git merge-base --is-ancestor
+  origin/main HEAD`. A head that lacks the base of its pull request fails
+  „Detect changes“ at once and runs no expensive job (owner, 2026-11-27,
+  #431, 203b and 205a).
 * Never lower a mutation floor, never weaken or skip a test. A branch does
   not touch `mutation-floors.txt` at all and records no floor of a new file:
   the floors are written by the main agent from the merged report of a
