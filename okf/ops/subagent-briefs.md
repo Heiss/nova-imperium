@@ -108,6 +108,13 @@ when the second built on the first.
   names no table. `src/server/game/round-reset.test.ts` seeds a row into
   every table of the schema and fails when a table is neither emptied nor
   declared as kept (#317).
+* A new right of the guild ranks is an entry `{ key, order, label, member? }`
+  of `guildRights` in a file of `src/core/guild-rights/`, with an unused
+  order between its neighbours in the guild view; `src/core/guild-ranks.ts`
+  is not edited (the list `rights.gen.ts` is generated). It also needs a new
+  migration that rewrites the CHECK of `guild_rank_rights.right_key`:
+  `src/server/db/guild-rights-check.test.ts` fails without one (#426, 192a).
+  Its German label is a decided text, never invented.
 * A new push kind is an entry `{ key, order, label, guild? }` of
   `pushTopics` in a file of `src/core/push-topics/`, with an unused order
   between its neighbours in the options; `src/core/push.ts` and the options
