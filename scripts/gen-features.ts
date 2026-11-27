@@ -54,6 +54,17 @@
 // adds its box (key, order, section, component, data) in its own files and
 // neither Options.svelte nor logic/options.ts names it.
 //
+// The push kinds (#426): every file of src/core/push-topics that exports
+// `pushTopics` (key, order, label, guild) is listed in
+// src/core/push-topics/topics.gen.ts (`PUSH_TOPIC_LISTS`), which only
+// src/core/push.ts imports, so a kind registers itself with its label and
+// neither push.ts nor the options name it.
+// The pages of the Lexicanum (#426): every file of src/core/lexicon/pages that
+// exports `lexiconPage` (its page and its place on the start page) is listed in
+// src/core/lexicon/pages/pages.gen.ts (`LEXICON_PAGES`), which only
+// pages/index.ts imports, so a page registers itself and no shared list names
+// it; index.ts sorts the pages by their order.
+//
 // The round reset (#317): every file of src/server that exports `roundReset`
 // (what a new round empties and what it keeps) is listed in
 // src/server/round-reset.gen.ts (`ROUND_RESETS`), which only
@@ -119,6 +130,16 @@ export const OPTION_BOXES_DIR = 'src/client/views/options';
 export const OPTION_BOXES_FILE = 'boxes.gen.ts';
 /** The fixed name under which a file exports its boxes of „Optionen“. */
 const OPTION_BOXES_EXPORT = /^export const optionBoxes\b/m;
+/** Where the push kinds are (#426), and the list of them. */
+export const PUSH_TOPICS_DIR = 'src/core/push-topics';
+export const PUSH_TOPICS_FILE = 'topics.gen.ts';
+/** The fixed name under which a file exports its push kinds. */
+const PUSH_TOPICS_EXPORT = /^export const pushTopics\b/m;
+/** Where the pages of the Lexicanum are (#426), and the list of them. */
+export const LEXICON_PAGES_DIR = 'src/core/lexicon/pages';
+export const LEXICON_PAGES_FILE = 'pages.gen.ts';
+/** The fixed name under which a file exports its page of the Lexicanum. */
+const LEXICON_PAGE_EXPORT = /^export const lexiconPage\b/m;
 /** The list of the round resets (#317) is in the server folder, next to the server features. */
 export const ROUND_RESET_FILE = 'round-reset.gen.ts';
 /** The fixed name under which a file exports what a new round empties or keeps. */
@@ -446,6 +467,38 @@ export function generateOptionBoxes(dir: string): boolean {
   );
 }
 
+/** The files of the folder of the push kinds that export `pushTopics` (#426). */
+export const scanPushTopics = (dir: string): string[] =>
+  scanExporting(dir, PUSH_TOPICS_EXPORT);
+
+/** The source of the list of the push kinds (#426). */
+export const renderPushTopics = (files: string[]): string =>
+  renderFeatureList(files, 'pushTopics', 'PUSH_TOPIC_LISTS');
+
+/** Writes the list of the push kinds when it changed; true if it did. */
+export function generatePushTopics(dir: string): boolean {
+  return write(
+    join(dir, PUSH_TOPICS_FILE),
+    renderPushTopics(scanPushTopics(dir)),
+  );
+}
+
+/** The files of the folder of the Lexicanum pages that export `lexiconPage` (#426). */
+export const scanLexiconPages = (dir: string): string[] =>
+  scanExporting(dir, LEXICON_PAGE_EXPORT);
+
+/** The source of the list of the pages of the Lexicanum (#426). */
+export const renderLexiconPages = (files: string[]): string =>
+  renderFeatureList(files, 'lexiconPage', 'LEXICON_PAGES');
+
+/** Writes the list of the pages of the Lexicanum when it changed; true if it did. */
+export function generateLexiconPages(dir: string): boolean {
+  return write(
+    join(dir, LEXICON_PAGES_FILE),
+    renderLexiconPages(scanLexiconPages(dir)),
+  );
+}
+
 /** The files of the server folder that export `roundReset` (#317). */
 export const scanRoundResets = (dir: string): string[] =>
   scanExporting(dir, ROUND_RESET_EXPORT);
@@ -527,6 +580,8 @@ if (import.meta.main)
     generateRoundResets(SERVER_DIR);
     generateClientViews(VIEWS_DIR);
     generateOptionBoxes(OPTION_BOXES_DIR);
+    generatePushTopics(PUSH_TOPICS_DIR);
+    generateLexiconPages(LEXICON_PAGES_DIR);
     generateActionInputs(ACTIONS_DIR);
     generateStateShapes(ACTIONS_DIR);
     return 0;

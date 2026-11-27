@@ -52,7 +52,7 @@ const vacationSection = (): PageSection =>
     ),
   );
 
-export const page: PageDef = {
+const page: PageDef = {
   id: 'rule-protection',
   kind: 'rule',
   title: 'Schutz der Schwachen',
@@ -67,3 +67,6 @@ export const page: PageDef = {
   ],
   sections: () => [noobSection(), vacationSection()],
 };
+
+// Its place on the start page of the Lexicanum (#426).
+export const lexiconPage = { order: 150, page };

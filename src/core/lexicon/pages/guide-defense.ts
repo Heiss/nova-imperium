@@ -56,7 +56,7 @@ const tableSection = (): PageSection =>
     ),
   );
 
-export const page: PageDef = {
+const page: PageDef = {
   id: 'guide-defense',
   kind: 'guide',
   title: 'Dich verteidigen',
@@ -65,3 +65,6 @@ export const page: PageDef = {
   seeAlso: ['faq-defend', 'rule-battle', 'rule-protection', 'mission-hold'],
   sections: (s) => [stepsSection(s), tableSection()],
 };
+
+// Its place on the start page of the Lexicanum (#426).
+export const lexiconPage = { order: 360, page };

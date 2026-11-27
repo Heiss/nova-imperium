@@ -44,8 +44,12 @@ it is that night, not necessarily the tree of that push, #370); a
 job that already succeeded on the same content is skipped with its proof
 (next section). The
 nightly run sets everything to true except the mutation jobs, which
-`mutation.yml` runs the same night. A pull request compares its changes with
-its base:
+`mutation.yml` runs the same night. A pull request into `main` whose head
+does not contain the base commit of its event fails at once, before any
+expensive job, with the fix in its message (`git fetch origin && git merge
+origin/main`, then push; #431); a pull request into `hotfix/**` and a release
+pull request are left out. A pull request compares its changes with its
+base:
 
 - **code** is true when a file outside `okf/`, `docs/`, `changes/` and
   `website/` changes, except Markdown files at the top level. A pull request

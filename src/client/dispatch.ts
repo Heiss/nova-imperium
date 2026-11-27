@@ -1,6 +1,7 @@
 // The clicks and forms of the page (formerly in main.ts): a click on an
 // element with `data-act` runs the handler of that name, a submit runs the
-// handler of the form by its id. The handlers are the ones of the features
+// handler of the form by its id. A clicked element stays locked while the
+// promise of its handler runs (#425, logic/act-lock.ts). The handlers are the ones of the features
 // (features/); each name once.
 import { api } from './api.ts';
 import {
@@ -15,6 +16,7 @@ import { modal } from './modal.ts';
 import { render } from './render.ts';
 import { go } from './routing.ts';
 import { signedOut } from './session.ts';
+import { runLocked } from './logic/act-lock.ts';
 import { act, actHere, actOwn, apply, quiet, refresh } from './sync.ts';
 import { toast } from './toast.ts';
 
@@ -51,7 +53,8 @@ export function startDispatch(): void {
     const modified = e.metaKey || e.ctrlKey || e.shiftKey || e.altKey;
     if (el instanceof HTMLAnchorElement && (modified || e.button !== 0)) return;
     e.preventDefault();
-    void fn({ ...el.dataset });
+    // A rejection stays unhandled as before, so the error log sees it.
+    void runLocked(el, () => fn({ ...el.dataset }));
   });
   const forms = assembleForms({}, CLIENT_FEATURES, ctx);
   document.addEventListener('submit', (e) => {

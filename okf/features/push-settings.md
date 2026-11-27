@@ -60,8 +60,17 @@ switches; both go into the next release.
 
 # Code, storage and tests
 
-* The kinds: `PUSH_TOPICS` in `src/core/push.ts`; the names in
-  `src/client/logic/push-options.ts`, which renders the checkboxes.
+* The kinds: `PUSH_TOPICS` in `src/core/push.ts`. Since #426 (owner,
+  2026-11-26, 193b; the coordinator's choice b, 2026-11-27, [V]) each kind
+  registers itself with its order, its name and, for the guild chat, `guild`
+  in a file of `src/core/push-topics/` (`queues.ts`, `fleet.ts`,
+  `announcements.ts`, `guild-chat.ts`, `private-messages.ts`), exported as
+  `pushTopics`; `scripts/gen-features.ts` writes `push-topics/topics.gen.ts`
+  (not checked in), and `push.ts` derives `PUSH_TOPICS` (by order, 10 to
+  120), `GUILD_PUSH_TOPICS`, the type `PushTopic` and `pushTopicLabel`; a
+  key or an order defined twice stops the start with both files named. The
+  names were moved unchanged out of `src/client/logic/push-options.ts`,
+  which renders the checkboxes and names no kind any more.
 * Saving in the browser (`pushSaver`, CodeRabbit on #204): a click changes
   the player's choice at once and the page shows it; one save runs at a
   time, and when it returns the newest choice is sent, so an older answer

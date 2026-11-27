@@ -9,7 +9,7 @@ import { LOOT_SHARE, REBUILD_SHARE } from '../../loot.ts';
 import { facts, number, percent, say, section } from '../say.ts';
 import type { PageDef } from '../types.ts';
 
-export const page: PageDef = {
+const page: PageDef = {
   id: 'faq-aftermath',
   kind: 'question',
   title: 'Was bleibt nach einer Schlacht übrig?',
@@ -48,3 +48,6 @@ export const page: PageDef = {
     ),
   ],
 };
+
+// Its place on the start page of the Lexicanum (#426).
+export const lexiconPage = { order: 280, page };

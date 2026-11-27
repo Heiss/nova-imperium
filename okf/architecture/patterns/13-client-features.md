@@ -54,6 +54,16 @@ description: 'A client feature exports its handlers as clientFeature from its ow
   start, as `main.ts` cannot be imported in a test. Each module tests its own
   handlers with a fake `ctx` (`test-ctx.ts`): what a handler sends through
   `ctx.act` and what it shows, without DOM snapshots.
+* **[E]** A clicked `data-act` element is locked while the promise of its
+  handler runs and unlocked in `finally`, whatever the outcome; a second
+  click on it does nothing (owner, 2026-11-26, 186a, #425). A handler that
+  returns no promise locks nothing. **[V]** The lock is per element, held in
+  a `WeakSet` by `runLocked` of `src/client/logic/act-lock.ts` and called by
+  `src/client/dispatch.ts`: it blocks no other button, sets no `disabled` or
+  `aria-busy` (so a `disabled` the view sets is never removed), and a node
+  that a render puts in place of the locked one is free at once. Forms are
+  not locked (186a, not 186c); nothing in the submit listener stops a
+  double submit from sending its action twice.
 * **[V]** Small reads of the page that `main.ts` and the modules share are in
   `src/client/dom.ts` (`$`, `val`, `byId`, `setById`, `keepChatScroll`).
 * **[V]** Built: `abandon`, `round`, `market`, `social`, `options`, `fleet`

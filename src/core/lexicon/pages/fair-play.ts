@@ -23,3 +23,6 @@ export const page: PageDef = {
   seeAlso: ['rule-universe'],
   sections: () => [ruleSection()],
 };
+
+// Its place on the start page of the Lexicanum (#426).
+export const lexiconPage = { order: 240, page };

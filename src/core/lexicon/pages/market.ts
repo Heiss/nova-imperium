@@ -140,7 +140,7 @@ const feeSection = (s: LexState): PageSection => {
   );
 };
 
-export const page: PageDef = {
+const page: PageDef = {
   id: 'rule-market',
   // Hidden in a round with the marketplace off, as its view (#404).
   offered: marketOpen,
@@ -151,3 +151,6 @@ export const page: PageDef = {
   seeAlso: ['market', 'faq-resources'],
   sections: (s) => [rulesSection(s), ratiosSection(s), feeSection(s)],
 };
+
+// Its place on the start page of the Lexicanum (#426).
+export const lexiconPage = { order: 200, page };

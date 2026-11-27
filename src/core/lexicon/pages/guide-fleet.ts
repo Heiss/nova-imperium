@@ -48,7 +48,7 @@ const missionsSection = (): PageSection =>
     ),
   );
 
-export const page: PageDef = {
+const page: PageDef = {
   id: 'guide-fleet',
   kind: 'guide',
   title: 'Deine erste Flotte',
@@ -57,3 +57,6 @@ export const page: PageDef = {
   seeAlso: ['rule-flight', 'rule-battle', 'faq-slots', 'mission-transport'],
   sections: () => [stepsSection(), missionsSection()],
 };
+
+// Its place on the start page of the Lexicanum (#426).
+export const lexiconPage = { order: 350, page };

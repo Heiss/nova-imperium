@@ -38,7 +38,7 @@ const stepsSection = (s: LexState): PageSection => {
   );
 };
 
-export const page: PageDef = {
+const page: PageDef = {
   id: 'guide-colony',
   kind: 'guide',
   title: 'Deine erste Kolonie',
@@ -47,3 +47,6 @@ export const page: PageDef = {
   seeAlso: ['faq-colony', 'rule-colonies', 'colony', 'mission-colonize'],
   sections: (s) => [whySection(), stepsSection(s)],
 };
+
+// Its place on the start page of the Lexicanum (#426).
+export const lexiconPage = { order: 340, page };

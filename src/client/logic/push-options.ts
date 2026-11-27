@@ -4,25 +4,9 @@ import {
   GUILD_PUSH_TOPICS,
   isPushTopic,
   PUSH_TOPICS,
+  pushTopicLabel,
   type PushTopic,
 } from '../../core/push.ts';
-
-/** The names of the kinds ([E], owner, 2026-11-14). */
-const LABELS: Record<PushTopic, string> = {
-  buildings: 'Gebäude fertig',
-  research: 'Forschung abgeschlossen',
-  shipyard: 'Auftrag der Schiffsschmiede abgeschlossen',
-  fleet: 'Eigene Flotten: Ankunft, Bericht und Rückkehr',
-  attacked: 'Sturmangriff auf deine Planeten',
-  spied: 'Auspex-Aktivität bei deinen Planeten',
-  delivery: 'Lieferung eines anderen Spielers',
-  announcement: 'Servernachrichten',
-  news: 'Neue Version',
-  'guild-events': 'Gildenereignisse',
-  'guild-chat': 'Nachrichten im Gilden-Chat',
-  // [V] the label of the kind (#226).
-  'private-messages': 'Persönliche Nachrichten',
-};
 
 /** One checkbox of the box: a kind, with the id of its input. */
 export interface PushKind {
@@ -56,7 +40,7 @@ export function pushKinds(
   return shown.map((t) => ({
     topic: t,
     id: `push_${t}`,
-    label: LABELS[t],
+    label: pushTopicLabel(t),
     checked: !off?.includes(t),
   }));
 }
