@@ -496,7 +496,7 @@ code and here in the same pull request.
 * **[V]** Formula: „Höchste Chance in % = Spähschädel ÷ 4 · Auspex-Lehre des Ziels ÷ deine Auspex-Lehre · (1 + Schiffe am Ziel ÷ 100), höchstens 100“
 * **[V]** Text: „Wird die Erkundung entdeckt, kämpfen die Spähschädel wie in einem Kampf gegen die Schiffe und die Verteidigung des Ziels und gegen Flotten, die dort Wache halten. Nur Spähschädel, die den Kampf überleben, bringen einen Bericht. Hat das Ziel weder Schiffe noch Verteidigung noch Wache haltende Flotten, gibt es keinen Kampf, und die Spähschädel berichten wie sonst. Der Verteidiger erfährt in jedem Fall, von wo er erkundet wurde und wie hoch die ausgeloste Chance war.“
 * **[V]** Heading: „Wen du erkunden darfst“
-* **[V]** Text: „Erkunden lassen sich fremde Planeten und Monde. Wer unter Noobschutz steht oder im Urlaubsmodus ist, lässt sich nicht erkunden.“
+* **[E]** Text (owner, 2026-11-27, after CodeRabbit on #455): „Erkunden lassen sich fremde Planeten und Monde. Wer im Urlaubsmodus ist, lässt sich nicht erkunden. Wer unter Noobschutz steht, auch nicht, außer am Ort der Wache eines anderen Spielers.“
 * **[V]** Keywords: ausspähen, Gegner, Bericht, Späher, entdeckt
 
 ### Flug und Treibstoff (`rule-flight`)
@@ -807,7 +807,7 @@ code and here in the same pull request.
 * **[V]** Line: „Wer vor wem geschützt ist: der Noobschutz und der Schutz im Urlaubsmodus.“
 * **[V]** Heading: „Noobschutz“
 * **[V]** Text: „Wer viel weniger Punkte hat als du, ist vor dir geschützt: Du kannst ihn nicht angreifen und nicht erkunden, ihn nicht mit einem Mondbruch oder Raketen treffen. Als geschützt gilt, wer weniger als 20 % deiner Punkte hat. Es zählen die Punkte der Gesamtwertung (Highscore). Der Schutz gilt nur gegen Stärkere: Ein Spieler mit wenig Punkten darf einen mit vielen angreifen. Versorgungsflüge sind nicht betroffen. Auf der Sternenkarte sind geschützte Spieler mit (n) markiert.“
-* **[E]** Text (owner, 2026-11-27, #440): „Hält bei einem geschützten Spieler eine fremde Flotte Wache, gilt sein Schutz an diesem Ort nicht für Sturmangriff und Auspex-Erkundung; vor Raketen bleibt er geschützt.“
+* **[E]** Text (owner, 2026-11-27, #440, after CodeRabbit on #455): „Hält bei einem geschützten Spieler die Flotte eines anderen Spielers Wache, gilt sein Schutz an diesem Ort nicht für Sturmangriff und Auspex-Erkundung, außer gegen den Besitzer dieser Wache; vor Raketen bleibt er geschützt.“
 * **[V]** Formula: „Geschützt, wenn Punkte des Ziels · 5 < deine Punkte“
 * **[V]** Table: „Wer vor dir geschützt ist“
 * **[V]** Table: „Deine Punkte | Geschützt sind Spieler mit weniger Punkten als“

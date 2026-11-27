@@ -535,8 +535,20 @@ The owner's decisions on #440, built on `claude/hold-rework`.
   * report titles, each followed by the coordinates: „Wache unterwegs“,
     „Wache eingetroffen“, „Wache kehrt zurück“, „Wache weggeschickt“;
   * the option box „Wachen“;
-  * Lexicanum: „Hält bei einem geschützten Spieler eine fremde Flotte
-    Wache, gilt sein Schutz an diesem Ort nicht für Sturmangriff und
-    Auspex-Erkundung; vor Raketen bleibt er geschützt.“ and „Eine Wache wird
+  * Lexicanum: „Hält bei einem geschützten Spieler die Flotte eines anderen
+    Spielers Wache, gilt sein Schutz an diesem Ort nicht für Sturmangriff
+    und Auspex-Erkundung, außer gegen den Besitzer dieser Wache; vor Raketen
+    bleibt er geschützt.“ (after CodeRabbit on #455) and „Eine Wache wird
     nicht geplündert: Ihre Ladung geht verloren, wenn sie zerstört wird.“;
-  * the changelog fragment `changes/wache-stellen-ueberarbeitet.md`.
+  * the line of the Auspex-Erkundung (page `spy`, after CodeRabbit on
+    #455): „Erkunden lassen sich fremde Planeten und Monde. Wer im
+    Urlaubsmodus ist, lässt sich nicht erkunden. Wer unter Noobschutz
+    steht, auch nicht, außer am Ort der Wache eines anderen Spielers.“ The
+    vacation is checked before the noob protection and no hold lifts it,
+    so the exception names the Noobschutz only;
+  * the changelog fragment `changes/wache-stellen-ueberarbeitet.md` (after
+    CodeRabbit on #455): „Wache stellen lässt sich pro Runde abschalten.
+    Fremde Wachen kannst du wegschicken oder ablehnen; nicht mehr erlaubte
+    kehren von selbst um. Hält bei einem schwachen Spieler die Wache eines
+    anderen, dürfen Dritte ihn dort trotz Noobschutz angreifen und
+    erkunden. Ladung einer Wache ist keine Beute.“

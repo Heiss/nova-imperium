@@ -35,7 +35,7 @@ export const HOLD_REPORT_TITLE = {
 export const HOLD_LEXICON = {
   /** The noob protection lapses where a foreign fleet holds (238c, 281b). */
   lapsedProtection:
-    'Hält bei einem geschützten Spieler eine fremde Flotte Wache, gilt sein Schutz an diesem Ort nicht für Sturmangriff und Auspex-Erkundung; vor Raketen bleibt er geschützt.',
+    'Hält bei einem geschützten Spieler die Flotte eines anderen Spielers Wache, gilt sein Schutz an diesem Ort nicht für Sturmangriff und Auspex-Erkundung, außer gegen den Besitzer dieser Wache; vor Raketen bleibt er geschützt.',
   /** The cargo of held fleets is no loot (233b). */
   noLoot:
     'Eine Wache wird nicht geplündert: Ihre Ladung geht verloren, wenn sie zerstört wird.',

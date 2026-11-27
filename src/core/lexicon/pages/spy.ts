@@ -117,7 +117,7 @@ const targetsSection = (): PageSection =>
     'targets',
     'Wen du erkunden darfst',
     say(
-      'Erkunden lassen sich fremde Planeten und Monde. Wer unter [[rule-protection|Noobschutz]] steht oder im [[rule-vacation|Urlaubsmodus]] ist, lässt sich nicht erkunden.',
+      'Erkunden lassen sich fremde Planeten und Monde. Wer im [[rule-vacation|Urlaubsmodus]] ist, lässt sich nicht erkunden. Wer unter [[rule-protection|Noobschutz]] steht, auch nicht, außer am Ort der Wache eines anderen Spielers.',
     ),
   );
 

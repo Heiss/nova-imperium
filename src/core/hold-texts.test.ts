@@ -39,7 +39,7 @@ describe('the texts of „Wache stellen“ (#440)', () => {
   it('give the two lines of the Lexicanum, without a digit (a Lexicanum text types no number)', () => {
     expect(HOLD_LEXICON).toEqual({
       lapsedProtection:
-        'Hält bei einem geschützten Spieler eine fremde Flotte Wache, gilt sein Schutz an diesem Ort nicht für Sturmangriff und Auspex-Erkundung; vor Raketen bleibt er geschützt.',
+        'Hält bei einem geschützten Spieler die Flotte eines anderen Spielers Wache, gilt sein Schutz an diesem Ort nicht für Sturmangriff und Auspex-Erkundung, außer gegen den Besitzer dieser Wache; vor Raketen bleibt er geschützt.',
       noLoot:
         'Eine Wache wird nicht geplündert: Ihre Ladung geht verloren, wenn sie zerstört wird.',
     });

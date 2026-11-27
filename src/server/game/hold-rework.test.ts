@@ -498,6 +498,23 @@ describe('the noob protection where a foreign fleet holds (#440, 238c, 281b)', (
     expect(refused(ctx, 'moonbreak', 1, 'moon')).toBe(true);
   });
 
+  it('never lifts the vacation mode: a host in vacation stays protected where a third player holds', () => {
+    const ctx = world();
+    guard(ctx);
+    ctx.players.save({ ...user(ctx, 'Bert'), vacation: ctx.now() });
+    for (const mission of ['attack', 'spy'])
+      expect(() =>
+        send(ctx, user(ctx, 'Anna'), {
+          planet: 'p1_1_5',
+          mission,
+          ships: SHIPS[mission] ?? { lf: 1 },
+          to: { g: 1, s: 2, p: 1 },
+          pct: 100,
+          cargo: {},
+        }),
+      ).toThrow('Dieser Spieler ist im Urlaubsmodus.');
+  });
+
   it('allows a hold at a weak host', () => {
     const ctx = world();
     befriend(ctx, 'u_Anna', 'u_Bert');
