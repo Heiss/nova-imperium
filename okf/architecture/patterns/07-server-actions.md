@@ -78,8 +78,8 @@ description: 'Server actions as commands, their checks in pure functions of the 
   totp-reset}`). Sign-in, registration, passkeys and passwords are not
   wrapped.
 * **[V]** Kept in memory per player for 60 s, at most 50 keys per player (the
-  oldest goes first), swept on access and with the app's sweep; a restart
-  forgets them. Kept are only final outcomes: an answer below 500 or a
+  oldest goes first), dropped once past their time when the player's keys
+  are read; a restart forgets them. Kept are only final outcomes: an answer below 500 or a
   refusal of the game. A busy database (503 `ACTION_DB_BUSY`), a server
   error, a missing session and every other failure are forgotten, so a
   resend runs again.

@@ -163,12 +163,11 @@ describe('a kept key (#450)', () => {
     expect(failed).toHaveBeenCalledTimes(2);
   });
 
-  it('sweeps the keys past their time of every player', () => {
+  it('forgets the keys past their time on access, of every player', () => {
     const { keys, later } = setup();
     keys.once('u1', 'k', () => ok(1));
     keys.once('u2', 'k', () => ok(2));
     later(KEPT_MS);
-    keys.sweep();
     expect(keys.once('u1', 'k', () => ok(3))).toEqual(ok(3));
     expect(keys.once('u2', 'k', () => ok(4))).toEqual(ok(4));
   });

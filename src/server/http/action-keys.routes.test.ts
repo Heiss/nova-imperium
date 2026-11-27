@@ -200,6 +200,32 @@ describe('POST /api/action with a key (#450)', () => {
 });
 
 describe('an admin write with a key (#450)', () => {
+  it('gives a repeat the first answer with the state of now', async () => {
+    const s = await asAdmin();
+    const created = await s.call('POST', '/api/admin/invite', {
+      email: 'neu@example.org',
+    });
+    const id = (
+      s.ctx.db.prepare('SELECT id FROM invitations').get() as { id: string }
+    ).id;
+    expect(created.status).toBe(200);
+    const revoke = () =>
+      s.call('POST', '/api/admin/revoke', { id }, { [KEY]: 'k-revoke' });
+    const first = await revoke();
+    const second = await revoke();
+    expect(first.json).toMatchObject({
+      ok: true,
+      msg: 'Einladung widerrufen.',
+    });
+    // Not run again (that would refuse a revoked one), with a state of now.
+    expect(second.status).toBe(200);
+    expect(second.json).toMatchObject({
+      ok: true,
+      msg: 'Einladung widerrufen.',
+      state: { me: { id: 'u_Boss' } },
+    });
+  });
+
   it('sends a server message once for the same key', async () => {
     const s = await asAdmin();
     addUser(s.ctx, 'Pilot');

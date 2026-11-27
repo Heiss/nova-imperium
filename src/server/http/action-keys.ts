@@ -71,8 +71,6 @@ export interface ActionKeys {
     run: () => Reply | Promise<Reply>,
     fresh?: (reply: Reply) => Reply,
   ): Reply | Promise<Reply>;
-  /** Forgets the keys older than their time, of every player. */
-  sweep(): void;
 }
 
 /** The kept keys of every player, with the clock. */
@@ -99,9 +97,9 @@ function keep(store: Store, player: string, key: string, kept: Kept): void {
   }
 }
 
-function forget(store: Store, player: string, key: string, kept: Kept): void {
-  const keys = store.players.get(player);
-  if (keys?.get(key) === kept) keys.delete(key);
+/** Forgets a key; its player's map exists, since `keep` made it. */
+function forget(store: Store, player: string, key: string): void {
+  store.players.get(player)!.delete(key);
 }
 
 function replay(
@@ -142,7 +140,7 @@ function first(
   keep(store, player, key, kept);
   return pending.then((o) => {
     if (final(o)) kept.outcome = o;
-    else forget(store, player, key, kept);
+    else forget(store, player, key);
     return unwrap(o);
   });
 }
@@ -156,12 +154,6 @@ export function actionKeys(now: () => number): ActionKeys {
       return kept
         ? replay(kept.outcome, fresh)
         : first(store, player, key, run);
-    },
-    sweep() {
-      for (const [player, keys] of store.players) {
-        keysOf(store, player);
-        if (keys.size === 0) store.players.delete(player);
-      }
     },
   };
 }

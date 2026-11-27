@@ -722,7 +722,6 @@ export function createApp(d: AppDeps): {
     sweep: () => {
       limiter.sweep();
       actions.sweep();
-      keys.sweep();
       errors.sweep();
       security.purgeAccountTokens(d.ctx);
       passkeys.purgePasskeyChallenges(d.ctx);
