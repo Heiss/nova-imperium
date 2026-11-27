@@ -1,6 +1,7 @@
-// The lock of a clicked `data-act` element while its handler runs (#425).
+// The lock of a clicked `data-act` element while its handler runs (#425), and
+// of a submitted form (#428, 284a).
 import { describe, expect, it, vi } from 'vitest';
-import { runLocked } from './act-lock.ts';
+import { lockedSubmit, runLocked, submitLocked } from './act-lock.ts';
 
 /** A promise and the functions that settle it. */
 function pending(): {
@@ -84,5 +85,115 @@ describe('runLocked', () => {
     expect(() => runLocked(el, run)).toThrow('kaputt');
     expect(() => runLocked(el, run)).toThrow('kaputt');
     expect(run).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('submitLocked (#428, 284a)', () => {
+  /** A submit of a form with this id. */
+  const submit = (form: { id: string } | null) => ({
+    target: form as EventTarget | null,
+    preventDefault: vi.fn(),
+  });
+
+  it('sends a form once while its handler runs, two quick Enter or a double click', async () => {
+    const form = { id: 'guildchatform' };
+    const p = pending();
+    const send = vi.fn(() => p.promise);
+    const first = submit(form);
+    const second = submit(form);
+    const done = submitLocked(first, { guildchatform: send });
+    expect(submitLocked(second, { guildchatform: send })).toBeUndefined();
+    expect(send).toHaveBeenCalledTimes(1);
+    // The second submit is still kept from the browser's default.
+    expect(first.preventDefault).toHaveBeenCalledTimes(1);
+    expect(second.preventDefault).toHaveBeenCalledTimes(1);
+    p.resolve(true);
+    await expect(done).resolves.toBe(true);
+    submitLocked(submit(form), { guildchatform: send });
+    expect(send).toHaveBeenCalledTimes(2);
+  });
+
+  it('is free again after a refusal or a network error', async () => {
+    const form = { id: 'f' };
+    const p = pending();
+    const send = vi.fn(() => p.promise);
+    const done = submitLocked(submit(form), { f: send });
+    p.reject(new Error('Netzwerkfehler'));
+    await expect(done).rejects.toThrow('Netzwerkfehler');
+    await settle();
+    const again = vi.fn(() => undefined);
+    submitLocked(submit(form), { f: again });
+    expect(again).toHaveBeenCalledTimes(1);
+  });
+
+  it('locks each form on its own', () => {
+    const a = { id: 'a' };
+    const b = { id: 'b' };
+    const p = pending();
+    const forms = { a: vi.fn(() => p.promise), b: vi.fn(() => p.promise) };
+    submitLocked(submit(a), forms);
+    submitLocked(submit(b), forms);
+    expect(forms.a).toHaveBeenCalledTimes(1);
+    expect(forms.b).toHaveBeenCalledTimes(1);
+  });
+
+  it('locks nothing for a handler without a promise', () => {
+    const form = { id: 'f' };
+    const run = vi.fn(() => undefined);
+    expect(submitLocked(submit(form), { f: run })).toBeUndefined();
+    submitLocked(submit(form), { f: run });
+    expect(run).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps the default of a form without a handler, an own property only', () => {
+    const plain = submit({ id: 'other' });
+    expect(submitLocked(plain, { f: vi.fn() })).toBeUndefined();
+    expect(plain.preventDefault).not.toHaveBeenCalled();
+    const inherited = submit({ id: 'toString' });
+    expect(submitLocked(inherited, {})).toBeUndefined();
+    expect(inherited.preventDefault).not.toHaveBeenCalled();
+    const none = submit(null);
+    expect(submitLocked(none, { '': vi.fn() })).toBeUndefined();
+    expect(none.preventDefault).not.toHaveBeenCalled();
+    // A form without an id, as the browser gives it: „“.
+    const nameless = submit({ id: '' });
+    const empty = vi.fn();
+    expect(submitLocked(nameless, { '': empty })).toBeUndefined();
+    expect(empty).not.toHaveBeenCalled();
+    expect(nameless.preventDefault).not.toHaveBeenCalled();
+  });
+});
+
+describe('lockedSubmit, the onsubmit of a form of a view (#428)', () => {
+  const event = (form: object | null) => ({
+    currentTarget: form as EventTarget | null,
+    preventDefault: vi.fn(),
+  });
+
+  it('stops the default every time and runs the handler once while it is pending', async () => {
+    const form = { id: 'pm-block' };
+    const p = pending();
+    const handle = vi.fn(() => p.promise);
+    const submit = lockedSubmit(handle);
+    const first = event(form);
+    const second = event(form);
+    submit(first);
+    submit(second);
+    expect(handle).toHaveBeenCalledTimes(1);
+    expect(handle).toHaveBeenCalledWith(first);
+    expect(first.preventDefault).toHaveBeenCalledTimes(1);
+    expect(second.preventDefault).toHaveBeenCalledTimes(1);
+    p.resolve(true);
+    await settle();
+    submit(event(form));
+    expect(handle).toHaveBeenCalledTimes(2);
+  });
+
+  it('runs nothing without a form, but still stops the default', () => {
+    const handle = vi.fn();
+    const none = event(null);
+    lockedSubmit(handle)(none);
+    expect(handle).not.toHaveBeenCalled();
+    expect(none.preventDefault).toHaveBeenCalledTimes(1);
   });
 });
