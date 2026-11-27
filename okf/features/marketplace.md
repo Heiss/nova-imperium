@@ -143,8 +143,8 @@ pull request.
   view is not mounted while the market is off.
 * **[E]** The Handelsposten while the market is off (#442; owner,
   2026-11-27, 226b, 227b): a special rule of this building, no general
-  mechanism. It is not listed under „Gebäude“, and its next level cannot be
-  ordered; the server refuses the order with „Der Marktplatz ist in dieser
+  mechanism. It is not listed under „Gebäude“, except where it has a level
+  or one in the queue (278a), and its next level cannot be ordered; the server refuses the order with „Der Marktplatz ist in dieser
   Runde geschlossen.“ (**[E]** owner, 2026-11-27, `CLOSED`, the code `off`
   of `buildErrors`).
 * **[E]** 278a (owner, 2026-11-27): while the market is off, the row of the

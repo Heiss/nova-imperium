@@ -6,7 +6,15 @@
 // it is back with its level. The market is shared by all players of the
 // universe; the test puts the setting back.
 import { type Browser, expect, test, type Page } from '@playwright/test';
-import { cli, nav, register, seed, uniqueName, watch } from './helpers.ts';
+import {
+  cli,
+  nav,
+  openAllRows,
+  register,
+  seed,
+  uniqueName,
+  watch,
+} from './helpers.ts';
 
 const CLOSED = 'Der Marktplatz ist in dieser Runde geschlossen.';
 
@@ -35,10 +43,7 @@ async function newcomer(browser: Browser, page: Page) {
   return { context, other };
 }
 
-test('the Handelsposten shows only where it stands while the marketplace is off, and is back with its level (#442)', async ({
-  page,
-  browser,
-}) => {
+async function hiddenFlow(page: Page, browser: Browser): Promise<void> {
   const w = watch(page);
   const name = uniqueName('Posten');
   await register(page, name);
@@ -59,6 +64,7 @@ test('the Handelsposten shows only where it stands while the marketplace is off,
     await switchMarket(page, '0');
     // With a level: the row, the refusal instead of the button, „Zurückbauen“.
     await nav(page, 'buildings');
+    await openAllRows(page);
     const row = tradingPost(page);
     await expect(row.locator('.lv')).toHaveText('(Stufe 2)');
     await expect(row).toContainText(CLOSED);
@@ -68,6 +74,9 @@ test('the Handelsposten shows only where it stands while the marketplace is off,
     await expect(
       row.getByRole('button', { name: 'Zurückbauen' }),
     ).toBeVisible();
+    // No „?“: its article is hidden while the marketplace is off.
+    await expect(page.locator('#exq_market')).toHaveCount(0);
+    await expect(page.locator('#exq_robot')).toHaveCount(1);
     // Without one: no row.
     await other.reload();
     await nav(other, 'buildings');
@@ -79,6 +88,7 @@ test('the Handelsposten shows only where it stands while the marketplace is off,
   await nav(page, 'buildings');
   await expect(tradingPost(page).locator('.lv')).toHaveText('(Stufe 2)');
   await expect(tradingPost(page)).not.toContainText(CLOSED);
+  await expect(page.locator('#exq_market')).toHaveCount(1);
   await other.reload();
   await nav(other, 'buildings');
   await expect(tradingPost(other)).toHaveCount(1);
@@ -86,4 +96,18 @@ test('the Handelsposten shows only where it stands while the marketplace is off,
   await context.close();
   expect(w.problems).toEqual([]);
   expect(o.problems).toEqual([]);
+}
+
+test('the Handelsposten shows only where it stands while the marketplace is off, and is back with its level (#442)', async ({
+  page,
+  browser,
+}) => {
+  await hiddenFlow(page, browser);
+});
+
+test('the Handelsposten while the marketplace is off, on a phone (#442) @phone', async ({
+  page,
+  browser,
+}) => {
+  await hiddenFlow(page, browser);
 });

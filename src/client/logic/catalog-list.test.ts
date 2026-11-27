@@ -966,6 +966,17 @@ describe('the Handelsposten while the marketplace is off (#442, 226b)', () => {
     const on = row(withMarket(1, built), 'building', 'market');
     expect(on.action.kind).not.toBe('note');
     expect(on.demolish).toBe(true);
+    // No „?“ while its article is hidden; with the marketplace on it is back.
+    expect(
+      row(withMarket(0, built), 'building', 'market').explanation,
+    ).toBeNull();
+    expect(on.explanation).toMatchObject({ key: 'market' });
+    // Every other row keeps its „?“.
+    expect(
+      row(withMarket(0, built), 'building', 'robot').explanation,
+    ).toMatchObject({
+      key: 'robot',
+    });
   });
 
   it('is listed while off with a level in the queue, the running order shown (277a)', () => {

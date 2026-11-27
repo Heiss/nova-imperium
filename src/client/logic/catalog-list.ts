@@ -216,7 +216,12 @@ function entry(
     icon: iconURL(key),
     cls,
     level,
-    explanation: explanation(key, t, v.s.me.explain, v.ui.openEx),
+    // No „?“ for an article the player does not see: the Handelsposten
+    // while the round does not offer it (#442; its row stays where it stands).
+    explanation:
+      key === TRADING_POST && !tradingPostOfferedIn(v.s.cfg)
+        ? null
+        : explanation(key, t, v.s.me.explain, v.ui.openEx),
   };
 }
 
