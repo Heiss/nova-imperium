@@ -5,7 +5,8 @@
 // mission gets its article without new code.
 import { LEXICON, MISSION_LEXICON } from '../../features/lexicon.gen.ts';
 import { BUILD, DEF, RES, SHIPS } from '../catalog.ts';
-import { MISSION } from '../missions.ts';
+import { MISSION, missionRules } from '../missions.ts';
+import type { RoundRules } from '../round.ts';
 import { missionText, text } from '../text.ts';
 import type { Requirements } from '../types.ts';
 import { PAGES } from './pages/index.ts';
@@ -56,6 +57,12 @@ export interface ArticleMeta {
   lexicon: EntryLexicon;
   /** The page of a rule, a question or a guide, which has no entry (#288, #289). */
   page?: PageDef;
+  /**
+   * Whether the round offers the article (#404): the rule of its page, or of
+   * its mission (#440: „Wache stellen“ off hides its article). Missing:
+   * always.
+   */
+  offered?: (round: RoundRules) => boolean;
 }
 
 type Index = readonly (readonly [string, { lexicon: EntryLexicon }])[];
@@ -97,13 +104,17 @@ export const ARTICLES: readonly ArticleMeta[] = [
   ...TABLES.flatMap(([kind, defs]) =>
     Object.keys(defs).map((key) => entryArticle(kind, key)),
   ),
-  ...Object.keys(MISSION).map((m): ArticleMeta => ({
-    id: missionArticle(m),
-    kind: 'mission',
-    title: missionText(m)!.n,
-    key: m,
-    lexicon: MISSION_PARTS.get(m) ?? {},
-  })),
+  ...Object.keys(MISSION).map((m): ArticleMeta => {
+    const offered = missionRules(m)!.offered;
+    return {
+      id: missionArticle(m),
+      kind: 'mission',
+      title: missionText(m)!.n,
+      key: m,
+      lexicon: MISSION_PARTS.get(m) ?? {},
+      ...(offered && { offered: offered.open }),
+    };
+  }),
   ...PAGES.map((p): ArticleMeta => ({
     id: p.id,
     kind: p.kind,
@@ -115,6 +126,7 @@ export const ARTICLES: readonly ArticleMeta[] = [
       ...(p.seeAlso ? { seeAlso: p.seeAlso } : {}),
     },
     page: p,
+    ...(p.offered && { offered: p.offered }),
   })),
 ];
 

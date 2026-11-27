@@ -12,7 +12,11 @@ import {
   shipsOf,
   showsHeldApart,
 } from '../../core/holding.ts';
-import { HOLD_REASON_TEXT, HOLD_REPORT_TITLE } from '../../core/hold-texts.ts';
+import {
+  HOLD_OFF_REFUSAL,
+  HOLD_REASON_TEXT,
+  HOLD_REPORT_TITLE,
+} from '../../core/hold-texts.ts';
 import { missionRules } from '../../core/missions.ts';
 import { placeName } from '../../core/moon.ts';
 import type { Fleet, Levels, Planet } from '../../core/types.ts';
@@ -61,12 +65,19 @@ export const heldAt = (ctx: Ctx, place: string): Fleet[] =>
   ctx.fleets.at(place).filter((f) => f.state === 'hold' && holds(f));
 
 /**
- * Whether a fleet of another player than `host` holds at a place now: there
- * the noob protection of the host lapses for attacks and espionage (#440,
- * 238c, 281b); a fleet on its way does not count yet.
+ * Whether a fleet of a third player, neither `host` nor `sender`, holds at a
+ * place now: there the noob protection of the host lapses for attacks and
+ * espionage of `sender` (#440, 238c, 281b). The sender's own hold lifts
+ * nothing, so nobody can hold at a weak friend to attack him; a fleet on its
+ * way does not count yet.
  */
-export const heldByOthers = (ctx: Ctx, place: string, host: string): boolean =>
-  heldAt(ctx, place).some((f) => f.owner !== host);
+export const heldByOthers = (
+  ctx: Ctx,
+  place: string,
+  host: string,
+  sender: string,
+): boolean =>
+  heldAt(ctx, place).some((f) => f.owner !== host && f.owner !== sender);
 
 /**
  * The owners of the fleets that hold at a place or fly there to hold, one
@@ -219,12 +230,18 @@ export function holdArrived(ctx: Ctx, f: Fleet, host: string): void {
   );
 }
 
+/** While „Wache stellen“ is off, its actions are refused (okf/ops/feature-switches.md). */
+const switchedOn = (ctx: Ctx): void => {
+  if (!holdOpen(roundRules(ctx))) fail(HOLD_OFF_REFUSAL);
+};
+
 /**
  * „Wegschicken“ (#440, 230b and 231a): the host sends a hold away, one that
  * holds at its place or flies there to hold. It turns home at once from
  * where it is, and its owner gets the report.
  */
 const sendAway: Handler<'sendAway'> = (ctx, u, d) => {
+  switchedOn(ctx);
   const found = ctx.fleets.get(String(d.id));
   const f =
     found && runningHold(found) && ctx.planets.get(found.to)?.owner === u.id
@@ -248,6 +265,7 @@ const sendAway: Handler<'sendAway'> = (ctx, u, d) => {
  * once (282a).
  */
 const holdOption: Handler<'holdOption'> = (ctx, u, d) => {
+  switchedOn(ctx);
   ctx.holdRefusals.set(u.id, d.on === true);
   if (d.on === true) recheckHolds(ctx);
   return 'Gespeichert.';

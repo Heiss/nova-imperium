@@ -200,9 +200,13 @@ export interface MissionRules {
   readonly maxStay?: (research: Levels, hoursPerLevel: number) => number;
   /**
    * Whether the mission is offered in the round (#440: „Wache stellen“ is a
-   * switch of the round). Missing: always.
+   * switch of the round), with the refusal of a launch while it is not, in
+   * the words of the mission. Missing: always.
    */
-  readonly offered?: (round: RoundRules) => boolean;
+  readonly offered?: {
+    readonly open: (round: RoundRules) => boolean;
+    readonly refusal: string;
+  };
   /**
    * The refusal of a launch without ships when it is not the general
    * „no ships“: the Auspex-Erkundung names the probes, as the Sternenkarte
@@ -377,7 +381,7 @@ export function fitError(
 ): SendError | undefined {
   if (target.moon && NEVER_MOON.includes(rules.target)) return 'moonTarget';
   // A mission the round switched off is not offered (#440).
-  if (rules.offered && target.round && !rules.offered(target.round))
+  if (rules.offered && target.round && !rules.offered.open(target.round))
     return 'notOffered';
   return rules.target === 'debris'
     ? debrisError(target)

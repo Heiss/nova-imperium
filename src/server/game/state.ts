@@ -113,8 +113,9 @@ function galaxyOf(ctx: Ctx, limits: ActivityLimits) {
  * The owners of the shown system that the noob protection covers against
  * `me` (151a): the rule of an attack or a missile (points.ts `isProtected`
  * with the exact points of the players concerned), computed for them only.
- * Their places where a fleet of another player holds are `lapsed` (#440): the
- * protection is gone there for an attack and an espionage.
+ * Their places where a fleet of a third player (neither the owner nor `me`)
+ * holds are `lapsed` (#440): the protection is gone there for an attack and
+ * an espionage of `me`.
  */
 export function protectedIn(
   ctx: Ctx,
@@ -130,7 +131,7 @@ export function protectedIn(
   const covered = owners.filter((o) => isProtected(me, o, pts));
   const lapsed = places
     .filter(
-      (x) => covered.includes(x.owner) && heldByOthers(ctx, x.id, x.owner),
+      (x) => covered.includes(x.owner) && heldByOthers(ctx, x.id, x.owner, me),
     )
     .map((x) => x.id);
   return { ...at, owners: covered, ...(lapsed.length > 0 && { lapsed }) };

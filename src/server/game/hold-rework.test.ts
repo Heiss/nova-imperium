@@ -31,7 +31,7 @@ import { runAction } from './dispatch.ts';
 import { send } from './fleet-actions.ts';
 import { lockEndText } from './main-planet.ts';
 import { roundRules } from './round.ts';
-import { storedScores } from './scores.ts';
+import { scoreBeat } from './scores.ts';
 import { protectedIn, stateFor } from './state.ts';
 
 const PROTECTED = 'Dieser Spieler steht unter Noobschutz.';
@@ -45,7 +45,9 @@ const BERT = { g: 1, s: 2, p: 1 };
  */
 function world(): TestCtx {
   const ctx = testCtx();
-  addUser(ctx, 'Anna', { research: { spy: 4, impulse: 1, energy: 10 } });
+  addUser(ctx, 'Anna', {
+    research: { spy: 4, impulse: 1, energy: 10, computer: 3 },
+  });
   addUser(ctx, 'Bert');
   // Fleet slots enough for her guards and a launch.
   addUser(ctx, 'Cora', { research: { energy: 10, computer: 5 } });
@@ -172,6 +174,14 @@ describe('the switch „Wache stellen“ of the round (#440, 240a)', () => {
       notAllowed('off', ctx.now()),
     ]);
     expect(() => holdTo(ctx)).toThrow(HOLD_OFF_REFUSAL);
+    // Its other actions are refused too (okf/ops/feature-switches.md).
+    expect(() => act(ctx, 'u_Bert', { type: 'sendAway', id: 'h3' })).toThrow(
+      HOLD_OFF_REFUSAL,
+    );
+    expect(() => act(ctx, 'u_Bert', { type: 'holdOption', on: true })).toThrow(
+      HOLD_OFF_REFUSAL,
+    );
+    expect(ctx.holdRefusals.refuses('u_Bert')).toBe(false);
     settings(ctx, { roundHoldOn: 1 });
     holdTo(ctx);
   });
@@ -247,13 +257,20 @@ describe('the re-check of every hold (#440, 229a)', () => {
       ]);
   });
 
-  it('runs at every score pass: a change no action names turns the hold home there at the latest', () => {
+  it('runs at the beat of every score pass, never in a read of the state', () => {
     const ctx = world();
     const held = guard(ctx);
     ctx.friends.remove('u_Cora', 'u_Bert');
+    // A read makes the pass, and ends nothing, writes nothing.
+    stateFor(ctx, user(ctx, 'Bert'));
     expect(ctx.fleets.get('h1')).toEqual(held);
-    storedScores(ctx);
+    expect(ctx.reports.ofPlayer('u_Cora')).toEqual([]);
+    // The beat checks once for that pass, whoever made it.
+    scoreBeat(ctx);
     expectHome(ctx, held);
+    expect(ctx.reports.ofPlayer('u_Cora')).toHaveLength(1);
+    scoreBeat(ctx);
+    expect(ctx.reports.ofPlayer('u_Cora')).toHaveLength(1);
   });
 
   it('turns home at its arrival a hold that is no longer allowed (4a)', () => {
@@ -431,6 +448,21 @@ describe('the noob protection where a foreign fleet holds (#440, 238c, 281b)', (
     expect(refused(ctx, 'attack', 1)).toBe(true);
   });
 
+  it('does not lapse through a hold of the attacker himself, only of a third player', () => {
+    const ctx = world();
+    // Anna holds at her weak friend Bert: that lifts nothing for her.
+    befriend(ctx, 'u_Anna', 'u_Bert');
+    guard(ctx, { id: 'own', owner: 'u_Anna', from: 'p1_1_5', fromC: ANNA });
+    expect(refused(ctx, 'attack', 1)).toBe(true);
+    expect(refused(ctx, 'spy', 1)).toBe(true);
+    expect(protectedIn(ctx, 'u_Anna', { g: 1, s: 2 })).not.toHaveProperty(
+      'lapsed',
+    );
+    // Cora's hold there lifts it for Anna.
+    guard(ctx);
+    expect(refused(ctx, 'attack', 1)).toBe(false);
+  });
+
   it('allows a hold at a weak host', () => {
     const ctx = world();
     befriend(ctx, 'u_Anna', 'u_Bert');
@@ -494,6 +526,48 @@ describe('the start of the server (#440): it checks every hold, after an update 
       // Cora has no bond with Bert: home; Dora is his friend: she holds on.
       expect(running.ctx!.fleets.get('h1')).toMatchObject({ state: 'back' });
       expect(running.ctx!.fleets.get('h2')).toMatchObject({ state: 'hold' });
+    } finally {
+      await running.stop();
+    }
+  });
+
+  it('ends a hold that arrived during the downtime at its arrival, not at the start (4a)', async () => {
+    dir = mkdtempSync(path.join(tmpdir(), 'nova-hold-'));
+    const file = path.join(dir, 'game.sqlite');
+    const db = openDatabase(file);
+    const at = Date.now();
+    const ctx = testCtx(at, 42, db);
+    addUser(ctx, 'Bert');
+    addUser(ctx, 'Cora');
+    addPlanet(ctx, 'u_Bert', { ...BERT, name: 'Beta' });
+    addPlanet(ctx, 'u_Cora', { g: 1, s: 3, p: 7 });
+    // On its way, it arrived a minute ago while the server was down; Cora
+    // has no bond with Bert.
+    const f = guard(ctx, {
+      id: 'late',
+      state: 'out',
+      dep: at - 120_000,
+      arr: at - 60_000,
+      ret: at + HOUR_MS,
+    });
+    db.close();
+    const running = await startServer({
+      cfg: testConfig({ dataDir: dir }),
+      publicDir: path.resolve(import.meta.dirname, '../../test/public'),
+      dbFile: file,
+      log: () => {},
+      migrate: () => Promise.resolve(),
+    });
+    try {
+      const c = running.ctx!;
+      expect(c.fleets.get('late')).toMatchObject({
+        state: 'back',
+        ret: f.arr + (f.arr - f.dep),
+        recalled: false,
+      });
+      expect(c.reports.ofPlayer('u_Cora')).toMatchObject([
+        notAllowed('bond', f.arr),
+      ]);
     } finally {
       await running.stop();
     }

@@ -153,14 +153,14 @@ const ALL: Open = () => true;
 /**
  * Whether the player sees an article (#404; owner, 2026-11-25, 113a): the
  * page of a feature only while the round offers it (the rule of its page,
- * the one of its view), for the admin as for every player (114a); every
+ * the one of its view; a mission by the rule of its mission, #440), for the admin as for every player (114a); every
  * other article, an unknown id too, always. A hidden article is not listed,
  * found or linked, and its address falls back like an unknown one.
  */
 export const opens =
   (v: V): Open =>
   (id) =>
-    article(id)?.page?.offered?.(v.s.round) ?? true;
+    article(id)?.offered?.(v.s.round) ?? true;
 
 /** The pieces of a text; a link to an article the player does not see is plain words. */
 const textParts = (text: string, open: Open): Segment[] =>

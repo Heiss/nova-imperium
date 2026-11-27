@@ -235,8 +235,11 @@ function openGame(
   const news = o.news ?? { version: null, versions: [] };
   const told = announceUpdate(ctx, news);
   if (told) log(`Told ${told} players about version ${news.version}.`);
-  // The start checks every running hold (#440): after an update too.
-  recheckHolds(ctx);
+  // The start checks every running hold (#440), after an update too: after
+  // the beat that lands what came due during the downtime, so a hold that
+  // arrived meanwhile ends at its arrival (4a), not at the start.
+  clockBeat(ctx, log, news.version);
+  ctx.tx(() => recheckHolds(ctx));
   const app = createApp({
     ctx,
     cfg: o.cfg,

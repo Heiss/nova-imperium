@@ -155,18 +155,25 @@ export function storedScores(ctx: Ctx): ScorePass {
     return kept.pass;
   const pass = scorePass(ctx);
   stored.set(ctx.db, { pass, round });
-  // Every score pass checks the running holds again (#440): a change that
-  // no action names still turns a hold home at the latest here.
-  recheckHolds(ctx);
   return pass;
 }
 
+/** The pass after which the running holds were last checked, by database (#440). */
+const checkedAt = new WeakMap<object, number>();
+
 /**
  * The beat of the clock: the pass of a slot is made at its time, not at the
- * first reader after it. Live (0) waits for a reader.
+ * first reader after it. Live (0) waits for a reader. Once per pass, whoever
+ * made it, the beat checks every running hold again (#440) in one write
+ * transaction: a change that no action names still turns a hold home at the
+ * latest there; a read of the state never ends a hold.
  */
 export function scoreBeat(ctx: Ctx): void {
-  if (passesPerDay(ctx) > 0) storedScores(ctx);
+  if (passesPerDay(ctx) === 0) return;
+  const { at } = storedScores(ctx);
+  if (checkedAt.get(ctx.db) === at) return;
+  ctx.tx(() => recheckHolds(ctx));
+  checkedAt.set(ctx.db, at);
 }
 
 /** A new round computes at once (#405), for the start it just stored. */

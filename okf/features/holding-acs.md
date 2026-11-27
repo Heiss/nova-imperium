@@ -463,7 +463,12 @@ The owner's decisions on #440, built on `claude/hold-rework`.
   guild is dissolved, when the settings of the round are saved („Wache
   stellen“, „Verbündete“), at a new round, at every score pass, when a host
   switches „Keine Wachen annehmen“ on, and at the start of the server
-  (which also covers an update); no timer of its own. A hold that is no
+  (which also covers an update); no timer of its own. [V] (review of #455)
+  The score pass checks in the beat of the clock, once per stored pass and
+  in a write transaction, never in a read of the state; in a round with
+  live points (0 passes a day) the score pass checks nothing. The start
+  checks after the first beat, which lands what came due during the
+  downtime, so a hold that arrived meanwhile ends at its arrival. A hold that is no
   longer allowed turns home at once from where it is: one that holds as
   at the end of its holding time, one on its way like a recall (231a). Its
   owner gets the info report „Deine Wache bei {Planet} kehrt zurück:
@@ -481,6 +486,15 @@ The owner's decisions on #440, built on `claude/hold-rework`.
   player than the host holds at a place, the host's noob protection does
   not apply there for attacks and espionage (281b); missiles keep it. A
   fleet on its way does not count yet.
+* **[V]** (review of #455, owner asked) Only the hold of a third player
+  lifts it: one of neither the host nor the attacker or spy, so nobody can
+  hold at a weak friend and then attack him. The Sternenkarte follows the
+  same rule for the viewer.
+* **[V]** While „Wache stellen“ is off (okf/ops/feature-switches.md),
+  „Wegschicken“ and „Keine Wachen annehmen“ are refused with the refusal of
+  the switch, the option box is hidden, and the Lexicanum hides the article
+  of the mission (`offered` of its rules, as #404 for the pages). The
+  refusal of a launch is the mission's own (`offered.refusal`).
 * **[E]** Held cargo is no loot (233b); the debris and the moon chance of
   destroyed held fleets stay.
 * **[E]** The host gets „{Spieler} schickt eine Wache zu {Planet}.

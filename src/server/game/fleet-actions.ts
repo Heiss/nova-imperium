@@ -3,10 +3,7 @@
 // determines the noob protection and turns the codes into the messages. The
 // mission, the ships, the slots, the holding time, the stay, the cargo, the
 // fuel and the recall are the pure checks of src/core/fleet-checks.ts (#214).
-import {
-  HOLD_OFF_REFUSAL,
-  HOLDS_REFUSED_REFUSAL,
-} from '../../core/hold-texts.ts';
+import { HOLDS_REFUSED_REFUSAL } from '../../core/hold-texts.ts';
 import type { Wire } from '../../core/actions.ts';
 import { isShip } from '../../core/catalog.ts';
 import {
@@ -111,7 +108,7 @@ export const target = (ctx: Ctx, d: Aimed): Coords => {
  * A code with a fixed message; a locked position names the end of its lock,
  * and the limit of planets names the count (#237).
  */
-type WordedError = Exclude<SendError, 'locked' | 'colonyLimit'>;
+type WordedError = Exclude<SendError, 'locked' | 'colonyLimit' | 'notOffered'>;
 
 /** The message of each code of `sendError`, in German like the interface. */
 const SEND_ERROR: Readonly<Record<WordedError, string>> = {
@@ -141,7 +138,6 @@ const SEND_ERROR: Readonly<Record<WordedError, string>> = {
   // #55 [V]: worded like the other missions, by the setting of the round.
   notAlly: 'Wache stellen nur bei Gildenmitgliedern und Freunden.',
   // #440: the texts the owner has not decided yet are marked placeholders.
-  notOffered: HOLD_OFF_REFUSAL,
   holdsRefused: HOLDS_REFUSED_REFUSAL,
   holdFleets: `An diesem Planeten halten bereits ${HOLD_LIMITS.fleets} Flotten.`,
   holdPlayers: `An diesem Planeten halten bereits Flotten von ${HOLD_LIMITS.players} Spielern.`,
@@ -176,9 +172,16 @@ const refuse = (error: keyof typeof FLEET_ERROR | null): void => {
 };
 
 /** The message of a code; a Halten names who may hold in this round. */
-const sendMessage = (ctx: Ctx, error: WordedError): string =>
-  (error === 'notAlly' && NOT_ALLY[roundRules(ctx).allies]) ||
-  SEND_ERROR[error];
+const sendMessage = (
+  ctx: Ctx,
+  error: WordedError | 'notOffered',
+  rules: MissionRules,
+): string =>
+  error === 'notOffered'
+    ? // A mission the round switched off has its own words (#440).
+      rules.offered!.refusal
+    : (error === 'notAlly' && NOT_ALLY[roundRules(ctx).allies]) ||
+      SEND_ERROR[error];
 
 const loadCargo = (p: Planet, rules: MissionRules, raw: unknown): Resources => {
   if (!rules.cargo) return { m: 0, c: 0, d: 0 };
@@ -244,10 +247,11 @@ function checkDestination(
       locked: at.lockEnd !== null,
       expedition: at.expedition,
       // The exact points of the two players, never the stored pass (#405).
-      // The protection lapses at a place where a fleet of another player
-      // holds (#440, 238c): the host can send it away to get it back.
+      // The protection lapses at a place where a fleet of a third player
+      // holds (#440, 238c): the host can send it away to get it back. The
+      // sender's own hold there lifts nothing.
       protects: (owner) =>
-        !heldByOthers(ctx, occupied!.id, owner) &&
+        !heldByOthers(ctx, occupied!.id, owner, u.id) &&
         isProtected(u.id, owner, exactPoints(ctx, [u.id, owner])),
       vacation: inVacation(ctx),
       ally: (owner) => isAllyOf(ctx, u.id, owner),
@@ -262,7 +266,7 @@ function checkDestination(
   if (error === 'locked') return fail(positionLockedText(at.lockEnd!));
   // The planets against the limit, as the player sees them (#237).
   if (error === 'colonyLimit') return fail(limitRefusal(ctx, u.id, research));
-  if (error) fail(sendMessage(ctx, error));
+  if (error) fail(sendMessage(ctx, error, rules));
 }
 
 function plan(ctx: Ctx, u: User, p: Planet, d: Wire<'send'>): Plan {

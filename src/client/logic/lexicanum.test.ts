@@ -926,6 +926,21 @@ describe('the page of a feature switched off for the round (#404; owner, 2026-11
       }
   });
 
+  it('hides the article of a mission the round switched off: Wache stellen (#440)', () => {
+    const id = 'mission-hold';
+    expect(opens(inRound({}))(id)).toBe(true);
+    expect(linked(art('rule-allies', inRound({})))).toContain(id);
+    for (const admin of [false, true]) {
+      const v = inRound({ holdOn: 0 }, admin);
+      expect(opens(v)(id)).toBe(false);
+      expect(ids(page(AZ, v))).not.toContain(id);
+      expect(page(id, v)).toEqual(page('nope', v));
+      expect(linked(art('rule-allies', v))).not.toContain(id);
+      expect(hits('Wache stellen', v)).not.toContain(id);
+      expect(ids(page(AZ, v))).toHaveLength(ARTICLES.length - 1);
+    }
+  });
+
   it('keeps the words of a link to a hidden page, as plain text', () => {
     const v = inRound({ guilds: false });
     const text = blocks(art('rule-allies', v), 'guard')
