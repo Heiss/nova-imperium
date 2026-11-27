@@ -75,6 +75,17 @@ describe('„Tauschen“', () => {
     expect(draft).toMatchObject({ give: 'm', get: 'd' });
   });
 
+  it('sends a trade once while it is on its way, a double click (#428)', () => {
+    const ctx = fakeCtx({ act: vi.fn(() => new Promise<boolean>(() => {})) });
+    clientFeature.listen!(ctx);
+    const form = { id: 'marketform' };
+    const prevented = vi.fn();
+    submit({ target: form, preventDefault: prevented });
+    submit({ target: form, preventDefault: prevented });
+    expect(ctx.act).toHaveBeenCalledTimes(1);
+    expect(prevented).toHaveBeenCalledTimes(2);
+  });
+
   it('sends an empty amount as none, and what to get is never what is given', () => {
     const ctx = fakeCtx();
     clientFeature.listen!(ctx);

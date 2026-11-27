@@ -161,10 +161,11 @@ test('open search results keep a rendered mark when the marketplace is switched 
     await expect(marked).toContainText('Wie komme ich an mehr Rohstoffe?');
 
     await switchMarket(page, '0');
-    // The state update hides „Marktplatz“ while the results are open: the
-    // list is shorter, the mark stays on the question it marked.
+    // The state update hides „Marktplatz“ and the Handelsposten (#442) while
+    // the results are open: the list is shorter, the mark stays on the
+    // question it marked.
     await nextState(player);
-    await expect(player.locator('#lx-results [role=option]')).toHaveCount(2);
+    await expect(player.locator('#lx-results [role=option]')).toHaveCount(1);
     await expect(marked).toHaveCount(1);
     await expect(marked).toContainText('Wie komme ich an mehr Rohstoffe?');
     const id = await box.getAttribute('aria-activedescendant');
