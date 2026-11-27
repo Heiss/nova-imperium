@@ -206,7 +206,8 @@ const totpBox = (on: boolean): string =>
   );
 /**
  * Changed on purpose since #118: the box „Keine Wachen annehmen“ (owner,
- * 2026-11-27, #440, 230b), its title not decided yet.
+ * 2026-11-27, #440, 230b), its title not decided yet; only while „Wache
+ * stellen“ is on in the round.
  */
 const holdBox = (refused: boolean): string =>
   sbox(
@@ -239,7 +240,7 @@ const help = (
  ${sbox('game', 'Optionen', `<div class="flex">Spähschädel pro Auspex-Erkundung von der Sternenkarte: <input type="number" id="o_probes" min="1" value="${v.s.me.probes || 1}" aria-label="Spähschädel pro Auspex-Erkundung"></div><div class="flex mt"><label for="o_explain">(?)-Symbol:</label> <select id="o_explain">${explainOptionsHTML(v.s.me.explain)}</select></div><div class="flex mt"><label for="o_levels">Stufenübersicht:</label> <select id="o_levels">${levelOptionsHTML(v.s.me.levelTable)}</select></div><p><button data-act="saveopt">Speichern</button></p>`)}
  ${sbox('game', 'Hauptplanet', mainPlanetHTML(v.s, v.now))}
  ${sbox('round', 'Urlaubsmodus', vacationHTML(v.s.round.vacationHours))}
- ${holdBox(v.s.holdsRefused === true)}
+ ${(v.s.round as { holdOn?: number }).holdOn === 1 ? holdBox(v.s.holdsRefused === true) : ''}
  ${sbox('round', 'Meine Aktivität &amp; Spielzeit', OWN_ACTIVITY_PLACEHOLDER)}
  ${sbox('round', 'Rundenarchiv', archiveHTML(shownArchive(v.s)))}
  ${sbox('device', 'Darstellung', `<label class="switch"><input type="checkbox" id="o_anim" ${v.ui.animations ? 'checked' : ''}> Animationen</label><p class="dim">Planeten drehen sich, Wolken ziehen. Gilt für dieses Gerät; ist im System „Bewegung reduzieren“ eingestellt, bleibt alles ruhig.</p>`)}
