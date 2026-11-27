@@ -65,6 +65,11 @@
 // pages/index.ts imports, so a page registers itself and no shared list names
 // it; index.ts sorts the pages by their order.
 //
+// The events of the guild chat (#426): every file of src/core/chat-events
+// that exports `chatEvents` (key, order, sentence) is listed in
+// src/core/chat-events/events.gen.ts (`CHAT_EVENT_LISTS`), which only
+// src/core/guild-chat.ts imports, so an event registers itself with its line.
+//
 // The round reset (#317): every file of src/server that exports `roundReset`
 // (what a new round empties and what it keeps) is listed in
 // src/server/round-reset.gen.ts (`ROUND_RESETS`), which only
@@ -140,6 +145,11 @@ export const LEXICON_PAGES_DIR = 'src/core/lexicon/pages';
 export const LEXICON_PAGES_FILE = 'pages.gen.ts';
 /** The fixed name under which a file exports its page of the Lexicanum. */
 const LEXICON_PAGE_EXPORT = /^export const lexiconPage\b/m;
+/** Where the events of the guild chat are (#426), and the list of them. */
+export const CHAT_EVENTS_DIR = 'src/core/chat-events';
+export const CHAT_EVENTS_FILE = 'events.gen.ts';
+/** The fixed name under which a file exports its events of the guild chat. */
+const CHAT_EVENTS_EXPORT = /^export const chatEvents\b/m;
 /** The list of the round resets (#317) is in the server folder, next to the server features. */
 export const ROUND_RESET_FILE = 'round-reset.gen.ts';
 /** The fixed name under which a file exports what a new round empties or keeps. */
@@ -499,6 +509,22 @@ export function generateLexiconPages(dir: string): boolean {
   );
 }
 
+/** The files of the folder of the chat events that export `chatEvents` (#426). */
+export const scanChatEvents = (dir: string): string[] =>
+  scanExporting(dir, CHAT_EVENTS_EXPORT);
+
+/** The source of the list of the events of the guild chat (#426). */
+export const renderChatEvents = (files: string[]): string =>
+  renderFeatureList(files, 'chatEvents', 'CHAT_EVENT_LISTS');
+
+/** Writes the list of the chat events when it changed; true if it did. */
+export function generateChatEvents(dir: string): boolean {
+  return write(
+    join(dir, CHAT_EVENTS_FILE),
+    renderChatEvents(scanChatEvents(dir)),
+  );
+}
+
 /** The files of the server folder that export `roundReset` (#317). */
 export const scanRoundResets = (dir: string): string[] =>
   scanExporting(dir, ROUND_RESET_EXPORT);
@@ -582,6 +608,7 @@ if (import.meta.main)
     generateOptionBoxes(OPTION_BOXES_DIR);
     generatePushTopics(PUSH_TOPICS_DIR);
     generateLexiconPages(LEXICON_PAGES_DIR);
+    generateChatEvents(CHAT_EVENTS_DIR);
     generateActionInputs(ACTIONS_DIR);
     generateStateShapes(ACTIONS_DIR);
     return 0;

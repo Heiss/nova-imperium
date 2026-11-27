@@ -108,6 +108,13 @@ when the second built on the first.
   names no table. `src/server/game/round-reset.test.ts` seeds a row into
   every table of the schema and fails when a table is neither emptied nor
   declared as kept (#317).
+* A new event of the guild chat is an entry `{ key, order, sentence }` of
+  `chatEvents` in a file of `src/core/chat-events/`, with an unused order
+  between its neighbours; `src/core/guild-chat.ts` is not edited (the list
+  `events.gen.ts` is generated). It also needs a new migration that rewrites
+  the CHECK of `guild_chat.kind` (and its other CHECKs where the kind needs
+  them): `src/server/db/chat-events-check.test.ts` fails without one (#426,
+  192a). Its sentence is a decided text, never invented.
 * A new push kind is an entry `{ key, order, label, guild? }` of
   `pushTopics` in a file of `src/core/push-topics/`, with an unused order
   between its neighbours in the options; `src/core/push.ts` and the options
