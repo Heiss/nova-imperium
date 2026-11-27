@@ -173,7 +173,9 @@ their own.
   exports `lexiconPage` in `pages/pages.gen.ts` (not checked in);
   `pages/index.ts` names no page and sorts them by `order` ([V]: the order
   of the start page as before #426, in steps of ten, rules 10 to 240,
-  questions 250 to 320, guides 330 to 370), and an order or an address
+  questions 250 to 320, guides 330 to 370; a new page takes an unused order
+  between its neighbours, in steps of ten where there is room, for example
+  245 between 240 and 250), and an order or an address
   defined twice stops the start with both files named. A guard still checks
   that every file of the folder is listed;
   the builders are in `src/core/lexicon/say.ts` (`say`, `formulas`, `table`,

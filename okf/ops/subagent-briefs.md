@@ -103,10 +103,11 @@ when the second built on the first.
   every table of the schema and fails when a table is neither emptied nor
   declared as kept (#317).
 * A new page of the Lexicanum is a file of `src/core/lexicon/pages/` that
-  ends with `export const lexiconPage = { order: <n>, page };`, with the
-  next free ten at its place on the start page; `pages/index.ts` is not
-  edited (the list `pages.gen.ts` is generated, an order or an address that
-  exists twice stops the start, #426).
+  ends with `export const lexiconPage = { order: <n>, page };`, with an
+  unused order between its neighbours on the start page, in steps of ten
+  where there is room (for example 245 between 240 and 250);
+  `pages/index.ts` is not edited (the list `pages.gen.ts` is generated, an
+  order or an address that exists twice stops the start, #426).
 * A new view is `export const clientViews = [{ key: 'market', mount, anew:
   true, menu: { order: 40, label: 'Marktplatz' }, tab?, glyph? }] satisfies
   readonly ClientView[]` in a file of `src/client/views/` (contract:
