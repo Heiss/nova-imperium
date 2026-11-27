@@ -171,7 +171,7 @@ jobs:
           fi
           # A push to main runs no mutation job: the result of the pull
           # request counts (identical tree, #342), and without a proof the
-          # nightly complete run tests the tree (owner, 2026-11-26, #370,
+          # next nightly complete run tests main as it is that night (owner, 2026-11-26, #370,
           # 195a and 200a; output "nightly"). A push to hotfix/** runs the
           # complete run unless proven.
           if [ "$EVENT" = "push" ] || [ -z "$PR_BASE" ]; then
@@ -681,7 +681,7 @@ jobs:
           pattern: mutation-partial-part-*
           path: reports/parts
       - name: Merge the reports of the parts
-        run: node scripts/mutation-partial.ts merge reports/mutation/mutation.json reports/parts/*/mutation.json
+        run: node scripts/mutation-partial.ts merge reports/mutation/mutation.json reports/parts
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
@@ -1221,7 +1221,7 @@ jobs:
               if [ -n "$PROOF_MUTATION" ]; then
                 echo "Mutation tests: no run on a push to main, the pull request proved this tree: $PROOF_MUTATION"
               else
-                echo "Mutation tests: no run on a push to main and no proof of the pull request; the nightly complete run (mutation.yml) tests this tree (#370, 200a)."
+                echo "Mutation tests: no run on a push to main and no proof of the pull request; the next nightly complete run (mutation.yml) tests main as it is that night (#370, 200a)."
               fi
               ;;
             reuse)

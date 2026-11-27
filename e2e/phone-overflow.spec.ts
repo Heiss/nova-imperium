@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import {
+  boxes,
   cli,
   guildTag,
   onlyOwnPlayers,
@@ -151,8 +152,15 @@ test('a name of 20 wide letters stays left of the points on the highscore (#189)
   expect(box.nameRight).toBeLessThanOrEqual(box.pointsLeft);
   expect(box.rowScroll).toBeLessThanOrEqual(box.rowWidth);
   // „Stand“ stands above the table on a phone (owner, 2026-11-26, B of #418).
-  const stand = await page.locator('.scores-wrap > .stand').boundingBox();
-  const table = await page.locator('.scores-wrap > .box').boundingBox();
+  // Both boxes in one call: every render mounts the view anew (`anew`).
+  await expect(page.locator('.scores-wrap > .stand')).toBeVisible();
+  const [stand, table] = await boxes(
+    page,
+    '.scores-wrap > .stand',
+    '.scores-wrap > .box',
+  );
+  expect(stand).not.toBeNull();
+  expect(table).not.toBeNull();
   expect(stand!.y + stand!.height).toBeLessThanOrEqual(table!.y);
   expect(await overflow(page, 'highscore')).toEqual([]);
   expect(w.problems).toEqual([]);

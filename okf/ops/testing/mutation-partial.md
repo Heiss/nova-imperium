@@ -18,7 +18,8 @@ description: 'A pull request mutates only what it changes: when the jobs start, 
   secure such a change. Since #370 (owner, 2026-11-26, 195a and 200a) a
   push to `main` runs no mutation job: the result of the pull request
   counts on the identical tree (#342), and without such a proof the gate
-  passes and says that the nightly complete run tests the tree („Detect
+  passes and says that the next nightly complete run tests `main` as it is
+  that night, not necessarily the tree of that push („Detect
   changes“ writes `mutation=nightly`; the CI Gate refuses any mutation job
   on such a push and the value anywhere else). Until #370 pushes to `main`
   and `hotfix/**` kept the full
@@ -56,8 +57,10 @@ description: 'A pull request mutates only what it changes: when the jobs start, 
   is no release pull request (head `release/*`) and goes into no hotfix
   branch (base `hotfix/*`), the mutation tests run for the files of the
   `mutate` globs that it changes and for the source of each test file it
-  changes, in one job „Mutation tests (changed files)“ without shards
-  (since #370 in parts of about 12 files, below). The
+  changes, without shards: until #370 in one job „Mutation tests (changed
+  files)“, since then in a matrix of part jobs „Mutation tests (changed
+  files, part N of M)“ of about 12 files each, whose reports the merge and
+  gate job „Mutation tests (changed files)“ checks as one run (below). The
   complete run in 12 shards (6 until 2026-11-20) stays for pushes to `hotfix/**` (to `main` until #370),
   the pull requests into a hotfix branch and the
   nightly run, with their caches, weights and plan state (the release pull
@@ -243,8 +246,13 @@ description: 'A pull request mutates only what it changes: when the jobs start, 
   runs Stryker on one part (`scripts/mutation-partial.ts config <n>`,
   every mutant, no incremental file, no cache) and uploads its report. The
   job `mutation-partial`, „Mutation tests (changed files)“ as before, merges
-  the reports (`scripts/mutation-partial.ts merge`: every part ran exactly
-  once with exactly its files, the check of the shards) into one report that
+  the reports (`scripts/mutation-partial.ts merge <out> reports/parts`: it
+  takes every `mutation.json` below the folder, because
+  `actions/download-artifact` puts a single artifact straight into the
+  folder and several into a folder each, which broke every pull request
+  with one part on `main` after #429; it fails unless there is one report
+  per part, and every part ran exactly once with exactly its files, the
+  check of the shards) into one report that
   names all files of the plan as the files Stryker ran, and
   `scripts/mutation-gate.ts --partial` checks it as before. The name of the
   job stays, so the proof of a push (#342) and the takeover keep finding it.

@@ -744,11 +744,11 @@ describe('CI Gate', () => {
       MUTATION: 'skipped',
     };
 
-    it('passes without a proof and says that the nightly run tests the tree', () => {
+    it('passes without a proof and says that the nightly run tests main as it is that night', () => {
       const { code, out } = evaluate(main);
       expect(code).toBe(0);
       expect(out).toContain(
-        'Mutation tests: no run on a push to main and no proof of the pull request; the nightly complete run (mutation.yml) tests this tree (#370, 200a).',
+        'Mutation tests: no run on a push to main and no proof of the pull request; the next nightly complete run (mutation.yml) tests main as it is that night (#370, 200a).',
       );
     });
 

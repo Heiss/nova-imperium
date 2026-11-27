@@ -61,7 +61,8 @@ description: 'When a push to main or a hotfix branch skips a job that succeeded 
   195a and 200a): „Detect changes“ writes `mutation=nightly`, the proof of
   the pull request is still looked up and printed by the CI Gate, and
   without one the gate passes and says that the nightly complete run
-  (`mutation.yml`) tests the tree. A push to `hotfix/**` keeps the rule
+  (`mutation.yml`) tests `main` as it is that night, not necessarily the
+  tree of that push. A push to `hotfix/**` keeps the rule
   below.
 * **[V]** A proven push runs no mutation job, so it does not refresh the
   caches of `main` (the state, the incremental results of the shards, the
