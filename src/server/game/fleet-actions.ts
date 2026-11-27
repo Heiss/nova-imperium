@@ -59,7 +59,12 @@ import { lockedUntil, positionLockedText } from './position-lock.ts';
 import { type Ctx, coords, fail, int, universe } from './context.ts';
 import { colonyRoom, limitRefusal } from './colony-limit.ts';
 import { attackEvent } from './guild-events.ts';
-import { holdersAt, isAllyOf } from './holding.ts';
+import {
+  heldByOthers,
+  holdersAt,
+  holdLaunched,
+  isAllyOf,
+} from './holding.ts';
 import { joinPlan, joinUnion, recalledWith } from './union.ts';
 import { isProtected } from './points.ts';
 import { exactPoints } from './scores.ts';
@@ -244,10 +249,16 @@ function checkDestination(
       locked: at.lockEnd !== null,
       expedition: at.expedition,
       // The exact points of the two players, never the stored pass (#405).
+      // The protection lapses at a place where a fleet of another player
+      // holds (#440, 238c): the host can send it away to get it back.
       protects: (owner) =>
+        !heldByOthers(ctx, occupied!.id, owner) &&
         isProtected(u.id, owner, exactPoints(ctx, [u.id, owner])),
       vacation: inVacation(ctx),
       ally: (owner) => isAllyOf(ctx, u.id, owner),
+      // „Wache stellen“ is a switch of the round (#440).
+      round: roundRules(ctx),
+      refusesHolds: (owner) => ctx.holdRefusals.refuses(owner),
       // Asked only for a Halten, whose target kind has a planet (#55).
       holding: () => holdersAt(ctx, occupied!.id),
     },
@@ -436,6 +447,8 @@ export const send: Handler<'send'> = (ctx, u, d, event) => {
   // launch (#169 D3, #95); both fly to a foreign place only, so it has an
   // owner.
   if (missionRules(mission)!.alertsGuild) attackEvent(ctx, fleet, targetOwner!);
+  // The host learns of a hold at its launch (#440, 242c).
+  if (holds) holdLaunched(ctx, fleet, targetOwner!);
   if (event) logLaunch(event, fleet, targetOwner);
   return `Flotte unterwegs nach ${coords(fleet.toC)}.`;
 };

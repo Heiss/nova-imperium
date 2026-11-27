@@ -61,6 +61,9 @@ export const ACTION_KIND = {
   missile: 'change',
   tearDownMissiles: 'change',
   pushOptions: 'change',
+  // „Wache stellen“ (#440).
+  sendAway: 'change',
+  holdOption: 'change',
   closeRound: 'change',
   deleteRound: 'change',
   openUnion: 'change',
