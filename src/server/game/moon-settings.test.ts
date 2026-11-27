@@ -3,6 +3,7 @@
 // steps of 10,000 (212a, 218a), in „Neue Runde“ and live in the universe
 // settings.
 import { describe, expect, it } from 'vitest';
+import { liveSpecs } from '../../core/universe.ts';
 import { addUser, testCtx } from '../test-helpers.ts';
 import { runAction } from './dispatch.ts';
 import { roundRules } from './round.ts';
@@ -74,5 +75,18 @@ describe('the moon settings of the round (#433)', () => {
       moonChanceMax: 100,
       moonPerPercent: 20000,
     });
+  });
+
+  it('give the universe settings the step of the resources, no other row one (218a)', () => {
+    const specs = liveSpecs();
+    expect(specs.find((x) => x.key === 'roundMoonPerPercent')).toMatchObject({
+      min: 10000,
+      max: 1000000,
+      def: 100000,
+      step: 10000,
+    });
+    expect(specs.filter((x) => 'step' in x).map((x) => x.key)).toEqual([
+      'roundMoonPerPercent',
+    ]);
   });
 });
