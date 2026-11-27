@@ -65,6 +65,12 @@
 // pages/index.ts imports, so a page registers itself and no shared list names
 // it; index.ts sorts the pages by their order.
 //
+// The lines of the overview cards (#426): every file of
+// src/client/logic/overview-cards that exports `overviewLines` (its lines of
+// „Achtung“ or „Bereit“ with their place) is listed in
+// src/client/logic/overview-cards/lines.gen.ts (`OVERVIEW_LINES`), which only
+// logic/overview-cards.ts imports, so a source of lines registers itself.
+//
 // The round reset (#317): every file of src/server that exports `roundReset`
 // (what a new round empties and what it keeps) is listed in
 // src/server/round-reset.gen.ts (`ROUND_RESETS`), which only
@@ -140,6 +146,11 @@ export const LEXICON_PAGES_DIR = 'src/core/lexicon/pages';
 export const LEXICON_PAGES_FILE = 'pages.gen.ts';
 /** The fixed name under which a file exports its page of the Lexicanum. */
 const LEXICON_PAGE_EXPORT = /^export const lexiconPage\b/m;
+/** Where the line sources of the overview cards are (#426), and the list of them. */
+export const OVERVIEW_LINES_DIR = 'src/client/logic/overview-cards';
+export const OVERVIEW_LINES_FILE = 'lines.gen.ts';
+/** The fixed name under which a file exports its lines of the overview cards. */
+const OVERVIEW_LINES_EXPORT = /^export const overviewLines\b/m;
 /** The list of the round resets (#317) is in the server folder, next to the server features. */
 export const ROUND_RESET_FILE = 'round-reset.gen.ts';
 /** The fixed name under which a file exports what a new round empties or keeps. */
@@ -499,6 +510,22 @@ export function generateLexiconPages(dir: string): boolean {
   );
 }
 
+/** The files of the folder of the overview lines that export `overviewLines` (#426). */
+export const scanOverviewLines = (dir: string): string[] =>
+  scanExporting(dir, OVERVIEW_LINES_EXPORT);
+
+/** The source of the list of the line sources of the overview cards (#426). */
+export const renderOverviewLines = (files: string[]): string =>
+  renderFeatureList(files, 'overviewLines', 'OVERVIEW_LINES');
+
+/** Writes the list of the overview lines when it changed; true if it did. */
+export function generateOverviewLines(dir: string): boolean {
+  return write(
+    join(dir, OVERVIEW_LINES_FILE),
+    renderOverviewLines(scanOverviewLines(dir)),
+  );
+}
+
 /** The files of the server folder that export `roundReset` (#317). */
 export const scanRoundResets = (dir: string): string[] =>
   scanExporting(dir, ROUND_RESET_EXPORT);
@@ -582,6 +609,7 @@ if (import.meta.main)
     generateOptionBoxes(OPTION_BOXES_DIR);
     generatePushTopics(PUSH_TOPICS_DIR);
     generateLexiconPages(LEXICON_PAGES_DIR);
+    generateOverviewLines(OVERVIEW_LINES_DIR);
     generateActionInputs(ACTIONS_DIR);
     generateStateShapes(ACTIONS_DIR);
     return 0;
