@@ -27,6 +27,7 @@ import type { RoundRow } from '../db/repos/rounds.ts';
 import type { User } from '../db/repos/players.ts';
 import { type Ctx, fail, universe } from './context.ts';
 import { journalClose } from './journal.ts';
+import { categoryModes } from '../../core/highscore-categories.ts';
 import { scorePass } from './scores.ts';
 import { roundRules, roundStart } from './round.ts';
 
@@ -106,6 +107,7 @@ function finalOf(
 export function roundFacts(ctx: Ctx): RoundFacts {
   // A fresh pass at the cutoff, not the stored one (#405).
   const { total, categories: scores } = scorePass(ctx);
+  const modes = categoryModes(roundRules(ctx));
   const planets = ctx.planets.all();
   // A player keeps the seat they got when they joined (`participant.joined`);
   // one who has none yet (a round without those events) gets the next free one.
@@ -116,7 +118,14 @@ export function roundFacts(ctx: Ctx): RoundFacts {
   for (const user of ctx.players.all()) {
     const own = planets.filter((p) => p.owner === user.id);
     if (!own.length) continue;
-    const valuation = { total: total[user.id] ?? 0, ...scores[user.id]! };
+    // Wirtschaft and Militär in the mode the round sets at its end (#422, 171b).
+    const c = scores[user.id]!;
+    const valuation = {
+      total: total[user.id] ?? 0,
+      economy: modes.economy ? c.economy.points : c.economy.count,
+      military: modes.military ? c.military.points : c.military.count,
+      modes,
+    };
     players.push({
       seat: known.get(user.id) ?? free++,
       user,

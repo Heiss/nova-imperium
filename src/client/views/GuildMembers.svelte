@@ -16,14 +16,14 @@
     <tr>
       <th>Spieler</th>
       {#if roster.ranked}<th>Rang</th>{/if}
-      <th class="n">Punkte</th>
+      {#if roster.points}<th class="n">Punkte</th>{/if}
       {#if roster.ranked}<th></th>{/if}
     </tr>
     {#each roster.rows as row (row.id)}
       <tr>
         <td>{row.name}</td>
         {#if row.rank !== null}<td class="rank">{row.rank}</td>{/if}
-        <td class="n">{row.points}</td>
+        {#if roster.points}<td class="n">{row.points}</td>{/if}
         {#if row.controls}
           {@const controls = row.controls}
           <td>

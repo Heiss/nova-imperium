@@ -1,5 +1,24 @@
 # Neuigkeiten
 
+## Version 26.11.29 – 27.11.2026
+
+### Neu
+
+- Unter „Optionen“ kannst du eine Authenticator-App einrichten; dann kommt der Code aus der App statt per E-Mail.
+- Der Admin kann die Highscore auf die Gesamtwertung beschränken oder ganz ausschalten.
+
+### Geändert
+
+- Nach der Anmeldung mit Passwort erscheint das Feld für den Code aus der E-Mail sofort; die E-Mail enthält jetzt auch einen Link, der die Anmeldung in diesem Browser abschließt. Nach 30 Sekunden kannst du einen neuen Code anfordern.
+- „alles“ beim Flottenstart lädt jetzt, was beim Start wirklich im Lager ist, statt abzulehnen, wenn sich das Lager inzwischen geändert hat. Das gilt für das zuletzt gedrückte „alles“.
+- Punkte und Highscore werden jetzt standardmäßig dreimal am Tag berechnet statt bei jedem Aufruf; die Highscore zeigt neben der Tabelle, wann zuletzt („Stand“). Wie oft, stellt der Admin ein.
+- Die Highscore zeigt neben Gesamt nur noch Wirtschaft und Militär. Ob dort nach Anzahl oder nach verbauten Rohstoffen gezählt wird, stellt der Admin ein.
+
+### Behoben
+
+- Ein Tausch auf dem Marktplatz gilt jetzt nur noch zu dem Kurs, den du gesehen hast: Ist er inzwischen schlechter, wird nicht getauscht und das Formular zeigt den neuen Kurs.
+- Das „(n)“ für den Noob-Schutz in der Sternenkarte stimmt jetzt mit dem Schutz bei Angriffen überein. Es erscheint, sobald die Angaben für das angezeigte System geladen sind.
+
 ## Version 26.11.28 – 25.11.2026
 
 ### Geändert

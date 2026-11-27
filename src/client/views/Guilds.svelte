@@ -24,8 +24,9 @@
       <table class="guild-list">
         <tbody>
           <tr>
-            <th>Gilde</th><th class="n">Mitglieder</th><th class="n">Punkte</th
-            ><th class="n">Ø Punkte</th>
+            <th>Gilde</th><th class="n">Mitglieder</th>{#if page.points}<th
+                class="n">Punkte</th
+              ><th class="n">Ø Punkte</th>{/if}
           </tr>
           {#each page.rows as row (row.id)}
             <tr>
@@ -34,9 +35,9 @@
                   >{row.heading}</a
                 ></td
               >
-              <td class="n">{row.members}</td><td class="n">{row.score}</td><td
-                class="n">{row.average}</td
-              >
+              <td class="n">{row.members}</td>{#if page.points}<td class="n"
+                  >{row.score}</td
+                ><td class="n">{row.average}</td>{/if}
             </tr>
           {/each}
         </tbody>
@@ -66,9 +67,11 @@
       <p>Diese Gilde hat noch keinen Profiltext.</p>
     {/if}
   </Box>
-  <Box title="Punkte">
-    <p>{page.score} gesamt · {page.average} pro Mitglied</p>
-  </Box>
+  {#if page.score !== null}
+    <Box title="Punkte">
+      <p>{page.score} gesamt · {page.average} pro Mitglied</p>
+    </Box>
+  {/if}
   <Box title="Mitglieder"><GuildMembers roster={page.roster} /></Box>
   {#if page.chat}<GuildChat chat={page.chat} />{/if}
   {#if page.membership.kind === 'apply'}

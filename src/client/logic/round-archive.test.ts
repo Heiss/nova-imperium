@@ -275,6 +275,112 @@ describe('the report of a round', () => {
   });
 });
 
+describe('the report of an archive written with the categories of #422 (171b)', () => {
+  /** A record of #422: Gesamt, Wirtschaft and Militär with the modes of the round's end. */
+  const coarse = (
+    seat: number,
+    name: string,
+    total: number,
+    economy: number,
+    military: number,
+    modes = { economy: 0, military: 1 } as const,
+  ): ReportRow => ({
+    ...row(seat, name, total),
+    valuation: { total, economy, military, modes },
+  });
+  const newReport = (): RoundReport => ({
+    ...report(),
+    rows: [
+      coarse(1, 'Lea', 9100, 40, 300),
+      coarse(2, 'Vex', 8400, 90, 100, { economy: 0, military: 1 }),
+      coarse(3, 'Nox', 5900, 60, 900),
+    ],
+  });
+
+  it('offers Gesamt, Wirtschaft and Militär and ranks by the chosen one', () => {
+    const page = reportPage(newReport(), 'economy');
+    expect(page.categories.map((c) => [c.key, c.label, c.pressed])).toEqual([
+      ['total', 'Gesamt', false],
+      ['economy', 'Wirtschaft', true],
+      ['military', 'Militär', false],
+    ]);
+    expect(page.column).toBe('Wirtschaft');
+    expect(page.rows.map((x) => [x.name, x.points])).toEqual([
+      ['Vex', '90'],
+      ['Nox', '60'],
+      ['Lea', '40'],
+    ]);
+  });
+
+  it('shows the note of the mode the round ended with', () => {
+    const note = (cat: 'economy' | 'military' | 'total') =>
+      reportPage(newReport(), cat).note;
+    expect(note('economy')).toMatch(
+      /^1 Punkt pro Gebäudestufe, Forschungsstufe und Sonnenreliquiar\. Wirtschaft\/h:/,
+    );
+    expect(note('military')).toMatch(
+      /^1 Punkt = 1\.000 verbaute Rohstoffe \(Flotte, Verteidigung, Raketen\)\. Wirtschaft\/h:/,
+    );
+    expect(note('total')).toMatch(
+      /^1 Punkt = 1\.000 verbaute Rohstoffe \(Gebäude, Forschung, Schiffe, Verteidigung\)\. /,
+    );
+  });
+
+  it('shows Gesamt for a category of the other kind of archive, and the old one keeps its five', () => {
+    const page = reportPage(newReport(), 'fleet');
+    expect(page.categories.find((c) => c.pressed)?.key).toBe('total');
+    expect(page.column).toBe('Gesamt');
+    const old = reportPage(report(), 'military');
+    expect(old.categories.map((c) => c.key)).toEqual([
+      'total',
+      'buildings',
+      'research',
+      'fleet',
+      'defense',
+    ]);
+    expect(old.categories.find((c) => c.pressed)?.key).toBe('total');
+    expect(reportPage(report(), 'fleet').note).toMatch(
+      /^1 Punkt pro Schiff \(auch Sonnenreliquiare\)\. /,
+    );
+  });
+
+  it('keeps the four categories of #78 for a report without participants', () => {
+    expect(
+      reportPage({ ...report(), rows: [] }, 'total').categories,
+    ).toHaveLength(5);
+  });
+
+  it('names Wirtschaft and Militär among the facts of a participant of a new archive', () => {
+    const p: ParticipantReport = {
+      round: {
+        number: 3,
+        provisional: false,
+        asOf: Date.UTC(2026, 10, 20, 12),
+      },
+      seat: 2,
+      name: 'Vex',
+      guild: null,
+      valuation: {
+        total: 8400,
+        economy: 90,
+        military: 100,
+        modes: { economy: 0, military: 1 },
+      },
+      economy: { m: 1000, c: 500, d: 250 },
+      research: {},
+      places: [],
+      flying: {},
+      vacation: false,
+      playtime: 0,
+    } as unknown as ParticipantReport;
+    const facts = Object.fromEntries(participantPage(p).facts);
+    expect(facts['Wirtschaft']).toBe('90');
+    expect(facts['Militär']).toBe('100');
+    expect(facts).not.toHaveProperty('Gebäude');
+    expect(facts).not.toHaveProperty('Flotte');
+  });
+});
+
 describe('the list of rounds', () => {
   const list = (admin = false) => {
     const page = archivePage({ ...archive }, admin);

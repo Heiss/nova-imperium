@@ -6,6 +6,7 @@
 // setting differs by (`rulesDiff`) and the state stay in the logic.
 import {
   type HistoryEntry,
+  type LegacyValuation,
   rankRows,
   type ReportRow,
   resourceSum,
@@ -14,11 +15,26 @@ import {
 } from '../core/round-report.ts';
 import { esc, fmt } from '../client/logic/format.ts';
 import { playtime as playtimeText } from '../client/logic/own-activity.ts';
-import {
-  HIGHSCORE_CATEGORIES,
-  type HighscoreCategory,
-  highscoreNote,
-} from '../client/logic/highscore.ts';
+
+// frozen: the four categories of #78 and their notes, as the archives before
+// #422 show them (owner, 2026-11-26, 171b: old archives stay as they are).
+const HIGHSCORE_CATEGORIES = {
+  total: 'Gesamt',
+  buildings: 'Gebäude',
+  research: 'Forschung',
+  fleet: 'Flotte',
+  defense: 'Verteidigung',
+} as const;
+type HighscoreCategory = keyof typeof HIGHSCORE_CATEGORIES;
+const PER_1000 = '1 Punkt = 1.000 verbaute Rohstoffe';
+const NOTES: Record<HighscoreCategory, string> = {
+  total: `${PER_1000} (Gebäude, Forschung, Schiffe, Verteidigung).`,
+  buildings: `${PER_1000} (Gebäude).`,
+  research: '1 Punkt pro Forschungsstufe.',
+  fleet: '1 Punkt pro Schiff (auch Sonnenreliquiare).',
+  defense: `${PER_1000} (Verteidigung).`,
+};
+const highscoreNote = (cat: HighscoreCategory): string => NOTES[cat];
 import { type ArchiveState, rulesDiff } from '../client/logic/round-archive.ts';
 import { COVERAGE, day, daysText } from '../client/logic/round-words.ts';
 
@@ -83,7 +99,7 @@ function rowHTML(
     time === null
       ? ''
       : `<td class="n">${ms === undefined ? '-' : playtimeText(ms)}</td>`;
-  return `<tr class="${r.you ? 'me' : ''}"><td class="n">${i + 1}</td><td>${esc(r.name)}${r.you ? ' (du)' : ''}</td><td class="n">${fmt(r.valuation[cat])}</td><td class="n">${economy(r)}</td><td class="n">${r.planets}</td><td class="n">${r.moons}</td>${played}<td>${guild}</td>${detail}</tr>`;
+  return `<tr class="${r.you ? 'me' : ''}"><td class="n">${i + 1}</td><td>${esc(r.name)}${r.you ? ' (du)' : ''}</td><td class="n">${fmt((r.valuation as LegacyValuation)[cat])}</td><td class="n">${economy(r)}</td><td class="n">${r.planets}</td><td class="n">${r.moons}</td>${played}<td>${guild}</td>${detail}</tr>`;
 }
 
 /**
@@ -183,7 +199,7 @@ function historyHTML(history: readonly HistoryEntry[]): string {
 
 /** The content of the box „Rundenarchiv“ of a player. */
 export function archiveHTML(a: ArchiveState): string {
-  if (a.report) return reportHTML(a.report, a.category);
+  if (a.report) return reportHTML(a.report, a.category as HighscoreCategory);
   if (a.error) return `<p class="notice">${esc(a.error)}</p>`;
   if (a.entries === null) return '<p class="dim">Das Archiv wird geladen …</p>';
   const intro =
@@ -195,7 +211,8 @@ export function archiveHTML(a: ArchiveState): string {
 export function adminArchiveHTML(a: ArchiveState): string {
   const close =
     '<p>„Runde abschließen“ speichert die laufende Runde im Archiv. Das Spiel läuft danach weiter, bis du eine neue Runde startest; „Neue Runde“ schließt eine noch laufende Runde selbst ab. Die Endzeit schließt keine Runde ab.</p><p><button class="red" data-act="roundClose">Runde abschließen</button></p>';
-  if (a.report) return reportHTML(a.report, a.category, true);
+  if (a.report)
+    return reportHTML(a.report, a.category as HighscoreCategory, true);
   if (a.error) return `${close}<p class="notice">${esc(a.error)}</p>`;
   if (a.entries === null)
     return `${close}<p class="dim">Das Archiv wird geladen …</p>`;

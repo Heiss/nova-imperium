@@ -178,14 +178,21 @@ interface DirectoryRow {
   href: string;
   heading: string;
   members: string;
-  score: string;
-  average: string;
+  /** The sums of the points; null while the highscore shows nothing (#422, 182a). */
+  score: string | null;
+  average: string | null;
 }
+
+/** Points as shown, or null when the state has none (#422, 182a). */
+const points = (n: number | undefined): string | null =>
+  n === undefined ? null : fmt(n);
 
 /** The list of guilds, and the form to found one for a player without a guild. */
 interface DirectoryPage {
   kind: 'directory';
   rows: DirectoryRow[];
+  /** Whether the list has the columns of the points (182a). */
+  points: boolean;
   create: ProfileFormModel | null;
 }
 
@@ -197,9 +204,10 @@ function directoryPage(state: GuildState): DirectoryPage {
       href: `/?view=guilds&guild=${encodeURIComponent(g.id)}`,
       heading: headingOf(g),
       members: String(g.members.length),
-      score: fmt(g.score),
-      average: fmt(g.average),
+      score: points(g.score),
+      average: points(g.average),
     })),
+    points: state.directory.some((g) => g.score !== undefined),
     create: state.own ? null : profileForm(),
   };
 }
@@ -267,7 +275,8 @@ interface MemberControls {
 interface MemberRow {
   id: string;
   name: string;
-  points: string;
+  /** Null while the highscore shows nothing (182a). */
+  points: string | null;
   /** The rank of a member of the own guild; none on the page of another. */
   rank: string | null;
   controls: MemberControls | null;
@@ -276,6 +285,8 @@ interface MemberRow {
 /** The members; their ranks only for the own guild (owner, #163 D7). */
 interface Roster {
   ranked: boolean;
+  /** Whether the members have points to show (182a). */
+  points: boolean;
   rows: MemberRow[];
 }
 
@@ -311,10 +322,11 @@ function roster(g: Guild, me: Inside | null): Roster {
   if (!me)
     return {
       ranked: false,
+      points: g.score !== undefined,
       rows: g.members.map((m) => ({
         id: m.id,
         name: m.name,
-        points: fmt(m.points),
+        points: points(m.points),
         rank: null,
         controls: null,
       })),
@@ -323,10 +335,11 @@ function roster(g: Guild, me: Inside | null): Roster {
     me.ranks.list.find((r) => r.id === me.ranks.members[id])?.name ?? '–';
   return {
     ranked: true,
+    points: g.score !== undefined,
     rows: g.members.map((m) => ({
       id: m.id,
       name: m.name,
-      points: fmt(m.points),
+      points: points(m.points),
       rank: m.id === me.ranks.lead ? me.ranks.list[0]!.name : rankName(m.id),
       controls: memberControls(me, m.id),
     })),
@@ -476,8 +489,9 @@ export interface GuildPage {
   heading: string;
   /** The profile text as the server rendered it; empty until the guild has one. */
   profileHtml: string;
-  score: string;
-  average: string;
+  /** Null while the highscore shows nothing (182a). */
+  score: string | null;
+  average: string | null;
   roster: Roster;
   chat: ChatBoxModel | null;
   membership: Membership;
@@ -497,8 +511,8 @@ function guildPage(v: V, state: GuildState, g: Guild): GuildPage {
     id: g.id,
     heading: headingOf(g),
     profileHtml: g.html,
-    score: fmt(g.score),
-    average: fmt(g.average),
+    score: points(g.score),
+    average: points(g.average),
     roster: roster(g, me),
     chat: own && state.chat ? chatBox(state.chat) : null,
     membership: membership(state, g, me),
