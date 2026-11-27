@@ -36,6 +36,8 @@ name: CI
 # any other file, and it runs no expensive job; it relies on the results of
 # its base (owner, 2026-11-23 and 2026-11-24, #387).
 # The documentation website is built when its sources change (#144).
+# A pull request into main whose head lacks the base of its event fails in
+# "Detect changes" before any expensive job (#431).
 # Only the gate job "CI Gate" is the required check of main.
 on:
   pull_request:
@@ -185,6 +187,32 @@ jobs:
             } >> "$GITHUB_OUTPUT"
             exit 0
           fi
+          # A pull request into main whose head does not contain the base of
+          # its event fails here, before any expensive job (owner, 2026-11-27,
+          # #431, 203b and 205a): the strict ruleset of main needs an
+          # up-to-date branch, so such a head would run again after the
+          # update. Head and base are commits of the event, not the merge
+          # commit; the checkout has the whole history, and an error of the
+          # check fails it too. Pull requests into hotfix/** and release
+          # pull requests keep their own rules.
+          case "$PR_BASE_REF:$PR_HEAD_REF" in
+            main:release/*) ;;
+            main:*)
+              status=0
+              git merge-base --is-ancestor "$PR_BASE" "$PR_HEAD" || status=$?
+              case "$status" in
+                0) ;;
+                1)
+                  echo "::error::The head $PR_HEAD does not contain the current main $PR_BASE. Run: git fetch origin && git merge origin/main, then push (#431)."
+                  exit 1
+                  ;;
+                *)
+                  echo "::error::Cannot check whether the head $PR_HEAD contains main $PR_BASE (git exit $status); run the job again (#431)."
+                  exit 1
+                  ;;
+              esac
+              ;;
+          esac
           files=$(git diff --name-only --no-renames "$PR_BASE" "$HEAD_SHA")
           # A release pull request (of main or of a hotfix branch) changes
           # only the metadata files and runs no expensive job; any other
