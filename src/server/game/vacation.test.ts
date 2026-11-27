@@ -6,7 +6,6 @@
 // its notice (D3).
 import { describe, expect, it } from 'vitest';
 import { ACTIVITY_DEFAULT, MINUTE_MS } from '../../core/activity.ts';
-import { HOLD_REPORT_TITLE } from '../../core/hold-texts.ts';
 import { dayOf } from '../../core/market.ts';
 import { settle } from '../../core/settle.ts';
 import type { Fleet } from '../../core/types.ts';
@@ -500,7 +499,7 @@ describe('a Wache stellen and the vacation mode (#55, #223)', () => {
       sentHome(fleet.arr, 'Heim'),
     ]);
     expect(ctx.reports.ofPlayer('u_Anna').map((r) => r.title)).toEqual([
-      HOLD_REPORT_TITLE.launch,
+      'Wache unterwegs [1:1:5]',
     ]);
     const ships = ctx.planets.get('p1_2_6')!.ships;
     ctx.clock.t = fleet.arr + flight;

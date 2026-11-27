@@ -5,7 +5,7 @@
 // (owner, 2026-11-16, Q2). The server, the fleet form and the overview ask
 // these rules (patterns, section 7). The alliance depot comes later (D1).
 import type { RoundSetting } from './round.ts';
-import type { Fleet, Levels } from './types.ts';
+import type { Fleet, Levels, Mission } from './types.ts';
 
 /** One hour in milliseconds; the holding time runs in real time [V]. */
 export const HOUR_MS = 3_600_000;
@@ -131,6 +131,13 @@ export const roundSettings = [
  */
 export const holdOpen = (round: { holdOn?: number }): boolean =>
   round.holdOn !== 0;
+
+/**
+ * The missions for which the noob protection lapses where a fleet of a third
+ * player holds (#440, owner, 2026-11-27, 281b): the attack and the
+ * espionage; the Mondbruch and the missiles keep it.
+ */
+export const LAPSES_AT_HOLD: readonly Mission[] = ['attack', 'spy'];
 
 /** Whether a spy with Auspex-Lehre `spy` sees the held fleets apart. */
 export const showsHeldApart = (spy: number, from: number): boolean =>

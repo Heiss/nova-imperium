@@ -474,7 +474,7 @@ code and here in the same pull request.
 * **[V]** Heading: „Nach dem Kampf“
 * **[V]** Text: „Zerstörte Schiffe beider Seiten hinterlassen ein Trümmerfeld. Von der zerstörten Verteidigung wird ein Teil wieder aufgebaut: 70 % je Art. Gehen weniger als 50 Stück einer Art verloren, wird jedes Stück einzeln ausgelost, ab 50 Stück wird der Anteil gerundet. Zerstörte Schiffe werden nie ersetzt, und Raketen kämpfen nicht mit.“
 * **[V]** Text: „Gewinnt der Angreifer, lädt er bis zu 50 % jedes Rohstoffs des Planeten ein, soweit der Laderaum seiner übrigen Schiffe reicht. Der Laderaum wird in fester Reihenfolge gefüllt: zuerst Adamant, dann Psikristall, dann Promethium, und was danach noch Platz hat, füllt wieder mit Adamant und Psikristall auf.“
-* **[V]** Text: „[TEXT PENDING Wache stellen: Lexicanum held cargo no loot]“
+* **[E]** Text (owner, 2026-11-27, #440): „Eine Wache wird nicht geplündert: Ihre Ladung geht verloren, wenn sie zerstört wird.“
 * **[V]** Table: „Beute bei einem Planeten mit 200.000 Adamant, 100.000 Psikristall und 50.000 Promethium“
 * **[V]** Table: „Freier Laderaum | Adamant | Psikristall | Promethium“
 * **[V]** Keywords: Schlacht, Gefecht, Schaden, Beute, Verlust
@@ -749,7 +749,7 @@ code and here in the same pull request.
 * **[V]** Formula: „Treibstoff der Haltezeit = ⌊Summe aller Schiffe (Anzahl · Grundverbrauch) · Stunden ÷ 10⌋, mindestens 1“
 * **[V]** Heading: „Was eine Wache tut“
 * **[V]** Text: „Eine Flotte, die Wache hält, kämpft als eigene Partei mit der Forschung ihres Besitzers, und zwar in allen drei Kämpfen an diesem Ort: beim Sturmangriff, beim Mondbruch und im Kampf gegen entdeckte Spähschädel der Auspex-Erkundung. Raketen kämpfen nicht mit. Jeder Besitzer bekommt den Bericht des Verteidigers, und was die Wache verliert, liegt zum Teil im Trümmerfeld (Trümmerfelder und Bergung). Eine Flotte des Angreifers selbst, die dort Wache hält, bleibt aus dem Kampf.“
-* **[V]** Text: „[TEXT PENDING Wache stellen: Lexicanum held cargo no loot]“
+* **[E]** Text (owner, 2026-11-27, #440): „Eine Wache wird nicht geplündert: Ihre Ladung geht verloren, wenn sie zerstört wird.“
 * **[V]** Text: „Der Gastgeber sieht eine Flotte, die Wache hält, mit allen Schiffen und ihrer Haltezeit. Im Auspex-Bericht zählt sie zur Flotte des Planeten, bis die Auspex-Lehre des Spähers die Stufe der Runde erreicht; ab dann steht sie getrennt unter Gehaltene Flotten. In der Auspex-Phalanx zeigt sie sich als haltend, mit dem Ende ihrer Haltezeit.“
 * **[V]** Heading: „Urlaubsmodus und Mondbruch“
 * **[V]** Text: „Beginnt der Gastgeber den Urlaubsmodus, fliegen alle Flotten, die bei ihm Wache halten, sofort heim, und ihre Besitzer bekommen einen Bericht. Eine Flotte, die noch unterwegs ist, hält bei der Ankunft nicht mehr, sondern kehrt gleich um. Wer selbst mit einer Flotte Wache hält, kann den Urlaubsmodus nicht beginnen, solange sie draußen ist (Urlaubsmodus).“
@@ -807,7 +807,7 @@ code and here in the same pull request.
 * **[V]** Line: „Wer vor wem geschützt ist: der Noobschutz und der Schutz im Urlaubsmodus.“
 * **[V]** Heading: „Noobschutz“
 * **[V]** Text: „Wer viel weniger Punkte hat als du, ist vor dir geschützt: Du kannst ihn nicht angreifen und nicht erkunden, ihn nicht mit einem Mondbruch oder Raketen treffen. Als geschützt gilt, wer weniger als 20 % deiner Punkte hat. Es zählen die Punkte der Gesamtwertung (Highscore). Der Schutz gilt nur gegen Stärkere: Ein Spieler mit wenig Punkten darf einen mit vielen angreifen. Versorgungsflüge sind nicht betroffen. Auf der Sternenkarte sind geschützte Spieler mit (n) markiert.“
-* **[V]** Text: „[TEXT PENDING Wache stellen: Lexicanum lapsed protection]“
+* **[E]** Text (owner, 2026-11-27, #440): „Hält bei einem geschützten Spieler eine fremde Flotte Wache, gilt sein Schutz an diesem Ort nicht für Sturmangriff und Auspex-Erkundung; vor Raketen bleibt er geschützt.“
 * **[V]** Formula: „Geschützt, wenn Punkte des Ziels · 5 < deine Punkte“
 * **[V]** Table: „Wer vor dir geschützt ist“
 * **[V]** Table: „Deine Punkte | Geschützt sind Spieler mit weniger Punkten als“

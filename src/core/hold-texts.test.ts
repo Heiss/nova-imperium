@@ -1,6 +1,5 @@
-// The texts of „Wache stellen“ of #440, each word for word. The owner has not
-// decided them yet: they are marked placeholders, and when the owner's words
-// come, these expectations take them. The decided report texts are built in
+// The texts of „Wache stellen“ of #440, each word for word as the owner
+// decided them (2026-11-27). The report texts built around them are in
 // src/server/game/holding.ts and pinned in hold-rework.test.ts.
 import { describe, expect, it } from 'vitest';
 import {
@@ -15,35 +14,38 @@ import {
 describe('the texts of „Wache stellen“ (#440)', () => {
   it('give each reason of a hold that turns home', () => {
     expect(HOLD_REASON_TEXT).toEqual({
-      off: '[TEXT PENDING #440: Grund off]',
-      bond: '[TEXT PENDING #440: Grund bond]',
-      refused: '[TEXT PENDING #440: Grund refused]',
+      off: 'Wache stellen ist in dieser Runde abgeschaltet',
+      bond: 'ihr seid keine Verbündeten mehr',
+      refused: 'der Gastgeber nimmt keine Wachen mehr an',
     });
   });
 
   it('give the two refusals of a launch', () => {
-    expect(HOLD_OFF_REFUSAL).toBe('[TEXT PENDING #440: refusal off]');
-    expect(HOLDS_REFUSED_REFUSAL).toBe('[TEXT PENDING #440: refusal refused]');
+    expect(HOLD_OFF_REFUSAL).toBe(
+      'Wache stellen ist in dieser Runde abgeschaltet.',
+    );
+    expect(HOLDS_REFUSED_REFUSAL).toBe('Dieser Spieler nimmt keine Wachen an.');
   });
 
   it('give the titles of the four reports', () => {
     expect(HOLD_REPORT_TITLE).toEqual({
-      launch: '[TEXT PENDING #440: title launch]',
-      arrival: '[TEXT PENDING #440: title arrival]',
-      notAllowed: '[TEXT PENDING #440: title not allowed]',
-      sentAway: '[TEXT PENDING #440: title sent away]',
+      launch: 'Wache unterwegs',
+      arrival: 'Wache eingetroffen',
+      notAllowed: 'Wache kehrt zurück',
+      sentAway: 'Wache weggeschickt',
     });
   });
 
   it('give the two lines of the Lexicanum, without a digit (a Lexicanum text types no number)', () => {
     expect(HOLD_LEXICON).toEqual({
       lapsedProtection:
-        '[TEXT PENDING Wache stellen: Lexicanum lapsed protection]',
-      noLoot: '[TEXT PENDING Wache stellen: Lexicanum held cargo no loot]',
+        'Hält bei einem geschützten Spieler eine fremde Flotte Wache, gilt sein Schutz an diesem Ort nicht für Sturmangriff und Auspex-Erkundung; vor Raketen bleibt er geschützt.',
+      noLoot:
+        'Eine Wache wird nicht geplündert: Ihre Ladung geht verloren, wenn sie zerstört wird.',
     });
   });
 
   it('give the title of the option box', () => {
-    expect(HOLD_OPTION_TITLE).toBe('[TEXT PENDING #440: box title]');
+    expect(HOLD_OPTION_TITLE).toBe('Wachen');
   });
 });

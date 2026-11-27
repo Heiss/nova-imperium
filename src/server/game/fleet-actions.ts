@@ -15,7 +15,12 @@ import {
   fuelFor,
   holdFuel,
 } from '../../core/flight.ts';
-import { ALLIES, HOLD_LIMITS, HOUR_MS } from '../../core/holding.ts';
+import {
+  ALLIES,
+  HOLD_LIMITS,
+  HOUR_MS,
+  LAPSES_AT_HOLD,
+} from '../../core/holding.ts';
 import {
   cargoError,
   type CargoError,
@@ -248,11 +253,15 @@ function checkDestination(
       expedition: at.expedition,
       // The exact points of the two players, never the stored pass (#405).
       // The protection lapses at a place where a fleet of a third player
-      // holds (#440, 238c): the host can send it away to get it back. The
-      // sender's own hold there lifts nothing.
+      // holds (#440, 238c, 296a), for a Sturmangriff and an
+      // Auspex-Erkundung only (281b): the Mondbruch keeps it. The host can
+      // send the fleet away to get it back; the sender's own hold there
+      // lifts nothing.
       protects: (owner) =>
-        !heldByOthers(ctx, occupied!.id, owner, u.id) &&
-        isProtected(u.id, owner, exactPoints(ctx, [u.id, owner])),
+        !(
+          LAPSES_AT_HOLD.includes(mission) &&
+          heldByOthers(ctx, occupied!.id, owner, u.id)
+        ) && isProtected(u.id, owner, exactPoints(ctx, [u.id, owner])),
       vacation: inVacation(ctx),
       ally: (owner) => isAllyOf(ctx, u.id, owner),
       // „Wache stellen“ is a switch of the round (#440).

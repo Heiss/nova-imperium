@@ -188,7 +188,7 @@ export function endNotAllowed(
     ctx,
     f.owner,
     at,
-    HOLD_REPORT_TITLE.notAllowed,
+    `${HOLD_REPORT_TITLE.notAllowed} ${coords(f.toC)}`,
     `Deine Wache bei ${placeOf(ctx, f)} kehrt zurück: ${HOLD_REASON_TEXT[reason]}.`,
   );
 }
@@ -215,7 +215,7 @@ export function holdLaunched(ctx: Ctx, f: Fleet, host: string): void {
     ctx,
     host,
     f.dep,
-    HOLD_REPORT_TITLE.launch,
+    `${HOLD_REPORT_TITLE.launch} ${coords(f.toC)}`,
     `${playerOf(ctx, f.owner).name} schickt eine Wache zu ${placeOf(ctx, f)}. Ankunft: ${lockEndText(f.arr)}.`,
   );
 }
@@ -226,7 +226,7 @@ export function holdArrived(ctx: Ctx, f: Fleet, host: string): void {
     ctx,
     host,
     f.arr,
-    HOLD_REPORT_TITLE.arrival,
+    `${HOLD_REPORT_TITLE.arrival} ${coords(f.toC)}`,
     `${playerOf(ctx, f.owner).name} hält mit einer Flotte Wache bei ${placeOf(ctx, f)} bis ${lockEndText(holdEnd(f))}.`,
   );
 }
@@ -254,7 +254,7 @@ const sendAway: Handler<'sendAway'> = (ctx, u, d) => {
     ctx,
     f.owner,
     t,
-    HOLD_REPORT_TITLE.sentAway,
+    `${HOLD_REPORT_TITLE.sentAway} ${coords(f.toC)}`,
     `${u.name} hat deine Wache bei ${placeOf(ctx, f)} weggeschickt. Deine Flotte kehrt zurück.`,
   );
   return null;

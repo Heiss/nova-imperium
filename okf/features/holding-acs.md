@@ -464,7 +464,8 @@ The owner's decisions on #440, built on `claude/hold-rework`.
   stellen“, „Verbündete“), at a new round (which empties the fleets, so no
   hold outlives it and no call is needed), at every score pass, when a host
   switches „Keine Wachen annehmen“ on, and at the start of the server
-  (which also covers an update); no timer of its own. [V] (review of #455)
+  (which also covers an update); no timer of its own. [E] (review of #455,
+  owner, 2026-11-27)
   The score pass checks in the beat of the clock, once per stored pass and
   in a write transaction, never in a read of the state; in a round with
   live points (0 passes a day) the score pass checks nothing. The start
@@ -487,11 +488,11 @@ The owner's decisions on #440, built on `claude/hold-rework`.
   player than the host holds at a place, the host's noob protection does
   not apply there for attacks and espionage (281b); missiles keep it. A
   fleet on its way does not count yet.
-* **[V]** (review of #455, owner asked) Only the hold of a third player
+* **[E]** (owner, 2026-11-27, 296a) Only the hold of a third player
   lifts it: one of neither the host nor the attacker or spy, so nobody can
   hold at a weak friend and then attack him. The Sternenkarte follows the
   same rule for the viewer.
-* **[V]** While „Wache stellen“ is off (okf/ops/feature-switches.md),
+* **[E]** (owner, 2026-11-27) While „Wache stellen“ is off (okf/ops/feature-switches.md),
   „Wegschicken“ and „Keine Wachen annehmen“ are refused with the refusal of
   the switch, the option box is hidden, and the Lexicanum hides the article
   of the mission (`offered` of its rules, as #404 for the pages). The
@@ -503,22 +504,36 @@ The owner's decisions on #440, built on `claude/hold-rework`.
   Wache bei {Planet} bis {Zeit}.“ at the arrival (242c). All hold reports,
   to host and owner, are pushed under the topic „Wachen“ (order 75; 243b,
   283a); the vacation report stays under „Flotte“.
-* **[V]** The Mondbruch counts as an attack here: it asks the same check
-  of the target as the Sturmangriff, so it loses the protection at that
-  place too.
-* **[V]** The Sternenkarte: the state lists the places of the shown system
+* **[E]** (owner, 2026-11-27, V1 no) The Mondbruch keeps the protection
+  where a third player holds: only the Sturmangriff and the
+  Auspex-Erkundung lose it (`LAPSES_AT_HOLD`, 281b).
+* **[E]** (owner, 2026-11-27, V2) The Sternenkarte: the state lists the places of the shown system
   whose protection lapsed (`lapsed`), and the (n) is not shown there; the
   missile refusal stays the server's.
-* **[V]** „Gehaltene Flotten“ lists a hold on its way with the words of an
+* **[E]** (owner, 2026-11-27, V3) „Gehaltene Flotten“ lists a hold on its way with the words of an
   incoming fleet and its arrival as the countdown; it is no movement then.
-* **[V]** The option is a box of its own in „Optionen“ (order 35, section
+* **[E]** (owner, 2026-11-27, V4) The option is a box of its own in „Optionen“ (order 35, section
   „Spiel“); the checkbox saves at once with the action `holdOption`.
-* **[V]** The Lexicanum: the clauses that a hold at a weak host is refused
+* **[E]** (owner, 2026-11-27) The Lexicanum: the clauses that a hold at a weak host is refused
   and that held cargo is loot are removed from „Wache stellen und
   Verbandsangriff“, „Kampf“ and „Schutz der Schwachen“; the Noobschutz list
   of missions no longer names „Wache stellen“.
-* **[U]** Texts not decided yet, built as marked placeholders
-  (`src/core/hold-texts.ts`): the three {Grund} texts, the two refusals,
-  the four report titles, the title of the option box, the two Lexicanum
-  lines (lapsed protection, held cargo no loot) and the changelog
-  fragment `changes/wache-stellen-ueberarbeitet.md`.
+* **[E]** (owner, 2026-11-27, V5 to V7) The guild switch of the round is
+  not live, so a new round covers it; the refusal of „Wegschicken“ is the
+  existing „Ungültig.“ and the option answers „Gespeichert.“; the mark
+  „klassisch“ or „neu“ waits for #441.
+* **[E]** The texts (owner, 2026-11-27, „klingen gut“), in
+  `src/core/hold-texts.ts`:
+  * {Grund}: „Wache stellen ist in dieser Runde abgeschaltet“ (off), „ihr
+    seid keine Verbündeten mehr“ (bond), „der Gastgeber nimmt keine Wachen
+    mehr an“ (refused);
+  * refusals: „Wache stellen ist in dieser Runde abgeschaltet.“ and „Dieser
+    Spieler nimmt keine Wachen an.“;
+  * report titles, each followed by the coordinates: „Wache unterwegs“,
+    „Wache eingetroffen“, „Wache kehrt zurück“, „Wache weggeschickt“;
+  * the option box „Wachen“;
+  * Lexicanum: „Hält bei einem geschützten Spieler eine fremde Flotte
+    Wache, gilt sein Schutz an diesem Ort nicht für Sturmangriff und
+    Auspex-Erkundung; vor Raketen bleibt er geschützt.“ and „Eine Wache wird
+    nicht geplündert: Ihre Ladung geht verloren, wenn sie zerstört wird.“;
+  * the changelog fragment `changes/wache-stellen-ueberarbeitet.md`.

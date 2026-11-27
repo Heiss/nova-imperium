@@ -11,7 +11,6 @@ import { HOUR_MS, homeAt } from '../../core/holding.ts';
 import {
   HOLD_OFF_REFUSAL,
   HOLD_REASON_TEXT,
-  HOLD_REPORT_TITLE,
   HOLDS_REFUSED_REFUSAL,
 } from '../../core/hold-texts.ts';
 import type { Fleet } from '../../core/types.ts';
@@ -126,7 +125,7 @@ const holdTo = (ctx: TestCtx) =>
 const notAllowed = (reason: keyof typeof HOLD_REASON_TEXT, at: number) => ({
   type: 'info',
   time: at,
-  title: HOLD_REPORT_TITLE.notAllowed,
+  title: 'Wache kehrt zurück [1:2:1]',
   text: `Deine Wache bei Beta [1:2:1] kehrt zurück: ${HOLD_REASON_TEXT[reason]}.`,
 });
 
@@ -311,7 +310,7 @@ describe('„Wegschicken“ of the host (#440, 230b, 231a)', () => {
       {
         type: 'info',
         time: ctx.now(),
-        title: HOLD_REPORT_TITLE.sentAway,
+        title: 'Wache weggeschickt [1:2:1]',
         text: 'Bert hat deine Wache bei Beta [1:2:1] weggeschickt. Deine Flotte kehrt zurück.',
       },
     ]);
@@ -387,7 +386,7 @@ describe('the reports to the host (#440, 242c) and the push topic „Wachen“ (
       {
         type: 'info',
         time: f.dep,
-        title: HOLD_REPORT_TITLE.launch,
+        title: 'Wache unterwegs [1:2:1]',
         text: `Cora schickt eine Wache zu Beta [1:2:1]. Ankunft: ${lockEndText(f.arr)}.`,
       },
     ]);
@@ -397,7 +396,7 @@ describe('the reports to the host (#440, 242c) and the push topic „Wachen“ (
     expect(ctx.reports.ofPlayer('u_Bert')[0]).toMatchObject({
       type: 'info',
       time: f.arr,
-      title: HOLD_REPORT_TITLE.arrival,
+      title: 'Wache eingetroffen [1:2:1]',
       text: `Cora hält mit einer Flotte Wache bei Beta [1:2:1] bis ${lockEndText(f.arr + 2 * HOUR_MS)}.`,
     });
     act(ctx, 'u_Bert', { type: 'sendAway', id: f.id });
@@ -411,13 +410,23 @@ describe('the reports to the host (#440, 242c) and the push topic „Wachen“ (
 
 describe('the noob protection where a foreign fleet holds (#440, 238c, 281b)', () => {
   /** Whether a send of Anna to the planet at [1:2:p] is refused for the protection. */
-  function refused(ctx: TestCtx, mission: string, p: number): boolean {
+  const SHIPS: Record<string, Record<string, number>> = {
+    spy: { probe: 1 },
+    moonbreak: { dstar: 1 },
+  };
+
+  function refused(
+    ctx: TestCtx,
+    mission: string,
+    p: number,
+    kind: 'planet' | 'moon' = 'planet',
+  ): boolean {
     try {
       send(ctx, user(ctx, 'Anna'), {
         planet: 'p1_1_5',
         mission,
-        ships: mission === 'spy' ? { probe: 1 } : { lf: 1 },
-        to: { g: 1, s: 2, p },
+        ships: SHIPS[mission] ?? { lf: 1 },
+        to: { g: 1, s: 2, p, kind },
         pct: 100,
         cargo: {},
         hold: 1,
@@ -469,6 +478,24 @@ describe('the noob protection where a foreign fleet holds (#440, 238c, 281b)', (
     // Cora's hold there lifts it for Anna.
     guard(ctx);
     expect(refused(ctx, 'attack', 1)).toBe(false);
+  });
+
+  it('keeps it for the Mondbruch, at a moon where a third player holds (owner, 2026-11-27, 281b)', () => {
+    const ctx = world();
+    addPlanet(ctx, 'u_Bert', {
+      ...BERT,
+      id: 'm1_2_1',
+      kind: 'moon',
+      name: 'Trabant',
+    });
+    ctx.planets.save({
+      ...ctx.planets.get('p1_1_5')!,
+      ships: { lf: 50, probe: 5, dstar: 1 },
+    });
+    guard(ctx, { to: 'm1_2_1' });
+    // A Sturmangriff on the moon may go, the Mondbruch may not.
+    expect(refused(ctx, 'attack', 1, 'moon')).toBe(false);
+    expect(refused(ctx, 'moonbreak', 1, 'moon')).toBe(true);
   });
 
   it('allows a hold at a weak host', () => {

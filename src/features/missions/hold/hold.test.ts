@@ -1,10 +1,7 @@
 // Wache stellen (#55): its typed data, its own check (an ally with room at
 // the planet) and its arrival, which starts the holding.
 import { describe, expect, it } from 'vitest';
-import {
-  HOLD_REASON_TEXT,
-  HOLD_REPORT_TITLE,
-} from '../../../core/hold-texts.ts';
+import { HOLD_REASON_TEXT } from '../../../core/hold-texts.ts';
 import type { SendTarget } from '../../../core/missions.ts';
 import type { Fleet } from '../../../core/types.ts';
 import { lockEndText } from '../../../server/game/main-planet.ts';
@@ -131,7 +128,7 @@ describe('hold', () => {
       {
         type: 'info',
         time: f.arr,
-        title: HOLD_REPORT_TITLE.arrival,
+        title: 'Wache eingetroffen [1:2:6]',
         text: `Anna hält mit einer Flotte Wache bei ${t.name} [1:2:6] bis ${lockEndText(f.arr + 3_600_000)}.`,
       },
     ]);
@@ -156,7 +153,7 @@ describe('hold', () => {
       {
         type: 'info',
         time: f.arr,
-        title: HOLD_REPORT_TITLE.notAllowed,
+        title: 'Wache kehrt zurück [1:2:6]',
         text: `Deine Wache bei ${t.name} [1:2:6] kehrt zurück: ${HOLD_REASON_TEXT.bond}.`,
       },
     ]);
