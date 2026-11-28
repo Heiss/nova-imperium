@@ -27,6 +27,7 @@ import {
   type GuildRight,
 } from '../core/guild-ranks.ts';
 import { arrivalAt, dt, esc, fmt } from '../client/logic/format.ts';
+import { highscoreStand } from '../client/logic/highscore.ts';
 import type {
   Guild,
   GuildChat,
@@ -131,7 +132,15 @@ function profileForm(guild?: Guild, description = ''): string {
   </form>`;
 }
 
-function directory(state: GuildState): string {
+/**
+ * Changed on purpose since #118: the line „Stand: {Uhrzeit}“ of the pass the
+ * guild points come from, the words of the highscore (#494), when the state
+ * names one, under the list and in the box „Punkte“.
+ */
+const stand = (at: number | undefined): string =>
+  at === undefined ? '' : `<div class="dim stand">${highscoreStand(at)}</div>`;
+
+function directory(state: GuildState, at?: number): string {
   const rows = state.directory
     .map(
       (g) =>
@@ -140,7 +149,7 @@ function directory(state: GuildState): string {
     )
     .join('');
   const list = rows
-    ? `<table class="guild-list"><tr><th>Gilde</th><th class="n">Mitglieder</th><th class="n">Punkte</th><th class="n">Ø Punkte</th></tr>${rows}</table>`
+    ? `<table class="guild-list"><tr><th>Gilde</th><th class="n">Mitglieder</th><th class="n">Punkte</th><th class="n">Ø Punkte</th></tr>${rows}</table>${stand(at)}`
     : '<p>Es gibt noch keine Gilden.</p>';
   return `<h2>Gilden</h2>${box('Gildenübersicht', list)}${state.own ? '' : box('Neue Gilde', profileForm())}`;
 }
@@ -365,13 +374,13 @@ function management(
 function guilds(v: V): string {
   const state = v.s.guilds ?? { directory: [], own: null, management: null };
   const g = state.directory.find((guild) => guild.id === v.ui.params.guild);
-  if (!g) return directory(state);
+  if (!g) return directory(state, v.s.scoresAt);
   const own = state.management?.id === g.id ? state.management : null;
   const me = own && state.ranks ? inside(state.ranks, v.s.me.id) : null;
   return `<h2 class="guild-title">${heading(g)}</h2>
   <p><button class="small" data-act="nav" data-v="guilds">Zur Gildenübersicht</button></p>
   ${box('Gildenprofil', g.html || '<p>Diese Gilde hat noch keinen Profiltext.</p>')}
-  ${box('Punkte', `<p>${fmt(g.score)} gesamt · ${fmt(g.average)} pro Mitglied</p>`)}
+  ${box('Punkte', `<p>${fmt(g.score)} gesamt · ${fmt(g.average)} pro Mitglied</p>${stand(v.s.scoresAt)}`)}
   ${box('Mitglieder', roster(g, me))}
   ${ownChat(state, g)}
   ${guildMembership(state, g, me)}
@@ -516,6 +525,10 @@ const state = fc
       { nil: null },
     ),
     chat: fc.option(chat, { nil: null }),
+    // The pass of the points, or a state that names none (#494).
+    scoresAt: fc.option(fc.integer({ min: 0, max: 86_400_000 }), {
+      nil: undefined,
+    }),
   })
   .map((x) => viewOf(x));
 
@@ -542,6 +555,7 @@ interface Spec {
     messages: Record<string, unknown>[];
     unread: boolean;
   } | null;
+  scoresAt?: number;
 }
 
 /** A view state of a spec: ranks by index, messages with ids and times. */
@@ -570,6 +584,7 @@ function viewOf(x: Spec): V {
     s: {
       me: { id: x.me },
       admin: x.admin ? {} : null,
+      scoresAt: x.scoresAt === undefined ? undefined : BASE + x.scoresAt,
       guilds: {
         directory: x.directory,
         own: x.own,

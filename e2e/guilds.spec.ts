@@ -40,6 +40,36 @@ test('creates a guild and restores its profile after reload', async ({
   expect(w.problems).toEqual([]);
 });
 
+test('the guild page and the directory name the „Stand“ of the points, as the highscore does (#494)', async ({
+  page,
+}) => {
+  const w = watch(page);
+  const tag = guildTag('S');
+  await register(page, uniqueName('Stand'));
+  await nav(page, 'highscore');
+  const highscore = page.locator('.scores-wrap > .stand');
+  await expect(highscore).toHaveText(/^Stand: \d{2}:\d{2}$/);
+  const words = (await highscore.textContent())!;
+  await nav(page, 'guilds');
+  await page.getByLabel('Kürzel').fill(tag);
+  await page.getByLabel('Name', { exact: true }).fill(`Stand ${tag}`);
+  await page.getByRole('button', { name: 'Gilde gründen' }).click();
+  await expect(page).toHaveURL(/view=guilds&guild=/);
+  // In the box „Punkte“ of the guild, under the sums.
+  const points = page.locator('.box').filter({
+    has: page.locator('.hd', { hasText: 'Punkte' }),
+  });
+  await expect(points.locator('.stand')).toHaveText(words);
+  // And under the list of the directory.
+  await page.getByRole('button', { name: 'Zur Gildenübersicht' }).click();
+  const list = page.locator('.box').filter({
+    has: page.locator('.hd', { hasText: 'Gildenübersicht' }),
+  });
+  await expect(list.locator('table.guild-list')).toBeVisible();
+  await expect(list.locator('.stand')).toHaveText(words);
+  expect(w.problems).toEqual([]);
+});
+
 test('a double click on „Gilde gründen“ founds one guild and shows no error (#428)', async ({
   page,
 }) => {

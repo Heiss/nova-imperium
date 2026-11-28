@@ -29,6 +29,7 @@ import {
 } from '../../core/guild-ranks.ts';
 import type { V } from '../views/common.ts';
 import { arrivalAt, dt, fmt } from './format.ts';
+import { highscoreStand } from './highscore.ts';
 import type {
   Guild,
   GuildChat,
@@ -187,16 +188,27 @@ interface DirectoryRow {
 const points = (n: number | undefined): string | null =>
   n === undefined ? null : fmt(n);
 
+/**
+ * „Stand: {Uhrzeit}“ of the pass the guild points come from, the words of the
+ * highscore (#494); empty while no points are shown (182a) or the state names
+ * no pass.
+ */
+const standOf = (shown: boolean, at: number | undefined): string =>
+  shown && at !== undefined ? highscoreStand(at) : '';
+
 /** The list of guilds, and the form to found one for a player without a guild. */
 interface DirectoryPage {
   kind: 'directory';
   rows: DirectoryRow[];
   /** Whether the list has the columns of the points (182a). */
   points: boolean;
+  /** „Stand: {Uhrzeit}“ of the points, or empty (#494). */
+  stand: string;
   create: ProfileFormModel | null;
 }
 
-function directoryPage(state: GuildState): DirectoryPage {
+function directoryPage(state: GuildState, at?: number): DirectoryPage {
+  const shown = state.directory.some((g) => g.score !== undefined);
   return {
     kind: 'directory',
     rows: state.directory.map((g) => ({
@@ -207,7 +219,8 @@ function directoryPage(state: GuildState): DirectoryPage {
       score: points(g.score),
       average: points(g.average),
     })),
-    points: state.directory.some((g) => g.score !== undefined),
+    points: shown,
+    stand: standOf(shown, at),
     create: state.own ? null : profileForm(),
   };
 }
@@ -492,6 +505,8 @@ export interface GuildPage {
   /** Null while the highscore shows nothing (182a). */
   score: string | null;
   average: string | null;
+  /** „Stand: {Uhrzeit}“ of the points, or empty (#494). */
+  stand: string;
   roster: Roster;
   chat: ChatBoxModel | null;
   membership: Membership;
@@ -513,6 +528,7 @@ function guildPage(v: V, state: GuildState, g: Guild): GuildPage {
     profileHtml: g.html,
     score: points(g.score),
     average: points(g.average),
+    stand: standOf(g.score !== undefined, v.s.scoresAt),
     roster: roster(g, me),
     chat: own && state.chat ? chatBox(state.chat) : null,
     membership: membership(state, g, me),
@@ -525,5 +541,5 @@ function guildPage(v: V, state: GuildState, g: Guild): GuildPage {
 export function guildsPage(v: V): GuildsPage {
   const state = v.s.guilds ?? { directory: [], own: null, management: null };
   const g = state.directory.find((guild) => guild.id === v.ui.params.guild);
-  return g ? guildPage(v, state, g) : directoryPage(state);
+  return g ? guildPage(v, state, g) : directoryPage(state, v.s.scoresAt);
 }

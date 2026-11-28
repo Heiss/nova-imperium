@@ -124,6 +124,13 @@ generated: { by: claude-code/web, at: 2026-11-25T09:30:00Z }
     for the players; the archive of a round still makes its own pass.
     `src/server/game/scores-restart.test.ts` starts a second connection on
     the same file database.
+* **[E]** 2026-11-28 (#494): the guild view shows the „Stand“ of its
+  points, as the highscore does. **[V]** As built: the words and format of
+  the highscore (`highscoreStand`, from the same `scoresAt`), a line
+  `.dim.stand` under the list of „Gildenübersicht“ and under the sums in the
+  box „Punkte“ of a guild; none while the guild points are hidden (182a) or
+  the state names no pass. No new text. `guild-points-stand.test.ts` holds
+  the guild points unchanged between two passes.
 * **[E]** The parts that are the same for every player are built once and
   sent to all (owner, 2026-11-25): `galaxy` (`state.ts`: its builder ignores
   the player), `players`, the universe and the rules of the round. Each is
