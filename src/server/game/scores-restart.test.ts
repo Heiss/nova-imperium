@@ -11,11 +11,16 @@ import { openDatabase, type Db } from '../db/database.ts';
 import { addPlanet, addUser, testCtx, type TestCtx } from '../test-helpers.ts';
 import { reset } from './admin.ts';
 import { stateFor } from './state.ts';
+import { clearRound } from '../db/round-reset.ts';
+import { ROUND_RESETS } from '../round-reset.gen.ts';
+import { roundRules } from './round.ts';
 import {
+  PASS_VERSION,
   SCORES_REVISION,
   scoreBeat,
   scorePass,
   storedScores,
+  topPoints,
 } from './scores.ts';
 
 /** A moment of 2026-11-25 in UTC; the slots are UTC (149e). */
@@ -129,15 +134,70 @@ describe('the stored pass over a restart (#491)', () => {
     expect(old.at).toBe(at(6, 0));
   });
 
-  it('keeps the pass of a new round over a restart, and a new round empties the old one first', () => {
+  it('keeps the pass of a new round over a restart; the reset of the round empties the table before', () => {
     const db = file();
     const ctx = world(db, 3);
     const boss = addUser(ctx, 'Boss', { admin: true });
     storedScores(ctx);
+    // The reset steps alone empty the table (round reset of score-pass.ts).
+    expect(() =>
+      ctx.tx(() => {
+        clearRound(ctx.db, roundRules(ctx), ROUND_RESETS);
+        expect(ctx.scorePasses.get()).toBeNull();
+        throw new Error('back');
+      }),
+    ).toThrow('back');
+    expect(ctx.scorePasses.get()).not.toBeNull();
     ctx.clock.t = at(7, 10);
     reset(ctx, boss, {});
     const after = boot(db, at(7, 30));
     expect(storedScores(after).at).toBe(at(7, 10));
     expect(storedScores(after).total).toEqual(scorePass(after).total);
+  });
+
+  it('takes no pass an older version of the code stored, nor one of another shape or one that cannot be read (PR #492)', () => {
+    const db = file();
+    const ctx = world(db, 3);
+    const first = storedScores(ctx);
+    const row = ctx.scorePasses.get()!;
+    expect(row.round.endsWith(`/v${PASS_VERSION}`)).toBe(true);
+    const older = row.round.replace(/\/v\d+$/, `/v${PASS_VERSION - 1}`);
+    ctx.scorePasses.save({ ...row, round: older });
+    const after = boot(db, at(6, 30));
+    expect(storedScores(after).at).toBe(at(6, 30));
+    expect(first.at).toBe(at(6, 0));
+    // Another shape, then a row that is no JSON: each makes a new pass.
+    after.scorePasses.save({ ...after.scorePasses.get()!, pass: { x: 1 } });
+    const shaped = boot(db, at(6, 40));
+    expect(storedScores(shaped).at).toBe(at(6, 40));
+    shaped.store.db
+      .prepare(`UPDATE score_pass SET pass = '{' WHERE id = 1`)
+      .run();
+    expect(shaped.scorePasses.get()).toBeNull();
+    const broken = boot(db, at(6, 50));
+    expect(storedScores(broken).at).toBe(at(6, 50));
+    expect(broken.scorePasses.get()!.at).toBe(at(6, 50));
+  });
+
+  it('does not go back behind a pass a rolled back transaction made: the stored one wins (PR #492)', () => {
+    const db = file();
+    const ctx = world(db, 3);
+    const first = storedScores(ctx);
+    // After the slot, a reader inside an action makes a new pass, and the
+    // action rolls back.
+    ctx.clock.t = at(7, 6);
+    expect(() =>
+      ctx.tx(() => {
+        expect(topPoints(ctx)).toBeGreaterThanOrEqual(0);
+        expect(storedScores(ctx).at).toBe(at(7, 6));
+        throw new Error('zurück');
+      }),
+    ).toThrow('zurück');
+    expect(ctx.scorePasses.get()!.at).toBe(first.at);
+    // The same server reads the stored pass again, not the rolled back one:
+    // it is past its slot, so it makes a new one, and stores it.
+    ctx.clock.t = at(7, 7);
+    expect(storedScores(ctx).at).toBe(at(7, 7));
+    expect(ctx.scorePasses.get()!.at).toBe(at(7, 7));
   });
 });

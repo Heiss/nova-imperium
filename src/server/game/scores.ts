@@ -8,8 +8,10 @@
 // pass. The newest pass is kept in the memory of the server and in the
 // database (`score_pass`, owner, 2026-11-28, #491): a restart reads it, shows
 // the same highscore and „Stand“, and makes the next pass at its scheduled
-// time; with no stored pass (a new round, the first start after #491) the
-// first reader or the clock makes one as before.
+// time. A stored pass of another round, revision or version of the code
+// (`PASS_VERSION`), one that cannot be read, or none (the first start after
+// #491) is not taken: the first reader or the clock makes one as before. A
+// new round empties the table and stores its own pass at once (`newScores`).
 import { BUILD, RES } from '../../core/catalog.ts';
 import {
   addUnits,
@@ -139,17 +141,52 @@ const stored = new WeakMap<object, { pass: ScorePass; round: string }>();
  */
 export const SCORES_REVISION = 'scoresRevision';
 
-/** What a stored pass must still match: the start of the round and the revision. */
+/**
+ * The version of the pass and its formula (#491, PR #492): raised with every
+ * change of `ScorePass`, of the points or of the categories, so the pass an
+ * older server stored is not taken after an update.
+ */
+export const PASS_VERSION = 1;
+
+/** What a stored pass must still match: the start of the round, the revision and the version. */
 const roundOf = (ctx: Ctx): string =>
-  `${ctx.admin.setting('roundStart') ?? '-'}/${ctx.admin.setting(SCORES_REVISION) ?? 0}`;
+  `${ctx.admin.setting('roundStart') ?? '-'}/${ctx.admin.setting(SCORES_REVISION) ?? 0}/v${PASS_VERSION}`;
 
 /** The pass as the database keeps it: its time is a column of its own. */
 type StoredScores = Omit<ScorePass, 'at'>;
 
-/** The pass the database keeps (#491), as the memory keeps it; none without a row. */
+/** Whether a stored pass has the shape of a pass: a total and categories by player. */
+const isScores = (x: unknown): x is StoredScores =>
+  typeof x === 'object' &&
+  x !== null &&
+  typeof (x as StoredScores).total === 'object' &&
+  (x as StoredScores).total !== null &&
+  typeof (x as StoredScores).categories === 'object' &&
+  (x as StoredScores).categories !== null;
+
+/**
+ * The pass the database keeps (#491), as the memory keeps it; none without a
+ * row or with one that has not the shape of a pass.
+ */
 function fromDatabase(ctx: Ctx): { pass: ScorePass; round: string } | null {
-  const row = ctx.scorePasses.get<StoredScores>();
-  return row && { round: row.round, pass: { ...row.pass, at: row.at } };
+  const row = ctx.scorePasses.get<unknown>();
+  return row && isScores(row.pass)
+    ? { round: row.round, pass: { ...row.pass, at: row.at } }
+    : null;
+}
+
+/**
+ * The pass in memory while the database holds the same (PR #492): a
+ * transaction that rolled back after a new pass leaves the database with the
+ * older one, which then wins, so a restart cannot go back behind what was
+ * shown. Else the pass of the database.
+ */
+function current(ctx: Ctx): { pass: ScorePass; round: string } | null {
+  const kept = stored.get(ctx.db);
+  const stamp = ctx.scorePasses.stamp();
+  if (kept && stamp?.at === kept.pass.at && stamp.round === kept.round)
+    return kept;
+  return stamp ? fromDatabase(ctx) : null;
 }
 
 /** Keeps a new pass in the memory and in the database (#491). */
@@ -165,7 +202,7 @@ function keep(ctx: Ctx, pass: ScorePass, round: string): void {
  * and the pass of the database is taken while it holds (#491).
  */
 export function storedScores(ctx: Ctx): ScorePass {
-  const kept = stored.get(ctx.db) ?? fromDatabase(ctx);
+  const kept = current(ctx);
   const round = roundOf(ctx);
   if (
     kept &&

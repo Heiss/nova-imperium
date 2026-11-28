@@ -14,8 +14,13 @@ interface StoredPass<P> {
 }
 
 export interface ScorePasses {
-  /** The stored pass, or none. */
+  /**
+   * The stored pass, or none; a row that cannot be read (broken JSON) is
+   * none too, so a new pass replaces it (PR #492).
+   */
   get<P>(): StoredPass<P> | null;
+  /** The round and the time of the stored pass, without reading the pass. */
+  stamp(): { round: string; at: number } | null;
   /** Replaces the stored pass. */
   save<P>(stored: StoredPass<P>): void;
 }
@@ -30,9 +35,20 @@ class SqliteScorePasses implements ScorePasses {
     const row = this.db
       .prepare('SELECT round, at, pass FROM score_pass WHERE id = 1')
       .get() as { round: string; at: number; pass: string } | undefined;
-    return row
-      ? { round: row.round, at: row.at, pass: JSON.parse(row.pass) as P }
-      : null;
+    if (!row) return null;
+    try {
+      return { round: row.round, at: row.at, pass: JSON.parse(row.pass) as P };
+    } catch {
+      return null;
+    }
+  }
+
+  stamp(): { round: string; at: number } | null {
+    return (
+      (this.db
+        .prepare('SELECT round, at FROM score_pass WHERE id = 1')
+        .get() as { round: string; at: number } | undefined) ?? null
+    );
   }
 
   save<P>(stored: StoredPass<P>): void {
@@ -52,7 +68,7 @@ export const repository = {
   make: (db: Db): ScorePasses => new SqliteScorePasses(db),
 } as const satisfies RepositoryModule;
 
-/** A new round empties it: its own pass is made in its transaction. */
+/** A new round empties it; its own pass is then made and stored in its transaction. */
 export const roundReset = [
-  { order: 106, clears: ['score_pass'] },
+  { order: 130, clears: ['score_pass'] },
 ] satisfies readonly RoundReset[];

@@ -109,14 +109,18 @@ generated: { by: claude-code/web, at: 2026-11-25T09:30:00Z }
   * **[V]** Built (#491): the table `score_pass` (migration
     `20261128T1300-score-pass`, repository `scorePasses`) holds one row,
     the newest pass: the round it was made for (`roundOf`: the start of the
-    round and the revision of the scores), its time and the totals and
-    categories as JSON. Every new pass is written with it, whoever makes
-    it: the clock, a reader, a live pass (at most every 10 s) and „Neue
-    Runde“ in its transaction. After a restart the memory is empty and the
-    stored row is taken while it is of the same round and revision and
-    holds; else, and without a row (the first start after #491, a new
-    round), a new pass is made as before. A new round empties the table
-    (round reset, order 106) before it stores its own pass. Nothing changes
+    round, the revision of the scores and `PASS_VERSION`, a version of the
+    code raised with every change of the pass or its formula), its time and
+    the totals and categories as JSON. Every new pass is written with it,
+    whoever makes it: the clock, a reader, a live pass (at most every 10 s)
+    and „Neue Runde“ in its transaction. After a restart the memory is empty
+    and the stored row is taken while it is of the same round, revision and
+    version, has the shape of a pass and holds; else, and without a row (the
+    first start after #491), a new pass is made as before. The memory is
+    taken only while the database holds the same pass (round and time), so
+    a transaction that rolled back after a new pass leaves the older pass
+    of the database, which then wins. A new round empties the table (round
+    reset, order 130) and then stores its own pass at once. Nothing changes
     for the players; the archive of a round still makes its own pass.
     `src/server/game/scores-restart.test.ts` starts a second connection on
     the same file database.
