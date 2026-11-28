@@ -20,6 +20,9 @@ export const roundSettings = [
   {
     kind: 'switch',
     key: 'roundGuilds',
+    explain: {
+      text: 'Schaltet die Gilden mit Chat und Rängen für die neue Runde ein oder aus. Ohne Gilden zählt eine Gilde auch nicht als Bund für Wache stellen und Verbandsangriff. Eine Runde ohne Gilden beginnt ohne jede Gilde; mit Gilden bleiben sie mit ihren Mitgliedern und Rängen. Den Gilden-Chat leert jede neue Runde.',
+    },
     name: 'guilds',
     label: 'Gilden (mit Chat)',
     order: 30,

@@ -187,7 +187,12 @@ export function adminPage(v: V): AdminPage | null {
 }
 
 /** The field of one setting of the round (#283), preselected with its value. */
-export type RoundField = { id: string; label: string } & (
+export type RoundField = {
+  id: string;
+  label: string;
+  /** The stored key of the setting: its explanation (#358). */
+  key: string;
+} & (
   | { kind: 'switch'; checked: boolean; note: string | null }
   | { kind: 'choice'; choices: Choice[] }
   | {
@@ -201,7 +206,7 @@ export type RoundField = { id: string; label: string } & (
 );
 
 function roundField(s: RoundSetting, value: number | boolean): RoundField {
-  const field = { id: roundFieldId(s), label: s.label };
+  const field = { id: roundFieldId(s), label: s.label, key: s.key };
   if (s.kind === 'switch')
     return { ...field, kind: 'switch', checked: !!value, note: s.note ?? null };
   if (s.choices)

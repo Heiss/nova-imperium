@@ -3,6 +3,7 @@
 // reference to the planet or its moon (D1).
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
+import { withoutExplain } from '../test/explain.ts';
 import {
   ABANDON_LOCK_HOURS,
   type AbandonCheck,
@@ -62,7 +63,7 @@ describe('the lock length of a round', () => {
   });
 
   it('is one entry of the registry, set in „Neue Runde“ and live (#283, X1)', () => {
-    expect(abandonLockSetting).toEqual([
+    expect(withoutExplain(abandonLockSetting)).toEqual([
       {
         kind: 'number',
         key: 'roundAbandonLock',
@@ -90,7 +91,9 @@ describe('the lock length of a round', () => {
       max: 720,
       def: 24,
     };
-    expect(liveSpecs().filter((s) => s.key === row.key)).toEqual([row]);
+    expect(
+      withoutExplain(liveSpecs().filter((s) => s.key === row.key)),
+    ).toEqual([row]);
     expect(DEFAULT_UNIVERSE).toMatchObject({ roundAbandonLock: 24 });
     const codes = (roundAbandonLock: unknown) =>
       universeErrors(

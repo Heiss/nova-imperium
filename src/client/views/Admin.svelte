@@ -27,6 +27,9 @@
   import AdminErrors from './AdminErrors.svelte';
   import AdminInvitations from './AdminInvitations.svelte';
   import AdminReports from './AdminReports.svelte';
+  import { EXPLAIN_PANEL_ID, explainButtonId } from '../logic/admin-explain.ts';
+  import { adminExplain } from './admin-explain-state.svelte.ts';
+  import AdminExplainPanel from './AdminExplainPanel.svelte';
   import Box from './Box.svelte';
   import RoundArchive from './RoundArchive.svelte';
 
@@ -42,7 +45,21 @@
     <tbody>
       {#each rows as row (`${page?.settings.owner}/${row.key}`)}
         <tr>
-          <td><label for="set_{row.key}">{row.label}</label></td>
+          <td>
+            <label for="set_{row.key}">{row.label}</label>
+            <button
+              type="button"
+              class="exq"
+              id={explainButtonId(row.key, 'u')}
+              data-act="adminExplain"
+              data-k={row.key}
+              data-o={explainButtonId(row.key, 'u')}
+              aria-controls={EXPLAIN_PANEL_ID}
+              aria-expanded={adminExplain.opener ===
+                explainButtonId(row.key, 'u')}
+              aria-label="Erklärung: {row.label}">?</button
+            >
+          </td>
           <td>
             {#if row.choices}
               <select
@@ -76,6 +93,7 @@
   </table>
 {/snippet}
 
+<AdminExplainPanel />
 <h2>Admin</h2>
 {#if !page}
   <div class="notice">Nur für den Admin.</div>

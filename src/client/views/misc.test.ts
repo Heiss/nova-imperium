@@ -1,6 +1,7 @@
 // The highscore, as the component Highscore renders it (#118, bundle 5), names a
 // planet of each player, never a moon (#53).
 import { describe, expect, it } from 'vitest';
+import { explainButton } from '../../test/explain.ts';
 import { article } from '../../core/lexicon/articles.ts';
 import {
   ROUND_SETTINGS,
@@ -309,23 +310,38 @@ describe('the activity thresholds in the dialog „Neue Runde“ (#229, X1)', ()
       longInactiveDays: 21,
     });
     const fields = [
-      ['activity-recent', 'Aktivität ohne Minutenangabe (Minuten)', 1, 60, 10],
+      [
+        'activity-recent',
+        'roundActivityRecent',
+        'Aktivität ohne Minutenangabe (Minuten)',
+        1,
+        60,
+        10,
+      ],
       [
         'activity-minutes',
+        'roundActivityMinutes',
         'Aktivität mit Minutenangabe bis (Minuten)',
         1,
         1440,
         45,
       ],
-      ['inactive-days', 'Inaktiv ab (Tage)', 1, 365, 3],
-      ['long-inactive-days', 'Lange inaktiv ab (Tage)', 1, 365, 21],
+      ['inactive-days', 'roundInactiveDays', 'Inaktiv ab (Tage)', 1, 365, 3],
+      [
+        'long-inactive-days',
+        'roundLongInactiveDays',
+        'Lange inaktiv ab (Tage)',
+        1,
+        365,
+        21,
+      ],
     ] as const;
     // Owner, 2026-11-18: a framed group with the heading „Aktivität“; the
     // group's heading names it since #357 (owner, 2026-11-22: no legend that
     // repeats it).
     const rows = fields.map(
-      ([id, label, min, max, value]) =>
-        `<label for="round-${id}">${label}</label> <input type="number" id="round-${id}" min="${min}" max="${max}" step="1" value="${value}" required> <span class="dim">${min} bis ${max}</span>`,
+      ([id, key, label, min, max, value]) =>
+        `<label for="round-${id}">${label}</label> <input type="number" id="round-${id}" min="${min}" max="${max}" step="1" value="${value}" required> <span class="dim">${min} bis ${max}</span> ${explainButton(key, label, 'r')}`,
     );
     const open = fieldsetOpen(html, 'Aktivität');
     expect(open).toMatch(/aria-labelledby/);
@@ -546,12 +562,12 @@ describe('a new setting of the round in both places (#283)', () => {
     const html = roundDialog(round, settings);
     expect(html).toContain(
       normalize(
-        '<p><label for="round-test-hours">Testdauer (Stunden)</label> <input type="number" id="round-test-hours" min="1" max="720" step="1" value="48" required> <span class="dim">1 bis 720</span></p>',
+        `<p><label for="round-test-hours">Testdauer (Stunden)</label> <input type="number" id="round-test-hours" min="1" max="720" step="1" value="48" required> <span class="dim">1 bis 720</span> ${explainButton('roundTestHours', 'Testdauer (Stunden)', 'r')}</p>`,
       ),
     );
     expect(html).toContain(
       normalize(
-        '<p><label for="round-test-allies">Verbündete für Halten und Verband</label> <select id="round-test-allies"><option value="1" selected>Gilde</option><option value="3">Gilde und Freunde</option></select></p>',
+        `<p><label for="round-test-allies">Verbündete für Halten und Verband</label> <select id="round-test-allies"><option value="1" selected>Gilde</option><option value="3">Gilde und Freunde</option></select> ${explainButton('roundTestAllies', 'Verbündete für Halten und Verband', 'r')}</p>`,
       ),
     );
     // The new ones have the highest numbers, so they stand after the registry.
@@ -579,7 +595,7 @@ describe('a new setting of the round in both places (#283)', () => {
     } as unknown as V);
     expect(html).toContain(
       normalize(
-        '<tr><td><label for="set_roundTestHours">Testdauer (Stunden)</label></td><td><input type="number" id="set_roundTestHours" data-setting="roundTestHours" min="1" max="720" value="36" data-nokeep> <span class="dim">1 bis 720</span></td></tr>',
+        `<tr><td><label for="set_roundTestHours">Testdauer (Stunden)</label> ${explainButton('roundTestHours', 'Testdauer (Stunden)', 'u')}</td><td><input type="number" id="set_roundTestHours" data-setting="roundTestHours" min="1" max="720" value="36" data-nokeep> <span class="dim">1 bis 720</span></td></tr>`,
       ),
     );
     expect(html).toContain(

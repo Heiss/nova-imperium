@@ -31,6 +31,9 @@ export const roundSettings = [
   {
     kind: 'number',
     key: 'roundAbandonLock',
+    explain: {
+      text: 'Wie viele Stunden eine Position gesperrt bleibt, nachdem ein Spieler dort eine Kolonie aufgegeben hat. Eine Änderung gilt ab der nächsten Aufgabe; bestehende Sperren behalten ihr Ende.',
+    },
     name: 'abandonLock',
     label: 'Sperre einer aufgegebenen Position (Stunden)',
     order: 50,

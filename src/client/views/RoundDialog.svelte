@@ -15,6 +15,8 @@
     RoundRow,
   } from '../logic/admin.ts';
   import { isInvalid, isOpen, setOpen } from '../logic/admin-groups.svelte.ts';
+  import { EXPLAIN_PANEL_ID, explainButtonId } from '../logic/admin-explain.ts';
+  import { adminExplain } from './admin-explain-state.svelte.ts';
 
   let { page }: { page: RoundDialogPage } = $props();
 </script>
@@ -54,6 +56,17 @@
     />
     <span class="dim">{f.min} bis {f.max}</span>
   {/if}
+  <button
+    type="button"
+    class="exq"
+    id={explainButtonId(f.key, 'r')}
+    data-act="adminExplain"
+    data-k={f.key}
+    data-o={explainButtonId(f.key, 'r')}
+    aria-controls={EXPLAIN_PANEL_ID}
+    aria-expanded={adminExplain.opener === explainButtonId(f.key, 'r')}
+    aria-label="Erklärung: {f.label}">?</button
+  >
 {/snippet}
 
 {#snippet roundRows(rows: RoundRow[])}

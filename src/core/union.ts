@@ -46,6 +46,9 @@ export const roundSettings = [
   {
     kind: 'number',
     key: 'roundUnionFleets',
+    explain: {
+      text: 'Wie viele Flotten ein Verbandsangriff höchstens hat. Geprüft beim Beitritt.',
+    },
     name: 'unionFleets',
     label: 'Verbandsangriff: höchstens Flotten',
     order: 200,
@@ -56,6 +59,9 @@ export const roundSettings = [
   {
     kind: 'number',
     key: 'roundUnionPlayers',
+    explain: {
+      text: 'Wie viele Spieler ein Verbandsangriff höchstens hat. Geprüft beim Einladen und beim Beitritt.',
+    },
     name: 'unionPlayers',
     label: 'Verbandsangriff: höchstens Spieler',
     order: 210,
@@ -66,6 +72,9 @@ export const roundSettings = [
   {
     kind: 'number',
     key: 'roundUnionDelay',
+    explain: {
+      text: 'Wie stark eine beitretende Flotte den Verband höchstens verzögern darf, in Prozent seiner Restflugzeit; dann verschieben sich Ankunft und Rückkehr aller Flotten im Verband. Eine Flotte, die stärker verzögern würde, wird abgelehnt.',
+    },
     name: 'unionDelay',
     label: 'Verbandsangriff: Verspätung in Prozent der Restflugzeit',
     order: 220,
@@ -76,6 +85,9 @@ export const roundSettings = [
   {
     kind: 'number',
     key: 'roundUnionCutoff',
+    explain: {
+      text: 'In den letzten so vielen Minuten vor der Ankunft kann niemand mehr dem Verband beitreten. Beim Wert null gibt es diese Sperre nicht.',
+    },
     name: 'unionCutoff',
     label: 'Verbandsangriff: kein Beitritt in den letzten Minuten (0 = aus)',
     order: 230,

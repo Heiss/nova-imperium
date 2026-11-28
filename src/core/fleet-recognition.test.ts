@@ -1,5 +1,6 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
+import { withoutExplain } from '../test/explain.ts';
 import {
   RECOGNITION_DEFAULT,
   RECOGNITION_LEVELS,
@@ -109,7 +110,7 @@ describe('the thresholds as settings of the round (#228, D1, X1; #283)', () => {
   it('are three live number fields of one group with the legend „Fremde Flotten erkennen“, in the order 120, 130, 140', () => {
     const group = { name: 'recognition', legend: 'Fremde Flotten erkennen' };
     const common = { kind: 'number', min: 0, max: 100, live: true, group };
-    expect(SETTINGS).toEqual([
+    expect(withoutExplain(SETTINGS)).toEqual([
       {
         ...common,
         key: 'roundRecognitionTotal',
@@ -163,7 +164,9 @@ describe('the thresholds as settings of the round (#228, D1, X1; #283)', () => {
       ],
     ] as const;
     const keys: string[] = SETTINGS.map((s) => s.key);
-    expect(liveSpecs().filter((s) => keys.includes(s.key))).toEqual(
+    expect(
+      withoutExplain(liveSpecs().filter((s) => keys.includes(s.key))),
+    ).toEqual(
       rows.map(([key, label, def]) => ({ key, label, min: 0, max: 100, def })),
     );
     const codes = (input: Record<string, unknown>) =>

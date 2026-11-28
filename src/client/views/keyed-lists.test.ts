@@ -51,6 +51,10 @@ const LISTS: Record<string, Record<string, Verdict>> = {
       'one section per heading of ROUND_SECTIONS',
     ),
   },
+  'AdminExplainPanel.svelte': {
+    i: index,
+    r: index,
+  },
   'AdminBotCheck.svelte': {
     line: source('one line per day, grouped in a Map, starting with the date'),
   },
@@ -274,6 +278,11 @@ const LOOPS: Record<string, string[]> = {
     'row.choices as choice (choice.value)',
     'page.tabs as tab (tab.key)',
     'page.settings.sections as section, i (section.heading ?? i)',
+  ],
+  'AdminExplainPanel.svelte': [
+    'page.table.head as cell, i (i)',
+    'page.table.rows as row, r (r)',
+    'row as cell, i (i)',
   ],
   'AdminBotCheck.svelte': ['check.lines as line (line)'],
   'AdminDiagnostics.svelte': [

@@ -33,6 +33,9 @@ export const roundSettings = [
   {
     kind: 'number',
     key: 'roundMainLock',
+    explain: {
+      text: 'Wie viele Tage ein Spieler nach einem Wechsel seines Hauptplaneten warten muss, bis er wieder wechseln darf. Eine Änderung gilt ab dem nächsten Wechsel; eine laufende Sperre behält ihr Ende.',
+    },
     name: 'mainLock',
     label: 'Sperre nach einem Wechsel des Hauptplaneten (Tage)',
     order: 40,

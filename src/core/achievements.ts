@@ -139,6 +139,9 @@ export const roundSettings = [
   {
     kind: 'switch',
     key: 'roundAchievements',
+    explain: {
+      text: 'Schaltet die Achievements für die neue Runde ein oder aus: ihren Fortschritt und ihre Belohnungen. Jede neue Runde beginnt den Fortschritt von vorn.',
+    },
     name: 'achievements',
     label: 'Achievements aktivieren',
     order: 10,
@@ -149,6 +152,9 @@ export const roundSettings = [
   {
     kind: 'switch',
     key: 'roundDaily',
+    explain: {
+      text: 'Schaltet die Tagesbelohnung für die neue Runde ein oder aus.',
+    },
     name: 'daily',
     label: 'Tagesbelohnungen aktivieren',
     order: 20,
