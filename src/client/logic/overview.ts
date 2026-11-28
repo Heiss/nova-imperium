@@ -3,7 +3,7 @@
 // place and what is being built, researched or ordered. The fleet movements
 // are also the list of the fleet view.
 import { highscoreShows, SHOWS } from '../../core/highscore-categories.ts';
-import { isFleet, MISSION } from '../../core/missions.ts';
+import { isFleet, MISSION, missionRules } from '../../core/missions.ts';
 import { placeName } from '../../core/moon.ts';
 import { text } from '../../core/text.ts';
 import type { V } from '../views/common.ts';
@@ -48,10 +48,10 @@ export interface FleetRow {
   recall: boolean;
 }
 
-/** A foreign fleet that holds at the shown planet (#55): its owner, ships and end. */
+/** A foreign fleet that holds at the shown planet (#55), or flies there to hold (#440): its owner, ships and end. */
 export interface HeldRow {
   id: string;
-  /** When it flies home. */
+  /** When it flies home; on its way, when it arrives. */
   due: Countdown;
   parts: TextPart[];
 }
@@ -166,9 +166,15 @@ function fleetRow(v: V, f: ClientFleet): FleetRow {
 
 const own = (v: V, f: ClientFleet): boolean => f.owner === v.s.me.id;
 
-/** A foreign fleet that holds at the planet: shown under „Gehaltene Flotten“ (#55). */
+/**
+ * A foreign fleet that holds at the planet, or flies there to hold: shown
+ * under „Gehaltene Flotten“ (#55), where the host can send it away (#440,
+ * 230b), and not among the movements.
+ */
 const heldHere = (v: V, f: ClientFleet): boolean =>
-  !own(v, f) && f.state === 'hold';
+  !own(v, f) &&
+  (f.state === 'hold' ||
+    (f.state === 'out' && missionRules(f.mission)?.holds === true));
 
 /**
  * The fleets of the player, and on request the foreign ones coming, by when
@@ -184,11 +190,15 @@ export const heldRows = (v: V): HeldRow[] =>
   sortFleets(v.s.fleets.filter((f) => heldHere(v, f))).map((f) => ({
     id: f.id,
     due: countdown(fleetEnd(f), v.now),
-    parts: [
-      part('Flotte von '),
-      part(nameOf(v.s.players, f.owner), true),
-      part(` ${coords(f.fromC)} (${foreignShips(f)})`),
-    ],
+    // On its way it reads as an incoming fleet (#440).
+    parts:
+      f.state === 'out'
+        ? fleetParts(v, f)
+        : [
+            part('Flotte von '),
+            part(nameOf(v.s.players, f.owner), true),
+            part(` ${coords(f.fromC)} (${foreignShips(f)})`),
+          ],
   }));
 
 /** What the shown planet builds, researches and orders. */

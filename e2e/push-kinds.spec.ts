@@ -20,6 +20,8 @@ test.describe('push kinds (#192)', () => {
     'Sturmangriff auf deine Planeten',
     'Auspex-Aktivität bei deinen Planeten',
     'Lieferung eines anderen Spielers',
+    // The reports of a hold (#440, 243b).
+    'Wachen',
     'Servernachrichten',
     'Neue Version',
     'Gildenereignisse',

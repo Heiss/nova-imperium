@@ -34,6 +34,7 @@ export default defineConfig({
         'src/client/views/options/boxes.gen.ts',
         'src/core/push-topics/topics.gen.ts',
         'src/core/lexicon/pages/pages.gen.ts',
+        'src/core/guild-rights/rights.gen.ts',
         'src/client/logic/overview-cards/lines.gen.ts',
         'src/server/main.ts',
         'src/server/cli.ts',

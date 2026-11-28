@@ -12,6 +12,7 @@ import {
   researchErrors,
 } from './economy-checks.ts';
 import { lvlCost, reqMissing } from './economy.ts';
+import { CLOSED } from './market-text.ts';
 import { text } from './text.ts';
 import type {
   Cost,
@@ -149,6 +150,21 @@ const RESEARCH_WAITS: Readonly<Partial<Record<ResearchError, string>>> = {
 };
 
 /**
+ * Why the place refuses the entry at all: it cannot stand there (#53), or
+ * the round does not offer it, the Handelsposten while the marketplace is
+ * off (#442, the words of the marketplace).
+ */
+function refusedHere(
+  errors: readonly string[],
+  kind: Planet['kind'],
+  build: boolean,
+): string | null {
+  if (errors.includes('place')) return PLACE_REASON[kind];
+  // Only a building: the list never names a research the round does not have.
+  return build && errors.includes('off') ? CLOSED : null;
+}
+
+/**
  * Whether the next level can start now and why not, in the order of the
  * list (#64): the place, the requirements, the fields, the price and the
  * energy, then the waits. The checks are those of the actions, `buildErrors`
@@ -170,8 +186,8 @@ export function needState(n: Need, pl: Places): NeedState {
   const errors: readonly string[] = build
     ? buildErrors(p, pl.research, n.key, pl.cfg, n.have)
     : researchErrors(p, pl.research, n.key, pl.cfg, n.have);
-  if (errors.includes('place'))
-    return { ...base, reason: PLACE_REASON[p.kind] };
+  const refused = refusedHere(errors, p.kind, build);
+  if (refused) return { ...base, reason: refused };
   if (errors.includes('locked'))
     return {
       ...base,

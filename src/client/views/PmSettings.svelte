@@ -2,6 +2,7 @@
   // The settings of the private messages (#226): the switch „only friends may
   // write to me“ and the block list. The server checks everything; the
   // component owns the name to block and the busy state.
+  import { lockedSubmit } from '../logic/act-lock.ts';
   import { PM_LABELS, pmCall } from '../logic/private-messages.ts';
 
   let { friendsOnly, blocked }: { friendsOnly: boolean; blocked: string[] } =
@@ -53,7 +54,7 @@
     {:else}
       <p class="dim">{PM_LABELS.noBlocked}</p>
     {/each}
-    <form id="pm-block" class="flex" onsubmit={block}>
+    <form id="pm-block" class="flex" onsubmit={lockedSubmit(block)}>
       <label for="pm-block-name">{PM_LABELS.player}</label>
       <input
         id="pm-block-name"

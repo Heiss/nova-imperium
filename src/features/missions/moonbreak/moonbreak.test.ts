@@ -640,14 +640,14 @@ describe('moonbreak: the fleets that hold at the moon (#55, owner, 2026-11-19)',
     expect(ctx.fleets.get('h1')).toBeNull();
   });
 
-  it('plunders the cargo of the fleet that holds after the stock of the moon, as in a Sturmangriff', () => {
+  it('plunders the stock of the moon only, not the cargo of the fleet that holds, as in a Sturmangriff (#440, 233b)', () => {
     const { ctx, f, at } = setup({ dstar: 7, lc: 20 });
     guard(ctx, { lf: 2 }, { cargo: { m: 1000, c: 0, d: 0 } });
     ctx.rng = seeded(95);
     onArrive(ctx, f, at);
-    // Half of the moon's 900 / 600 / 300, then the held Adamant.
+    // Half of the moon's 900 / 600 / 300; the held Adamant is no loot.
     expect(anna(ctx)).toMatchObject({
-      loot: { m: 450 + 1000, c: 300, d: 150 },
+      loot: { m: 450, c: 300, d: 150 },
     });
   });
 

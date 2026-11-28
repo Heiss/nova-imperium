@@ -7,6 +7,7 @@
 // check ([V], #288).
 import { MOBILE } from '../../catalog.ts';
 import { holdFuel } from '../../flight.ts';
+import { HOLD_LEXICON } from '../../hold-texts.ts';
 import {
   HELD_SPY,
   HOLD_HOURS,
@@ -77,7 +78,7 @@ const guardWho = (s: LexState): PageSection =>
     'guard',
     'Wache stellen: wer, wo und wie lange',
     say(
-      'Mit [[mission-hold|Wache stellen]] fliegt eine Flotte zum Planeten oder Mond eines Verbündeten, bleibt dort die Haltezeit, die du beim Start wählst, und verteidigt ihn in jedem Kampf zusammen mit seinem Besitzer; danach fliegt sie heim. Wer Verbündeter ist, legt der Admin für die Runde fest. Eine Gilde zählt nur, solange es in der Runde Gilden gibt ([[rule-guilds]]). Bei einem Spieler im [[rule-vacation|Urlaubsmodus]] oder unter dem [[rule-protection|Schutz der Schwachen]] kann niemand Wache stellen.',
+      'Mit [[mission-hold|Wache stellen]] fliegt eine Flotte zum Planeten oder Mond eines Verbündeten, bleibt dort die Haltezeit, die du beim Start wählst, und verteidigt ihn in jedem Kampf zusammen mit seinem Besitzer; danach fliegt sie heim. Wer Verbündeter ist, legt der Admin für die Runde fest. Eine Gilde zählt nur, solange es in der Runde Gilden gibt ([[rule-guilds]]). Bei einem Spieler im [[rule-vacation|Urlaubsmodus]] kann niemand Wache stellen.',
     ),
     facts([
       [holdSettings[0].label, alliesWords(s.u)],
@@ -103,8 +104,10 @@ const guardFights = (): PageSection =>
     'fights',
     'Was eine Wache tut',
     say(
-      'Eine Flotte, die Wache hält, kämpft als eigene Partei mit der Forschung ihres Besitzers, und zwar in allen drei Kämpfen an diesem Ort: beim [[mission-attack|Sturmangriff]], beim [[mission-moonbreak|Mondbruch]] und im Kampf gegen entdeckte Spähschädel der [[mission-spy|Auspex-Erkundung]]. Raketen kämpfen nicht mit. Jeder Besitzer bekommt den Bericht des Verteidigers, und was die Wache verliert, liegt zum Teil im Trümmerfeld ([[rule-debris]]). Eine Flotte des Angreifers selbst, die dort Wache hält, bleibt aus dem Kampf. Gewinnt der Angreifer, nimmt er zuerst seinen Anteil vom Vorrat des Planeten und dann die ganze Ladung der Flotten, die Wache gehalten haben, soweit sein Laderaum reicht; diese Flotten sind dann zerstört ([[rule-battle]]).',
+      'Eine Flotte, die Wache hält, kämpft als eigene Partei mit der Forschung ihres Besitzers, und zwar in allen drei Kämpfen an diesem Ort: beim [[mission-attack|Sturmangriff]], beim [[mission-moonbreak|Mondbruch]] und im Kampf gegen entdeckte Spähschädel der [[mission-spy|Auspex-Erkundung]]. Raketen kämpfen nicht mit. Jeder Besitzer bekommt den Bericht des Verteidigers, und was die Wache verliert, liegt zum Teil im Trümmerfeld ([[rule-debris]]). Eine Flotte des Angreifers selbst, die dort Wache hält, bleibt aus dem Kampf.',
     ),
+    // The held cargo is no loot since #440 (233b): the words are the owner's.
+    say(HOLD_LEXICON.noLoot),
     say(
       'Der Gastgeber sieht eine Flotte, die Wache hält, mit allen Schiffen und ihrer Haltezeit. Im Auspex-Bericht zählt sie zur Flotte des Planeten, bis die Auspex-Lehre des Spähers die Stufe der Runde erreicht; ab dann steht sie getrennt unter Gehaltene Flotten. In der Auspex-Phalanx zeigt sie sich als haltend, mit dem Ende ihrer Haltezeit.',
     ),

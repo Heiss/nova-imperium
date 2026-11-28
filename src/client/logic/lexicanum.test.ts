@@ -867,25 +867,32 @@ describe('the page of a feature switched off for the round (#404; owner, 2026-11
   const hits = (query: string, v: V): string[] =>
     flatHits(searchHits(query, opens(v))).map((h) => h.id);
 
-  /** The switch, its value off, the page it hides, and an article that links it. */
+  /**
+   * The switch, its value off, the page it hides, an article that links it,
+   * and the other articles it hides (the Handelsposten with the marketplace,
+   * #442).
+   */
   const CASES = [
     {
       off: { marketOn: 0 },
       id: 'rule-market',
       from: 'faq-resources',
       query: 'Marktplatz',
+      also: ['market'],
     },
     {
       off: { guilds: false },
       id: 'rule-guilds',
       from: 'rule-allies',
       query: 'Gilden',
+      also: [],
     },
     {
       off: { achievements: false, daily: false },
       id: 'rule-rewards',
       from: 'faq-resources',
       query: 'Tagesbelohnung',
+      also: [],
     },
   ] as const;
 
@@ -904,7 +911,7 @@ describe('the page of a feature switched off for the round (#404; owner, 2026-11
   });
 
   it('hides it for every player and the admin while the feature is off: not listed, found or linked, and its address falls back like an unknown one', () => {
-    for (const { off, id, from, query } of CASES)
+    for (const { off, id, from, query, also } of CASES)
       for (const admin of [false, true]) {
         const v = inRound(off, admin);
         expect(opens(v)(id), id).toBe(false);
@@ -922,8 +929,41 @@ describe('the page of a feature switched off for the round (#404; owner, 2026-11
         expect(hits(query, v), id).not.toContain(id);
         // Every other article stays.
         expect(page(AZ, v)).toMatchObject({ t: 'list' });
-        expect(ids(page(AZ, v))).toHaveLength(ARTICLES.length - 1);
+        expect(ids(page(AZ, v))).toHaveLength(
+          ARTICLES.length - 1 - also.length,
+        );
       }
+  });
+
+  it('hides the article of a mission the round switched off: Wache stellen (#440)', () => {
+    const id = 'mission-hold';
+    expect(opens(inRound({}))(id)).toBe(true);
+    expect(linked(art('rule-allies', inRound({})))).toContain(id);
+    for (const admin of [false, true]) {
+      const v = inRound({ holdOn: 0 }, admin);
+      expect(opens(v)(id)).toBe(false);
+      expect(ids(page(AZ, v))).not.toContain(id);
+      expect(page(id, v)).toEqual(page('nope', v));
+      expect(linked(art('rule-allies', v))).not.toContain(id);
+      expect(hits('Wache stellen', v)).not.toContain(id);
+      expect(ids(page(AZ, v))).toHaveLength(ARTICLES.length - 1);
+    }
+  });
+
+  it('hides the Handelsposten with the marketplace, like its page (#442) [V]', () => {
+    for (const admin of [false, true]) {
+      const off = inRound({ marketOn: 0 }, admin);
+      expect(opens(off)('market')).toBe(false);
+      expect(page('market', off)).toEqual(page('nope', off));
+      expect(articleView('market', off)).toBeNull();
+      expect(ids(page(AZ, off))).not.toContain('market');
+      expect(hits('Handelsposten', off)).not.toContain('market');
+      expect(linked(art('rule-market', inRound({})))).toContain('market');
+      const on = inRound({ marketOn: 1 }, admin);
+      expect(opens(on)('market')).toBe(true);
+      expect(page('market', on).t).toBe('article');
+      expect(hits('Handelsposten', on)).toContain('market');
+    }
   });
 
   it('keeps the words of a link to a hidden page, as plain text', () => {
@@ -938,8 +978,9 @@ describe('the page of a feature switched off for the round (#404; owner, 2026-11
     const v = inRound({ marketOn: 0, guilds: false });
     const p = page('', v);
     if (p.t !== 'start') throw new Error(p.t);
+    // The Handelsposten is hidden with the marketplace (#442).
     expect(p.tiles[0]!.note).toBe(
-      `${ARTICLES.filter((a) => a.kind === 'building').length} Einträge`,
+      `${ARTICLES.filter((a) => a.kind === 'building').length - 1} Einträge`,
     );
     expect(p.boxes.find((b) => b.kind === 'rule')!.items).toHaveLength(
       ARTICLES.filter((a) => a.kind === 'rule').length - 2,

@@ -400,10 +400,10 @@ describe('fleets that hold at the planet (#55)', () => {
       fleets: [
         held({ id: 'h2', hold: 9000 }),
         held({ id: 'h1' }),
-        held({ id: 'out', state: 'out' }),
+        held({ id: 'back', state: 'back' }),
       ],
     });
-    expect(fleetRows(v, true).map((r) => r.id)).toEqual(['out']);
+    expect(fleetRows(v, true).map((r) => r.id)).toEqual(['back']);
     expect(heldRows(v)).toEqual([
       {
         id: 'h1',
@@ -417,6 +417,31 @@ describe('fleets that hold at the planet (#55)', () => {
       expect.objectContaining({ id: 'h2', due: countdown(11_000, 1000) }),
     ]);
     expect(overviewPage(v).held).toEqual(heldRows(v));
+  });
+
+  it('list a hold on its way there too, as an incoming fleet, due at its arrival, never a movement (#440, 230b)', () => {
+    const v = view({
+      fleets: [
+        held({ id: 'out', state: 'out' }),
+        // A fleet of another mission on its way stays a movement.
+        held({ id: 'att', state: 'out', mission: 'attack' }),
+      ],
+    });
+    expect(fleetRows(v, true).map((r) => r.id)).toEqual(['att']);
+    expect(heldRows(v)).toEqual([
+      {
+        id: 'out',
+        due: countdown(2000, 1000),
+        parts: [
+          { text: 'Eine fremde Flotte von ', bold: false },
+          { text: 'Feind', bold: true },
+          {
+            text: ` [1:1:5] erreicht deinen Planeten [1:2:3] · Wache stellen (2 ${text('bs')!.n})`,
+            bold: false,
+          },
+        ],
+      },
+    ]);
   });
 
   it('word what the server sent of the ships, less than all only when it sent less (#228)', () => {

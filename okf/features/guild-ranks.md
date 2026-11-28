@@ -203,6 +203,21 @@ may pass on a right its holder lacks.
   adds the three chat rights to the CHECK and gives every rank below the
   Leitung `chat-read` and `chat-write` (owner, 2026-11-15); a new guild's
   Mitglied gets them too (`MEMBER_RIGHTS`).
+* The rights register themselves (#426 part 5; owner, 2026-11-26, 192a and
+  193b; the coordinator's choices of 2026-11-27, [V]): a file of
+  `src/core/guild-rights/` exports `guildRights`, entries of key, order,
+  name and, for the rights of the first „Mitglied“, `member`
+  (`management.ts`: applications 10, remove 20, assign 30, profile 40,
+  ranks 50; `chat.ts`: chat-read 60, chat-write 70, both `member`,
+  chat-delete 80). `scripts/gen-features.ts` writes
+  `guild-rights/rights.gen.ts`, and `src/core/guild-ranks.ts` derives
+  `GUILD_RIGHTS` (by order), `GuildRight`, `RIGHT_TEXT` and `MEMBER_RIGHTS`
+  and names no right; a key or an order defined twice stops the start. The
+  names were moved unchanged. The CHECK of `guild_rank_rights.right_key`
+  stays in the migrations (192a): `src/server/db/guild-rights-check.test.ts`
+  migrates an in-memory database, reads the CHECK and fails when it and
+  `GUILD_RIGHTS` hold different rights, so a new right needs a new migration
+  that rewrites the CHECK.
 * `src/core/guild-ranks.ts`: the keys of the rights, the limits and the
   pure rules with plain values (a place is 0 for the Leitung, a larger
   number for a lower rank, Infinity for no rank): `memberPlace`,

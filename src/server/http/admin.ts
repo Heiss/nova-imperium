@@ -13,6 +13,7 @@ import { moderate } from '../game/moderation.ts';
 import { createMoon } from '../game/moons.ts';
 import { stateFor } from '../game/state.ts';
 import { VACATION_REFUSED } from '../game/vacation.ts';
+import { type ActionKeys, freshState, keyOf } from './action-keys.ts';
 import type { AppDeps, Call, Handler } from './app.ts';
 
 type AdminWork = (call: Call, user: User) => ReturnType<Handler>;
@@ -21,6 +22,7 @@ export function adminRoutes(
   d: AppDeps,
   sessionUser: (call: Call) => User,
   invite: AdminWork,
+  keys: ActionKeys,
 ): Record<string, Handler> {
   const { ctx } = d;
   const admin =
@@ -47,10 +49,21 @@ export function adminRoutes(
       return { json: audited(ctx, entry, () => work(entry, call)) };
     });
 
+  // An admin write runs once per key (#450, 2A), like a game action.
+  const write: Admin = (work) =>
+    admin((call, u) =>
+      keys.once(
+        u.id,
+        keyOf(call.req),
+        () => work(call, u),
+        (reply) => freshState(reply, () => stateFor(ctx, u)),
+      ),
+    );
+
   return {
     ...diagnosticRoutes(ctx, read),
     ...errorLogRoutes(ctx, read, admin),
-    ...moderationRoutes(d, admin, invite),
+    ...moderationRoutes(d, write, invite),
   };
 }
 
