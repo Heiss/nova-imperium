@@ -20,6 +20,7 @@ import {
   type RoundSetting,
   roundFieldId,
   MARK_LABELS,
+  type RoundMark,
   roundConfirm,
   roundPreview,
   roundShown,
@@ -70,12 +71,23 @@ const choicesOf = (
   current: number,
 ): Choice[] => choices.map((c) => ({ ...c, selected: c.value === current }));
 
+/** The tag of a mark: its kind (the colour, #441) and its words. */
+interface MarkTag {
+  kind: RoundMark;
+  label: string;
+}
+
+const markTag = (kind: RoundMark): MarkTag => ({
+  kind,
+  label: MARK_LABELS[kind],
+});
+
 /** One row of the settings of the universe: a field with its name, a number or a choice. */
 type SettingRow = {
   key: string;
   label: string;
-  /** „klassisch“ or „neu“ next to the field (#441, 235b); none without a mark. */
-  mark?: string;
+  /** „klassisch“ or „neu“ next to the field, with its kind for its colour (#441, 235b); none without a mark. */
+  mark?: MarkTag;
 } & (
   | { choices: Choice[] }
   | {
@@ -95,7 +107,7 @@ function settingRow(s: GameState, x: AdminState['specs'][number]): SettingRow {
   const row = {
     key: x.key,
     label: x.label,
-    ...(x.mark ? { mark: MARK_LABELS[x.mark] } : {}),
+    ...(x.mark ? { mark: markTag(x.mark) } : {}),
   };
   // A setting of the round with named choices is a selection (#283).
   if (x.choices)
@@ -214,8 +226,8 @@ export type RoundField = {
       value: number;
     }
 ) & {
-    /** „klassisch“ or „neu“ next to the field (#441, 235b); none without a mark. */
-    mark?: string;
+    /** „klassisch“ or „neu“ next to the field, with its kind for its colour (#441, 235b); none without a mark. */
+    mark?: MarkTag;
   };
 
 function roundField(s: RoundSetting, value: number | boolean): RoundField {
@@ -223,7 +235,7 @@ function roundField(s: RoundSetting, value: number | boolean): RoundField {
     id: roundFieldId(s),
     label: s.label,
     key: s.key,
-    ...(s.mark ? { mark: MARK_LABELS[s.mark] } : {}),
+    ...(s.mark ? { mark: markTag(s.mark) } : {}),
   };
   if (s.kind === 'switch')
     return { ...field, kind: 'switch', checked: !!value, note: s.note ?? null };

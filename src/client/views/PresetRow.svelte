@@ -1,5 +1,5 @@
 <script lang="ts">
-  // The presets of the round settings (#441): the row „Regelset“ [V] with a
+  // The presets of the round settings (#441): the row „Voreinstellung“ (owner, 2026-11-28) with a
   // button per preset, and the question of a clicked one with „Umstellen“
   // and „Abbrechen“, in the dialog „Neue Runde“ and in the tab „Universum“.
   // The question stands in place, as the dialog is itself in the modal;
@@ -20,7 +20,7 @@
 </script>
 
 <div class="presets" data-presets={place}>
-  <h4 id="presets-{place}">Regelset</h4>
+  <h4 id="presets-{place}">Voreinstellung</h4>
   <p class="flex" role="group" aria-labelledby="presets-{place}">
     {#each PRESETS as preset (preset.id)}
       <button

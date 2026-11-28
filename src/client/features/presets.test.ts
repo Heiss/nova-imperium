@@ -1,6 +1,7 @@
 // „Umstellen“ of a preset (#441, 237a): the dialog „Neue Runde“ gets the
 // values of every entry, the tab „Universum“ those of the live entries only;
 // each field reports its change like a typed one. Nothing is sent.
+import { DEFAULT_UNIVERSE } from '../../core/universe.ts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ROUND_SETTINGS, roundFieldId } from '../../core/round.ts';
 import { askPreset, presetAsk } from '../logic/presets.svelte.ts';
@@ -58,10 +59,11 @@ describe('„Umstellen“ in the dialog „Neue Runde“ (#441)', () => {
   });
 });
 
-describe('„Umstellen“ in the tab „Universum“ (#441, 237a)', () => {
-  it('fills the rows of the live entries only', () => {
+describe('„Umstellen“ in the tab „Universum“ (#441, 237a; owner, 2026-11-28)', () => {
+  it('fills the base values of the universe with their defaults and the rows of the live entries', () => {
     for (const s of ROUND_SETTINGS) fields[`set_${s.key}`] = field();
-    fields.set_speed = field();
+    for (const key of ['speed', 'galaxies', 'startMetal', 'extraFields'])
+      fields[`set_${key}`] = field();
     fillPreset('universe', 'standard');
     for (const s of ROUND_SETTINGS) {
       const f = fields[`set_${s.key}`]!;
@@ -69,9 +71,15 @@ describe('„Umstellen“ in the tab „Universum“ (#441, 237a)', () => {
         expect(f.value, s.key).toBe(String(s.def));
       else expect(f.value, s.key).toBe('999');
     }
-    // A base value of the universe is no setting of the round.
-    expect(fields.set_speed.value).toBe('999');
-    expect(fields.set_speed.dispatchEvent).not.toHaveBeenCalled();
+    // The base values: the default of version 1 (speed 5, 2 galaxies).
+    for (const key of ['speed', 'galaxies', 'startMetal', 'extraFields']) {
+      expect(fields[`set_${key}`]!.value, key).toBe(
+        String(DEFAULT_UNIVERSE[key as keyof typeof DEFAULT_UNIVERSE]),
+      );
+      expect(fields[`set_${key}`]!.dispatchEvent, key).toHaveBeenCalled();
+    }
+    expect(fields.set_speed!.value).toBe('5');
+    expect(fields.set_galaxies!.value).toBe('2');
   });
 });
 

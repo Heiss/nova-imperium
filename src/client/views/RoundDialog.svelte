@@ -34,10 +34,11 @@
         checked={f.checked}
       />
       {f.label}</label
-    >{#if f.mark}<span class="mark">{f.mark}</span>{/if}
+    >{#if f.mark}<span class="mark mark-{f.mark.kind}">{f.mark.label}</span
+      >{/if}
   {:else if f.kind === 'choice'}
-    <label for={f.id}>{f.label}</label>{#if f.mark}<span class="mark"
-        >{f.mark}</span
+    <label for={f.id}>{f.label}</label>{#if f.mark}<span
+        class="mark mark-{f.mark.kind}">{f.mark.label}</span
       >{/if}
     <select id={f.id} aria-invalid={isInvalid(f.id) || undefined}>
       {#each f.choices as choice (choice.value)}
@@ -47,8 +48,8 @@
       {/each}
     </select>
   {:else}
-    <label for={f.id}>{f.label}</label>{#if f.mark}<span class="mark"
-        >{f.mark}</span
+    <label for={f.id}>{f.label}</label>{#if f.mark}<span
+        class="mark mark-{f.mark.kind}">{f.mark.label}</span
       >{/if}
     <input
       type="number"

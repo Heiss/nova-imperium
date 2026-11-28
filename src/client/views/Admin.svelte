@@ -48,7 +48,7 @@
         <tr>
           <td>
             <label for="set_{row.key}">{row.label}</label>{#if row.mark}<span
-                class="mark">{row.mark}</span
+                class="mark mark-{row.mark.kind}">{row.mark.label}</span
               >{/if}
             <button
               type="button"

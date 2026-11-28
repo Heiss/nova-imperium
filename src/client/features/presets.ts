@@ -1,7 +1,8 @@
 // The presets of the round settings (#441, owner, 2026-11-27): „Umstellen“
 // puts the values of a preset into the fields and saves nothing. In the
-// dialog „Neue Runde“ every field; in the tab „Universum“ only the rows of
-// the `live` settings (237a). Each field reports its change like a typed
+// dialog „Neue Runde“ every field; in the tab „Universum“ the base values of
+// the universe and the rows of the `live` settings (237a; owner,
+// 2026-11-28). Each field reports its change like a typed
 // one, so the dialog writes its lines again and the universe settings keep
 // the draft over a redraw (logic/settings-draft.ts).
 import {
@@ -15,6 +16,7 @@ import {
   type PresetPlace,
   presetOf,
 } from '../logic/presets.svelte.ts';
+import { presetUniverse } from '../../core/universe.ts';
 import { setField } from '../dom.ts';
 import type { ClientFeature } from './contract.ts';
 
@@ -39,8 +41,7 @@ export function fillPreset(place: PresetPlace, id: string | undefined): void {
     for (const s of ROUND_SETTINGS)
       if (s.name in values) fill(byId(roundFieldId(s)), values[s.name]!);
   } else {
-    const values = presetValues(preset, true);
-    for (const [key, value] of Object.entries(values))
+    for (const [key, value] of Object.entries(presetUniverse(preset)))
       fill(byId(`set_${key}`), value);
   }
 }

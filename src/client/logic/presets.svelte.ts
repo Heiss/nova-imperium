@@ -31,4 +31,4 @@ export function closePreset(): void {
 
 /** The question of a preset, in the owner's words (#441, 237). */
 export const presetQuestion = (name: string): string =>
-  `Sollen die Einstellungen auf das Regelset „${name}“ umgestellt werden? Achtung: Erst „Speichern“ unten übernimmt die Änderung.`;
+  `Sollen die Einstellungen auf die Voreinstellung „${name}“ umgestellt werden? Achtung: Erst „Speichern“ unten übernimmt die Änderung.`;

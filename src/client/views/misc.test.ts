@@ -620,11 +620,11 @@ describe('the mark of a live setting in „Universum“ (#441, 235b)', () => {
     } as unknown as V);
     expect(html).toContain(
       normalize(
-        `<label for="set_${marked[0]!.key}">${marked[0]!.label}</label><span class="mark">neu</span>`,
+        `<label for="set_${marked[0]!.key}">${marked[0]!.label}</label><span class="mark mark-new">neu</span>`,
       ),
     );
-    expect(html.match(/class="mark"/g)).toHaveLength(1);
-    // The row „Regelset“ stands in „Universum“.
+    expect(html.match(/class="mark /g)).toHaveLength(1);
+    // The row „Voreinstellung“ stands in „Universum“.
     expect(html).toContain('data-presets="universe"');
   });
 });

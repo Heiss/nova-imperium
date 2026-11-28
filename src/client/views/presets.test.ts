@@ -1,4 +1,4 @@
-// The presets of the round settings (#441): the row „Regelset“ in the dialog
+// The presets of the round settings (#441): the row „Voreinstellung“ in the dialog
 // „Neue Runde“, its question when a preset was clicked, and the marks of the
 // settings next to their fields.
 import { render } from 'svelte/server';
@@ -17,18 +17,18 @@ import {
 import PresetRow from './PresetRow.svelte';
 
 const QUESTION =
-  'Sollen die Einstellungen auf das Regelset „Standard“ umgestellt werden? Achtung: Erst „Speichern“ unten übernimmt die Änderung.';
+  'Sollen die Einstellungen auf die Voreinstellung „Standard“ umgestellt werden? Achtung: Erst „Speichern“ unten übernimmt die Änderung.';
 
 const row = (place: 'round' | 'universe') =>
   stripComments(render(PresetRow, { props: { place } }).body);
 
 afterEach(() => closePreset());
 
-describe('the row „Regelset“ (#441)', () => {
+describe('the row „Voreinstellung“ (#441)', () => {
   it('offers „Standard“ in both places, without a question', () => {
     for (const place of ['round', 'universe'] as const) {
       const html = row(place);
-      expect(html).toContain('Regelset');
+      expect(html).toContain('Voreinstellung');
       expect(html).toContain(
         `data-act="askPreset" data-place="${place}" data-id="standard">Standard</button>`,
       );
@@ -112,8 +112,11 @@ describe('the mark of a setting (#441, 235b)', () => {
       { number: 1, a: 1, b: true, c: 1 } as unknown as RoundRules,
       settings,
     );
-    expect(html).toContain('Alt</label><span class="mark">klassisch</span>');
-    expect(html).toContain('<span class="mark">neu</span>');
-    expect(html.match(/class="mark"/g)).toHaveLength(2);
+    // A coloured tag by its kind (owner, 2026-11-28).
+    expect(html).toContain(
+      'Alt</label><span class="mark mark-classic">klassisch</span>',
+    );
+    expect(html).toContain('<span class="mark mark-new">neu</span>');
+    expect(html.match(/class="mark /g)).toHaveLength(2);
   });
 });

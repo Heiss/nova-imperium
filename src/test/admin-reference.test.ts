@@ -75,11 +75,11 @@ const choiceOptions = (
     .join('');
 
 /**
- * The row „Regelset“ of the presets (#441), the only addition to the old
+ * The row „Voreinstellung“ of the presets (#441), the only addition to the old
  * view: a button per preset, the question closed.
  */
 const presetRow = (place: string): string =>
-  `<div class="presets" data-presets="${place}"><h4 id="presets-${place}">Regelset</h4><p class="flex" role="group" aria-labelledby="presets-${place}"><button type="button" data-act="askPreset" data-place="${place}" data-id="standard">Standard</button></p></div>`;
+  `<div class="presets" data-presets="${place}"><h4 id="presets-${place}">Voreinstellung</h4><p class="flex" role="group" aria-labelledby="presets-${place}"><button type="button" data-act="askPreset" data-place="${place}" data-id="standard">Standard</button></p></div>`;
 
 function settingsForm(s: GameState, a: AdminState): string {
   const rows = a.specs

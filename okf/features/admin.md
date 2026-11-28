@@ -438,11 +438,16 @@ universe settings) and their ranges are not decided yet.
   feature that is not classic to „Aus“
   ([A switch for every feature](/ops/feature-switches.md)).
 * **[E]** The place (237a): the row of the presets stands in the dialog
-  „Neue Runde“ and in the tab „Universum“. Under „Universum“ a preset
-  changes only the `live` settings; the base values of the universe and the
-  other settings stay.
+  „Neue Runde“ and in the tab „Universum“.
+* **[E]** A preset sets the base values of the universe too (speed, size of
+  the galaxy, start resources …), in both places (owner, 2026-11-28); in a
+  running round a value that cannot apply there is refused at „Speichern“,
+  as every other value is. Under „Universum“ „Standard“ gives the base
+  values their defaults of version 1 (`DEFAULT_UNIVERSE`, [V]) and the live
+  settings their `def`. Open: the dialog „Neue Runde“ has no fields for the
+  base values; asked on 2026-11-28 whether they stay under „Universum“ only.
 * **[E]** The flow: a click on a preset asks first, „Sollen die
-  Einstellungen auf das Regelset „{Preset}“ umgestellt werden? Achtung:
+  Einstellungen auf die Voreinstellung „{Preset}“ umgestellt werden? Achtung:
   Erst „Speichern“ unten übernimmt die Änderung.“, with „Umstellen“ and
   „Abbrechen“. „Umstellen“ fills the fields and saves nothing, „Abbrechen“
   changes nothing; only the save below applies the values („Ja, neue
@@ -459,19 +464,24 @@ universe settings) and their ranges are not decided yet.
     (`presetValue`, `presetValues` in `src/core/round.ts`). Only the ids and
     names of the presets are one list, `PRESETS`. A test refuses a preset
     without a value for an entry.
-  * The row „Regelset“ (`views/PresetRow.svelte`, the heading [V]) has a
+  * The row „Voreinstellung“ (`views/PresetRow.svelte`, the heading by the
+    owner, 2026-11-28) has a
     button per preset; the question stands in place, below the buttons, as
     the dialog „Neue Runde“ is itself in the modal, and stays open over a
     redraw (`logic/presets.svelte.ts`). `features/presets.ts` fills the
-    fields: in „Neue Runde“ every field by its id, in „Universum“ the rows
-    of the live settings; each field reports its change like a typed one,
+    fields: in „Neue Runde“ every field by its id, in „Universum“ the base
+    values and the rows of the live settings (`presetUniverse` in
+    `src/core/universe.ts`); each field reports its change like a typed one,
     so the dialog writes its lines again and the universe settings keep the
     draft (`logic/settings-draft.ts`).
-  * The mark is a small grey tag after the label (`.mark`, the look is a
-    placeholder [V] until the owner decides).
-  * Open for the owner after the release: the heading „Regelset“, the look
-    of the mark, and the list of the marks. The base values of the universe
-    get no mark for now (registry only, [V]).
+  * The mark is a coloured tag after the label (owner, 2026-11-28): [V]
+    „klassisch“ in bronze (`--mark-classic`, #cd8a4b), „neu“ in blue
+    (`--mark-new`, #7fb2f0), as tokens in `:root` of `static/style.css`.
+    The game has one dark theme only, so there is one value each; their
+    contrast is at least 5.9 on `--bg`, `--box` and `--box-2`
+    (`src/client/mark-colours.test.ts` checks 4.5).
+  * Open for the owner: the list of the marks. The base values of the
+    universe get no mark for now (registry only, [V]).
 
 # Round rewards and menu hints
 

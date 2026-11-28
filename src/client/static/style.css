@@ -51,6 +51,12 @@
   --red: #ee7660;
   --green: #9ccb76;
   --orange: #f0a050;
+  /* The marks „klassisch“ (bronze) and „neu“ (blue) of a round setting
+     (#441, owner, 2026-11-28: coloured; the colours [V]), at least 5.9:1
+     on --bg, --box and --box-2 (a test checks 4.5:1). The game has one
+     theme, this dark one. */
+  --mark-classic: #cd8a4b;
+  --mark-new: #7fb2f0;
   /* A requirement whose next level can start now (issue #64, D5). */
   --ready: #f0a050;
   --head: Cinzel, Georgia, serif;
@@ -518,14 +524,20 @@ button[aria-pressed='true'] {
 .dim {
   color: var(--dim);
 }
-/* The mark „klassisch“ or „neu“ of a round setting (#441, 235b) [V]. */
+/* The mark „klassisch“ or „neu“ of a round setting (#441, 235b): a small
+   tag in the colour of its kind (owner, 2026-11-28). */
 .mark {
   margin-left: 6px;
   padding: 0 4px;
-  border: 1px solid var(--line);
+  border: 1px solid currentColor;
   border-radius: 3px;
-  color: var(--dim);
   font-size: 11px;
+}
+.mark-classic {
+  color: var(--mark-classic);
+}
+.mark-new {
+  color: var(--mark-new);
 }
 .req {
   color: var(--red);

@@ -11,6 +11,7 @@ import {
   ROUND_SETTINGS,
   type RoundSetting,
 } from './round.ts';
+import { presetUniverse, UNIVERSE_SPECS } from './universe.ts';
 
 const make = (over: object): RoundSetting =>
   ({ key: 'roundX', label: 'X', order: 1, ...over }) as unknown as RoundSetting;
@@ -83,6 +84,31 @@ describe('the presets of the round settings (#441)', () => {
     expect(presetValues('standard', true, settings)).toStrictEqual({
       roundA: 3,
     });
+  });
+});
+
+describe('a preset in the tab „Universum“ (#441, owner, 2026-11-28)', () => {
+  it('sets the base values of the universe to their defaults and the live settings to the preset', () => {
+    const values = presetUniverse('standard');
+    // The base values of version 1: speed 5, 2 galaxies of 50 systems of 15.
+    expect(values).toMatchObject({
+      speed: 5,
+      galaxies: 2,
+      systems: 50,
+      positions: 15,
+    });
+    // A live setting takes the default a new round starts with (`def`), as
+    // in „Neue Runde“, not the value a universe without it reads
+    // (`unstored`, the colony limit of #237: 6, not 0).
+    const round = new Map<string, number | boolean>(
+      ROUND_SETTINGS.map((s) => [s.key, s.def]),
+    );
+    for (const spec of UNIVERSE_SPECS)
+      expect(values[spec.key], spec.key).toBe(round.get(spec.key) ?? spec.def);
+    expect(values.roundColonyBase).toBe(6);
+    expect(Object.keys(values).sort()).toEqual(
+      UNIVERSE_SPECS.map((s) => s.key).sort(),
+    );
   });
 });
 
