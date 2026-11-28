@@ -66,12 +66,23 @@ describe('the presets of the round settings (#441)', () => {
     const other = 'later' as never;
     expect(presetValue(make({ def: 1, presets: { later: 5 } }), other)).toBe(5);
     expect(presetValue(make({ def: 1 }), other)).toBeUndefined();
+    // An entry without a value in the preset is left out, not set empty.
     expect(
       presetValues(other, false, [
         make({ name: 'x', def: 1, presets: { later: 5 } }),
         make({ name: 'y', def: 2 }),
       ]),
-    ).toEqual({ x: 5 });
+    ).toStrictEqual({ x: 5 });
+  });
+
+  it('takes only number entries into „Universum“, whatever else says live', () => {
+    const settings = [
+      make({ kind: 'number', name: 'a', key: 'roundA', def: 3, live: true }),
+      make({ kind: 'switch', name: 'b', key: 'roundB', def: true, live: true }),
+    ];
+    expect(presetValues('standard', true, settings)).toStrictEqual({
+      roundA: 3,
+    });
   });
 });
 

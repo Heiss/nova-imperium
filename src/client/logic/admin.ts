@@ -349,6 +349,32 @@ export function roundDialogPage(
   return { rows, sections: rowSections(rows, settings, sections) };
 }
 
+/**
+ * A row under the heading `h`: a legend that repeats the heading goes, the
+ * heading (`id`) names the fieldset instead (owner, 2026-11-22). By kind, so
+ * a field, which has no legend, stays as it is.
+ */
+const UNDER_HEADING: {
+  [K in RoundRow['kind']]: (
+    row: Extract<RoundRow, { kind: K }>,
+    h: string | null,
+    id: string,
+  ) => RoundRow;
+} = {
+  field: (row) => row,
+  group: (row, h, id) =>
+    row.legend === h ? { ...row, legend: null, labelledBy: id } : row,
+};
+
+const underHeading = (row: RoundRow, h: string | null, id: string): RoundRow =>
+  (
+    UNDER_HEADING[row.kind] as (
+      r: RoundRow,
+      h: string | null,
+      id: string,
+    ) => RoundRow
+  )(row, h, id);
+
 /** The ids of the fields of a row of the dialog. */
 const idsOf = (row: RoundRow): string[] =>
   row.kind === 'field' ? [row.field.id] : row.members.map((m) => m.field.id);
@@ -376,13 +402,7 @@ function rowSections(
       last = { heading: h, id: `round-heading-${out.length}`, rows: [] };
       out.push(last);
     }
-    // A legend that repeats the heading of its group goes; the heading names
-    // the fieldset instead (owner, 2026-11-22).
-    last.rows.push(
-      row.kind === 'group' && h !== null && row.legend === h
-        ? { ...row, legend: null, labelledBy: last.id! }
-        : row,
-    );
+    last.rows.push(underHeading(row, h, last.id!));
   }
   return out;
 }
