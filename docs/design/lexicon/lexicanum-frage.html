@@ -1,0 +1,605 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>Nova Imperium – Classic Uni</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+    <meta name="theme-color" content="#0d0a08" />
+    <link rel="stylesheet" href="/style.css" />
+
+    <link rel="stylesheet" href="mock.css" />
+  </head>
+  <body>
+    <div id="app">
+      <header>
+        <div class="logo">
+          NOVA IMPERIUM<small id="unisub">Classic Universum · Speed x5</small>
+        </div>
+        <div class="pinfo" id="pinfo">
+          <!----><b>Heimatplanet</b> [1:38:11]<!---->
+          · Kommandant <b>Lexi</b> ·
+          <span class="lnk" data-act="logout">Logout</span>
+        </div>
+        <div class="resbar" id="resbar">
+          <!---->
+          <div class="res" title="+8.074/h · Lager 100.000">
+            <img
+              class="ri"
+              alt=""
+              width="28"
+              height="28"
+              src="/icons/resources/small/metal.svg"
+            /><!---->
+            <div>
+              <div class="l">Adamant</div>
+              <div class="v full">820.000</div>
+            </div>
+          </div>
+          <div class="res" title="+3.816/h · Lager 100.000">
+            <img
+              class="ri"
+              alt=""
+              width="28"
+              height="28"
+              src="/icons/resources/small/crystal.svg"
+            /><!---->
+            <div>
+              <div class="l">Psikristall</div>
+              <div class="v full">410.000</div>
+            </div>
+          </div>
+          <div class="res" title="+1.283/h · Lager 100.000">
+            <img
+              class="ri"
+              alt=""
+              width="28"
+              height="28"
+              src="/icons/resources/small/deuterium.svg"
+            /><!---->
+            <div>
+              <div class="l">Promethium</div>
+              <div class="v full">150.000</div>
+            </div>
+          </div>
+          <!---->
+          <div class="res">
+            <img
+              class="ri"
+              alt=""
+              width="28"
+              height="28"
+              src="/icons/resources/small/energy.svg"
+            /><!---->
+            <div>
+              <div class="l">Energie</div>
+              <div class="v">137/1.470</div>
+            </div>
+          </div>
+        </div>
+      </header>
+      <nav id="menu" aria-label="Hauptmenü">
+        <!----><!----><a data-act="nav" href="/?view=overview" data-v="overview"
+          >Übersicht<!----><!----></a
+        ><!----><a data-act="nav" href="/?view=buildings" data-v="buildings"
+          >Gebäude<!----><!----></a
+        ><!----><a data-act="nav" href="/?view=resources" data-v="resources"
+          >Rohstoffe<!----><!----></a
+        ><!----><a data-act="nav" href="/?view=research" data-v="research"
+          >Forschung<!----><!----></a
+        ><!----><a data-act="nav" href="/?view=shipyard" data-v="shipyard"
+          >Schiffsschmiede<!----><!----></a
+        ><!----><a data-act="nav" href="/?view=defense" data-v="defense"
+          >Verteidigung<!----><!----></a
+        ><!---->
+        <div class="sep"></div>
+        <!----><a data-act="nav" href="/?view=fleet" data-v="fleet"
+          >Flotte<!----><!----></a
+        ><!----><a data-act="nav" href="/?view=galaxy" data-v="galaxy"
+          >Sternenkarte<!----><!----></a
+        ><!----><a data-act="nav" href="/?view=messages" data-v="messages"
+          >Nachrichten<!----><!----></a
+        ><!----><a data-act="nav" href="/?view=highscore" data-v="highscore"
+          >Highscore<!----><!----></a
+        ><!----><a data-act="nav" href="/?view=guilds" data-v="guilds"
+          >Gilden<!----><!----></a
+        ><!----><a
+          data-act="nav"
+          href="/?view=achievements"
+          data-v="achievements"
+          >Achievements<!----><span
+            class="badge"
+            role="img"
+            aria-label="Erfolg und Tagesbelohnung abholbar"
+            title="Erfolg und Tagesbelohnung abholbar"
+            >!</span
+          ><!----></a
+        ><!---->
+        <div class="sep"></div>
+        <!----><a data-act="nav" href="/?view=news" data-v="news"
+          >Neuigkeiten<!----><span
+            class="badge"
+            role="img"
+            aria-label="Neu in Version 26.11.22"
+            title="Neu in Version 26.11.22"
+            >!</span
+          ><!----></a
+        ><!----><a
+          data-act="nav"
+          href="/?view=help"
+          data-v="lexikon"
+          class="on"
+          aria-current="page"
+          >Lexicanum<!----><!----></a
+        ><a
+          data-act="nav"
+          href="/?view=help"
+          data-v="help"
+          class=""
+          aria-current="page"
+          >Hilfe &amp; Optionen<!----><!----></a
+        >
+      </nav>
+      <main id="view">
+        <h2>Lexicanum</h2>
+        <div class="lx">
+          <div class="lx-top">
+            <nav class="lx-crumb" aria-label="Pfad">
+              <a class="lx-a">Lexicanum</a> ›
+              <a class="lx-a">Häufige Fragen</a> ›
+              <b>Mehr Informationen über den Gegner</b>
+            </nav>
+            <label class="lx-search"
+              ><span class="lx-mag">⌕</span
+              ><input
+                type="search"
+                placeholder="Suche im Lexicanum …"
+                value=""
+                aria-label="Suche im Lexicanum"
+                style=""
+              /><kbd>/</kbd></label
+            >
+          </div>
+          <div class="lx-cols">
+            <article class="lx-art">
+              <h3 class="lx-title">
+                Wie bekomme ich mehr Informationen über den Gegner?
+              </h3>
+              <p class="lx-short">
+                <b>Kurz:</b> Schicke mehr
+                <a class="lx-a" data-lx="probe">Spähschädel</a> auf eine
+                <a class="lx-a" data-lx="m-spy">Auspex-Erkundung</a> und
+                erforsche die <a class="lx-a" data-lx="spy">Auspex-Lehre</a>.
+              </p>
+              <ol class="lx-steps">
+                <li>
+                  <b>Spähschädel bauen.</b> Sie brauchen
+                  <a class="lx-a" data-lx="yard">Orbitale Schiffsschmiede</a> 3,
+                  <a class="lx-a" data-lx="comb">Promethium-Brennkammer</a> 3,
+                  <a class="lx-a" data-lx="spy">Auspex-Lehre</a> 2.
+                </li>
+                <li>
+                  <b>Erkundung schicken.</b> Auf der Sternenkarte neben dem
+                  Planeten; wie viele Spähschädel ein Klick schickt, stellst du
+                  in „Hilfe &amp; Optionen“ ein.
+                </li>
+                <li>
+                  <b>Bericht lesen.</b> Rohstoffe siehst du immer. Für mehr
+                  zählt der Auspex-Wert: Flotte ab 2, Verteidigung ab 3, Gebäude
+                  ab 5, Forschung ab 7.
+                </li>
+                <li>
+                  <b>Zeigt der Bericht zu wenig?</b> Mehr Spähschädel schicken –
+                  oder die
+                  <a class="lx-a" data-lx="spy">Auspex-Lehre</a> erforschen: Ein
+                  Vorsprung zählt im Quadrat, eine Stufe mehr als das Ziel
+                  erspart dir also einen Spähschädel, zwei Stufen vier.
+                </li>
+              </ol>
+              <table class="lx-t">
+                <caption>
+                  Spähschädel, die du mindestens brauchst
+                </caption>
+                <thead>
+                  <tr>
+                    <th>Vorsprung in Auspex-Lehre</th>
+                    <th class="n">Rohstoffe</th>
+                    <th class="n">Flotte</th>
+                    <th class="n">Verteidigung</th>
+                    <th class="n">Gebäude</th>
+                    <th class="n">Forschung</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <th scope="row">−3 (Ziel führt)</th>
+                    <td class="n">1</td>
+                    <td class="n">11</td>
+                    <td class="n">12</td>
+                    <td class="n">14</td>
+                    <td class="n">16</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">−2 (Ziel führt)</th>
+                    <td class="n">1</td>
+                    <td class="n">6</td>
+                    <td class="n">7</td>
+                    <td class="n">9</td>
+                    <td class="n">11</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">−1 (Ziel führt)</th>
+                    <td class="n">1</td>
+                    <td class="n">3</td>
+                    <td class="n">4</td>
+                    <td class="n">6</td>
+                    <td class="n">8</td>
+                  </tr>
+                  <tr class="lx-cur">
+                    <th scope="row">gleich</th>
+                    <td class="n">1</td>
+                    <td class="n">2</td>
+                    <td class="n">3</td>
+                    <td class="n">5</td>
+                    <td class="n">7</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">+1 (du führst)</th>
+                    <td class="n">1</td>
+                    <td class="n">1</td>
+                    <td class="n">2</td>
+                    <td class="n">4</td>
+                    <td class="n">6</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">+2 (du führst)</th>
+                    <td class="n">1</td>
+                    <td class="n">1</td>
+                    <td class="n">1</td>
+                    <td class="n">1</td>
+                    <td class="n">3</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">+3 (du führst)</th>
+                    <td class="n">1</td>
+                    <td class="n">1</td>
+                    <td class="n">1</td>
+                    <td class="n">1</td>
+                    <td class="n">1</td>
+                  </tr>
+                </tbody>
+              </table>
+              <p class="lx-warn">
+                <b>Vorsicht:</b> Der Gegner erfährt von jeder Erkundung, und
+                eine große Flotte am Ziel schießt deine Spähschädel leichter ab.
+                Die Tabelle dazu steht bei der
+                <a class="lx-a" data-lx="spy">Auspex-Lehre</a>.
+              </p>
+              <h4>Später im Spiel</h4>
+              <p>
+                Auf einem <a class="lx-a" data-lx="rule-moon">Mond</a> zeigt die
+                <a class="lx-a" data-lx="phalanx">Auspex-Phalanx</a> die Flüge
+                fremder Planeten in Reichweite.
+              </p>
+              <h4>Verwandte Fragen</h4>
+              <ul class="lx-q">
+                <li>
+                  <a class="lx-a" data-lx="faq-noob"
+                    >Warum kann ich diesen Spieler nicht angreifen?</a
+                  >
+                </li>
+                <li>
+                  <a class="lx-a" data-lx="faq-debris"
+                    >Was bleibt nach einer Schlacht übrig?</a
+                  >
+                </li>
+              </ul>
+            </article>
+            <aside class="lx-side">
+              <div class="lx-toc">
+                <b>In dieser Antwort</b><a data-lx="probe">Spähschädel</a
+                ><a data-lx="spy">Auspex-Lehre</a
+                ><a data-lx="m-spy">Auspex-Erkundung</a
+                ><a data-lx="phalanx">Auspex-Phalanx</a>
+              </div>
+              <div class="lx-toc">
+                <b>Häufige Fragen</b
+                ><a class="on" data-lx="faq-info"
+                  >Wie bekomme ich mehr Informationen über den Gegner?</a
+                ><a class="" data-lx="faq-noob"
+                  >Warum kann ich diesen Spieler nicht angreifen?</a
+                ><a class="" data-lx="faq-slots"
+                  >Wie bekomme ich mehr Flottenslots?</a
+                ><a class="" data-lx="faq-debris"
+                  >Was bleibt nach einer Schlacht übrig?</a
+                ><a class="" data-lx="faq-colony"
+                  >Wie gründe ich eine Kolonie?</a
+                ><a class="" data-lx="faq-energy"
+                  >Warum fördert meine Mine weniger als angegeben?</a
+                >
+              </div>
+            </aside>
+          </div>
+        </div>
+      </main>
+    </div>
+    <nav id="tabbar" aria-label="Hauptmenü (Telefon)">
+      <!----><a data-act="nav" href="/?view=overview" data-v="overview"
+        ><!----><svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <circle cx="12" cy="12" r="6"></circle>
+          <ellipse
+            cx="12"
+            cy="12"
+            rx="11"
+            ry="3.6"
+            transform="rotate(-20 12 12)"
+          ></ellipse></svg
+        ><!----><span>Übersicht</span><!----><!----></a
+      ><a data-act="nav" href="/?view=buildings" data-v="buildings"
+        ><!----><svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <path d="M3 21h18M5 21V10l3-2V5h2v2l2-2 2 2V5h2v3l3 2v11"></path>
+          <path d="M10 21v-5h4v5"></path></svg
+        ><!----><span>Gebäude</span><!----><!----></a
+      ><a data-act="nav" href="/?view=fleet" data-v="fleet"
+        ><!----><svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <path d="M3 12l7-3 11 3-11 3z"></path>
+          <path d="M8 9.8L6 5l5 3.5M8 14.2L6 19l5-3.5"></path></svg
+        ><!----><span>Flotte</span><!----><!----></a
+      ><a data-act="nav" href="/?view=messages" data-v="messages"
+        ><!----><svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <rect x="3" y="5" width="18" height="14" rx="2"></rect>
+          <path d="M3.5 6l8.5 7 8.5-7"></path></svg
+        ><!----><span>Nachrichten</span><!----><!----></a
+      ><!----><button
+        type="button"
+        data-act="moreOpen"
+        aria-haspopup="dialog"
+        class="on"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <circle cx="5" cy="12" r="1.4"></circle>
+          <circle cx="12" cy="12" r="1.4"></circle>
+          <circle cx="19" cy="12" r="1.4"></circle></svg
+        ><!----><span>Mehr</span
+        ><span class="dot" role="img" aria-label="Neues unter Mehr"></span
+        ><!---->
+      </button>
+    </nav>
+    <dialog id="more" aria-labelledby="more-title">
+      <div class="sheet-handle" aria-hidden="true"></div>
+      <p id="more-title" class="sheet-title">Mehr</p>
+      <div id="more-list">
+        <!----><a data-act="nav" href="/?view=resources" data-v="resources"
+          ><span>Rohstoffe</span
+          ><svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <path d="M9 5l7 7-7 7"></path></svg
+          ><!----><!----><!----></a
+        ><a data-act="nav" href="/?view=research" data-v="research"
+          ><span>Forschung</span
+          ><svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <path d="M9 5l7 7-7 7"></path></svg
+          ><!----><!----><!----></a
+        ><a data-act="nav" href="/?view=shipyard" data-v="shipyard"
+          ><span>Schiffsschmiede</span
+          ><svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <path d="M9 5l7 7-7 7"></path></svg
+          ><!----><!----><!----></a
+        ><a data-act="nav" href="/?view=defense" data-v="defense"
+          ><span>Verteidigung</span
+          ><svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <path d="M9 5l7 7-7 7"></path></svg
+          ><!----><!----><!----></a
+        ><a data-act="nav" href="/?view=galaxy" data-v="galaxy"
+          ><span>Sternenkarte</span
+          ><svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <path d="M9 5l7 7-7 7"></path></svg
+          ><!----><!----><!----></a
+        ><a data-act="nav" href="/?view=highscore" data-v="highscore"
+          ><span>Highscore</span
+          ><svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <path d="M9 5l7 7-7 7"></path></svg
+          ><!----><!----><!----></a
+        ><a data-act="nav" href="/?view=guilds" data-v="guilds"
+          ><span>Gilden</span
+          ><svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <path d="M9 5l7 7-7 7"></path></svg
+          ><!----><!----><!----></a
+        ><a data-act="nav" href="/?view=achievements" data-v="achievements"
+          ><span>Achievements</span
+          ><svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <path d="M9 5l7 7-7 7"></path></svg
+          ><!----><!----><span
+            class="badge"
+            role="img"
+            aria-label="Erfolg und Tagesbelohnung abholbar"
+            title="Erfolg und Tagesbelohnung abholbar"
+            >!</span
+          ><!----></a
+        ><a data-act="nav" href="/?view=news" data-v="news"
+          ><span>Neuigkeiten</span
+          ><svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <path d="M9 5l7 7-7 7"></path></svg
+          ><!----><!----><span
+            class="badge"
+            role="img"
+            aria-label="Neu in Version 26.11.22"
+            title="Neu in Version 26.11.22"
+            >!</span
+          ><!----></a
+        ><a
+          data-act="nav"
+          href="/?view=help"
+          data-v="lexikon"
+          class="on"
+          aria-current="page"
+          ><span>Lexicanum</span
+          ><svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <path d="M9 5l7 7-7 7"></path></svg
+          ><!----><!----><!----></a
+        ><a
+          data-act="nav"
+          href="/?view=help"
+          data-v="help"
+          class=""
+          aria-current="page"
+          ><span>Hilfe &amp; Optionen</span
+          ><svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <path d="M9 5l7 7-7 7"></path></svg
+          ><!----><!----><!----></a
+        >
+      </div>
+    </dialog>
+    <div id="modal" role="dialog" aria-modal="true">
+      <div class="in" id="modalIn"></div>
+    </div>
+  </body>
+</html>
