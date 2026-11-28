@@ -102,6 +102,10 @@ export function chatToSee(
 ): number | null {
   const g = state.guilds;
   if (g?.own?.status !== 'member' || !g.chat?.unread) return null;
-  if (!shown && (view !== 'guilds' || g.own.id !== guild)) return null;
-  return g.chat.messages.at(-1)?.id ?? null;
+  const onPage = view === 'guilds' && g.own.id === guild;
+  return shown || onPage ? newestOf(g.chat.messages) : null;
 }
+
+/** The id of the newest message, or null for an empty chat. */
+const newestOf = (messages: readonly { id: number }[]): number | null =>
+  messages.at(-1)?.id ?? null;
