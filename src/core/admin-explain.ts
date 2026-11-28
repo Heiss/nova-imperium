@@ -179,6 +179,25 @@ export function ownValue(
 }
 
 /**
+ * The values of the columns: those of `columnValues` and the current value
+ * (`fixed` of them), then the value of the admin's own, a column more
+ * computed as every other (#358, part 2).
+ */
+function columnsOf(
+  s: Explained,
+  min: number,
+  max: number,
+  u: Universe,
+  round: RoundRules,
+  own: number | undefined,
+): { values: number[]; fixed: number } {
+  const values = [...columnValues(min, max), currentOf(s, u, round)];
+  const fixed = values.length;
+  if (own !== undefined && s.explain?.own) values.push(own);
+  return { values, fixed };
+}
+
+/**
  * The table of an explanation, or null for a setting without one: a column
  * per value of `columnValues` and one for the current value. A column the
  * rules between settings refuse shows `NONE`; a table whose other cells are
@@ -194,12 +213,7 @@ export function explainTable(
 ): Extract<Block, { t: 'table' }> | null {
   const rows = s.explain?.rows;
   if (!rows?.length || s.min === undefined || s.max === undefined) return null;
-  const current = currentOf(s, u, round);
-  const values = [...columnValues(s.min, s.max), current];
-  const fixed = values.length;
-  // The value of the admin's own is a column more, computed as every other
-  // (#358, part 2); whether the table says anything asks the others only.
-  if (own !== undefined && s.explain?.own) values.push(own);
+  const { values, fixed } = columnsOf(s, s.min, s.max, u, round, own);
   const at = values.map((v) => withValue(s, u, round, v));
   const open = at.map((x) => agreed(x, settings));
   const cells = rows.map((row) =>

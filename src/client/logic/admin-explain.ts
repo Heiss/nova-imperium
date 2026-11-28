@@ -35,7 +35,7 @@ export const openedAt = (opener: string | null, place: 'u' | 'r'): boolean =>
 export const OWN_FIELD_ID = 'axp-own';
 
 /** The field „Eigener Wert“ of a setting with a formula behind it (#358, part 2). */
-export interface OwnField {
+interface OwnField {
   label: string;
   min: number;
   max: number;
@@ -80,20 +80,25 @@ export function explainPage(
       head: table.head,
       rows: table.rows.map((r) => r.cells.map(String)),
     },
-    own:
-      table && setting.explain.own
-        ? {
-            label: OWN_LABEL,
-            min: setting.min!,
-            max: setting.max!,
-            step: setting.step ?? 1,
-            error:
-              own && 'error' in own
-                ? own.error
-                : value === undefined
-                  ? null
-                  : ownRefused(setting, s.cfg, s.round, value),
-          }
-        : null,
+    own: table && setting.explain.own ? ownField(setting, s, own) : null,
+  };
+}
+
+/** The field „Eigener Wert“ of `setting`, with why its typed value adds no column, or one of none. */
+function ownField(
+  setting: Explained,
+  s: Pick<GameState, 'cfg' | 'round'>,
+  own: ReturnType<typeof ownValue>,
+): OwnField {
+  return {
+    label: OWN_LABEL,
+    min: setting.min!,
+    max: setting.max!,
+    step: setting.step ?? 1,
+    error: !own
+      ? null
+      : 'error' in own
+        ? own.error
+        : ownRefused(setting, s.cfg, s.round, own.value),
   };
 }
