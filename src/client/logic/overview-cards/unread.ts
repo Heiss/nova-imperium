@@ -6,6 +6,7 @@ export const overviewLines: readonly OverviewLines[] = [
   {
     card: 'ready',
     order: 20,
+    keys: ['unread'],
     lines: ({ s }) => {
       const fresh = unread(s.reports, s.me.readAt);
       return fresh

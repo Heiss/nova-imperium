@@ -12,6 +12,7 @@ export const overviewLines: readonly OverviewLines[] = [
   {
     card: 'ready',
     order: 30,
+    keys: ['idle', 'more-idle'],
     lines: ({ s }) => {
       const places = (s.idle ?? []).flatMap((id) => {
         const p = s.galaxy.find((x) => x.id === id);

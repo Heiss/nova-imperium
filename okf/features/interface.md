@@ -274,14 +274,18 @@ Up to 760 px only; the desktop stays as it is (D6).
 * **[V]** The lines of „Achtung“ and „Bereit“ register themselves (#426 part
   4; owner, 2026-11-26, 193b; the coordinator's choices of 2026-11-27): each
   source is a file of `logic/overview-cards/` that exports `overviewLines`,
-  entries of `card`, `order` and `lines(v)` (`attacks.ts` 10 and `energy.ts`
+  entries of `card`, `order`, `keys` (the kinds of the keys of its lines, a
+  key being `<kind>` or `<kind>:<id>`) and `lines(v)` (`attacks.ts` 10 and `energy.ts`
   20 in „Achtung“; `reward.ts` 10, `unread.ts` 20 and `idle.ts` 30 in
   „Bereit“), with its constants (`MOST_ATTACKS`, `MOST_IDLE`) and texts;
   `scripts/gen-features.ts` writes `overview-cards/lines.gen.ts`, and
-  `overview-cards.ts` names no source and stops the start at a card and an
-  order defined twice. „Läuft“ stays `runningItems`: it has one source, the
-  orders of the place. The cards were compared before and after on 400
-  generated states, byte for byte.
+  `overview-cards.ts` names no source and stops the start, with the file
+  named, at an unknown card, a missing order, `lines` or `keys`, and at a
+  card and an order or a kind of key in a card defined twice (the review of
+  #448). „Läuft“ stays `runningItems`: it has one source, the orders of the
+  place. `overview-cards-reference.test.ts` compares both cards with a
+  frozen copy of the code before #448 on 400 generated states, line for
+  line, and checks that every key drawn is of a kind its source declares.
 * **[V]** „Läuft“ (always shown): the activities of the shown place, each
   with its countdown (the clock counts it down) and a bar: building and
   research over their whole length, the shipyard over the unit that is being

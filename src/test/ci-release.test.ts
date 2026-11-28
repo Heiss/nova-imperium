@@ -290,6 +290,15 @@ describe('Detect changes: the mutation jobs of a pull request (#309)', () => {
     expect(written).toBe('');
   });
 
+  it('runs the image checks when the helper of the static QEMU changes, not for the release script (#449, #456)', () => {
+    expect(field(detectIn(['scripts/static-qemu.sh']).written, 'image')).toBe(
+      'true',
+    );
+    expect(field(detectIn(['scripts/release-noavx.sh']).written, 'image')).toBe(
+      'false',
+    );
+  });
+
   it('fails closed when the check itself fails (#431)', () => {
     const { code, out, written } = detectIn(['src/core/economy.ts'], {
       PR_BASE: '0123456789abcdef0123456789abcdef01234567',
@@ -1303,7 +1312,8 @@ describe('the scan of the release image (owner, 2026-11-24, 79a)', () => {
 
   it('lets the aliases move only after the scan passed', () => {
     const aliases = job('aliases');
-    expect(aliases).toContain('    needs: [image, scan]\n');
+    // The check on a CPU without AVX must pass too (#456).
+    expect(aliases).toContain('    needs: [image, scan, noavx]\n');
     // No always() or failure(): a failed scan skips the aliases.
     expect(aliases).not.toMatch(/always\(\)|failure\(\)|!cancelled\(\)/);
   });

@@ -250,7 +250,7 @@ jobs:
             esac
             # What can change the image, its start, the stack or the upgrade.
             case "$file" in
-              Dockerfile|.dockerignore|compose*.yaml|docker/*|package.json|pnpm-lock.yaml|pnpm-workspace.yaml|.node-version|scripts/gen-features.ts) image=true ;;
+              Dockerfile|.dockerignore|compose*.yaml|docker/*|package.json|pnpm-lock.yaml|pnpm-workspace.yaml|.node-version|scripts/gen-features.ts|scripts/static-qemu.sh) image=true ;;
               src/server/db/*|src/server/main.ts|src/server/server.ts|src/server/config.ts|src/server/cli.ts|src/server/maintenance.ts) image=true ;;
               .github/workflows/ci.yml) image=true ;;
             esac
@@ -839,14 +839,10 @@ jobs:
         env:
           COMPOSE_FILE: compose.yaml:compose.demo.yaml:compose.noavx.yaml
         run: |
-          sudo apt-get update -q || true
-          # Newer Ubuntu ships the static binaries in qemu-user, older ones in
-          # qemu-user-static; the binary must be static to run in the image.
-          sudo apt-get install -y -q --no-install-recommends qemu-user \
-            || sudo apt-get install -y -q --no-install-recommends qemu-user-static
-          NOVA_QEMU=$(command -v qemu-x86_64-static || command -v qemu-x86_64)
-          if ! ldd "$NOVA_QEMU" 2>&1 | grep -q -E 'statically linked|not a dynamic executable'; then
-            echo "::error::$NOVA_QEMU is not a static binary"; exit 1
+          # The static QEMU binary, one rule with the release (#456): ldd's
+          # words decide, not its exit code (scripts/static-qemu.sh).
+          if ! NOVA_QEMU=$(scripts/static-qemu.sh); then
+            echo "::error::No static QEMU binary for the check without AVX."; exit 1
           fi
           export NOVA_QEMU
           docker compose down --volumes
