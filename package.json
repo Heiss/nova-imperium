@@ -42,7 +42,7 @@
     "web-push": "4.0.0"
   },
   "devDependencies": {
-    "@axe-core/playwright": "4.14.0",
+    "@axe-core/playwright": "4.14.1",
     "@eslint/js": "^10.0.1",
     "@playwright/test": "1.65.1",
     "@stryker-mutator/core": "10.1.1",

@@ -211,8 +211,8 @@ importers:
         version: 4.0.0(supports-color@7.2.0)
     devDependencies:
       '@axe-core/playwright':
-        specifier: 4.14.0
-        version: 4.14.0(playwright-core@1.65.1)
+        specifier: 4.14.1
+        version: 4.14.1(playwright-core@1.65.1)
       '@eslint/js':
         specifier: ^10.0.1
         version: 10.0.1(eslint@10.15.0(jiti@2.7.0)(supports-color@7.2.0))
@@ -300,8 +300,8 @@ importers:
 
 packages:
 
-  '@axe-core/playwright@4.14.0':
-    resolution: {integrity: sha512-SGUhG5PIHd2eMdpgBF2PyQLOhX+qyDR2PT4cmoS4Qk2ak+jX/rrSvst9l0PGv5WTHolKpUMvVmoHpr4cZgf1RQ==}
+  '@axe-core/playwright@4.14.1':
+    resolution: {integrity: sha512-cSN1ijrWLnlOof22sPN4RtWGSoPpt7GzOVyOKomyhnPsy1fPNoRdBiJAUziuCRs8KoK50kKufiMUFt7itAuwOg==}
     engines: {node: '>=22.12.0'}
     peerDependencies:
       playwright-core: '>= 1.0.0'
@@ -1602,8 +1602,8 @@ packages:
   ast-v8-to-istanbul@1.0.7:
     resolution: {integrity: sha512-kFL68AG6ajd8fg248zwM9GQrUWEp79gsmjum34OEXjs4yHuUMZfYKwOLW9GMmB4oNvVrj+EAGxsP7ye2UR9UlA==}
 
-  axe-core@4.14.0:
-    resolution: {integrity: sha512-9WTZxEjsZ7b13TH8JPmbV2z8CHbl80/2hm3XPEG4JgNdQLK81IBRXmSxHfMAOkSqQeRxT/0dwNDz2GOm3zzpcQ==}
+  axe-core@4.14.1:
+    resolution: {integrity: sha512-FHfa+lmNjQZfJz1q8wKqIDwC6DExcHt/pkjNQb09a3NPjCKg2rhu5qb2S4r76ASyFNNtuFooJpZe37OgudVGtQ==}
     engines: {node: '>=4'}
 
   axobject-query@4.1.0:
@@ -2946,9 +2946,9 @@ packages:
 
 snapshots:
 
-  '@axe-core/playwright@4.14.0(playwright-core@1.65.1)':
+  '@axe-core/playwright@4.14.1(playwright-core@1.65.1)':
     dependencies:
-      axe-core: 4.14.0
+      axe-core: 4.14.1
       playwright-core: 1.65.1
 
   '@babel/code-frame@8.0.6':
@@ -4183,7 +4183,7 @@ snapshots:
       estree-walker: 3.0.3
       js-tokens: 10.0.0
 
-  axe-core@4.14.0: {}
+  axe-core@4.14.1: {}
 
   axobject-query@4.1.0: {}
 
