@@ -129,7 +129,8 @@ number of ships could be read).
   category of another player; the own points stay (Übersicht „Punkte: X“
   without a place; the Lexikon hints as before). The Highscore page and its
   menu entry are hidden, so is its „Stand“; the ranks of the Sternenkarte
-  and the points and point sums of the guilds go away. The final ranking and
+  and the points and point sums of the guilds go away, with their „Stand“
+  (#494). The final ranking and
   the round end are computed in full.
 * **[E]** The „(n)“ stays in every mode (179a); the round archive shows
   finished rounds in full (178a).
