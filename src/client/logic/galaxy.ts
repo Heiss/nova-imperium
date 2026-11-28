@@ -8,7 +8,7 @@
 // button „Bergung“ are data (`GalaxyMark`, the action kind `harvest`) that the
 // component draws (#337).
 import { canFly } from '../../core/catalog.ts';
-import { protectionOf } from '../../core/galaxy-shown.ts';
+import { shownProtected } from '../../core/galaxy-shown.ts';
 import { highscoreShows, SHOWS } from '../../core/highscore-categories.ts';
 import { distance, fleetSpeed, flightMs } from '../../core/flight.ts';
 import { expeditionLevel } from '../../core/expedition.ts';
@@ -315,10 +315,9 @@ function place(
     // No rank while the highscore shows nothing (#422, 182a).
     rank: rk ? String(rk[pl.owner] ?? '-') : '',
     // By the exact points of the server for the shown system (151a); none
-    // until its list is there, never by the stored pass.
-    protected:
-      !mine &&
-      (protectionOf(s.protectedOwners, pl)?.includes(pl.owner) ?? false),
+    // until its list is there, never by the stored pass; none where a
+    // foreign fleet holds (#440).
+    protected: !mine && shownProtected(s.protectedOwners, pl),
     vacation: !!s.players[pl.owner]?.vacation,
     actions,
     sheet: sheetOf(v, pl.id, `${name} ${coords(pl)}`, pl, actions),
