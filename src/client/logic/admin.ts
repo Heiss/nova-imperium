@@ -365,9 +365,10 @@ function rowSections(
       out.push(last);
     }
     // A legend that repeats the heading of its group goes; the heading names
-    // the fieldset instead (owner, 2026-11-22).
+    // the fieldset instead (owner, 2026-11-22). A group row always has a
+    // legend, so a row without a heading keeps it.
     last.rows.push(
-      row.kind === 'group' && h !== null && row.legend === h
+      row.kind === 'group' && row.legend === h
         ? { ...row, legend: null, labelledBy: last.id! }
         : row,
     );
