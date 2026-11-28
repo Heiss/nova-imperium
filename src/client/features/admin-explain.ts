@@ -15,6 +15,7 @@ export function toggleExplain(
   const same = adminExplain.key === key && adminExplain.opener === opener;
   adminExplain.key = same ? null : key;
   adminExplain.opener = same ? null : opener;
+  adminExplain.own = '';
 }
 
 export const clientFeature = {

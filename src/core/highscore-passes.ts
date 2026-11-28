@@ -41,6 +41,7 @@ export const roundSettings = [
     explain: {
       text: 'Wie oft am Tag die Highscore neu berechnet wird, in gleichen Abständen. Beim Wert null in Echtzeit. Zwischen zwei Durchgängen sehen alle den gespeicherten Stand.',
       rows: PASS_ROWS,
+      own: true,
     },
     name: 'highscorePasses',
     label: 'Highscore-Aktualisierungen pro Tag (0 = Echtzeit)',

@@ -62,6 +62,7 @@ export const roundSettings = [
     explain: {
       text: 'Die höchste Chance auf einen Mond nach einem Kampf, in Prozent; zugleich die Grenze für „Mond anlegen“ des Admins. Eine Änderung gilt ab dem nächsten Kampf.',
       rows: MOON_ROWS,
+      own: true,
     },
     name: 'moonChanceMax',
     label: 'Mondchance höchstens (%)',
@@ -77,6 +78,7 @@ export const roundSettings = [
     explain: {
       text: 'Wie viel Adamant und Psikristall im Trümmerfeld je Prozent Mondchance nötig ist. Eine Änderung gilt ab dem nächsten Kampf.',
       rows: MOON_ROWS,
+      own: true,
     },
     name: 'moonPerPercent',
     label: 'Rohstoffe je 1 % Mondchance',

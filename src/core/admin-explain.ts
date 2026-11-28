@@ -10,6 +10,7 @@ import { duration, nameOf, number } from './lexicon/say.ts';
 import type { Block } from './lexicon/types.ts';
 import {
   ROUND_SETTINGS,
+  rangeError,
   type ExplainCell,
   type RoundRules,
   type RoundSetting,
@@ -29,6 +30,10 @@ export interface Explained {
   min?: number;
   max?: number;
   choices?: readonly { value: number; label: string }[];
+  /** The step of its number field, when it is not 1 (#433). */
+  step?: number;
+  /** The words of the server for a value it refuses, for a setting of the round that has its own. */
+  refusal?: string;
 }
 
 const fromSpec = (s: UniverseSpec): Explained => ({
@@ -38,6 +43,7 @@ const fromSpec = (s: UniverseSpec): Explained => ({
   min: s.min,
   max: s.max,
   ...(s.choices ? { choices: s.choices } : {}),
+  ...(s.step ? { step: s.step } : {}),
 });
 
 /** The name of a round setting stored under `key`, if it is one. */
@@ -57,7 +63,12 @@ export function explainedSettings(
 ): Explained[] {
   const rows = specs.map((s) => {
     const name = roundName(s.key, settings);
-    return { ...fromSpec(s), ...(name ? { name } : {}) };
+    const refusal = settings.find((r) => r.key === s.key)?.refusal;
+    return {
+      ...fromSpec(s),
+      ...(name ? { name } : {}),
+      ...(refusal ? { refusal } : {}),
+    };
   });
   const known = new Set(rows.map((r) => r.key));
   const switches = settings
@@ -120,17 +131,20 @@ const withValue = (
 type At = ReturnType<typeof withValue>;
 
 /**
- * Whether the values of a column agree with each other by the rules between
- * settings (`agrees`, #237), as the server checks them: a column the server
- * refuses shows no values (PR #471).
+ * The settings whose rule between settings (`agrees`, #237) refuses the
+ * values of a column, as the server checks them: a column the server refuses
+ * shows no values (PR #471).
  */
-function agreed(x: At, settings: readonly RoundSetting[]): boolean {
+function refusedBy(x: At, settings: readonly RoundSetting[]): RoundSetting[] {
   const stored = x.u as unknown as Record<string, number | undefined>;
   const byKey = Object.fromEntries(
     settings.map((r) => [r.key, stored[r.key] ?? x.round[r.name]!]),
   );
-  return settings.every((r) => !r.agrees || r.agrees(byKey[r.key]!, byKey));
+  return settings.filter((r) => r.agrees && !r.agrees(byKey[r.key]!, byKey));
 }
+
+const agreed = (x: At, settings: readonly RoundSetting[]): boolean =>
+  refusedBy(x, settings).length === 0;
 
 /** A cell as the table shows it. */
 export function cellText(cell: ExplainCell): string {
@@ -146,6 +160,55 @@ export const NONE = '–';
 /** The word after the current value in the head of a table [V]. */
 export const NOW = 'jetzt';
 
+/** The words after the value the admin typed in the head of a table [V]. */
+export const OWN = 'eigener Wert';
+
+/** The label of the field for a value of the admin's own [V]. */
+export const OWN_LABEL = 'Eigener Wert';
+
+/**
+ * A value the admin typed for a setting with `own` (#358, part 2): the field
+ * follows the rules of the setting's own field, so a value that is no whole
+ * number of its range is refused with the words of the server (the
+ * setting's own refusal, else `rangeError`) and gets no column; an empty
+ * field is none.
+ */
+export function ownValue(
+  s: Explained,
+  raw: string,
+): { value: number } | { error: string } | null {
+  if (!s.explain?.own || s.min === undefined || s.max === undefined)
+    return null;
+  if (raw.trim() === '') return null;
+  const value = Number(raw);
+  return Number.isInteger(value) && value >= s.min && value <= s.max
+    ? { value }
+    : // The words of the dialog „Neue Runde“: its own, else the range (#214).
+      {
+        error:
+          s.refusal ?? rangeError({ label: s.label, min: s.min, max: s.max }),
+      };
+}
+
+/**
+ * The values of the columns: those of `columnValues` and the current value
+ * (`fixed` of them), then the value of the admin's own, a column more
+ * computed as every other (#358, part 2).
+ */
+function columnsOf(
+  s: Explained,
+  min: number,
+  max: number,
+  u: Universe,
+  round: RoundRules,
+  own: number | undefined,
+): { values: number[]; fixed: number } {
+  const values = [...columnValues(min, max), currentOf(s, u, round)];
+  const fixed = values.length;
+  if (own !== undefined && s.explain?.own) values.push(own);
+  return { values, fixed };
+}
+
 /**
  * The table of an explanation, or null for a setting without one: a column
  * per value of `columnValues` and one for the current value. A column the
@@ -158,30 +221,49 @@ export function explainTable(
   u: Universe,
   round: RoundRules,
   settings: readonly RoundSetting[] = ROUND_SETTINGS,
+  own?: number,
 ): Extract<Block, { t: 'table' }> | null {
   const rows = s.explain?.rows;
   if (!rows?.length || s.min === undefined || s.max === undefined) return null;
-  const current = currentOf(s, u, round);
-  const values = [...columnValues(s.min, s.max), current];
+  const { values, fixed } = columnsOf(s, s.min, s.max, u, round, own);
   const at = values.map((v) => withValue(s, u, round, v));
   const open = at.map((x) => agreed(x, settings));
   const cells = rows.map((row) =>
     at.map((x, i) => (open[i] ? cellText(row.cell(x)) : NONE)),
   );
-  const shown = cells.flat().filter((c, i) => open[i % at.length]);
+  const shown = cells.flatMap((r) =>
+    r.slice(0, fixed).filter((_, i) => open[i]),
+  );
   if (new Set(shown).size < 2) return null;
+  const name = (v: number, i: number): string =>
+    i === fixed - 1
+      ? `${valueLabel(s, v)} (${NOW})`
+      : i === fixed
+        ? `${valueLabel(s, v)} (${OWN})`
+        : valueLabel(s, v);
   return {
     t: 'table',
-    head: [
-      s.label,
-      ...values.map((v, i) =>
-        i === values.length - 1
-          ? `${valueLabel(s, v)} (${NOW})`
-          : valueLabel(s, v),
-      ),
-    ],
+    head: [s.label, ...values.map(name)],
     rows: rows.map((row, r) => ({
       cells: [row.label(nameOf), ...cells[r]!],
     })),
   };
+}
+
+/**
+ * Why the rules between settings refuse the value of the admin's own, in the
+ * words of each refusing setting, or null: its column then shows none. The
+ * words are those the server answers a save with.
+ */
+export function ownRefused(
+  s: Explained,
+  u: Universe,
+  round: RoundRules,
+  own: number,
+  settings: readonly RoundSetting[] = ROUND_SETTINGS,
+): string | null {
+  const words = refusedBy(withValue(s, u, round, own), settings).map(
+    (r) => r.refusal!,
+  );
+  return words.length ? [...new Set(words)].join(' ') : null;
 }

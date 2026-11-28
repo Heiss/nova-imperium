@@ -265,8 +265,39 @@ universe settings) and their ranges are not decided yet.
 * **[U]** Open: what happens to a level of the Kolonialverwaltung that is
   in the research queue when the admin switches the research off (only
   the start of a research is checked); its explanation says nothing on it.
-* **[U]** Part 2: tables with values the admin types in, for the settings
-  with a formula behind them.
+* **[E]** (owner, 2026-11-22, point 4) The tables may be dynamic: the
+  admin types values of his own, the field follows the rules of the
+  setting's input field, and the table shows what would follow.
+* **[V]** (2026-11-27, accepted 2026-11-28) Dynamic only for the settings
+  with a formula behind them; one typed value, one column more.
+* **[V]** Built (part 2):
+  * The rule: a setting is dynamic when the values that follow change
+    with it by an arithmetic function of `src/core`; one that is only
+    compared with a threshold, or has two or a handful of values, keeps
+    its static table. `own: true` beside its registry entry marks the 23:
+    the speed, the base storage, the extra fields, the refund and the time
+    of the demolition, the extra expedition slots and the hours of an
+    expedition, the six ratios, the step, the drift, the fee and the fee
+    step of the market, the three numbers of the planet limit, the passes
+    of the highscore and the two numbers of the moon chance. Static (11):
+    the positions, the four activity and inactivity thresholds, the held
+    fleets in the spy report, the three thresholds of the recognition of
+    foreign fleets, the speed switch of the expeditions and the switch of
+    the colony research. `src/core/admin-explain.test.ts` pins the split.
+  * The field „Eigener Wert“ [V] (`OWN_LABEL`) stands under the table while
+    the table is shown, a number field with the min, max and step of the
+    setting. An empty field adds nothing. A value that is no whole number
+    of the range adds no column and shows the server's words
+    (`rangeError`, moved to `src/core/round.ts`). A value the rules
+    between settings refuse (`agrees`, also a step) gets the column „–“
+    and the words of each refusing setting (`ownRefused`).
+  * The column „<Wert> (eigener Wert)“ [V] (`OWN`) after „(jetzt)“ is
+    computed as every other column (`explainTable`, its argument `own`);
+    whether a table is shown asks the other columns only.
+  * The value lives in the state of the panel (`adminExplain.own`): never
+    saved nor sent, gone when the panel closes or another „?“ opens it.
+  * The changelog fragment of part 1 got the clause „und lässt eigene
+    Werte vorab durchrechnen“ [V].
 
 ## The registry of the round settings (#283)
 

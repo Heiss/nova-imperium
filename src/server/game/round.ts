@@ -3,6 +3,7 @@
 // round checks and stores them. A feature adds its entry there, not here.
 import {
   ROUND_SETTINGS,
+  rangeError,
   type RoundNumber,
   type RoundRules,
   type RoundSetting,
@@ -47,12 +48,9 @@ export function requireGuilds(ctx: Ctx): void {
   if (!guildsOn(ctx)) fail(GUILDS_OFF);
 }
 
-/** The refusal of a value outside its range, as the universe settings word it (#214). */
-export const rangeError = (s: {
-  label: string;
-  min: number;
-  max: number;
-}): string => `${s.label}: ganze Zahl von ${s.min} bis ${s.max}.`;
+// The refusal of a value outside its range lives in the core, so the
+// explanations of the admin panel word a typed value the same (#358).
+export { rangeError };
 
 /**
  * The refusal of the refused entries: their own wording, each once, else the

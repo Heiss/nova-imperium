@@ -1,6 +1,13 @@
 // The explanation of a setting as the panel shows it (#358).
 import { describe, expect, it } from 'vitest';
-import { explainedSettings, explainTable } from '../../core/admin-explain.ts';
+import {
+  explainedSettings,
+  explainTable,
+  NONE,
+  OWN,
+  OWN_LABEL,
+} from '../../core/admin-explain.ts';
+import { rangeError, ROUND_SETTINGS } from '../../core/round.ts';
 import { DEFAULT_UNIVERSE } from '../../core/universe.ts';
 import { roundDefaults } from '../../test/fixtures.ts';
 import {
@@ -8,6 +15,9 @@ import {
   explainButtonId,
   explainPage,
   openedAt,
+  OWN_FIELD_ID,
+  typedOf,
+  UNREADABLE,
 } from './admin-explain.ts';
 import type { GameState } from './types.ts';
 
@@ -48,5 +58,84 @@ describe('the explanation of a setting (#358)', () => {
     expect(openedAt('axqr_roundGuilds', 'r')).toBe(true);
     expect(openedAt('x_axqr_roundGuilds', 'r')).toBe(false);
     expect(openedAt(null, 'u')).toBe(false);
+  });
+});
+
+describe('the field „Eigener Wert“ (#358, part 2)', () => {
+  it('stands under the table of a setting with a formula, with the rules of its field', () => {
+    const page = explainPage('speed', s)!;
+    expect(OWN_FIELD_ID).toBe('axp-own');
+    expect(page.own).toEqual({
+      label: OWN_LABEL,
+      min: 1,
+      max: 100,
+      step: 1,
+      error: null,
+    });
+    // The step of the moon's setting (#433).
+    expect(explainPage('roundMoonPerPercent', s)!.own!.step).toBe(10_000);
+  });
+
+  it('is missing for a setting without a formula, without a table or without a range', () => {
+    expect(explainPage('positions', s)!.own).toBeNull();
+    expect(explainPage('galaxies', s)!.own).toBeNull();
+    expect(explainPage('roundGuilds', s)!.own).toBeNull();
+    // The limit of planets is off at the defaults: no table, no field.
+    expect(explainPage('roundColonyPerLevel', s)!.own).toBeNull();
+  });
+
+  it('adds the column of a typed value of the setting, nothing for an empty field', () => {
+    const plain = explainPage('speed', s)!;
+    expect(explainPage('speed', s, '')).toEqual(plain);
+    const typed = explainPage('speed', s, '7')!;
+    expect(typed.table!.head).toEqual([...plain.table!.head, `7 (${OWN})`]);
+    expect(
+      typed.table!.rows.every(
+        (r) => r.length === plain.table!.rows[0]!.length + 1,
+      ),
+    ).toBe(true);
+    expect(typed.own!.error).toBeNull();
+  });
+
+  it('refuses a value outside the range with the words of the server, and adds no column', () => {
+    const plain = explainPage('speed', s)!;
+    const wrong = explainPage('speed', s, '0')!;
+    const speed = explainedSettings().find((x) => x.key === 'speed')!;
+    expect(wrong.own!.error).toBe(rangeError(speed as never));
+    expect(wrong.table).toEqual(plain.table);
+  });
+
+  it('shows none and the refusal of a rule between settings', () => {
+    const on = {
+      ...s,
+      cfg: { ...s.cfg, roundColonyBase: 5, roundColonyResearch: 1 },
+    } as typeof s;
+    const page = explainPage('roundColonyBase', on, '0')!;
+    expect(page.table!.rows.map((r) => r.at(-1))).toEqual(
+      page.table!.rows.map(() => NONE),
+    );
+    expect(page.own!.error).toBe(
+      ROUND_SETTINGS.find((r) => r.key === 'roundColonyResearch')!.refusal,
+    );
+  });
+
+  it('takes a text the number field cannot read for a refused value, not for an empty field (PR #476)', () => {
+    const read = (value: string, badInput: boolean) =>
+      typedOf({ value, validity: { badInput } });
+    expect(read('7', false)).toBe('7');
+    expect(read('', false)).toBe('');
+    // „1e“, „1,5“ or a lone „-“: the field's value is empty, its input bad.
+    expect(read('', true)).toBe(UNREADABLE);
+    const speed = explainedSettings().find((x) => x.key === 'speed')!;
+    const page = explainPage('speed', s, read('', true))!;
+    expect(page.own!.error).toBe(rangeError(speed as never));
+    expect(page.table).toEqual(explainPage('speed', s)!.table);
+  });
+
+  it('refuses with the setting’s own words where the round has them (the moon’s step, PR #476)', () => {
+    const moon = ROUND_SETTINGS.find((r) => r.key === 'roundMoonPerPercent')!;
+    expect(explainPage('roundMoonPerPercent', s, '1')!.own!.error).toBe(
+      moon.refusal,
+    );
   });
 });
