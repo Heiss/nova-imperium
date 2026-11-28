@@ -238,12 +238,21 @@ universe settings) and their ranges are not decided yet.
   * The columns span the whole range of the setting: a value that means
     „unlimited“ or „off“ (0) is its minimum and shows as such
     („unbegrenzt“, „Echtzeit“).
+  * A column whose values the rules between settings refuse (`agrees`,
+    e.g. the colony research with no base) shows „–“. A table whose other
+    cells are all the same says nothing and is left out, so the text stands
+    alone: the tables of the colony research, its levels and its maximum
+    while the limit of planets is off, as at the defaults (PR #471).
   * The „?“ stands after the label of each row of „Universum“
     (`axqu_<key>`) and after each field of „Neue Runde“ (`axqr_<key>`);
     its name is „Erklärung“. The panel (`AdminExplainPanel.svelte`) uses
-    the classes of the Lexicanum's panel, stands over the dialog, takes the
-    whole width on a phone, closes with Esc and „Schließen“ and gives the
-    focus back to its „?“.
+    the classes of the Lexicanum's panel, takes the whole width on a phone,
+    closes with Esc and „Schließen“ and gives the focus back to its „?“.
+    One stands in the view „Admin“, one inside the dialog „Neue Runde“, so
+    a screen reader reads it as part of the modal dialog; Esc closes only
+    the panel, never the dialog under it. It takes the focus when it opens,
+    not on a new state of the server, and closes with its view or dialog
+    (PR #471).
   * No switch: the admin panel is part of the core
     (okf/ops/feature-switches.md).
   * Text only, without a table: the settings without values that follow
