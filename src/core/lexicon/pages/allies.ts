@@ -165,6 +165,10 @@ const unionOpen = (): PageSection =>
     say(
       'Einen Angriffsverband planst du mit einem eigenen [[mission-attack|Sturmangriff]]: Im Flottenauftrag planst du in der Zeile Verband einen neuen Verband und wählst seine Ankunft. Deine Flotte fliegt mit der Geschwindigkeit los, die sie genau dann ans Ziel bringt, und führt den Verband an. Der Anführer lädt Verbündete mit Namen ein, nicht den Besitzer des Ziels; die Eingeladenen zählen schon gegen die Grenze der Spieler. Wer Verbündeter ist, bestimmt dieselbe Einstellung wie bei der Wache. Beitreten heißt, einen Sturmangriff auf dasselbe Ziel zu schicken, mit allen Prüfungen eines Angriffs: Schiffe, Treibstoff, Flottenslots, Urlaubsmodus und Schutz des Ziels. Der Anführer und wer schon im Verband ist, braucht keine Einladung, alle anderen schon; ein Spieler darf mehrere Flotten schicken. Ein Spieler im Urlaubsmodus kann nicht beitreten.',
     ),
+    // The planned start of the leader's fleet (owner, 2026-11-28, #478) [V].
+    say(
+      'Liegt die Ankunft so spät, dass deine Flotte selbst mit der langsamsten Geschwindigkeit zu früh da wäre, startet sie später von selbst: zur Ankunft weniger ihrer Flugzeit mit der Geschwindigkeit, die du im Flottenauftrag wählst. Bis dahin bleiben die Schiffe auf dem Planeten, verteidigen ihn und können dort verloren gehen; kein anderer Auftrag nimmt sie, der Flottenslot zählt schon ab der Planung, und den Urlaubsmodus kannst du so lange nicht beginnen. Beim Start fliegt, was von den geplanten Schiffen noch da ist, und erst dann wird der Treibstoff bezahlt. Ist keines der Schiffe mehr da, reicht das Promethium nicht oder lässt das Ziel den Angriff nicht mehr zu, startet nichts, und der Verband ist aufgelöst: Alle beigetretenen Flotten kehren um. Den geplanten Start kannst du in den Flottenbewegungen abbrechen; auch das löst den Verband auf. Eine Flotte, die später startet, nimmt keine Ladung mit.',
+    ),
   );
 
 const unionTiming = (s: LexState): PageSection =>

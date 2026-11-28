@@ -241,6 +241,9 @@ export const flightRefusal = (
     ? joinMessage('early', limits, `am ${when(flight.earliest)}`)
     : joinMessage('late', limits);
 
+/** The mission of every fleet of an attack union: the Sturmangriff (#225). */
+export const UNION_MISSION = 'attack';
+
 /** The slowest and the fastest speed of a fleet, in tenths (10 % and 100 %). */
 export const SLOWEST = 1;
 export const FASTEST = 10;
@@ -276,6 +279,20 @@ export function unionFlight(x: {
   const pct = drive / ((left * x.universe.speed) / 1000 - 10);
   return { pct: Math.min(FASTEST, Math.max(SLOWEST, pct)) };
 }
+
+/**
+ * When the leader's fleet starts by itself for a union arriving at `arr`
+ * that it cannot reach at once even at 10 % (owner, 2026-11-28, #478): its
+ * arrival minus its flight at the speed step `pct` the leader chose (tenths,
+ * 1 to 10) [V], so it arrives exactly at `arr`.
+ */
+export const plannedStart = (x: {
+  dist: number;
+  speed: number;
+  universe: Universe;
+  arr: number;
+  pct: number;
+}): number => x.arr - flightMs(x.dist, x.speed, x.pct, x.universe);
 
 /**
  * The loot of a won battle split between the fleets of the union by their

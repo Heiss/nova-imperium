@@ -686,8 +686,75 @@ Everything below is [V] unless it names an owner's decision.
   „Verbandsangriff: planen, einladen, beitreten“.
 * **No limit** on the unions a leader has planned at once beyond his fleet
   slots (owner, A1a).
-* **[U]** The upper bound of X. The owner decided no expiry (3), but with
-  A1a the leader's own fleet starts at once, so X is at most the leader's
-  flight time at 10 %: a later X is refused as too early, with the earliest
-  start. Asked by the coordinator, 2026-11-28; until then the code keeps
-  this limit.
+* ~~**[U]** The upper bound of X.~~ Closed by #478 (below): a later X
+  starts the leader's fleet by itself.
+
+## Delayed start of the leader (#478)
+
+* **[E]** (owner, 2026-11-28, 1) The leader may choose a later arrival X.
+  His fleet then starts by itself at X minus its flight time, at the speed
+  that brings it there at X.
+* **[E]** (owner, 2026-11-28, 2) Until the start the ships stay on the
+  planet: they defend it and can be lost there. At the start what is left
+  flies; the fuel is paid at the start. If the fuel is not there then,
+  nothing starts and the union is dissolved.
+* **[E]** (owner, 2026-11-28) When the leader aborts, the union aborts: the
+  abort of a planned start dissolves it, as his recall does (Q2).
+* **[V]** Built (accepted by the coordinator, 2026-11-28):
+  * **Which speed.** The leader chooses the speed step of the fleet form;
+    the start is X minus the flight at that step (`plannedStart` of
+    `src/core/union.ts`). A union X reaches within the window of 10 % to
+    100 % starts at once as before (#466).
+  * **Data.** The union row keeps the start (`start_at`, `start_from`,
+    `start_ships`, `start_pct`, migration
+    `20261128T1000-union-planned-start`); `lead` is the ID the fleet gets.
+    A union is alive while its start is planned (`unionOf`), so invitations
+    and joins work as before; the leader's fleet counts against the limits
+    from the planning.
+  * **Until the start.** The ships are held back from every other order
+    (`reservedAt` in `pickedShips`, the send and the Warp-Tor); the fleet
+    form shows only the free ships. The plan takes a fleet slot from the
+    planning and blocks the leader's vacation like a fleet out. A plan takes
+    no cargo („Eine Flotte, die später startet, nimmt keine Ladung mit.“).
+  * **The start** (`startPlanned` in `src/server/game/union-start.ts`) is a
+    due event of the tick, in the order of time with the fleets: the planet
+    settled to the start, what is left of the planned ships, every check of
+    a Sturmangriff at the target, the fuel of the step paid then; the fleet
+    arrives at X and comes back after a flight as long. The guild of the
+    defender learns of the attack at the start.
+  * **A failed start.** No planned ship left (owner: yes), too little
+    Promethium, the planet no longer the leader's, or the target refuses
+    the attack: nothing starts, every joined fleet turns back as on the
+    recall, each owner gets „Angriffsverband aufgelöst [g:s:p]“ with „Die
+    Flotte des Anführers ist nicht gestartet; der Angriffsverband auf
+    [g:s:p] ist aufgelöst. Deine Flotte kehrt um.“, and the leader
+    „Geplanter Angriff nicht gestartet [g:s:p]“ with the reason.
+  * **An error of the server at the start** (PR #490): the start is logged
+    and, after the rollback, dissolves the union as one that did not
+    happen; the leader reads „… ist nicht gestartet: Beim Start ist ein
+    Fehler aufgetreten. Der Angriffsverband ist aufgelöst.“ [V]. A fleet
+    whose writer is busy before a start in the same tick holds that start
+    back too, so the order of time holds. A fleet that joined after the
+    start was due (only when the tick before the action was busy) turns
+    back from its own departure, never before it.
+  * **Shown slots.** The fleet view, its form and the hint of the
+    Lexicanum count a planned start against the slots, as the server does;
+    the Sternenkarte (Auspex-Erkundung, Landnahme, Vermessen, Expedition,
+    the flight time) offers only the free ships.
+  * **Abort.** „Abbrechen“ of the planned start in the fleet movements
+    (action `cancelPlan`, the leader only) dissolves the union; the members
+    get the report of the recall.
+  * **The switch „Verbandsangriff“ off:** no new delayed plan; a start
+    already planned still starts.
+  * **Shown.** The fleet movements list the planned start („Geplanter
+    Start: Deine Flotte (…) greift [g:s:p] an · Angriffsverband (Anführer),
+    Ankunft …“) by its time; the union box says „Start der Flotte des
+    Anführers in …“; the arrival line of the form says „(Verband: Start am
+    … mit 50 %)“. The state gives every member the start, the leader also
+    the planet and the ships held back.
+  * **Texts [V]:** the refusal of cargo, the report texts, the answer
+    „Sturmangriff geplant: Start am …, Ankunft am ….“, „Geplanter Start
+    abgebrochen. Der Angriffsverband ist aufgelöst.“, „Diesen geplanten
+    Start gibt es nicht mehr.“, the lines above, the Lexicanum paragraph of
+    „Verbandsangriff: planen, einladen, beitreten“ and the changelog
+    fragment `changes/verband-spaeter-start.md`.

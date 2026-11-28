@@ -28,7 +28,13 @@ import {
   fleetRows,
 } from './overview.ts';
 import { unionOpen } from '../../core/union.ts';
-import { joinChoices, PLAN, unionRows } from './union.ts';
+import {
+  freeShips,
+  joinChoices,
+  PLAN,
+  plannedStarts,
+  unionRows,
+} from './union.ts';
 
 /** A ship on the shown planet that can fly. */
 interface FleetShip {
@@ -84,6 +90,8 @@ interface UnionBoxRow {
   leads: boolean;
   /** The switch of the round is on: „Beitreten“ is offered (#466). */
   joins: boolean;
+  /** The time to the planned start of the leader's fleet (#478); none once it flies. */
+  start: Countdown | null;
 }
 
 /** The box „Verbandsangriff“; none while no union concerns the player. */
@@ -136,16 +144,21 @@ export interface FleetPage {
   jump: JumpBox | null;
 }
 
-/** The ships on the shown planet that can fly, in the order of the catalog. */
-const fleetShips = ({ P, R }: V): FleetShip[] =>
-  Object.keys(SHIPS)
-    .filter((k) => (P.ships[k] ?? 0) > 0 && canFly(k))
+/**
+ * The ships on the shown planet that can fly, in the order of the catalog;
+ * without those a planned start holds back (#478).
+ */
+const fleetShips = ({ P, R, s }: V): FleetShip[] => {
+  const free = freeShips(s, P);
+  return Object.keys(SHIPS)
+    .filter((k) => (free[k] ?? 0) > 0 && canFly(k))
     .map((k) => ({
       key: k,
       name: text(k)!.n,
-      have: fmt(P.ships[k]),
+      have: fmt(free[k]),
       speed: fmt(shipSpeed(k, R)),
     }));
+};
 
 /**
  * „ · Expeditionen (n / m)“ once the research is there (#93): the own fleets
@@ -175,6 +188,7 @@ function unionBox(v: V): UnionBox | null {
       leads: on && u.leads,
       joins: on,
       due: countdown(u.arr, v.now),
+      start: u.start === null ? null : countdown(u.start, v.now),
     })),
   };
 }
@@ -230,9 +244,10 @@ function formPage(v: V, full: boolean): FleetFormPage {
 export function fleetPage(v: V): FleetPage {
   const slots = fleetSlots(v.R);
   // The gift of the „Endzeit“ (#161) and missiles (#54) take no slot.
-  const used = v.s.fleets.filter(
-    (f) => f.owner === v.s.me.id && isFleet(f),
-  ).length;
+  // A planned start takes its slot from the planning (#478).
+  const used =
+    v.s.fleets.filter((f) => f.owner === v.s.me.id && isFleet(f)).length +
+    plannedStarts(v.s);
   return {
     heading: `Flotten unterwegs (${used} / ${slots} Slots)${expeditionTitle(v)}`,
     fleets: fleetRows(v, false),

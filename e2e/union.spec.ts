@@ -134,6 +134,45 @@ async function plan(p: Player, target: Player, ships: number): Promise<void> {
   await expect(lastToast(p.page)).toContainText('Flotte unterwegs nach');
 }
 
+/**
+ * The arrival of a planned union six hours from now, as the field takes it:
+ * later than any fleet of a test reaches at 10 % (about 100 minutes), so the
+ * leader's fleet starts later by itself (#478).
+ */
+const arrivalIn6Hours = (page: Page): Promise<string> =>
+  page.evaluate(() => {
+    const t = new Date(Date.now() + 6 * 3_600_000);
+    const two = (n: number) => String(n).padStart(2, '0');
+    return `${t.getFullYear()}-${two(t.getMonth() + 1)}-${two(t.getDate())}T${two(t.getHours())}:${two(t.getMinutes())}`;
+  });
+
+/**
+ * The leader plans a union six hours ahead (#478): the form names the later
+ * start, the fleet stays, the answer names start and arrival.
+ */
+async function planLater(
+  p: Player,
+  target: Player,
+  ships: number,
+): Promise<void> {
+  await openSystemOf(p.page, target.name);
+  await (
+    await galaxyAction(p.page, galaxyRow(p.page, target.name), 'Sturmangriff')
+  ).click();
+  await p.page.getByLabel('Anzahl Abfangjäger').fill(String(ships));
+  await p.page
+    .getByLabel('Verband', { exact: true })
+    .selectOption({ label: 'Neuen Verband planen' });
+  await p.page
+    .getByLabel('Ankunft des Verbands')
+    .fill(await arrivalIn6Hours(p.page));
+  await expect(p.page.locator('#i_arr')).toContainText('Verband: Start am');
+  await p.page.getByRole('button', { name: 'Flotte losschicken' }).click();
+  await expect(lastToast(p.page)).toContainText(
+    'Sturmangriff geplant: Start am',
+  );
+}
+
 /** The box of a union in the fleet view; `.union` is its row. */
 const union = (page: Page): Locator => page.locator('#view .union');
 
@@ -328,3 +367,80 @@ for (const phone of ['', ' @phone'])
     ).toBeVisible();
     for (const p of [target, leader, friend]) expect(p.problems).toEqual([]);
   });
+
+test.describe('a later start of the leader (#478)', () => {
+  test('the fleet stays until its planned start, which the movements and the box show, and then starts by itself', async ({
+    page,
+    browser,
+  }) => {
+    test.setTimeout(90_000);
+    const size = page.viewportSize();
+    const target = await defender(browser, size);
+    const leader = await join(browser, size, 'Spaeter', page);
+    arm(leader.name, 5);
+    await planLater(leader, target, 4);
+    await nav(leader.page, 'fleet');
+    const planned = leader.page
+      .locator('#view tr')
+      .filter({ hasText: 'Geplanter Start' });
+    await expect(planned).toContainText('Deine Flotte (4 ');
+    await expect(
+      planned.getByRole('button', { name: 'Abbrechen' }),
+    ).toBeVisible();
+    await expect(union(leader.page)).toContainText(
+      'Start der Flotte des Anführers in',
+    );
+    // The ships it holds back are not free: one of five is left for the form.
+    await expect(
+      leader.page
+        .locator('#view tr')
+        .filter({ has: leader.page.getByLabel('Anzahl Abfangjäger') })
+        .locator('td.n')
+        .first(),
+    ).toHaveText('1');
+    seed({ name: leader.name, startPlanned: true });
+    await expect
+      .poll(
+        async () => {
+          await leader.page.reload();
+          await nav(leader.page, 'fleet');
+          return leader.page
+            .locator('.fl-attack')
+            .filter({ hasText: 'Angriffsverband (Anführer)' })
+            .filter({ hasNotText: 'Geplanter Start' })
+            .count();
+        },
+        { timeout: 15_000 },
+      )
+      .toBe(1);
+    await expect(
+      leader.page.locator('#view tr').filter({ hasText: 'Geplanter Start' }),
+    ).toHaveCount(0);
+    expect(leader.problems).toEqual([]);
+  });
+
+  test('„Abbrechen“ of the planned start dissolves the union', async ({
+    page,
+    browser,
+  }) => {
+    const size = page.viewportSize();
+    const target = await defender(browser, size);
+    const leader = await join(browser, size, 'Abbrecher', page);
+    arm(leader.name, 3);
+    await planLater(leader, target, 2);
+    await nav(leader.page, 'fleet');
+    await leader.page
+      .locator('#view tr')
+      .filter({ hasText: 'Geplanter Start' })
+      .getByRole('button', { name: 'Abbrechen' })
+      .click();
+    await expect(lastToast(leader.page)).toContainText(
+      'Geplanter Start abgebrochen.',
+    );
+    await expect(
+      leader.page.locator('#view tr').filter({ hasText: 'Geplanter Start' }),
+    ).toHaveCount(0);
+    await expect(union(leader.page)).toHaveCount(0);
+    expect(leader.problems).toEqual([]);
+  });
+});

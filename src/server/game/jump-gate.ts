@@ -23,6 +23,7 @@ import { type Handler, mine } from './actions.ts';
 import { type Ctx, fail, universe } from './context.ts';
 import { pickedShips } from './fleet-actions.ts';
 import type { ServerFeature, StatePart } from './feature.ts';
+import { reservedAt } from './union.ts';
 import type { StateShape } from '../../core/state/jump-gate.ts';
 
 /** The German message of each refusal [E] (owner, 2026-11-17). */
@@ -58,7 +59,8 @@ const jump: Handler<'jump'> = (ctx, u, d, event) => {
   const now = ctx.now();
   const from = mine(ctx, u, d.planet);
   const to = targetOf(ctx, u, d.to);
-  const ships = pickedShips(from, d.ships);
+  // The ships a planned start holds back stay (#478).
+  const ships = pickedShips(from, d.ships, reservedAt(ctx, from.id));
   const error = jumpError(gateOf(ctx, from), to && gateOf(ctx, to), ships, now);
   if (error) fail(JUMP_ERROR[error]);
   moveShips(from, to!, ships);

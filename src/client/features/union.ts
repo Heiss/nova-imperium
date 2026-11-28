@@ -2,7 +2,8 @@
 // planning a union with an own Sturmangriff (the choice „Neuen Verband
 // planen“ of the row „Verband“ and its arrival), inviting a player by name,
 // and joining: „Beitreten“ and the choice „Verband“ of the fleet form fill
-// the form with the target and the mission of the union. The fleet form
+// the form with the target and the mission of the union; „Abbrechen“ of a
+// planned start of the leader's fleet (#478). The fleet form
 // itself sends the plan and the join (the fields `plan` and `union` of
 // „send“, features/fleet.ts); the markup is in
 // views/union.ts, what it shows in logic/union.ts. The position of the
@@ -63,5 +64,7 @@ export const clientFeature = {
         fleetForm.invite[id] = '';
     },
     joinUnion: (d) => pick(d.id ?? ''),
+    // The leader aborts his planned start: the union is dissolved (#478).
+    cancelPlan: (d) => ctx.act('cancelPlan', { id: d.id ?? '' }),
   }),
 } satisfies ClientFeature;

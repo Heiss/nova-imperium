@@ -1,5 +1,5 @@
 // The key of the attack unions in the state (#225, #317).
-import type { Coords } from '../types.ts';
+import type { Coords, Levels } from '../types.ts';
 
 /** An attack union as the server sends it to a player in it or invited to it (#225); the ships stay hidden. */
 export interface UnionState {
@@ -12,6 +12,13 @@ export interface UnionState {
   toC: Coords;
   /** When all its fleets arrive. */
   arr: number;
+  /** When the leader's fleet starts by itself, while it is planned (#478). */
+  start?: number;
+  /**
+   * For the leader only, while his start is planned (#478): the planet it
+   * starts from and the ships it holds back there.
+   */
+  held?: { from: string; ships: Levels };
   /** Its fleets with their owners, the leader's first. */
   fleets: { id: string; owner: string }[];
   /** The players invited who have not joined. */

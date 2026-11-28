@@ -1,9 +1,11 @@
 // The attack unions (#466): the table `attack_unions` of migration
 // 20261128T0300-attack-union-rows, one row per union with its leader, its
-// target, its fixed arrival X and the leader's fleet that leads it. The
+// target, its fixed arrival X and the leader's fleet that leads it; with
+// 20261128T1000-union-planned-start the start of that fleet while it is
+// planned for later (#478). The
 // fleets of a union carry its ID (`fleets.union_id`) and its invitations are
 // rows of `attack_union_invites`, both in the fleets repository.
-import type { Coords } from '../../../core/types.ts';
+import type { Coords, Levels } from '../../../core/types.ts';
 import type { Db } from '../database.ts';
 import type { RoundReset } from '../round-reset.ts';
 import type { RepositoryModule } from './contract.ts';
@@ -20,12 +22,30 @@ export interface Union {
   toC: Coords;
   /** When every fleet of it arrives (X). */
   arr: number;
+  /**
+   * The start of the leader's fleet while it is planned for later (#478,
+   * owner, 2026-11-28): the ships stay on the planet `from` until `at`, then
+   * fly at the speed step `pct` (tenths, 1 to 10). None once it started.
+   */
+  start?: PlannedStart;
+}
+
+/** The planned start of a leader's fleet (#478). */
+interface PlannedStart {
+  at: number;
+  from: string;
+  ships: Levels;
+  pct: number;
 }
 
 export interface Unions {
   get(id: string): Union | null;
-  /** Saves a union, a new one or one whose leading fleet changes. */
+  /** Saves a union, a new one or one whose leading fleet or planned start changes. */
   save(u: Union): void;
+  /** The unions whose planned start is at or before `now`, the earliest first (#478). */
+  dueStarts(now: number): Union[];
+  /** The planned starts from the planet `planet`, of every union (#478). */
+  startsFrom(planet: string): Union[];
   /** The IDs of the unions `uid` leads, by arrival. */
   ledBy(uid: string): string[];
   /** Deletes a union that is over, with its invitations. */
@@ -45,6 +65,14 @@ const unionOf = (r: Row): Union => ({
   target: r.target as string,
   toC: { g: r.to_g as number, s: r.to_s as number, p: r.to_p as number },
   arr: r.arr as number,
+  ...(typeof r.start_at === 'number' && {
+    start: {
+      at: r.start_at,
+      from: r.start_from as string,
+      ships: JSON.parse(r.start_ships as string) as Levels,
+      pct: r.start_pct as number,
+    },
+  }),
 });
 
 class SqliteUnions implements Unions {
@@ -63,9 +91,12 @@ class SqliteUnions implements Unions {
   save(u: Union): void {
     this.db
       .prepare(
-        `INSERT INTO attack_unions (id, leader, lead, target, to_g, to_s, to_p, arr)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-         ON CONFLICT(id) DO UPDATE SET lead = excluded.lead`,
+        `INSERT INTO attack_unions (id, leader, lead, target, to_g, to_s, to_p, arr,
+           start_at, start_from, start_ships, start_pct)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(id) DO UPDATE SET lead = excluded.lead,
+           start_at = excluded.start_at, start_from = excluded.start_from,
+           start_ships = excluded.start_ships, start_pct = excluded.start_pct`,
       )
       .run(
         u.id,
@@ -76,7 +107,29 @@ class SqliteUnions implements Unions {
         u.toC.s,
         u.toC.p,
         u.arr,
+        u.start?.at ?? null,
+        u.start?.from ?? null,
+        u.start ? JSON.stringify(u.start.ships) : null,
+        u.start?.pct ?? null,
       );
+  }
+
+  dueStarts(now: number): Union[] {
+    const rows = this.db
+      .prepare(
+        'SELECT * FROM attack_unions WHERE start_at <= ? ORDER BY start_at, id',
+      )
+      .all(now) as Row[];
+    return rows.map(unionOf);
+  }
+
+  startsFrom(planet: string): Union[] {
+    const rows = this.db
+      .prepare(
+        'SELECT * FROM attack_unions WHERE start_from = ? AND start_at IS NOT NULL ORDER BY start_at, id',
+      )
+      .all(planet) as Row[];
+    return rows.map(unionOf);
   }
 
   ledBy(uid: string): string[] {
