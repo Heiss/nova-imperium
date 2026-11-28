@@ -1,5 +1,20 @@
 # Neuigkeiten
 
+## Version 26.11.31 – 28.11.2026
+
+### Neu
+
+- Admin: Neben jeder Einstellung öffnet ein „?“ eine Erklärung, was eine Änderung bewirkt, wo es passt mit einer Tabelle der Werte, die daraus folgen, und lässt eigene Werte vorab durchrechnen.
+
+### Geändert
+
+- Verbandsangriff: Der Anführer plant ihn im Flottenauftrag mit eigenem Sturmangriff und fester Ankunftszeit und lädt dann ein. Wer beitritt, startet sofort; das Spiel wählt das Tempo zwischen 10 % und 100 % so, dass alle pünktlich sind. Der Admin kann den Verbandsangriff pro Runde abschalten.
+- Wachen: Wird eine Wache im Kampf vernichtet, geht ihre Ladung an den Planeten des Gastgebers, bei Verlusten der Teil, der nicht mehr in die übrigen Schiffe passt. Dort gehört sie zum Vorrat und lässt sich wie jeder Vorrat plündern.
+
+### Behoben
+
+- Optionen: Die Häkchen „Keine Wachen annehmen“ und die der Push-Benachrichtigungen springen beim Speichern nicht mehr kurz zurück und zeigen nach einem Fehler wieder den gespeicherten Wert.
+
 ## Version 26.11.30 – 28.11.2026
 
 ### Geändert
