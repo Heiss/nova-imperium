@@ -40,6 +40,17 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   secret (`--secret id=ca,src=…`); without it nothing changes.
 * **[U]** The arm64 image is built by the release workflow (QEMU) and was not
   started on real arm64 hardware.
+* **[E]** Decided for #484, not built yet (owner, 2026-11-28): the base
+  becomes `node:26-alpine`, replacing the Debian base and Debian's security
+  updates on top of it (2026-11-12); the updates stay as a layer `apk
+  upgrade` in every release, night and hotfix, and the security hotfix and
+  the Trivy gate move to Alpine; a security release of Node waits for the
+  Alpine digest, with an issue meanwhile. arm64 is dropped: `linux/amd64`
+  only, so the point above and U3 go. A stage of the production
+  dependencies keyed on the manifests and the lockfile; better-sqlite3 only
+  with `linuxmusl-x64` and without `deps/`; no tests and no npm in any
+  layer; the CI records the size of the image and of the changed layers.
+  One pull request. This replaces the bullets above once #484 is built.
 * **[E]** No package may need AVX: the server is a Celeron J4104 without it
   (owner, 2026-11-27, #449). The CI starts the built app a second time on an
   emulated CPU without AVX and runs the smoke test against it (291a).

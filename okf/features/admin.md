@@ -456,6 +456,16 @@ universe settings) and their ranges are not decided yet.
   It is computed at the time of the claim and credited on the home planet,
   above the storage too (no cap, as before). Achievements keep their fixed
   rewards.
+* **[E]** Decided for #479, not built yet (owner, 2026-11-28): the median is
+  computed once a day and fixed for that day, at 23:05 UTC, the first
+  highscore slot of #405, always, whatever the number of passes; the day of
+  the daily reward (change of the day, streak, claim, day of the round)
+  moves to 23:05 UTC; the weakest share of the players by total points is
+  left out of the median, rounded half up (9 players → 1, 4 → 0, 20 → 2), so
+  the reward keeps working as a rubber band; the share is a round setting,
+  10 % by default. The rest of #479 is proposals [V]. This replaces „computed
+  at the time of the claim“ above and the change of the day at 00:00 UTC
+  below once #479 is built.
 * **[E]** The streak stays, but only as a display: a missed UTC day starts
   the shown „Anmeldeserie“ at 1 again and does not change the reward (#220
   D3).
