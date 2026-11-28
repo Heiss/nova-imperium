@@ -27,6 +27,7 @@ import {
   battleReport,
   defenders,
   fight,
+  heldBlocks,
   recordBattle,
   reportHeldOwners,
 } from '../../../server/game/fight.ts';
@@ -70,7 +71,7 @@ function spyBattle(ctx: Ctx, f: Fleet, at: Arrival): Fight | null {
     : `Kontakt abgebrochen – deine Spähschädel wurden bei ${where} entdeckt und zerstört.`;
   addReport(ctx, f.owner, { ...report, title }, { topic: 'fleet' });
   const seen = `Kampfbericht ${placeName(t)} ${where} – Spähschädel von ${att.name}`;
-  const defender = { ...report, title: seen };
+  const defender = { ...report, ...heldBlocks(x, true), title: seen };
   addReport(ctx, t.owner, defender, { topic: 'spied' });
   reportHeldOwners(ctx, x, defender, 'spied');
   return x;

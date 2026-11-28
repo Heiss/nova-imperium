@@ -2,6 +2,7 @@
 // main planet, the lock after every switch (D3 to D5) and its boundaries.
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
+import { withoutExplain } from '../test/explain.ts';
 import {
   DAY_MS,
   MAIN_LOCK_DAYS,
@@ -46,7 +47,7 @@ describe('the lock length of a round', () => {
   });
 
   it('is one entry of the registry, a number field of „Neue Runde“ and a live row of the universe settings (#283, #366)', () => {
-    expect(mainLockSetting).toEqual([
+    expect(withoutExplain(mainLockSetting)).toEqual([
       {
         kind: 'number',
         key: 'roundMainLock',

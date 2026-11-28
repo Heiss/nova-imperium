@@ -57,6 +57,7 @@ import { adminArchiveHTML } from './archive-frozen.ts';
 import { adminView, endzeitDialogView, roundDialogView } from './admin-view.ts';
 import { diagnosticsPanel, errorsPanel } from './admin-panels-frozen.ts';
 import { roundDefaults } from './fixtures.ts';
+import { explainButton } from './explain.ts';
 import { normalize, textContents } from './markup.ts';
 
 // ----- frozen: the page and the dialogs before #118, bundle 7 -----
@@ -84,7 +85,8 @@ function settingsForm(s: GameState, a: AdminState): string {
       const field = x.choices
         ? `<select id="set_${x.key}" data-setting="${x.key}" data-nokeep>${choiceOptions(x.choices, Number(value))}</select>`
         : `<input type="number" id="set_${x.key}" data-setting="${x.key}" min="${x.min}" max="${x.max}"${x.step ? ` step="${x.step}"` : ''} value="${value}" data-nokeep> <span class="dim">${fmt(x.min)} bis ${fmt(x.max)}${hint}</span>`;
-      return `<tr><td><label for="set_${x.key}">${esc(x.label)}</label></td><td>${field}</td></tr>`;
+      // Changed on purpose since #118: the „?“ of its explanation (#358).
+      return `<tr><td><label for="set_${x.key}">${esc(x.label)}</label> ${explainButton(x.key, 'u')}</td><td>${field}</td></tr>`;
     })
     .join('');
   const warning = gainWarning(s.cfg);
@@ -112,12 +114,13 @@ function roundField(s: RoundSetting, value: number | boolean): string {
   const label = esc(s.label);
   if (s.kind === 'switch') {
     const note = s.note ? ` aria-describedby="${id}-note"` : '';
-    return `<label><input type="checkbox" id="${id}"${note} ${value ? 'checked' : ''}> ${label}</label>`;
+    // Changed on purpose since #118: the „?“ of its explanation (#358).
+    return `<label><input type="checkbox" id="${id}"${note} ${value ? 'checked' : ''}> ${label}</label> ${explainButton(s.key, 'r')}`;
   }
   const field = s.choices
     ? `<select id="${id}">${choiceOptions(s.choices, Number(value))}</select>`
     : `<input type="number" id="${id}" min="${s.min}" max="${s.max}" step="${s.step ?? 1}" value="${Number(value)}" required> <span class="dim">${s.min} bis ${s.max}</span>`;
-  return `<label for="${id}">${label}</label> ${field}`;
+  return `<label for="${id}">${label}</label> ${field} ${explainButton(s.key, 'r')}`;
 }
 
 /** One setting as its own paragraph, with the note below a checkbox. */

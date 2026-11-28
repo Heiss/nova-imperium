@@ -36,6 +36,9 @@ export const roundSettings = [
   {
     kind: 'number',
     key: 'roundVacationHours',
+    explain: {
+      text: 'Wie lange ein Spieler mindestens im Urlaubsmodus bleibt, bevor er ihn beenden kann. Eine Änderung gilt sofort, auch für laufende Urlaube, denn gespeichert ist nur ihr Beginn.',
+    },
     name: 'vacationHours',
     label: 'Mindestdauer des Urlaubsmodus (Stunden)',
     order: 150,

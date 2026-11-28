@@ -2,6 +2,7 @@
 // numbers are game content, so they are checked exactly.
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
+import { withoutExplain } from '../test/explain.ts';
 import { roundDefaults } from '../test/fixtures.ts';
 import { ACHIEVEMENTS, CATEGORIES, type Achievement } from './achievements.ts';
 import { BUILD, DEF, RES, SHIPS } from './catalog.ts';
@@ -116,7 +117,7 @@ describe('the reward options of a round (#214, #283)', () => {
     roundRefused(defaults, data, rewards).map((s) => s.name);
 
   it('are two switches, first in the dialog, in one fieldset with one legend', () => {
-    expect(rewards).toEqual([
+    expect(withoutExplain(rewards)).toEqual([
       {
         kind: 'switch',
         key: 'roundAchievements',

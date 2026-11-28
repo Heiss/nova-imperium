@@ -187,7 +187,12 @@ export function adminPage(v: V): AdminPage | null {
 }
 
 /** The field of one setting of the round (#283), preselected with its value. */
-export type RoundField = { id: string; label: string } & (
+export type RoundField = {
+  id: string;
+  label: string;
+  /** The stored key of the setting: its explanation (#358). */
+  key: string;
+} & (
   | { kind: 'switch'; checked: boolean; note: string | null }
   | { kind: 'choice'; choices: Choice[] }
   | {
@@ -201,7 +206,7 @@ export type RoundField = { id: string; label: string } & (
 );
 
 function roundField(s: RoundSetting, value: number | boolean): RoundField {
-  const field = { id: roundFieldId(s), label: s.label };
+  const field = { id: roundFieldId(s), label: s.label, key: s.key };
   if (s.kind === 'switch')
     return { ...field, kind: 'switch', checked: !!value, note: s.note ?? null };
   if (s.choices)
@@ -359,16 +364,29 @@ function rowSections(
       last = { heading: h, id: `round-heading-${out.length}`, rows: [] };
       out.push(last);
     }
-    // A legend that repeats the heading of its group goes; the heading names
-    // the fieldset instead (owner, 2026-11-22).
-    last.rows.push(
-      row.kind === 'group' && h !== null && row.legend === h
-        ? { ...row, legend: null, labelledBy: last.id! }
-        : row,
-    );
+    last.rows.push(UNDER_HEADING[row.kind](row as never, h, last.id!));
   }
   return out;
 }
+
+type Row<K extends RoundRow['kind']> = Extract<RoundRow, { kind: K }>;
+
+/**
+ * A row under its heading, by its kind: a legend that repeats the heading of
+ * its group goes, and the heading names the fieldset instead (owner,
+ * 2026-11-22); a field stays as it is.
+ */
+const UNDER_HEADING: {
+  [K in RoundRow['kind']]: (
+    row: Row<K>,
+    heading: string | null,
+    id: string,
+  ) => RoundRow;
+} = {
+  field: (row) => row,
+  group: (row, heading, id) =>
+    row.legend === heading ? { ...row, legend: null, labelledBy: id } : row,
+};
 
 /** What the dialog „Endzeit einläuten“ shows (#161): the numbers of the gift and the flight time. */
 export const endzeitDialogPage = (minutes: number) => ({

@@ -97,8 +97,9 @@ const guardFights = (): PageSection =>
     say(
       'Eine Flotte, die Wache hält, kämpft als eigene Partei mit der Forschung ihres Besitzers, und zwar in allen drei Kämpfen an diesem Ort: beim [[mission-attack|Sturmangriff]], beim [[mission-moonbreak|Mondbruch]] und im Kampf gegen entdeckte Spähschädel der [[mission-spy|Auspex-Erkundung]]. Raketen kämpfen nicht mit. Jeder Besitzer bekommt den Bericht des Verteidigers, und was die Wache verliert, liegt zum Teil im Trümmerfeld ([[rule-debris]]). Eine Flotte des Angreifers selbst, die dort Wache hält, bleibt aus dem Kampf.',
     ),
-    // The held cargo is no loot since #440 (233b): the words are the owner's.
-    say(HOLD_LEXICON.noLoot),
+    // The cargo of a destroyed hold goes to the host's planet and can be
+    // plundered there (#467, replacing 233b); the words are a proposal [V].
+    say(HOLD_LEXICON.cargoHandover),
     say(
       'Der Gastgeber sieht eine Flotte, die Wache hält, mit allen Schiffen und ihrer Haltezeit. Im Auspex-Bericht zählt sie zur Flotte des Planeten, bis die Auspex-Lehre des Spähers die Stufe der Runde erreicht; ab dann steht sie getrennt unter Gehaltene Flotten. In der Auspex-Phalanx zeigt sie sich als haltend, mit dem Ende ihrer Haltezeit.',
     ),

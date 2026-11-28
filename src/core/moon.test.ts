@@ -2,6 +2,7 @@
 // its roll, the diameter by the owiki.de formula and the shown name.
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
+import { withoutExplain } from '../test/explain.ts';
 import { roundDefaults } from '../test/fixtures.ts';
 import {
   DIAMETER_CHANCE,
@@ -101,7 +102,7 @@ describe('moon chance by the round (#433, 207b, 208a, 212a)', () => {
   });
 
   it('has two live settings with the ranges and defaults of the owner', () => {
-    expect(roundSettings).toEqual([
+    expect(withoutExplain(roundSettings)).toEqual([
       {
         kind: 'number',
         key: 'roundMoonChanceMax',

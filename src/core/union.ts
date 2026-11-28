@@ -49,6 +49,9 @@ export const roundSettings = [
   {
     kind: 'number',
     key: 'roundUnionFleets',
+    explain: {
+      text: 'Wie viele Flotten ein Verbandsangriff höchstens hat. Geprüft beim Beitritt.',
+    },
     name: 'unionFleets',
     label: 'Verbandsangriff: höchstens Flotten',
     order: 200,
@@ -59,6 +62,9 @@ export const roundSettings = [
   {
     kind: 'number',
     key: 'roundUnionPlayers',
+    explain: {
+      text: 'Wie viele Spieler ein Verbandsangriff höchstens hat. Geprüft beim Einladen und beim Beitritt.',
+    },
     name: 'unionPlayers',
     label: 'Verbandsangriff: höchstens Spieler',
     order: 210,
@@ -69,6 +75,9 @@ export const roundSettings = [
   {
     kind: 'number',
     key: 'roundUnionCutoff',
+    explain: {
+      text: 'In den letzten so vielen Minuten vor der Ankunft kann niemand mehr dem Verband beitreten. Beim Wert null gibt es diese Sperre nicht.',
+    },
     name: 'unionCutoff',
     label: 'Verbandsangriff: kein Beitritt in den letzten Minuten (0 = aus)',
     order: 230,
@@ -83,6 +92,9 @@ export const roundSettings = [
     // universe without the key reads the default, „An“ (261a).
     kind: 'number',
     key: 'roundUnionOn',
+    explain: {
+      text: 'Schaltet den Verbandsangriff für die Runde ein oder aus. Aus: Niemand plant, lädt ein oder tritt bei; Verbände, die schon fliegen, kommen an, und jeder kann seine eigene Flotte zurückrufen.',
+    },
     name: 'unionOn',
     label: 'Verbandsangriff',
     order: 240,

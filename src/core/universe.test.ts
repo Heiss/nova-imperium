@@ -1,5 +1,6 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
+import { withoutExplain } from '../test/explain.ts';
 import {
   DEFAULT_UNIVERSE,
   inUniverse,
@@ -85,7 +86,7 @@ describe('universe settings', () => {
       ]);
   });
   it('take 0 to 100 extra fields per planet (#51, D4)', () => {
-    expect(spec('extraFields')).toEqual({
+    expect(withoutExplain(spec('extraFields'))).toEqual({
       key: 'extraFields',
       label: 'Zusatzfelder pro Planet',
       min: 0,
@@ -100,7 +101,7 @@ describe('universe settings', () => {
       ]);
   });
   it('take 1 to 4,320 minutes as the Endzeit flight time (#161)', () => {
-    expect(spec('endzeitMinutes')).toEqual({
+    expect(withoutExplain(spec('endzeitMinutes'))).toEqual({
       key: 'endzeitMinutes',
       label: 'Flugzeit der Endzeit-Gabe (Minuten)',
       min: 1,
