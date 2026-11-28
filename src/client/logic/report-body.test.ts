@@ -12,6 +12,7 @@ import {
   type SpyBody,
   type UnitRow,
 } from './report-body.ts';
+import { resLine } from './format.ts';
 import type { Report } from './types.ts';
 
 const n = (key: string): string => text(key)!.n;
@@ -106,6 +107,7 @@ describe('the body of a battle report', () => {
           units: [row('lf', '4', '1', '3', true)],
           rebuilt: null,
           share: null,
+          handed: null,
         },
         {
           cls: 'good',
@@ -117,6 +119,7 @@ describe('the body of a battle report', () => {
           ],
           rebuilt: `2 ${n('rl')}, 1 ${n('ll')}`,
           share: null,
+          handed: null,
         },
         {
           cls: 'good',
@@ -125,6 +128,7 @@ describe('the body of a battle report', () => {
           units: [row('sc', '5', '5', '0', false)],
           rebuilt: null,
           share: null,
+          handed: null,
         },
       ],
       winner: 'Der Angreifer hat die Schlacht gewonnen!',
@@ -152,6 +156,7 @@ describe('the body of a battle report', () => {
           units: [],
           rebuilt: null,
           share: null,
+          handed: null,
         },
         {
           cls: 'good',
@@ -160,6 +165,7 @@ describe('the body of a battle report', () => {
           units: [],
           rebuilt: null,
           share: null,
+          handed: null,
         },
       ],
       winner: 'Der Verteidiger hat die Schlacht gewonnen!',
@@ -263,8 +269,32 @@ describe('the body of a battle report', () => {
       units: [row('sc', '2', '1', '1', true)],
       rebuilt: null,
       share: null,
+      handed: null,
     });
     expect(dirk).toMatchObject({ tech: TECH(0, 20, 0), units: [] });
+  });
+
+  it('shows the cargo a fleet that held handed to the planet, none when it handed none (#467)', () => {
+    const [, cora, dirk] = battle({
+      held: [
+        {
+          name: 'Cora',
+          before: { sc: 2 },
+          after: { sc: 1 },
+          tech: {},
+          handed: { m: 1200, c: 0, d: 30 },
+        },
+        {
+          name: 'Dirk',
+          before: {},
+          after: {},
+          tech: {},
+          handed: { m: 0, c: 0, d: 0 },
+        },
+      ],
+    }).sides.filter((s) => s.cls === 'good');
+    expect(cora!.handed).toBe(resLine({ m: 1200, c: 0, d: 30 }));
+    expect(dirk!.handed).toBeNull();
   });
 
   it('lists only ships for a fleet that held, and nothing of a missing side', () => {

@@ -36,9 +36,13 @@ export const HOLD_LEXICON = {
   /** The noob protection lapses where a foreign fleet holds (238c, 281b). */
   lapsedProtection:
     'Hält bei einem geschützten Spieler die Flotte eines anderen Spielers Wache, gilt sein Schutz an diesem Ort nicht für Sturmangriff und Auspex-Erkundung, außer gegen den Besitzer dieser Wache; vor Raketen bleibt er geschützt.',
-  /** The cargo of held fleets is no loot (233b). */
-  noLoot:
-    'Eine Wache wird nicht geplündert: Ihre Ladung geht verloren, wenn sie zerstört wird.',
+  /**
+   * The cargo of a destroyed hold goes to the host's planet and can be
+   * plundered there (owner, 2026-11-28, #467, replacing 233b); the words are
+   * the proposal of #467 [V].
+   */
+  cargoHandover:
+    'Wird eine Wache im Kampf vernichtet, geht ihre Ladung an den Planeten des Gastgebers, bei Verlusten der Teil, der nicht mehr in die übrigen Schiffe passt. Dort gehört sie zum Vorrat und lässt sich wie jeder Vorrat plündern.',
 } as const;
 
 /** The title of the box of „Keine Wachen annehmen“ in „Optionen“ (230b). */
