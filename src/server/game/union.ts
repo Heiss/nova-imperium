@@ -361,9 +361,9 @@ export interface UnionView {
  * every fleet as before, not the union, [V]).
  */
 export function unionsFor(ctx: Ctx, uid: string): UnionView[] {
+  // A player in a union is its leader or was invited to it: the
+  // invitation stays when he joins.
   const ids = new Set([...ctx.fleets.invitedTo(uid), ...ctx.unions.ledBy(uid)]);
-  for (const f of ctx.fleets.all())
-    if (f.owner === uid && f.union !== undefined) ids.add(f.union);
   const views: UnionView[] = [];
   for (const id of ids) {
     const union = unionOf(ctx, id);
