@@ -23,6 +23,7 @@ export const overviewLines: readonly OverviewLines[] = [
   {
     card: 'attention',
     order: 10,
+    keys: ['fleet', 'more-fleets'],
     lines: ({ s, now }) => {
       const incoming = sortFleets(
         s.fleets.filter(

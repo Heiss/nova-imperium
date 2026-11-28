@@ -6,6 +6,7 @@ export const overviewLines: readonly OverviewLines[] = [
   {
     card: 'ready',
     order: 10,
+    keys: ['reward'],
     lines: ({ s }) => {
       const reward = rewardHint(s);
       return reward
