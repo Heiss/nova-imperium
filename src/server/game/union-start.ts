@@ -53,12 +53,13 @@ export const NOT_STARTED = {
 export const LEAD_NOT_STARTED = (at: string): string =>
   `Die Flotte des Anführers ist nicht gestartet; der Angriffsverband auf ${at} ist aufgelöst. Deine Flotte kehrt um.`;
 
-/** The ships of the plan that are still there, each kind at most as many as planned. */
+/**
+ * The ships of the plan that are still there, each kind at most as many as
+ * planned; a kind none is left of counts 0, which the store drops.
+ */
 const leftOf = (planned: Levels, there: Levels): Levels =>
   Object.fromEntries(
-    Object.entries(planned)
-      .map(([k, n]) => [k, Math.min(n, there[k] ?? 0)] as const)
-      .filter(([, n]) => n > 0),
+    Object.entries(planned).map(([k, n]) => [k, Math.min(n, there[k] ?? 0)]),
   );
 
 /**

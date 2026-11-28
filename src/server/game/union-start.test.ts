@@ -449,6 +449,26 @@ describe('the planned start in the tick (#478)', () => {
     expect(ctx.fleets.get('late')).toBeNull();
   });
 
+  it('stops at a start whose writer is busy: the fleets after it wait, those before it are done, and the tick counts what it took', () => {
+    const ctx = setup();
+    ctx.players.save({ ...user(ctx, 'Anna'), research: { computer: 2 } });
+    const first = planned(ctx);
+    const second = planned(ctx);
+    homecoming(ctx, 'late', second.start + 10);
+    ctx.clock.t = second.start + 20;
+    let calls = 0;
+    const tx = <T>(fn: () => T): T => {
+      // The first start goes through, the second finds the writer busy.
+      if (++calls === 2)
+        throw new Database.SqliteError('database is locked', 'SQLITE_BUSY');
+      return ctx.tx(fn);
+    };
+    expect(tick({ ...ctx, tx })).toBe(2);
+    expect(ctx.fleets.get(first.id)).toMatchObject({ state: 'out' });
+    expect(ctx.unions.get(second.id)!.start).toBeDefined();
+    expect(ctx.fleets.get('late')!.state).toBe('back');
+  });
+
   it('drops a start that fails otherwise, logs it and goes on with the fleets', () => {
     const ctx = setup();
     const { id, start } = planned(ctx);
@@ -471,11 +491,12 @@ describe('the planned start in the tick (#478)', () => {
     expect(ctx.fleets.get('late')).toBeNull();
   });
 
-  it('skips a start that is gone or not due any more by the time it runs', () => {
+  it('skips a start that is gone, or whose row starts later, by the time it runs', () => {
     const ctx = setup();
     const { id, start } = planned(ctx);
     const row = ctx.unions.get(id)!;
     const log = vi.fn();
+    ctx.clock.t = start;
     // Listed as due, but the row is gone (dissolved by an earlier event).
     const gone = Object.create(ctx.unions, {
       dueStarts: { value: () => [row] },
@@ -483,12 +504,22 @@ describe('the planned start in the tick (#478)', () => {
     });
     tick({ ...ctx, unions: gone }, log);
     expect(log).not.toHaveBeenCalled();
-    // Listed as due, but its start is later than now.
-    const early = Object.create(ctx.unions, {
-      dueStarts: { value: () => [row] },
-    });
+    expect(ctx.fleets.get(id)).toBeNull();
+    // Listed as due now, but the row as it is now starts later; and a row
+    // without a start any more.
     ctx.clock.t = start - 1;
+    const listed = { ...row, start: { ...row.start!, at: start - 1 } };
+    const early = Object.create(ctx.unions, {
+      dueStarts: { value: () => [listed] },
+    });
     tick({ ...ctx, unions: early }, log);
+    const started = { ...row };
+    delete started.start;
+    const without = Object.create(ctx.unions, {
+      dueStarts: { value: () => [listed] },
+      get: { value: () => started },
+    });
+    tick({ ...ctx, unions: without }, log);
     expect(ctx.fleets.get(id)).toBeNull();
     expect(ctx.unions.get(id)!.start).toBeDefined();
     expect(log).not.toHaveBeenCalled();
@@ -549,7 +580,32 @@ describe('the start of a planned fleet, in detail (#478)', () => {
     ]);
   });
 
-  it('starts with the Promethium exactly enough, and attacks a moon too', () => {
+  it('attacks a moon at its planned start', () => {
+    const ctx = setup();
+    addPlanet(ctx, 'u_Dirk', {
+      ...DIRK,
+      id: 'm1_4_8',
+      kind: 'moon',
+      name: 'Mond',
+    });
+    const arr = ctx.now() + flightOf(ctx, 'u_Anna', ANNA, SHIPS, 1) + HOUR;
+    send(
+      ctx,
+      user(ctx, 'Anna'),
+      go('p1_1_5', SHIPS, {
+        plan: arr,
+        pct: STEP,
+        to: { ...DIRK, kind: 'moon' },
+      }),
+    );
+    const id = ctx.unions.ledBy('u_Anna')[0]!;
+    expect(ctx.unions.get(id)!.target).toBe('m1_4_8');
+    ctx.clock.t = ctx.unions.get(id)!.start!.at;
+    tick(ctx);
+    expect(ctx.fleets.get(id)).toMatchObject({ to: 'm1_4_8', state: 'out' });
+  });
+
+  it('starts with the Promethium exactly enough', () => {
     const ctx = setup();
     const fuel = fuelFor(SHIPS, distance(ANNA, DIRK), STEP);
     const { id, start } = planned(ctx);
