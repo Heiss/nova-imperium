@@ -631,9 +631,11 @@ describe('the start of a planned fleet, in detail (#478)', () => {
     const ctx = setup();
     const { id } = planned(ctx);
     bertJoins(ctx, id);
-    const event = { category: 'game', action: 'cancelPlan' } as const;
-    const entry: { detail?: object } = { ...event };
-    runAction(ctx, 'u_Anna', { type: 'cancelPlan', id }, entry as never);
+    const entry: { category: 'game'; action: string; detail?: object } = {
+      category: 'game',
+      action: 'cancelPlan',
+    };
+    runAction(ctx, 'u_Anna', { type: 'cancelPlan', id }, entry);
     expect(newest(ctx, 'u_Bert').text).toBe(
       'Der Anführer hat den Angriffsverband auf [1:4:8] zurückgerufen. Deine Flotte kehrt um.',
     );
