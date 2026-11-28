@@ -154,6 +154,13 @@ the owner chose it and answered its open questions on 2026-11-21/22.
   a note; every other action keeps the note. A refusal shown this way has no
   „Problem melden“ (#126), which only the note offers.
 
+# In the chat window (#496)
+
+* **[V]** The tab „Persönlich“ of the chat window on the desktop shows the
+  conversations and the open one with „Antworten“, as the lock screen does
+  (`okf/features/interface.md`, „Chat window“), with the unread count as
+  „Persönlich (n)“. The window is gone while „Nachrichten“ is the view.
+
 # Proposals as built
 
 * **[V]** Q32 (coordinator, 2026-11-21; replaces the state of 50 messages per

@@ -399,6 +399,48 @@ Up to 760 px only; the desktop stays as it is (D6).
   choose „Alle“ first (see the log entry of 2026-11-19); the ones that use the
   boxes of „Optionen“ choose the section first.
 
+# Chat window (issue #496)
+
+* **[E]** (owner, 2026-11-28) A chat window at the bottom right in today's
+  interface (Classic); for „Modern“ #388 stays as decided (no bubble, the
+  guild chat becomes the tab „Funk“). In the window the tabs „Gilde“ and
+  „Persönlich“, each with its count of unread entries. On a phone no window
+  and no button; the guild chat is a tab under „Nachrichten“ there, and on
+  every screen, with the same data as the guild view and the window.
+* **[V]** As built (the coordinator's choices of 2026-11-28 on the open
+  questions of the plan):
+  * Q1 „Persönlich“ shows the conversations and the open one with
+    „Antworten“, as the lock screen of the vacation mode does
+    (`PmInbox.svelte` with `lock`): no new message, no settings in the window.
+  * Q2 The window follows its own switch only, a live switch of the round
+    „Chatfenster“ (`roundChatWindowOn`, `src/core/chat-window.ts`, order
+    530, „An“ by default and in running universes, mark „neu“ of #441); the
+    tab „Gilde“ follows guilds (`state.guilds.chat`). Private messages have
+    no switch, so „hidden while guilds and messages are both off“ of the
+    issue never applies.
+  * Q3 Without a guild chat the window keeps its tab bar with „Persönlich“
+    alone.
+  * Q4 No window on the lock screen of the vacation mode or any other gate
+    (`renderGate` of `render.ts`), nor signed out.
+  * Q5 The count of „Gilde“ counts what the red mark counts: the entries of
+    others and the events after the last visit (`chatUnreadCount`,
+    `unreadCount` in the state).
+  * While „Nachrichten“ is the view the window is gone: the poll follows one
+    open conversation at a time (Q32 of #226), and the view shows the same.
+  * Closed, a button „Chat“ with the sum of both counts, as „Chat (3)“;
+    open, the heading „Chat“, „Chat schließen“ and the tabs. Open or closed
+    and the tab are kept per player in this browser
+    (`localStorage` `nova.chatwin.<uid>`), closed until the player opens it.
+  * The window is `#chatwin` of `index.html`, outside the view, fixed at the
+    bottom right below the toasts and the modal (z 35), 360 px wide, at most
+    70 % of the height; `display: none` at 760 px and below, and
+    `ChatWindow.svelte` renders nothing there (`matchMedia`). It is mounted
+    once per player (`views/chat-window.ts`) and follows the state, so the
+    open conversation and what is typed stay over the poll; the window keeps
+    its draft of the guild chat over a change of the view (`windowChat` of
+    `drafts.svelte.ts`).
+  * Updates come with the poll of 4 s, until #409.
+
 # Design draft
 
 `docs/design/interface-v2/` holds the mockup, the full icon set and the

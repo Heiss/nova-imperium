@@ -191,6 +191,21 @@ The answers of the comment „Geklärt, Nachtrag“ (owner, 2026-11-15) to O15:
   A rank without „Chat lesen“ has no mark. A new membership starts with
   nothing seen.
 
+## Three places (#496, owner, 2026-11-28)
+
+* **[E]** The guild chat is also a tab „Gilde“ under „Nachrichten“ (after
+  „Gesendet“ [V]) on every screen, and a tab of the chat window on the
+  desktop (`okf/features/interface.md`, „Chat window“). Same data, same
+  rights and rules.
+* **[V]** As built: `GuildChat.svelte` takes `place` (`guild`, `messages`,
+  `window`, `src/client/logic/chat-place.ts`); the page of the guild keeps
+  its ids (`guildchatform`, `chat_text`), the others get `-messages` and
+  `-window`. The tab „Gilde“ is there while the state has a chat. It shows
+  „Gilde (n)“ with `unreadCount` of the state (the entries of the red
+  mark). The chat in sight in the tab or the open window is a visit, as the
+  page of the guild (`chatToSee` with `shown`, `src/client/logic/chat-shown.ts`,
+  `features/reading.ts`), also without a render.
+
 # Rules as built
 
 * `src/core/guild-chat.ts`: `MAX_CHAT_TEXT` (1,000), `CHAT_HISTORY` (500),
