@@ -474,6 +474,9 @@ describe('an article of a mission', () => {
     // A keyword finds the mission, and the entry with the same word first.
     expect(flatHits(searchHits('plündern')).map((h) => h.id)).toEqual([
       'mission-attack',
+      // The cargo of a destroyed hold can be plundered at the host (#467).
+      'rule-battle',
+      'rule-allies',
     ]);
     // The rule page and the question of #288 have the word too, after them.
     expect(flatHits(searchHits('ausspähen')).map((h) => h.id)).toEqual([

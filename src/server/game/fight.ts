@@ -7,8 +7,9 @@
 // and the flight home (`raid`, `attackReports`, `flyHome`). The fleets that
 // hold at a planet (#55) defend it in all three fights (owner, 2026-11-19):
 // each mission passes them (`defenders`), and the fight lets them take part,
-// leaves their debris and reports to every owner of one. Missiles do not
-// fight.
+// leaves their debris and reports to every owner of one. What of the cargo
+// of such a fleet no longer fits into its survivors goes to the planet after
+// the battle, before any loot (#467). Missiles do not fight.
 import { type BattleResult, battleOf } from '../../core/battle.ts';
 import { DEF, SHIPS, fights } from '../../core/catalog.ts';
 import { type Debris, debrisOf, isEmpty } from '../../core/debris.ts';
@@ -23,6 +24,7 @@ import { heldAt } from './holding.ts';
 import {
   type Arrival,
   type Player,
+  land,
   playerOf,
   researchAt,
   techAt,
@@ -79,9 +81,30 @@ export interface Held {
   tech: Levels;
 }
 
-/** A fleet that held and fought: what is left of it. */
+/** A fleet that held and fought: what is left of it, and of its cargo. */
 interface HeldFight extends Held {
   after: Levels;
+  /** The cargo its survivors still carry. */
+  kept: Resources;
+  /** The cargo that went to the planet (#467). */
+  handed: Resources;
+}
+
+/**
+ * The cargo of a fleet that held, after its battle (owner, 2026-11-28, #467):
+ * what no longer fits into the ships that survived goes to the host's planet
+ * as a transport delivers (`land`), all of it when none survived. Which part
+ * stays follows the order of the loot (`cutLoot`) [V].
+ */
+function handOver(t: Planet, h: Held, after: Levels): HeldFight {
+  const kept = cutLoot(h.f.cargo, capacity(after));
+  const handed = {
+    m: h.f.cargo.m - kept.m,
+    c: h.f.cargo.c - kept.c,
+    d: h.f.cargo.d - kept.d,
+  };
+  land(t, {}, handed);
+  return { ...h, after, kept, handed };
 }
 
 /**
@@ -213,7 +236,7 @@ export function fight(
     att: parties.att[0]!,
     def: parties.def[0]!,
   };
-  const fought = held.map((h, i) => ({ ...h, after: parties.def[i + 1]! }));
+  const fought = held.map((h, i) => handOver(t, h, parties.def[i + 1]!));
   const together = joined.map((j, i) => ({ ...j, after: parties.att[i + 1]! }));
   const debris = leaveDebris(ctx, f, defBefore, res, fought, together);
   const moon = rollMoon(ctx, t, f.arr);
@@ -302,14 +325,7 @@ export function battleReport(
     defAfter: x.res.def,
     // Every fleet that held fights as a defender of its own (#55); a
     // battle without one reports as before.
-    ...(x.held.length > 0 && {
-      held: x.held.map((h) => ({
-        name: h.player.name,
-        before: h.f.ships,
-        after: h.after,
-        tech: tech(h.tech),
-      })),
-    }),
+    ...heldBlocks(x, false),
     ...attackerBlocks(x, shares),
     rebuilt: x.rebuilt,
     ...(loot && { loot }),
@@ -320,6 +336,24 @@ export function battleReport(
     defTech: x.defTech,
   };
 }
+
+/**
+ * The block of every fleet that held, for the report of one side: the side
+ * of the defender (the host and the owners of the fleets that held) also
+ * reads the cargo each one handed to the planet (#467) [V].
+ */
+export const heldBlocks = (x: Fight, defender: boolean) =>
+  x.held.length === 0
+    ? {}
+    : {
+        held: x.held.map((h) => ({
+          name: h.player.name,
+          before: h.f.ships,
+          after: h.after,
+          tech: tech(h.tech),
+          ...(defender && total(h.handed) > 0 && { handed: h.handed }),
+        })),
+      };
 
 /** The result of a battle from the attacker's side, as in its title. */
 export const WON = {
@@ -342,8 +376,8 @@ export interface Raid extends Fight {
 
 /**
  * The loot of a won battle (owner, 2026-11-17): the classic half of the
- * planet's stock. The cargo of the fleets that held there is no loot (#440,
- * 233b): those fleets are destroyed with it when the attacker wins.
+ * planet's stock, which holds the cargo the fleets that held there handed
+ * over in the battle (#467, replacing 233b).
  */
 function lootOf(t: Planet, free: number): Resources {
   const planet = plunder(t.res, free);
@@ -353,11 +387,14 @@ function lootOf(t: Planet, free: number): Resources {
   return planet;
 }
 
-/** The fleets that held keep their survivors and hold on; one without any is gone. */
+/**
+ * The fleets that held keep their survivors and the cargo they still carry,
+ * and hold on; one without any is gone.
+ */
 export function afterHeld(ctx: Ctx, held: readonly HeldFight[]): void {
   for (const h of held) {
     if (!countUnits(h.after)) ctx.fleets.delete(h.f.id);
-    else ctx.fleets.save({ ...h.f, ships: h.after });
+    else ctx.fleets.save({ ...h.f, ships: h.after, cargo: h.kept });
   }
 }
 
@@ -429,7 +466,12 @@ export function attackReports(
     );
   const names = namesLine([att.name, ...x.joined.map((j) => j.player.name)]);
   const hit = `Feindkontakt! ${placeName(t)} ${coords(f.toC)} wird von ${names} angegriffen`;
-  const defender = { ...report, ...extra.def, title: hit };
+  const defender = {
+    ...report,
+    ...heldBlocks(x, true),
+    ...extra.def,
+    title: hit,
+  };
   addReport(ctx, t.owner, defender, { topic: 'attacked' });
   reportHeldOwners(ctx, x, defender, 'attacked');
 }

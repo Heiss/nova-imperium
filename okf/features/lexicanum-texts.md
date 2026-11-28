@@ -474,7 +474,7 @@ code and here in the same pull request.
 * **[V]** Heading: „Nach dem Kampf“
 * **[V]** Text: „Zerstörte Schiffe beider Seiten hinterlassen ein Trümmerfeld. Von der zerstörten Verteidigung wird ein Teil wieder aufgebaut: 70 % je Art. Gehen weniger als 50 Stück einer Art verloren, wird jedes Stück einzeln ausgelost, ab 50 Stück wird der Anteil gerundet. Zerstörte Schiffe werden nie ersetzt, und Raketen kämpfen nicht mit.“
 * **[V]** Text: „Gewinnt der Angreifer, lädt er bis zu 50 % jedes Rohstoffs des Planeten ein, soweit der Laderaum seiner übrigen Schiffe reicht. Der Laderaum wird in fester Reihenfolge gefüllt: zuerst Adamant, dann Psikristall, dann Promethium, und was danach noch Platz hat, füllt wieder mit Adamant und Psikristall auf.“
-* **[E]** Text (owner, 2026-11-27, #440): „Eine Wache wird nicht geplündert: Ihre Ladung geht verloren, wenn sie zerstört wird.“
+* **[V]** Text (#467, the rule of the owner, 2026-11-28, replacing the text of #440): „Wird eine Wache im Kampf vernichtet, geht ihre Ladung an den Planeten des Gastgebers, bei Verlusten der Teil, der nicht mehr in die übrigen Schiffe passt. Dort gehört sie zum Vorrat und lässt sich wie jeder Vorrat plündern.“
 * **[V]** Table: „Beute bei einem Planeten mit 200.000 Adamant, 100.000 Psikristall und 50.000 Promethium“
 * **[V]** Table: „Freier Laderaum | Adamant | Psikristall | Promethium“
 * **[V]** Keywords: Schlacht, Gefecht, Schaden, Beute, Verlust
@@ -749,7 +749,7 @@ code and here in the same pull request.
 * **[V]** Formula: „Treibstoff der Haltezeit = ⌊Summe aller Schiffe (Anzahl · Grundverbrauch) · Stunden ÷ 10⌋, mindestens 1“
 * **[V]** Heading: „Was eine Wache tut“
 * **[V]** Text: „Eine Flotte, die Wache hält, kämpft als eigene Partei mit der Forschung ihres Besitzers, und zwar in allen drei Kämpfen an diesem Ort: beim Sturmangriff, beim Mondbruch und im Kampf gegen entdeckte Spähschädel der Auspex-Erkundung. Raketen kämpfen nicht mit. Jeder Besitzer bekommt den Bericht des Verteidigers, und was die Wache verliert, liegt zum Teil im Trümmerfeld (Trümmerfelder und Bergung). Eine Flotte des Angreifers selbst, die dort Wache hält, bleibt aus dem Kampf.“
-* **[E]** Text (owner, 2026-11-27, #440): „Eine Wache wird nicht geplündert: Ihre Ladung geht verloren, wenn sie zerstört wird.“
+* **[V]** Text (#467, the rule of the owner, 2026-11-28, replacing the text of #440): „Wird eine Wache im Kampf vernichtet, geht ihre Ladung an den Planeten des Gastgebers, bei Verlusten der Teil, der nicht mehr in die übrigen Schiffe passt. Dort gehört sie zum Vorrat und lässt sich wie jeder Vorrat plündern.“
 * **[V]** Text: „Der Gastgeber sieht eine Flotte, die Wache hält, mit allen Schiffen und ihrer Haltezeit. Im Auspex-Bericht zählt sie zur Flotte des Planeten, bis die Auspex-Lehre des Spähers die Stufe der Runde erreicht; ab dann steht sie getrennt unter Gehaltene Flotten. In der Auspex-Phalanx zeigt sie sich als haltend, mit dem Ende ihrer Haltezeit.“
 * **[V]** Heading: „Urlaubsmodus und Mondbruch“
 * **[V]** Text: „Beginnt der Gastgeber den Urlaubsmodus, fliegen alle Flotten, die bei ihm Wache halten, sofort heim, und ihre Besitzer bekommen einen Bericht. Eine Flotte, die noch unterwegs ist, hält bei der Ankunft nicht mehr, sondern kehrt gleich um. Wer selbst mit einer Flotte Wache hält, kann den Urlaubsmodus nicht beginnen, solange sie draußen ist (Urlaubsmodus).“

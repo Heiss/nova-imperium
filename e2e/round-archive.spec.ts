@@ -80,19 +80,28 @@ async function archiveFlow(page: Page, browser: Browser): Promise<void> {
   ).toHaveCount(0);
 
   // The admin closes it, once.
+  const runningForAdmin = page
+    .getByRole('row')
+    .filter({ hasText: 'läuft · VORLÄUFIG' });
+  await expect(runningForAdmin).toHaveCount(1);
   page.once('dialog', (d) => void d.accept());
   await page.getByRole('button', { name: 'Runde abschließen' }).click();
   await expect(lastToast(page)).toContainText('abgeschlossen');
-  page.once('dialog', (d) => void d.accept());
-  await page.getByRole('button', { name: 'Runde abschließen' }).click();
-  await expect(page.locator('.toast.err').last()).toContainText(
-    'Diese Runde ist schon abgeschlossen.',
-  );
+  // The close loads the archive again: the running row goes, then the rows
+  // come back. Only then has the handler of the first click ended, and the
+  // button takes a click again (the lock of #425 holds it while that handler
+  // runs and marks nothing on the page, #470).
+  await expect(runningForAdmin).toHaveCount(0);
   const adminRow = page
     .getByRole('row')
     .filter({ has: page.getByRole('button', { name: 'Bericht öffnen' }) })
     .first();
   await expect(adminRow.getByRole('button', { name: 'Löschen' })).toBeVisible();
+  page.once('dialog', (d) => void d.accept());
+  await page.getByRole('button', { name: 'Runde abschließen' }).click();
+  await expect(page.locator('.toast.err').last()).toContainText(
+    'Diese Runde ist schon abgeschlossen.',
+  );
 
   // The participant finds the round with its place and opens the report.
   await other.reload();
