@@ -109,7 +109,8 @@ export interface ChatBoxModel {
   max: number;
 }
 
-const chatBox = (chat: GuildChat): ChatBoxModel => ({
+/** The box of the chat, at every place of the chat (#496). */
+export const chatBox = (chat: GuildChat): ChatBoxModel => ({
   log: chat.read ? chatLog(chat.messages, true) : null,
   write: chat.write,
   max: MAX_CHAT_TEXT,

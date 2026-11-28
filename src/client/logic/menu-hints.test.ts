@@ -152,6 +152,36 @@ it('sees the chat on the page of the own guild only (#169; owner, 2026-11-15)', 
   ).toBeNull();
 });
 
+it('sees the chat also in the tab „Gilde“ or the chat window, on any page (#496)', () => {
+  const state = (over: object = {}) =>
+    ({
+      guilds: {
+        own: { id: 'g1', status: 'member' },
+        chat: { read: true, unread: true, messages: [{ id: 9 }] },
+        ...over,
+      },
+    }) as unknown as GameState;
+  expect(chatToSee(state(), 'overview', null, true)).toBe(9);
+  expect(chatToSee(state(), 'guilds', 'g2', true)).toBe(9);
+  // Still nothing new, or no member: no visit.
+  expect(
+    chatToSee(
+      state({ chat: { read: true, unread: false, messages: [{ id: 9 }] } }),
+      'overview',
+      null,
+      true,
+    ),
+  ).toBeNull();
+  expect(
+    chatToSee(
+      state({ own: { id: 'g1', status: 'pending' } }),
+      'messages',
+      null,
+      true,
+    ),
+  ).toBeNull();
+});
+
 it('marks „Freunde“ while requests to the player are open (#227)', () => {
   const state = (incoming: string[]) =>
     ({

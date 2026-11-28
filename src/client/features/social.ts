@@ -1,8 +1,14 @@
-// The browser side of the guild chat (#169) and the buddy list (#227), out
+// The browser side of the guild chat (#169; at each place of #496) and the buddy list (#227), out
 // of main.ts (ratchet #242): the buttons and forms of both send their
 // action and empty their field once it went through. Which action a button
 // sends is decided in logic/friends.ts and logic/guild-chat.ts.
 import { runLocked } from '../logic/act-lock.ts';
+import {
+  chatDraft,
+  chatIds,
+  chatPlaceOf,
+  type ChatPlace,
+} from '../logic/chat-place.ts';
 import { drafts } from '../logic/drafts.svelte.ts';
 import { friendCall, type FriendCall } from '../logic/friends.ts';
 import { clearsChat } from '../logic/guild-chat.ts';
@@ -18,14 +24,15 @@ const field = (sel: string): HTMLInputElement | null =>
  * was typed meanwhile (CodeRabbit on #216). The field shows the draft of
  * logic/drafts.svelte.ts, so a redraw never takes what is typed.
  */
-async function submitChat(act: Act): Promise<void> {
-  const text = drafts.get('guildChat');
+async function submitChat(act: Act, place: ChatPlace): Promise<void> {
+  const draft = chatDraft(place);
+  const text = drafts.get(draft);
   if (
     (await act('sendGuildChat', { text })) &&
-    clearsChat(text, drafts.get('guildChat'))
+    clearsChat(text, drafts.get(draft))
   ) {
-    drafts.clear('guildChat');
-    field('#chat_text')?.focus();
+    drafts.clear(draft);
+    field(`#${chatIds(place).field}`)?.focus();
   }
 }
 
@@ -56,9 +63,10 @@ export const clientFeature = {
     // Each form is locked while its action runs, like every form (#428).
     document.addEventListener('submit', (e) => {
       const form = e.target as HTMLElement;
-      if (form.id === 'guildchatform') {
+      const place = chatPlaceOf(form.id);
+      if (place) {
         e.preventDefault();
-        void runLocked(form, () => submitChat(act));
+        void runLocked(form, () => submitChat(act, place));
       } else if (form.id === 'friendform') {
         e.preventDefault();
         void runLocked(form, () => friend(act, { op: 'request' }));

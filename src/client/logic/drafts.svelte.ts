@@ -5,8 +5,14 @@
 // the drafts, as it dropped the typed fields before.
 import { SvelteMap } from 'svelte/reactivity';
 
-/** The fields with a draft: the message of the guild chat (#169) and the name of a new buddy (#227). */
-type DraftField = 'guildChat' | 'friendName';
+/**
+ * The fields with a draft: the message of the guild chat (#169), the one of
+ * the chat window (#496) and the name of a new buddy (#227).
+ */
+export type DraftField = 'guildChat' | 'windowChat' | 'friendName';
+
+/** The chat window stays over a change of the view, and so does its draft (#496). */
+const LASTING: ReadonlySet<DraftField> = new Set(['windowChat']);
 
 class Drafts {
   readonly #text = new SvelteMap<DraftField, string>();
@@ -26,9 +32,13 @@ class Drafts {
     this.#text.delete(field);
   }
 
-  /** Drops every draft. */
-  reset(): void {
-    this.#text.clear();
+  /**
+   * Drops the drafts of the views, or with `all` (a logout) every draft; the
+   * one of the chat window stays over a change of the view (#496).
+   */
+  reset(all = false): void {
+    for (const field of [...this.#text.keys()])
+      if (all || !LASTING.has(field)) this.#text.delete(field);
   }
 }
 

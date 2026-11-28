@@ -90,16 +90,18 @@ export function guildHint(state: GameState): string {
 
 /**
  * The newest message of the chat when the member has the page of its own
- * guild open and something is new: the visit that clears the mark on
+ * guild open, or the chat in sight elsewhere (`shown`: the tab „Gilde“ or the
+ * chat window, #496), and something is new: the visit that clears the mark on
  * „Gilden“ (#169; owner, 2026-11-15). Null otherwise.
  */
 export function chatToSee(
   state: GameState,
   view: string,
   guild: string | null,
+  shown = false,
 ): number | null {
   const g = state.guilds;
-  if (view !== 'guilds' || g?.own?.status !== 'member') return null;
-  if (g.own.id !== guild || !g.chat?.unread) return null;
+  if (g?.own?.status !== 'member' || !g.chat?.unread) return null;
+  if (!shown && (view !== 'guilds' || g.own.id !== guild)) return null;
   return g.chat.messages.at(-1)?.id ?? null;
 }

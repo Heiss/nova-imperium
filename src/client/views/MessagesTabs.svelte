@@ -1,18 +1,19 @@
 <script lang="ts">
   // „Nachrichten“ with its tabs (#226; owner, 2026-11-21): „Berichte“ (the
-  // list of reports of Messages.svelte, unchanged), „Posteingang“ and
-  // „Gesendet“. One menu entry and one mark for all of them. The view is
+  // list of reports of Messages.svelte, unchanged), „Posteingang“,
+  // „Gesendet“ and, for a member with a chat, „Gilde“ with the guild chat
+  // (#496, owner, 2026-11-28, 4). One menu entry and one mark for all of them. The view is
   // mounted once and follows the state (`viewState`), so the open tab, the
   // open conversation and what is typed stay over the poll of the state.
   import type { Readable } from 'svelte/store';
+  import { showGuildChat } from '../logic/chat-shown.ts';
+  import { chatBox } from '../logic/guilds.ts';
+  import { messageTabs } from '../logic/message-tabs.ts';
   import { messagesPage } from '../logic/messages.ts';
   import { quickChoice } from '../logic/pm-compose.ts';
-  import {
-    MESSAGE_TABS,
-    privatePage,
-    type MessageTab,
-  } from '../logic/private-messages.ts';
+  import { privatePage, type MessageTab } from '../logic/private-messages.ts';
   import type { V } from './common.ts';
+  import GuildChat from './GuildChat.svelte';
   import Messages from './Messages.svelte';
   import PmInbox from './PmInbox.svelte';
   import PmSent from './PmSent.svelte';
@@ -31,26 +32,31 @@
   const mail = $derived(privatePage($viewState));
   const quick = $derived(quickChoice($viewState.s));
 
+  const labels = $derived(messageTabs($viewState.s, lock));
+  const tabs = $derived(labels.map((t) => t.key));
+  /** The label of a tab, as „Posteingang (2)“ or „Gilde (3)“. */
+  const labelOf = (key: MessageTab): string =>
+    labels.find((t) => t.key === key)!.label;
+  const guildChat = $derived(
+    $viewState.s.guilds?.chat ? chatBox($viewState.s.guilds.chat) : null,
+  );
   // `lock` is fixed for the life of the view: it is set when the view is mounted.
   // svelte-ignore state_referenced_locally
-  const tabs = (Object.keys(MESSAGE_TABS) as MessageTab[]).filter(
-    (key) => !lock || key !== 'reports',
-  );
-  // svelte-ignore state_referenced_locally
-  let tab = $state<MessageTab>(lock ? 'inbox' : 'reports');
+  let chosen = $state<MessageTab>(lock ? 'inbox' : 'reports');
+  // A tab that went (the player left the guild): the inbox.
+  const tab = $derived(tabs.includes(chosen) ? chosen : 'inbox');
+  // The chat in sight is a visit of it (#496).
+  $effect(() => {
+    showGuildChat('messages', tab === 'guild');
+    return () => showGuildChat('messages', false);
+  });
   let sent = $state<{ reload: () => Promise<void> }>();
 
   /** Shows a tab; „Gesendet“ loads its newest page when the player opens it (Q33), by a click or a key and never by a redraw. */
   function select(key: MessageTab): void {
-    tab = key;
+    chosen = key;
     if (key === 'sent') void sent?.reload();
   }
-
-  /** The label of a tab; „Posteingang“ names its unread messages, as „Posteingang (2)“. */
-  const labelOf = (key: MessageTab): string =>
-    key === 'inbox' && mail.unread
-      ? `${MESSAGE_TABS[key]} (${mail.unread})`
-      : MESSAGE_TABS[key];
 
   /** The arrow keys, Home and End move between the tabs (the pattern of a tab list). */
   function move(event: KeyboardEvent): void {
@@ -109,3 +115,12 @@
 >
   <PmSent bind:this={sent} />
 </section>
+<!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
+{#if guildChat}<section
+    id="messages-panel-guild"
+    role="tabpanel"
+    aria-labelledby="messages-tab-guild"
+    hidden={tab !== 'guild'}
+  >
+    <GuildChat chat={guildChat} place="messages" />
+  </section>{/if}

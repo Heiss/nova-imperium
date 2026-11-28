@@ -12,11 +12,15 @@ import type { V } from '../views/common.ts';
 import { dt } from './format.ts';
 import type { GameState } from './types.ts';
 
-/** The tabs of „Nachrichten“: the reports (the earlier content), the inbox, the sent messages [V]. */
+/**
+ * The tabs of „Nachrichten“: the reports (the earlier content), the inbox, the
+ * sent messages [V], and the chat of the own guild (#496, owner, 2026-11-28).
+ */
 export const MESSAGE_TABS = {
   reports: 'Berichte',
   inbox: 'Posteingang',
   sent: 'Gesendet',
+  guild: 'Gilde',
 } as const;
 export type MessageTab = keyof typeof MESSAGE_TABS;
 

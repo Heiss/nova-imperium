@@ -63,13 +63,19 @@ const OWN: NonNullable<GameState['privateMessages']> = {
 };
 
 describe('the tabs', () => {
-  it('are the reports first, then the inbox and the sent messages', () => {
+  it('are the reports first, then the inbox, the sent messages and the guild chat (#496)', () => {
     expect(MESSAGE_TABS).toEqual({
       reports: 'Berichte',
       inbox: 'Posteingang',
       sent: 'Gesendet',
+      guild: 'Gilde',
     });
-    expect(Object.keys(MESSAGE_TABS)).toEqual(['reports', 'inbox', 'sent']);
+    expect(Object.keys(MESSAGE_TABS)).toEqual([
+      'reports',
+      'inbox',
+      'sent',
+      'guild',
+    ]);
   });
 
   it('use the words of the issue for the buttons', () => {

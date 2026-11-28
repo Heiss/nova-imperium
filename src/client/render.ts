@@ -113,7 +113,7 @@ export function render(fresh = false): void {
   const view = $('#view')!;
   if (!client.game) {
     forgetAdminPanel();
-    drafts.reset();
+    drafts.reset(true);
     forgetForms();
     // The drafts of private messages stay until a reload or a logout (#349).
     forgetDrafts();

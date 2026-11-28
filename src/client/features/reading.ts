@@ -1,6 +1,8 @@
 // What the player has read (formerly in main.ts), told to the server after a
 // render: the page „Nachrichten“ marks the reports as read (#169 and before),
-// and the chat of a guild that the member saw clears the mark on „Gilden“.
+// and the chat of a guild that the member saw clears the mark on „Gilden“,
+// on the page of the guild, in the tab „Gilde“ or in the chat window (#496).
+import { guildChatShown, onGuildChatShown } from '../logic/chat-shown.ts';
 import { chatToSee } from '../logic/menu-hints.ts';
 import { client } from '../logic/state.svelte.ts';
 import type { ClientCtx, ClientFeature } from './contract.ts';
@@ -29,6 +31,7 @@ function seeChat(): void {
     client.game!,
     client.ui.view,
     client.ui.params.guild ?? null,
+    guildChatShown(),
   );
   if (id === null || seePending) return;
   seePending = true;
@@ -42,6 +45,10 @@ function seeChat(): void {
 export const clientFeature = {
   listen: (given) => {
     ctx = given;
+    // The tab „Gilde“ or the chat window comes into sight without a render (#496).
+    onGuildChatShown(() => {
+      if (client.game) seeChat();
+    });
   },
   acts: () => ({}),
   afterRender: () => {
