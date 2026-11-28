@@ -238,6 +238,23 @@ interface Plan {
   stay: number;
 }
 
+/**
+ * What the checks of a target read of its position at `t`: a Trümmerfeld
+ * there, the moon or the planet, the lock of a given-up position and the
+ * expedition position. The send and the planned start (#478) ask the same.
+ */
+export const placeFacts = (
+  ctx: Ctx,
+  dest: Coords,
+  moon: boolean,
+  t: number,
+) => ({
+  debris: !!ctx.debris.get(placeId({ ...dest, kind: 'debris' })),
+  moon,
+  lockEnd: lockedUntil(ctx, dest, t),
+  expedition: isExpeditionPlace(dest, universe(ctx)),
+});
+
 export function checkDestination(
   ctx: Ctx,
   u: User,
@@ -327,12 +344,7 @@ function plan(ctx: Ctx, u: User, p: Planet, d: Wire<'send'>): Plan {
     rules,
     occupied,
     ships,
-    {
-      debris: !!ctx.debris.get(field),
-      moon,
-      lockEnd: lockedUntil(ctx, dest, ctx.now()),
-      expedition: isExpeditionPlace(dest, universe(ctx)),
-    },
+    placeFacts(ctx, dest, moon, ctx.now()),
     mission,
   );
   return {

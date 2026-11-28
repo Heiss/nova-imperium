@@ -9,10 +9,10 @@
 // The leader can abort the planned start, which dissolves the union too
 // (owner: when the leader aborts, the union aborts).
 import { countUnits, distance, fuelFor } from '../../core/flight.ts';
-import { isExpeditionPlace } from '../../core/expedition.ts';
 import { missionRules } from '../../core/missions.ts';
 import { settle } from '../../core/settle.ts';
 import type { Fleet, Levels, Planet } from '../../core/types.ts';
+import { UNION_MISSION } from '../../core/union.ts';
 import type { Union } from '../db/repos/unions.ts';
 import { record } from '../audit.ts';
 import type { Handler } from './actions.ts';
@@ -25,9 +25,13 @@ import {
   universe,
 } from './context.ts';
 import type { ServerFeature } from './feature.ts';
-import { checkDestination, recalledAt, takeOff } from './fleet-actions.ts';
+import {
+  checkDestination,
+  placeFacts,
+  recalledAt,
+  takeOff,
+} from './fleet-actions.ts';
 import { attackEvent } from './guild-events.ts';
-import { lockedUntil } from './position-lock.ts';
 import { dissolvedReport, RECALLED } from './union.ts';
 
 const NONE = { m: 0, c: 0, d: 0 };
@@ -112,16 +116,11 @@ function targetRefusal(
       ctx,
       u,
       p,
-      missionRules('attack')!,
+      missionRules(UNION_MISSION)!,
       ctx.planets.get(row.target),
       ships,
-      {
-        debris: false,
-        moon: row.target.startsWith('m'),
-        lockEnd: lockedUntil(ctx, row.toC, row.start!.at),
-        expedition: isExpeditionPlace(row.toC, universe(ctx)),
-      },
-      'attack',
+      placeFacts(ctx, row.toC, row.target.startsWith('m'), row.start!.at),
+      UNION_MISSION,
     );
     return null;
   } catch (e) {
@@ -174,7 +173,7 @@ function launch(
     fromC: { g: p.g, s: p.s, p: p.p },
     to: row.target,
     toC: row.toC,
-    mission: 'attack',
+    mission: UNION_MISSION,
     ships,
     cargo: { ...NONE },
     dep: s.at,

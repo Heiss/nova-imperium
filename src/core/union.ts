@@ -242,6 +242,9 @@ export const flightRefusal = (
     : joinMessage('late', limits);
 
 /** The slowest and the fastest speed of a fleet, in tenths (10 % and 100 %). */
+/** The mission of every fleet of an attack union: the Sturmangriff (#225). */
+export const UNION_MISSION = 'attack';
+
 export const SLOWEST = 1;
 export const FASTEST = 10;
 

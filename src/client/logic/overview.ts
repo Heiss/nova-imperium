@@ -13,7 +13,7 @@ import { diameterLine } from './fields.ts';
 import { coords, dt, dur, fmt, resLine } from './format.ts';
 import { fleetEnd, nameOf, ranks, sortFleets } from './game.ts';
 import { planetLook } from './planet.ts';
-import { unionPart } from './union.ts';
+import { unionPart, unionsOf } from './union.ts';
 import type { ClientFleet } from './types.ts';
 
 /** A countdown to `end`; `left` is null when it is due. The clock counts it down. */
@@ -197,13 +197,14 @@ export const fleetRows = (v: V, includeIncoming: boolean): FleetRow[] =>
  * the time to its start and „Abbrechen“ [V].
  */
 const plannedRows = (v: V): FleetRow[] =>
-  (v.s.unions ?? []).flatMap((u) =>
-    u.start === undefined || !u.held
+  unionsOf(v.s).flatMap((u) =>
+    // The leader's own unions with a planned start carry `held` (#478).
+    u.held === undefined
       ? []
       : [
           {
             id: `plan_${u.id}`,
-            due: countdown(u.start, v.now),
+            due: countdown(u.start!, v.now),
             cls: 'fl-attack',
             parts: [
               part(

@@ -220,6 +220,27 @@ describe('the box of the unions', () => {
   });
 });
 
+describe('the planned start of a union in the box (#478)', () => {
+  it('counts down to the start of the leader’s fleet while it is planned, else none', () => {
+    const union = {
+      id: 'f9',
+      leader: 'u2',
+      to: 'p1_2_6',
+      toC: { g: 1, s: 2, p: 6 },
+      arr: 9000,
+      fleets: [],
+      invited: ['u1'],
+    };
+    const box = (u: object) =>
+      fleetPage(view({ state: { unions: [u] } })).unions!.unions[0]!;
+    expect(box({ ...union, start: 4000 }).start).toEqual({
+      end: 4000,
+      left: expect.any(String),
+    });
+    expect(box(union).start).toBeNull();
+  });
+});
+
 describe('the box of the Warp-Tor', () => {
   it('is only there on a moon with a gate', () => {
     expect(fleetPage(view()).jump).toBeNull();
