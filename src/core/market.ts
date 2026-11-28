@@ -202,6 +202,7 @@ const ratio = (pair: Pair) =>
     explain: {
       text: 'Wie viel ein Spieler bei diesem Tausch zum Grundpreis bekommt, bevor die Gebühr abgeht. Gilt ab dem nächsten Tausch; ein gesunkener Preis bleibt als Anteil am Grundpreis erhalten.',
       rows: ratioRows(pair),
+      own: true,
     },
   }) as const;
 
@@ -284,6 +285,7 @@ export const roundSettings = [
     explain: {
       text: 'Wie stark jeder Tausch den Preis seines Paars senkt; nur dieses Paar, für alle Spieler gemeinsam. Gilt ab dem nächsten Tausch.',
       rows: STEP_ROWS,
+      own: true,
     },
     name: 'marketStep',
     label: 'Marktplatz Preisschritt (Promille je 1.000 getauschte Einheiten)',
@@ -298,6 +300,7 @@ export const roundSettings = [
     explain: {
       text: 'In wie vielen Stunden ein gesunkener Preis gleichmäßig wieder den Grundpreis erreicht. Beim Wert null erholt er sich nicht. Eine Änderung gilt sofort, gemessen ab dem letzten Tausch.',
       rows: DRIFT_ROWS,
+      own: true,
     },
     name: 'marketDrift',
     label: 'Marktplatz Preiserholung (Stunden, 0 = keine Erholung)',
@@ -325,6 +328,7 @@ export const roundSettings = [
     explain: {
       text: 'Die Gebühr in Prozent, die auf der ersten Stufe des Handelspostens vom Ergebnis eines Tauschs abgeht. Gilt ab dem nächsten Tausch.',
       rows: FEE_ROWS,
+      own: true,
     },
     name: 'marketFee',
     label: 'Marktplatz Gebühr auf Stufe 1 des Handelspostens (Prozent)',
@@ -339,6 +343,7 @@ export const roundSettings = [
     explain: {
       text: 'Um so viele Prozentpunkte sinkt die Gebühr mit jeder Stufe des Handelspostens über der ersten, nie unter null. Gilt ab dem nächsten Tausch.',
       rows: FEE_ROWS,
+      own: true,
     },
     name: 'marketFeeStep',
     label: 'Marktplatz Gebühr sinkt je weitere Stufe um (Prozentpunkte)',

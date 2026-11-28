@@ -9,6 +9,10 @@ import {
   explainTable,
   NONE,
   NOW,
+  OWN,
+  OWN_LABEL,
+  ownRefused,
+  ownValue,
   valueLabel,
   type Explained,
 } from './admin-explain.ts';
@@ -16,6 +20,7 @@ import { BUILD } from './catalog.ts';
 import { buildTime, lvlCost } from './economy.ts';
 import { duration, nameOf } from './lexicon/say.ts';
 import {
+  rangeError,
   ROUND_SETTINGS,
   storedValues,
   type RoundRules,
@@ -323,5 +328,177 @@ describe('the tables of every setting at the defaults (#358)', () => {
       ];
     }).join('\n');
     await expect(text).toMatchFileSnapshot('admin-explain.tables.txt');
+  });
+});
+
+describe('a value of the admin’s own (#358, part 2)', () => {
+  // The settings whose values that follow change with them by a formula
+  // (owner, 2026-11-22, point 4; the split [V] of 2026-11-27).
+  const OWN_KEYS = [
+    'speed',
+    'baseStore',
+    'extraFields',
+    'roundDemolitionRefund',
+    'roundDemolitionTime',
+    'roundExpeditionExtraSlots',
+    'roundExpeditionHours',
+    'roundMarketMc',
+    'roundMarketMd',
+    'roundMarketCm',
+    'roundMarketCd',
+    'roundMarketDm',
+    'roundMarketDc',
+    'roundMarketStep',
+    'roundMarketDrift',
+    'roundMarketFee',
+    'roundMarketFeeStep',
+    'roundColonyBase',
+    'roundColonyPerLevel',
+    'roundColonyMaxLevel',
+    'roundHighscorePasses',
+    'roundMoonChanceMax',
+    'roundMoonPerPercent',
+  ];
+
+  it('is offered for the settings with a formula behind them, each with a table and a range; the others keep the static table', () => {
+    const own = ALL.filter((s) => s.explain?.own);
+    expect(own.map((s) => s.key).sort()).toEqual([...OWN_KEYS].sort());
+    for (const s of own) {
+      expect(s.explain!.rows?.length, s.key).toBeGreaterThan(0);
+      expect(s.min, s.key).toBeDefined();
+      expect(s.max, s.key).toBeDefined();
+      expect(s.choices, s.key).toBeUndefined();
+    }
+    const tables = ALL.filter((s) => s.explain?.rows);
+    expect(tables.length - own.length).toBe(11);
+  });
+
+  it('is a whole number of the range of the setting, else refused in the words of the universe settings; an empty field is none', () => {
+    const speed = byKey('speed');
+    expect(ownValue(speed, '')).toBeNull();
+    expect(ownValue(speed, '  ')).toBeNull();
+    expect(ownValue(speed, '7')).toEqual({ value: 7 });
+    expect(ownValue(speed, ' 7 ')).toEqual({ value: 7 });
+    expect(ownValue(speed, String(speed.min))).toEqual({ value: speed.min });
+    expect(ownValue(speed, String(speed.max))).toEqual({ value: speed.max });
+    const refused = { error: rangeError(speed as never) };
+    expect(refused.error).toBe(
+      `${speed.label}: ganze Zahl von ${speed.min} bis ${speed.max}.`,
+    );
+    for (const raw of [
+      String(speed.min! - 1),
+      String(speed.max! + 1),
+      '1.5',
+      'x',
+    ])
+      expect(ownValue(speed, raw), raw).toEqual(refused);
+    // A setting without a formula, or without a range, takes none.
+    expect(ownValue(byKey('positions'), '15')).toBeNull();
+    expect(ownValue({ ...speed, max: undefined }, '7')).toBeNull();
+    expect(ownValue({ ...speed, min: undefined }, '7')).toBeNull();
+    expect(ownValue(byKey('galaxies'), '3')).toBeNull();
+    expect([OWN, OWN_LABEL]).toEqual(['eigener Wert', 'Eigener Wert']);
+  });
+
+  it('adds one column after the current value, computed as every other column with src/core', () => {
+    const s = byKey('speed');
+    const plain = explainTable(s, u, round)!;
+    const t = explainTable(s, u, round, undefined, 7)!;
+    expect(t.head).toEqual([...plain.head, `7 (${OWN})`]);
+    // The column at 7 is the column of the current value when the universe runs at 7.
+    const at7 = explainTable(s, { ...u, speed: 7 } as Universe, round)!;
+    t.rows.forEach((r, i) => {
+      expect(r.cells.slice(0, -1)).toEqual(plain.rows[i]!.cells);
+      expect(r.cells.at(-1)).toBe(at7.rows[i]!.cells.at(-1));
+    });
+  });
+
+  it('takes none for a setting without an explanation, and a table that says nothing stays out whatever its own column says', () => {
+    expect(ownValue({ key: 'x', label: 'X', min: 0, max: 9 }, '3')).toBeNull();
+    const flat: Explained = {
+      key: 'roundFlat',
+      label: 'Flach',
+      name: 'flat',
+      min: 0,
+      max: 2,
+      explain: {
+        text: 'x',
+        own: true,
+        rows: [
+          {
+            label: () => 'Wert',
+            cell: ({ round: r }) => (r.flat === 5 ? 'anders' : 'gleich'),
+          },
+        ],
+      },
+    };
+    expect(explainTable(flat, u, round, [], 5)).toBeNull();
+  });
+
+  it('adds no column for a setting without a formula, and does not bring back a table that says nothing', () => {
+    const positions = byKey('positions');
+    expect(explainTable(positions, u, round, undefined, 15)).toEqual(
+      explainTable(positions, u, round),
+    );
+    // The limit of planets is off at the defaults: its tables stay out.
+    expect(
+      explainTable(byKey('roundColonyPerLevel'), u, round, undefined, 5),
+    ).toBeNull();
+  });
+
+  it('shows none in its column and the refusal of the rules between settings when they refuse it', () => {
+    const on = {
+      ...u,
+      roundColonyBase: 5,
+      roundColonyResearch: 1,
+    } as unknown as Universe;
+    const base = byKey('roundColonyBase');
+    const t = explainTable(base, on, round, undefined, 0)!;
+    expect(t.head.at(-1)).toBe(`0 (${OWN})`);
+    expect(t.rows.map((r) => r.cells.at(-1))).toEqual(t.rows.map(() => NONE));
+    const research = ROUND_SETTINGS.find(
+      (r) => r.key === 'roundColonyResearch',
+    )!;
+    expect(ownRefused(base, on, round, 0)).toBe(research.refusal);
+    expect(ownRefused(base, on, round, 3)).toBeNull();
+    // A step is a rule of the setting itself (the moon, #433).
+    const moon = byKey('roundMoonPerPercent');
+    const step = ROUND_SETTINGS.find((r) => r.key === 'roundMoonPerPercent')!;
+    expect(ownRefused(moon, u, round, moon.min! + 1)).toBe(step.refusal);
+    expect(ownRefused(moon, u, round, moon.min!)).toBeNull();
+  });
+
+  it('names each refusal once, in the order of the settings', () => {
+    const a = {
+      kind: 'number',
+      key: 'roundA',
+      name: 'a',
+      label: 'A',
+      order: 1,
+      min: 0,
+      max: 9,
+      def: 0,
+      refusal: 'Nein A.',
+      agrees: (value: number) => value !== 1,
+    } as const satisfies RoundSetting;
+    const b = { ...a, key: 'roundB', name: 'b', refusal: 'Nein B.' };
+    const c = { ...a, key: 'roundC', name: 'c', refusal: 'Nein A.' };
+    const s: Explained = {
+      key: 'roundA',
+      label: 'A',
+      name: 'a',
+      min: 0,
+      max: 9,
+    };
+    const one = {
+      ...u,
+      roundA: 1,
+      roundB: 1,
+      roundC: 1,
+    } as unknown as Universe;
+    expect(ownRefused(s, one, round, 1, [a, b, c] as RoundSetting[])).toBe(
+      'Nein A. Nein B.',
+    );
+    expect(ownRefused(s, one, round, 2, [a])).toBeNull();
   });
 });

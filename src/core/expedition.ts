@@ -107,6 +107,7 @@ export const roundSettings = [
     explain: {
       text: 'So viele Expeditionen kann jeder Spieler zusätzlich gleichzeitig schicken, über die Plätze aus der Forschung hinaus. Geprüft beim Start.',
       rows: SLOT_ROWS,
+      own: true,
     },
     name: 'expeditionExtraSlots',
     label: 'Zusätzliche Expeditionsplätze',
@@ -123,6 +124,7 @@ export const roundSettings = [
     explain: {
       text: 'Wie lange eine Expedition höchstens an der Expeditionsposition bleiben darf, je Stufe ihrer Forschung. Geprüft beim Start; laufende Expeditionen behalten ihre Zeit.',
       rows: STAY_ROWS,
+      own: true,
     },
     name: 'expeditionHours',
     label: 'Haltezeit in Stunden je Stufe',

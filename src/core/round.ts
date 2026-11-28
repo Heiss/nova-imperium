@@ -60,7 +60,21 @@ export interface SettingExplain {
    * in between, the maximum and the current value (owner E3).
    */
   rows?: readonly ExplainRow[];
+  /**
+   * Whether the admin may type a value of his own and see its column (#358,
+   * part 2, owner 2026-11-22 point 4): set for a setting whose values that
+   * follow change with it by a formula of src/core, not for a threshold or a
+   * setting of a few values [V].
+   */
+  own?: true;
 }
+
+/** The refusal of a value outside its range, as the universe settings word it (#214). */
+export const rangeError = (s: {
+  label: string;
+  min: number;
+  max: number;
+}): string => `${s.label}: ganze Zahl von ${s.min} bis ${s.max}.`;
 
 /**
  * Entries sent as one object and refused together (#214): the reward
