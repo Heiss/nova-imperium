@@ -4,10 +4,11 @@ import type { Planet, ResearchState } from '../../core/types.ts';
 import { dur } from '../logic/format.ts';
 import type { Scan } from '../logic/phalanx.ts';
 import type { HighscoreCategory } from '../logic/highscore.ts';
+import type { HoldChoice } from '../logic/options/holding.ts';
 import type { PushChoice } from '../logic/push-options.ts';
 import type { GameState } from '../logic/types.ts';
 
-export interface Ui extends PushChoice {
+export interface Ui extends PushChoice, HoldChoice {
   passwordMinLength?: number;
   /** Whether the server sends Web Push; else the options hide the push kinds (#192). */
   webPush?: boolean;

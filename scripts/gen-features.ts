@@ -65,10 +65,17 @@
 // pages/index.ts imports, so a page registers itself and no shared list names
 // it; index.ts sorts the pages by their order.
 //
+// The events of the guild chat (#426): every file of src/core/chat-events
+// that exports `chatEvents` (key, order, sentence) is listed in
+// src/core/chat-events/events.gen.ts (`CHAT_EVENT_LISTS`), which only
+// src/core/guild-chat.ts and its tests import (a rule of
+// .dependency-cruiser.cjs), so an event registers itself with its line.
+//
 // The rights of the guild ranks (#426): every file of src/core/guild-rights
 // that exports `guildRights` (key, order, label, member) is listed in
 // src/core/guild-rights/rights.gen.ts (`GUILD_RIGHT_LISTS`), which only
-// src/core/guild-ranks.ts imports, so a right registers itself with its name.
+// src/core/guild-ranks.ts and its tests import (a rule of
+// .dependency-cruiser.cjs), so a right registers itself with its label.
 //
 // The lines of the overview cards (#426): every file of
 // src/client/logic/overview-cards that exports `overviewLines` (its lines of
@@ -151,6 +158,11 @@ export const LEXICON_PAGES_DIR = 'src/core/lexicon/pages';
 export const LEXICON_PAGES_FILE = 'pages.gen.ts';
 /** The fixed name under which a file exports its page of the Lexicanum. */
 const LEXICON_PAGE_EXPORT = /^export const lexiconPage\b/m;
+/** Where the events of the guild chat are (#426), and the list of them. */
+export const CHAT_EVENTS_DIR = 'src/core/chat-events';
+export const CHAT_EVENTS_FILE = 'events.gen.ts';
+/** The fixed name under which a file exports its events of the guild chat. */
+const CHAT_EVENTS_EXPORT = /^export const chatEvents\b/m;
 /** Where the rights of the guild ranks are (#426), and the list of them. */
 export const GUILD_RIGHTS_DIR = 'src/core/guild-rights';
 export const GUILD_RIGHTS_FILE = 'rights.gen.ts';
@@ -520,6 +532,22 @@ export function generateLexiconPages(dir: string): boolean {
   );
 }
 
+/** The files of the folder of the chat events that export `chatEvents` (#426). */
+export const scanChatEvents = (dir: string): string[] =>
+  scanExporting(dir, CHAT_EVENTS_EXPORT);
+
+/** The source of the list of the events of the guild chat (#426). */
+export const renderChatEvents = (files: string[]): string =>
+  renderFeatureList(files, 'chatEvents', 'CHAT_EVENT_LISTS');
+
+/** Writes the list of the chat events when it changed; true if it did. */
+export function generateChatEvents(dir: string): boolean {
+  return write(
+    join(dir, CHAT_EVENTS_FILE),
+    renderChatEvents(scanChatEvents(dir)),
+  );
+}
+
 /** The files of the folder of the guild rights that export `guildRights` (#426). */
 export const scanGuildRights = (dir: string): string[] =>
   scanExporting(dir, GUILD_RIGHTS_EXPORT);
@@ -635,6 +663,7 @@ if (import.meta.main)
     generateOptionBoxes(OPTION_BOXES_DIR);
     generatePushTopics(PUSH_TOPICS_DIR);
     generateLexiconPages(LEXICON_PAGES_DIR);
+    generateChatEvents(CHAT_EVENTS_DIR);
     generateGuildRights(GUILD_RIGHTS_DIR);
     generateOverviewLines(OVERVIEW_LINES_DIR);
     generateActionInputs(ACTIONS_DIR);

@@ -17,13 +17,16 @@ export const byId = (id: string): string =>
  * one function that writes a field (src/test/field-writes.test.ts). Only for a
  * field that holds its value in the page, such as the amounts of the lists and
  * the settings of the universe; a field of a form with state is written
- * through that state (#332), which the component shows.
+ * through that state (#332), which the component shows. A checkbox takes
+ * „true“ or „false“ and is ticked for „true“ (PR #469).
  */
 export function setField(
   el: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement,
   value: string,
 ): void {
-  el.value = value;
+  if (el.type === 'checkbox')
+    (el as HTMLInputElement).checked = value === 'true';
+  else el.value = value;
 }
 
 /** Sets the value of a field by its id, when it is there. */

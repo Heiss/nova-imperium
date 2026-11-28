@@ -55,6 +55,32 @@ module.exports = {
       to: { path: '^src/features/lexicon\\.gen\\.ts$' },
     },
     {
+      name: 'guild-rights-list-in-guild-ranks',
+      severity: 'error',
+      comment:
+        'Only src/core/guild-ranks.ts and its tests import the generated list of the guild rights (#426): every other module reads the rights from guild-ranks.ts.',
+      from: {
+        pathNot: [
+          '^src/core/guild-ranks\\.ts$',
+          '^src/core/guild-ranks\\.[a-z.-]*test\\.ts$',
+        ],
+      },
+      to: { path: '^src/core/guild-rights/rights\\.gen\\.ts$' },
+    },
+    {
+      name: 'chat-events-list-in-guild-chat',
+      severity: 'error',
+      comment:
+        'Only src/core/guild-chat.ts and its tests import the generated list of the chat events (#426): every other module reads the events from guild-chat.ts.',
+      from: {
+        pathNot: [
+          '^src/core/guild-chat\\.ts$',
+          '^src/core/guild-chat\\.[a-z.-]*test\\.ts$',
+        ],
+      },
+      to: { path: '^src/core/chat-events/events\\.gen\\.ts$' },
+    },
+    {
       name: 'feature-stays-pure',
       severity: 'error',
       comment:

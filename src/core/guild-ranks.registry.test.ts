@@ -67,15 +67,24 @@ describe('the guild rights register themselves (#426)', () => {
   });
 
   it('takes the names and the rights of „Mitglied“ from the entries', () => {
-    type Entry = { key: GuildRight; label: string; member?: boolean };
+    type Entry = {
+      key: GuildRight;
+      order: number;
+      label: string;
+      member?: boolean;
+    };
     const entries = GUILD_RIGHT_LISTS.flatMap(
       ([, rights]): readonly Entry[] => rights,
     );
     expect(entries.map((r) => r.key).sort()).toEqual([...GUILD_RIGHTS].sort());
     for (const r of entries) expect(RIGHT_TEXT[r.key]).toBe(r.label);
     expect(Object.keys(RIGHT_TEXT)).toEqual([...GUILD_RIGHTS]);
-    expect(entries.filter((r) => r.member === true).map((r) => r.key)).toEqual([
-      ...MEMBER_RIGHTS,
-    ]);
+    // By their order, as MEMBER_RIGHTS lists them, not in the order of the files.
+    expect(
+      entries
+        .filter((r) => r.member === true)
+        .sort((x, y) => x.order - y.order)
+        .map((r) => r.key),
+    ).toEqual([...MEMBER_RIGHTS]);
   });
 });
