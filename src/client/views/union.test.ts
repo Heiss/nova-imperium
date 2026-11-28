@@ -136,37 +136,80 @@ describe('the union chosen after a redraw (#332)', () => {
   });
 });
 
-describe('opening a union from an own Sturmangriff', () => {
+describe('planning a union in the fleet form (#466, A1a)', () => {
+  afterEach(forgetForms);
+  /** A foreign planet at the target, so a Sturmangriff fits it. */
+  const attack = (over: Partial<V['ui']> = {}): V => {
+    const v = view([], 'u1', { ft: { g: 1, s: 4, p: 8 }, ...over });
+    v.s.galaxy = [
+      {
+        id: 'p1_4_8',
+        kind: 'planet',
+        name: 'Ziel',
+        g: 1,
+        s: 4,
+        p: 8,
+        temp: 1,
+        owner: 'u2',
+      },
+    ] as unknown as GameState['galaxy'];
+    return v;
+  };
+  it('offers „Neuen Verband planen“ for a Sturmangriff while the switch is on, and no row for another mission', () => {
+    expect(fleet(attack())).toContain(
+      '<select id="t_u"><option value="">Kein Verband</option><option value="plan">Neuen Verband planen</option></select>',
+    );
+    expect(fleet(view([], 'u1', { fm: 'transport' }))).not.toContain(
+      'id="t_union_row"',
+    );
+    const off = attack();
+    off.s.round = { ...off.s.round, unionOn: 0 };
+    expect(fleet(off)).not.toContain('id="t_union_row"');
+  });
+  it('drops the plan for another mission and offers it again for a Sturmangriff (review of #473)', () => {
+    fleetForm.union = 'plan';
+    fleetForm.plan = '2026-11-28T12:30';
+    fleetForm.mission = 'transport';
+    const html = fleet(attack());
+    expect(html).not.toContain('id="t_plan_row"');
+    expect(html).not.toContain('id="t_union_row"');
+    fleetForm.mission = 'attack';
+    expect(fleet(attack())).toContain('id="t_plan_row"');
+  });
+  it('asks for the arrival of the union, date and time, once it is chosen', () => {
+    expect(fleet(attack())).not.toContain('id="t_plan_row"');
+    fleetForm.union = 'plan';
+    fleetForm.plan = '2026-11-28T12:30';
+    const html = fleet(attack());
+    expect(html).toContain('<option selected value="plan">');
+    expect(html).toContain(
+      '<tr id="t_plan_row"><td><label for="t_ux">Ankunft des Verbands</label></td><td><input id="t_ux" type="datetime-local" value="2026-11-28T12:30"></td></tr>',
+    );
+  });
+});
+
+describe('a union in the fleet view (#466)', () => {
   const html = (f: ClientFleet, unions: UnionState[] = []) =>
     fleet(view(unions, 'u1', {}, [f]));
-  it('offers „Angriffsverband eröffnen“ for an own Sturmangriff on its way, in the box, with its target and arrival', () => {
+  it('offers no opening from an own Sturmangriff: a union is planned in the fleet form', () => {
     const page = html(own);
-    expect(page).toContain('<div class="hd">Verbandsangriff</div>');
-    expect(page).toContain('Sturmangriff auf [1:4:8]');
-    expect(page).toContain('class="cd" data-end="100000"');
-    expect(page).toContain(
-      'data-act="openUnion" data-id="f1">Angriffsverband eröffnen</button>',
-    );
-    expect(fleet(view([], 'u1', {}, [own]))).toContain('openUnion');
+    expect(page).not.toContain('Verbandsangriff</div>');
+    expect(page).not.toContain('openUnion');
+    expect(page).not.toContain('Angriffsverband eröffnen');
   });
   it('keeps the fleet movements as they were: no button beside the recall', () => {
     const page = fleet(view([], 'u1', {}, [own]));
     expect(page).toContain('data-act="recall" data-id="f1">Rückruf</button>');
     expect(page).not.toContain('Rückruf</button> <button');
   });
-  it('offers it for no other fleet and not twice', () => {
-    const opens = (f: ClientFleet) => html(f).includes('openUnion');
-    expect(opens(own)).toBe(true);
-    expect(opens({ ...own, mission: 'transport' })).toBe(false);
-    expect(opens({ ...own, union: 'f1' })).toBe(false);
-    expect(opens({ ...own, state: 'back' })).toBe(false);
-    expect(opens({ ...own, owner: 'u2' })).toBe(false);
-  });
-  it('says with a union what a recall does', () => {
-    expect(html({ ...own, union: 'f1' }, [union])).toContain(
+  it('says with a union how it arrives and what a recall does', () => {
+    const page = html({ ...own, union: 'f1' }, [union]);
+    expect(page).toContain(
+      'Alle Flotten des Verbands kommen zur geplanten Ankunft an',
+    );
+    expect(page).toContain(
       'Ruft der Anführer seine Flotte zurück, kehren alle Flotten des Verbands um',
     );
-    expect(fleet(view([union]))).toContain('Ruft der Anführer');
   });
 });
 

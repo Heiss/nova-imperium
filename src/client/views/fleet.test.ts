@@ -2,7 +2,7 @@
 // expedition position, the row „Haltezeit“ shows only for a mission that
 // stays, and the title counts the expeditions against their slots.
 import { afterEach, describe, expect, it } from 'vitest';
-import { planet, U } from '../../test/fixtures.ts';
+import { planet, roundDefaults, U } from '../../test/fixtures.ts';
 import type { ClientFleet, GameState } from '../logic/types.ts';
 import { fleetView as fleet } from '../../test/fleet-view.ts';
 import { realStay } from '../logic/fleet-time.ts';
@@ -55,6 +55,8 @@ function view(
     ],
     debris: [],
     fleets,
+    // The round of every state: the row „Verband“ reads its switch (#466).
+    round: { number: 1, ...roundDefaults() },
   } as unknown as GameState;
   return {
     s,

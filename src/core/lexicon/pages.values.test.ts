@@ -10,7 +10,8 @@ import { arrivalBlocked, limitReached, planetLimit } from '../colony-limit.ts';
 import { drawEvent, drawSize, EVENT_KINDS, raidFleet } from '../expedition.ts';
 import { holdFuel } from '../flight.ts';
 import { type Gate, jumpError } from '../jump-gate.ts';
-import { joinTiming } from '../union.ts';
+import type { Universe } from '../types.ts';
+import { unionFlight } from '../union.ts';
 import { CENTRED, surveyFindings, surveyTier, TIERS } from '../survey.ts';
 import { GUILD_RIGHTS } from '../guild-ranks.ts';
 import { pageParts } from './docs.ts';
@@ -382,41 +383,46 @@ describe('Wache stellen und Verbandsangriff say what the rules do', () => {
     expect(holdFuel({}, 0)).toBe(1);
   });
 
-  it('the union: the delay by the percentage of the round, the cut-off only when it is on', () => {
+  it('the union: the fixed arrival and the speed of a joining fleet, the cut-off only when it is on (#466)', () => {
     const text = words('rule-allies');
-    expect(text).toContain('höchstens um 30 % der Restflugzeit');
+    expect(text).toContain('Ein Verband hat eine feste Ankunftszeit.');
+    expect(PAGES.find((p) => p.id === 'rule-allies')!.keywords).toEqual([
+      'Wache',
+      'verteidigen',
+      'Verband',
+      'gemeinsam',
+      'Beute',
+    ]);
+    // A value of the allies outside its choices is shown as the number.
+    expect(words('rule-allies', live({ roundAllies: 9 }))).toContain(
+      'Verbündete für Halten und Verband: 9',
+    );
+    expect(text).toContain('liegt zwischen 10 % und 100 %');
+    expect(text).not.toContain('Verspätung');
     expect(text).toContain(
       'Eine Sperre kurz vor der Ankunft gibt es in dieser Runde nicht.',
     );
-    const custom = live({
-      roundUnionDelay: 50,
-      roundUnionCutoff: 15,
-      roundUnionFleets: 8,
-    });
+    const custom = live({ roundUnionCutoff: 15, roundUnionFleets: 8 });
     const changed = words('rule-allies', custom);
-    expect(changed).toContain('höchstens um 50 % der Restflugzeit');
     expect(changed).toContain(
       'In den letzten 15 Minuten vor der Ankunft tritt niemand mehr bei.',
     );
     expect(changed).toContain(
       'Verbandsangriff: höchstens Flotten: 8 (von 1 bis 50)',
     );
-    // 30 % of 10 minutes is 3 minutes: a delay of exactly that is accepted, one millisecond more is refused.
-    expect(
-      rowsOf('rule-allies', 'Die größte Verspätung nach der Restflugzeit'),
-    ).toEqual([
-      ['10 Min. 0 Sek.', '3 Min. 0 Sek.'],
-      ['1 Std. 0 Min.', '18 Min. 0 Sek.'],
-      ['6 Std. 0 Min.', '1 Std. 48 Min.'],
-    ]);
-    const limits = { delay: 30, cutoff: 0 };
-    const ten = 600_000;
-    expect(
-      joinTiming({ now: 0, arr: ten, flight: ten + 180_000, limits }),
-    ).toEqual({ arr: ten + 180_000 });
-    expect(
-      joinTiming({ now: 0, arr: ten, flight: ten + 180_001, limits }),
-    ).toEqual({ error: 'delay' });
+    // The speed of the formula is the one the server picks: half the time at
+    // 10 % is far from a step of 10 %.
+    const out = unionFlight({
+      dist: 2700,
+      speed: 12500,
+      universe: { speed: 1 } as Universe,
+      now: 0,
+      arr: 6_000_000,
+    });
+    expect('pct' in out && out.pct).toBeCloseTo(
+      (35000 * Math.sqrt((10 * 2700) / 12500)) / (6000 - 10),
+      9,
+    );
   });
 });
 

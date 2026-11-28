@@ -4,14 +4,17 @@
 import { describe, expect, it } from 'vitest';
 import type { RoundRules } from '../../core/round.ts';
 import { roundDefaults } from '../../test/fixtures.ts';
-import { dt, dur } from './format.ts';
+import { flightMs } from '../../core/flight.ts';
+import type { Universe } from '../../core/types.ts';
+import { dt } from './format.ts';
 import {
-  canOpenUnion,
   joinChoices,
   limitsOf,
-  openRows,
   unionArrivalLine,
+  planJoin,
+  unionJoin,
   unionPart,
+  unionSpeed,
   unionRows,
   unionsOf,
 } from './union.ts';
@@ -70,23 +73,11 @@ const fleet = (over: Partial<ClientFleet> = {}): ClientFleet => ({
 });
 
 describe('the limits of the round', () => {
-  it('are read from the four settings, the classic values by default', () => {
-    expect(limitsOf(round())).toEqual({
-      fleets: 16,
-      players: 5,
-      delay: 30,
-      cutoff: 0,
-    });
+  it('are read from the three settings, the classic values by default', () => {
+    expect(limitsOf(round())).toEqual({ fleets: 16, players: 5, cutoff: 0 });
     expect(
-      limitsOf(
-        round({
-          unionFleets: 4,
-          unionPlayers: 3,
-          unionDelay: 10,
-          unionCutoff: 5,
-        }),
-      ),
-    ).toEqual({ fleets: 4, players: 3, delay: 10, cutoff: 5 });
+      limitsOf(round({ unionFleets: 4, unionPlayers: 3, unionCutoff: 5 })),
+    ).toEqual({ fleets: 4, players: 3, cutoff: 5 });
   });
 });
 
@@ -96,6 +87,10 @@ describe('the unions of the state', () => {
     expect(unionRows(view(undefined))).toEqual([]);
     expect(joinChoices(view(undefined))).toEqual([]);
     expect(unionRows(view([]))).toEqual([]);
+  });
+  it('names every invited player who has not joined, in the order of the invitations', () => {
+    const [row] = unionRows(view([union({ invited: ['u3', 'u2'] })]));
+    expect(row!.invited).toBe('Cora, Bert');
   });
   it('are shown with the leader, the counts against the limits, the fleets per owner and the invited', () => {
     expect(unionRows(view([union()]))).toEqual([
@@ -128,36 +123,47 @@ describe('the unions of the state', () => {
   });
 });
 
-describe('opening a union', () => {
-  it('is offered for an own Sturmangriff on its way that has not arrived, in no union', () => {
-    expect(canOpenUnion(fleet(), 'u1', 10_000)).toBe(true);
-    expect(canOpenUnion(fleet({ arr: 10_000 }), 'u1', 10_000)).toBe(false);
-    expect(canOpenUnion(fleet({ owner: 'u2' }), 'u1', 10_000)).toBe(false);
-    expect(canOpenUnion(fleet({ mission: 'transport' }), 'u1', 10_000)).toBe(
-      false,
-    );
-    expect(canOpenUnion(fleet({ state: 'back' }), 'u1', 10_000)).toBe(false);
-    expect(canOpenUnion(fleet({ state: 'hold' }), 'u1', 10_000)).toBe(false);
-    expect(canOpenUnion(fleet({ gift: true }), 'u1', 10_000)).toBe(false);
-    expect(canOpenUnion(fleet({ union: 'f1' }), 'u1', 10_000)).toBe(false);
+describe('planning a union (#466, A1a)', () => {
+  const cfg = { speed: 1 } as Universe;
+  const fleet1 = { dist: 1000, speed: 10000 };
+  const fast = flightMs(1000, 10000, 10, cfg);
+  const slow = flightMs(1000, 10000, 1, cfg);
+  const s = (r = round()) => ({ round: r, cfg });
+  it('flies the fleet of the leader at the speed that brings it there at X', () => {
+    expect(planJoin(s(), 10_000 + fast, 10_000, fleet1)).toEqual({
+      pct: expect.closeTo(10, 6),
+      ms: fast,
+      arr: 10_000 + fast,
+    });
+    expect(planJoin(s(), 10_000 + slow, 10_000, fleet1)).toMatchObject({
+      pct: expect.closeTo(1, 6),
+    });
   });
-  it('lists the own fleets that can open one, by arrival, with their target', () => {
-    const rows = (fleets: ClientFleet[], now = 10_000) =>
-      openRows({ ...view([]), s: { ...view([]).s, fleets }, now } as V);
+  it('asks for an arrival, in the future and beyond the cut-off, and says the bounds of the speed', () => {
+    expect(planJoin(s(), Number.NaN, 10_000, fleet1)).toEqual({
+      refusal: 'Bitte die Ankunft des Verbands wählen.',
+    });
+    expect(planJoin(s(), 10_000, 10_000, fleet1)).toEqual({
+      refusal: 'Die Ankunft muss in der Zukunft liegen.',
+    });
     expect(
-      rows([
-        fleet({ id: 'late', arr: 300_000 }),
-        fleet({ id: 'soon', arr: 200_000, toC: { g: 2, s: 3, p: 4 } }),
-        fleet({ id: 'union', union: 'union' }),
-        fleet({ id: 'foreign', owner: 'u2' }),
-        fleet({ id: 'back', state: 'back' }),
-      ]),
-    ).toEqual([
-      { id: 'soon', target: '[2:3:4]', arr: 200_000 },
-      { id: 'late', target: '[1:4:8]', arr: 300_000 },
-    ]);
-    expect(rows([fleet()], 100_000)).toEqual([]);
+      planJoin(s(round({ unionCutoff: 60 })), 10_000 + fast, 10_000, fleet1),
+    ).toEqual({
+      refusal:
+        'Die Ankunft muss mehr als 60 Minuten in der Zukunft liegen, sonst kann niemand mehr beitreten.',
+    });
+    expect(planJoin(s(), 10_000 + fast - 1, 10_000, fleet1)).toEqual({
+      refusal:
+        'Deine Flotte erreicht das Ziel selbst mit 100 % nicht bis zur Ankunft des Verbands.',
+    });
+    expect(planJoin(s(), 10_000 + slow + 1, 10_000, fleet1)).toEqual({
+      // Rounded up to the second, as the server says it.
+      refusal: `Deine Flotte wäre selbst mit 10 % zu früh da. Schicke sie frühestens am ${dt(11_000)} los.`,
+    });
   });
+});
+
+describe('a fleet of a union', () => {
   it('is told in the line of an own fleet of a union', () => {
     expect(unionPart(fleet())).toBe('');
     expect(unionPart(fleet({ union: 'f1' }))).toBe(
@@ -202,39 +208,52 @@ describe('the choice „Verband“ of the fleet form', () => {
   });
 });
 
-describe('the arrival of a fleet that joins', () => {
-  const s = (r = round()) => ({ unions: [union()], round: r });
-  it('arrives with the union when it is there in time, and flies back as long as it flew', () => {
-    expect(unionArrivalLine(s(), 'f1', 10_000, 50_000)).toBe(
-      `${dt(100_000)} / ${dt(150_000)}`,
+describe('the arrival of a fleet that joins (#466)', () => {
+  const cfg = { speed: 1 } as Universe;
+  const s = (r = round()) => ({ unions: [union()], round: r, cfg });
+  // A fleet 1000 away at the speed 10000: its flight at 10 % and at 100 %.
+  const fleet = { dist: 1000, speed: 10000 };
+  const slow = flightMs(1000, 10000, 1, cfg);
+  const fast = flightMs(1000, 10000, 10, cfg);
+  it('flies the time left to X at the speed that brings it there, and back as long', () => {
+    const now = 100_000 - Math.round((slow + fast) / 2);
+    const join = unionJoin(s(), 'f1', now, fleet)!;
+    expect(join).toEqual({
+      pct: expect.closeTo(1.818, 2),
+      ms: 100_000 - now,
+      arr: 100_000,
+    });
+    expect(unionArrivalLine(join)).toBe(
+      `${dt(100_000)} / ${dt(200_000 - now)} <span class="dim">(Verband: Geschwindigkeit 18,2 %)</span>`,
     );
   });
-  it('delays the union and says by how much, within the percentage of the round', () => {
-    // 90 s left, a flight of 110 s: 20 s later, 22 % of the time left.
-    expect(unionArrivalLine(s(), 'f1', 10_000, 110_000)).toBe(
-      `${dt(120_000)} / ${dt(230_000)} <span class="dim">(verzögert den Verband um ${dur(20_000)})</span>`,
-    );
+  it('words the speed in percent with one decimal', () => {
+    expect(unionSpeed(1)).toBe('10 %');
+    expect(unionSpeed(3.75)).toBe('37,5 %');
+    expect(unionSpeed(10)).toBe('100 %');
   });
   it('says the words of the server when the fleet is refused', () => {
-    expect(unionArrivalLine(s(), 'f1', 10_000, 130_000)).toBe(
-      '<span class="bad">Deine Flotte käme zu spät: Sie würde den Angriffsverband um mehr als 30 % der Restflugzeit verzögern.</span>',
-    );
-    expect(unionArrivalLine(s(), 'f1', 100_000, 1)).toBe(
-      '<span class="bad">Der Angriffsverband ist schon angekommen.</span>',
+    const early = unionJoin(s(), 'f1', 100_000 - slow - 1, fleet)!;
+    expect(unionArrivalLine(early)).toBe(
+      `<span class="bad">Deine Flotte wäre selbst mit 10 % zu früh da. Schicke sie frühestens am ${dt(100_000 - slow)} los.</span>`,
     );
     expect(
-      unionArrivalLine(
-        s(round({ unionCutoff: 2 })),
-        'f1',
-        100_000 - 120_000 + 1,
-        1,
-      ),
+      unionArrivalLine(unionJoin(s(), 'f1', 100_000 - fast + 1, fleet)!),
     ).toBe(
-      '<span class="bad">In den letzten 2 Minuten vor der Ankunft tritt niemand mehr bei.</span>',
+      '<span class="bad">Deine Flotte erreicht das Ziel selbst mit 100 % nicht bis zur Ankunft des Verbands.</span>',
     );
+    expect(unionJoin(s(), 'f1', 100_000, fleet)).toEqual({
+      refusal: 'Der Angriffsverband ist schon angekommen.',
+    });
+    expect(
+      unionJoin(s(round({ unionCutoff: 2 })), 'f1', 100_000 - 120_000, fleet),
+    ).toEqual({
+      refusal:
+        'In den letzten 2 Minuten vor der Ankunft tritt niemand mehr bei.',
+    });
   });
   it('is nothing for a union that is not in the state', () => {
-    expect(unionArrivalLine(s(), 'other', 10_000, 1)).toBeNull();
-    expect(unionArrivalLine({ round: round() }, 'f1', 10_000, 1)).toBeNull();
+    expect(unionJoin(s(), 'other', 10_000, fleet)).toBeNull();
+    expect(unionJoin({ round: round(), cfg }, 'f1', 10_000, fleet)).toBeNull();
   });
 });

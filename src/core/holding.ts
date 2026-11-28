@@ -4,6 +4,7 @@
 // an ally is the admin's value per round: guild members, friends or both
 // (owner, 2026-11-16, Q2). The server, the fleet form and the overview ask
 // these rules (patterns, section 7). The alliance depot comes later (D1).
+import { LIVE_SWITCH } from './live-switch.ts';
 import type { RoundSetting, SettingExplain } from './round.ts';
 import type { Fleet, Levels, Mission } from './types.ts';
 
@@ -15,7 +16,7 @@ export const HOLD_HOURS: readonly number[] = [0, 1, 2, 4, 8, 16, 32];
 
 /** Whether `hours` is a holding time a player can choose. */
 export const isHoldHours = (hours: unknown): hours is number =>
-  typeof hours === 'number' && HOLD_HOURS.includes(hours);
+  HOLD_HOURS.includes(hours as number);
 
 /**
  * At most four different players and 15 fleets hold at one planet, besides
@@ -132,14 +133,7 @@ export const roundSettings = [
     name: 'holdOn',
     label: 'Wache stellen',
     order: 105,
-    min: 0,
-    max: 1,
-    def: 1,
-    choices: [
-      { value: 1, label: 'An' },
-      { value: 0, label: 'Aus' },
-    ],
-    live: true,
+    ...LIVE_SWITCH,
   },
 ] as const satisfies readonly RoundSetting[];
 

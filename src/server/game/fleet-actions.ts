@@ -62,7 +62,14 @@ import { type Ctx, coords, fail, int, universe } from './context.ts';
 import { colonyRoom, limitRefusal } from './colony-limit.ts';
 import { attackEvent } from './guild-events.ts';
 import { heldByOthers, holdersAt, holdLaunched, isAllyOf } from './holding.ts';
-import { joinPlan, joinUnion, recalledWith } from './union.ts';
+import {
+  foundUnion,
+  type JoinPlan,
+  joinPlan,
+  joinUnion,
+  planOf,
+  recalledWith,
+} from './union.ts';
 import { isProtected } from './points.ts';
 import { exactPoints } from './scores.ts';
 import { roundRules } from './round.ts';
@@ -409,24 +416,24 @@ export const send: Handler<'send'> = (ctx, u, d, event) => {
   const t = ctx.now();
   const p = mine(ctx, u, d.planet);
   const x = plan(ctx, u, p, d);
-  const { mission, ships, dest, to, targetOwner, pct, stay } = x;
+  const { mission, ships, dest, to, targetOwner, stay } = x;
   const holds = missionRules(mission)!.holds;
   const dist = distance(p, dest);
-  const ms = flightMs(
-    dist,
-    fleetSpeed(ships, researchOf(ctx, u)),
-    pct,
-    universe(ctx),
-  );
-  const fuel = launchFuel(x, holds, dist);
+  const speed = fleetSpeed(ships, researchOf(ctx, u));
+  // A fleet that joins an attack union starts now and arrives at its fixed
+  // arrival X, at the speed that brings it there (#466, 7b): its flight is
+  // the time left, its fuel that of the speed.
+  // The leader plans a union with his own Sturmangriff, which arrives at
+  // the X he chose, at the speed that brings it there (#466, A1a).
+  const planned = planOf(ctx, d.plan, { mission, union: d.union, dist, speed });
+  const joining =
+    planned ?? joinPlan(ctx, u.id, d.union, { mission, to, dist, speed });
+  const pct = joining ? joining.pct : x.pct;
+  const ms = joining
+    ? joining.arr - t
+    : flightMs(dist, speed, pct, universe(ctx));
+  const fuel = launchFuel({ ...x, pct }, holds, dist);
   const hold = x.hours * HOUR_MS;
-  // A fleet that joins an attack union arrives with it (#225).
-  const joining = joinPlan(ctx, u.id, d.union, {
-    mission,
-    to,
-    toC: dest,
-    flight: ms,
-  });
   // The „alles“ buttons ask for amounts the server computes on its stock of
   // now, after the fuel (#407); a field typed by hand stays its number.
   const cargo = withIntent(p, x, fuel, d.cargoAll);
@@ -445,7 +452,8 @@ export const send: Handler<'send'> = (ctx, u, d, event) => {
     fuel,
     ...(holds && { hold }),
   };
-  joinUnion(ctx, joining, fleet);
+  if (planned) foundUnion(ctx, planned, fleet);
+  else joinUnion(joining as JoinPlan | null, fleet);
   ctx.fleets.save(fleet);
   // A hostile launch is one of the last targets for the Schnellwahl (#292).
   // Only a launch at a planet is remembered: the missions that are, need its owner.

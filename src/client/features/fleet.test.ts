@@ -84,6 +84,8 @@ beforeEach(() => {
     // A moon at the target of the tests (and at the page's, 3:12:9): the kind „Mond“ holds there only.
     galaxy: [moon(2, 30, 4), moon(3, 12, 9)],
     players: [],
+    // The round of every state; planning a union reads its switch (#466).
+    round: {},
   } as unknown as GameState;
   client.view = {
     P: { id: 'p', g: 1, s: 1, p: 1, ships: { fighter: 6, probe: 2 } },
@@ -263,6 +265,40 @@ describe('sending, recalling and jumping', () => {
       expect.objectContaining({ union: 'f9', mission: 'attack' }),
     );
     expect(client.ui.union).toBeNull();
+  });
+
+  it('sends no plan once the mission is no Sturmangriff any more (#466, review of #473)', async () => {
+    fleetForm.union = 'plan';
+    fleetForm.plan = '2026-11-28T12:30';
+    fleetForm.mission = 'transport';
+    const ctx = fakeCtx();
+    await acts(ctx).send!({});
+    const order = vi.mocked(ctx.actHere).mock.calls[0]![1] as Record<
+      string,
+      unknown
+    >;
+    expect(order.mission).toBe('transport');
+    expect(order).not.toHaveProperty('plan');
+    expect(order).not.toHaveProperty('union');
+  });
+
+  it('sends the arrival of a union the fleet plans, and no union to join (#466)', async () => {
+    fleetForm.union = 'plan';
+    fleetForm.plan = '2026-11-28T12:30';
+    const ctx = fakeCtx();
+    await acts(ctx).send!({});
+    const order = vi.mocked(ctx.actHere).mock.calls[0]![1] as Record<
+      string,
+      unknown
+    >;
+    expect(order.plan).toBe(new Date('2026-11-28T12:30').getTime());
+    expect(order).not.toHaveProperty('union');
+    // An empty field sends 0, which the server refuses.
+    fleetForm.plan = null;
+    await acts(ctx).send!({});
+    expect(vi.mocked(ctx.actHere).mock.calls[1]![1]).toMatchObject({
+      plan: 0,
+    });
   });
 
   it('sends no union that is not among those the player can join, or none chosen', async () => {

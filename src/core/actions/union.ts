@@ -2,6 +2,5 @@
 import { type Attr, input } from '../action-input.ts';
 
 export const actionInputs = {
-  openUnion: input<{ id: Attr }>(),
   inviteUnion: input<{ id: Attr; name: string }>(),
 };

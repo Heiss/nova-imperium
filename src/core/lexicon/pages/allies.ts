@@ -1,8 +1,9 @@
 // The rule page „Wache stellen und Verbandsangriff“ (#288, #55, #225): who
 // may hold at a planet, the holding times, the fuel and the limits, what a
 // guard does in the fights, vacation and Mondbruch, and the attack union:
-// opening, inviting, joining, the delay, the limits, the split of the loot
-// and the recall. The numbers come from `src/core/holding.ts`, `union.ts`,
+// opening, inviting, joining at the fixed arrival with the speed that
+// brings a fleet there (#466), the limits, the split of the loot and the
+// recall. The numbers come from `src/core/holding.ts`, `union.ts`,
 // `flight.ts` and the round; the words are a draft of Claude for the owner to
 // check ([V], #288).
 import { MOBILE } from '../../catalog.ts';
@@ -15,29 +16,19 @@ import {
   roundSettings as holdSettings,
 } from '../../holding.ts';
 import {
-  joinTiming,
+  FASTEST,
   roundSettings as unionSettings,
+  SLOWEST,
   splitLoot,
   UNION_RANGES,
+  unionFlight,
 } from '../../union.ts';
 import type { Universe } from '../../types.ts';
-import {
-  duration,
-  facts,
-  formulas,
-  minutes,
-  number,
-  say,
-  section,
-  table,
-} from '../say.ts';
+import { facts, formulas, minutes, number, say, section } from '../say.ts';
 import type { Block, LexState, PageDef, PageSection } from '../types.ts';
 
-/** The four settings of the union in the order of the registry. */
-const UNION_KEYS = ['fleets', 'players', 'delay', 'cutoff'] as const;
-
-const MINUTE = 60_000;
-const LEFT = [10 * MINUTE, 60 * MINUTE, 6 * 60 * MINUTE];
+/** The number settings of the union in the order of the registry; the switch is the last. */
+const UNION_KEYS = ['fleets', 'players', 'cutoff'] as const;
 
 /** The value of a live setting of the round, from the universe. */
 const value = (u: Universe, key: string): number =>
@@ -126,33 +117,33 @@ const guardLeaves = (): PageSection =>
     ),
   );
 
-const allowedFormula = (): Block =>
+const speedFormula = (): Block =>
   formulas({
-    text: 'Eine Flotte darf den Verband verzögern, wenn (ihre Ankunft − Ankunft des Verbands) · 100 ≤ Verspätung in Prozent · Restflugzeit',
-    fn: (late, left, delay) => (late! * 100 <= delay! * left! ? 1 : 0),
-    rule: (late, left, delay) =>
-      'arr' in
-      joinTiming({
+    text: 'Geschwindigkeit einer beitretenden Flotte in Zehnteln = 35.000 · √(10 · Entfernung ÷ Schiffsgeschwindigkeit) ÷ (Restflugzeit in Sekunden · Universums-Tempo − 10), zwischen 1 (10 %) und 10 (100 %); hier mit dem Universums-Tempo 1',
+    fn: (dist, speed, left) =>
+      (35000 * Math.sqrt((10 * dist!) / speed!)) / (left! - 10),
+    rule: (dist, speed, left) => {
+      const out = unionFlight({
+        dist: dist!,
+        speed: speed!,
+        universe: { speed: 1 } as Universe,
         now: 0,
-        arr: left!,
-        flight: left! + late!,
-        limits: { delay: delay!, cutoff: 0 },
-      })
-        ? 1
-        : 0,
+        arr: left! * 1000,
+      });
+      return 'pct' in out ? out.pct : Number.NaN;
+    },
     samples: [
-      [0, 1000, 30],
-      [300, 1000, 30],
-      [301, 1000, 30],
-      [5, 1000, 0],
-      [1000, 1000, 100],
+      [2700, 12500, 6000],
+      [2700, 12500, 51000],
+      [20000, 5000, 100000],
     ],
   });
 
 const unionLimits = (u: Universe): Block =>
   facts(
-    unionSettings.map((setting, i) => {
-      const range = UNION_RANGES[UNION_KEYS[i]!];
+    UNION_KEYS.map((key, i) => {
+      const setting = unionSettings[i]!;
+      const range = UNION_RANGES[key];
       return [
         setting.label,
         `${number(value(u, setting.key))} (von ${number(range.min)} bis ${number(range.max)})`,
@@ -161,7 +152,7 @@ const unionLimits = (u: Universe): Block =>
   );
 
 const cutoffWords = (u: Universe): string => {
-  const cutoff = value(u, unionSettings[3].key);
+  const cutoff = value(u, unionSettings[2].key);
   return cutoff > 0
     ? `In den letzten ${minutes(cutoff)} vor der Ankunft tritt niemand mehr bei.`
     : 'Eine Sperre kurz vor der Ankunft gibt es in dieser Runde nicht.';
@@ -170,30 +161,27 @@ const cutoffWords = (u: Universe): string => {
 const unionOpen = (): PageSection =>
   section(
     'union-open',
-    'Verbandsangriff: eröffnen, einladen, beitreten',
+    'Verbandsangriff: planen, einladen, beitreten',
     say(
-      'Einen Angriffsverband eröffnest du aus einem eigenen [[mission-attack|Sturmangriff]], der noch unterwegs ist: nicht zurückgerufen, noch nicht angekommen und in keinem Verband. Dieser Angriff führt den Verband an. Der Anführer lädt Verbündete mit Namen ein, nicht den Besitzer des Ziels; die Eingeladenen zählen schon gegen die Grenze der Spieler. Wer Verbündeter ist, bestimmt dieselbe Einstellung wie bei der Wache. Beitreten heißt, einen Sturmangriff auf dasselbe Ziel zu schicken, mit allen Prüfungen eines Angriffs: Schiffe, Treibstoff, Flottenslots, Urlaubsmodus und Schutz des Ziels. Der Anführer und wer schon im Verband ist, braucht keine Einladung, alle anderen schon; ein Spieler darf mehrere Flotten schicken. Ein Spieler im Urlaubsmodus kann nicht beitreten.',
+      'Einen Angriffsverband planst du mit einem eigenen [[mission-attack|Sturmangriff]]: Im Flottenauftrag planst du in der Zeile Verband einen neuen Verband und wählst seine Ankunft. Deine Flotte fliegt mit der Geschwindigkeit los, die sie genau dann ans Ziel bringt, und führt den Verband an. Der Anführer lädt Verbündete mit Namen ein, nicht den Besitzer des Ziels; die Eingeladenen zählen schon gegen die Grenze der Spieler. Wer Verbündeter ist, bestimmt dieselbe Einstellung wie bei der Wache. Beitreten heißt, einen Sturmangriff auf dasselbe Ziel zu schicken, mit allen Prüfungen eines Angriffs: Schiffe, Treibstoff, Flottenslots, Urlaubsmodus und Schutz des Ziels. Der Anführer und wer schon im Verband ist, braucht keine Einladung, alle anderen schon; ein Spieler darf mehrere Flotten schicken. Ein Spieler im Urlaubsmodus kann nicht beitreten.',
     ),
   );
 
-const unionTiming = (s: LexState): PageSection => {
-  const delay = value(s.u, unionSettings[2].key);
-  return section(
+const unionTiming = (s: LexState): PageSection =>
+  section(
     'union-timing',
-    'Ankunft, Verspätung und Grenzen',
+    'Ankunft, Geschwindigkeit und Grenzen',
     say(
-      'Alle Flotten eines Verbands kommen gemeinsam an und kämpfen in einem Kampf als mehrere Angreifer, jede mit der Forschung ihres Besitzers; die Flotte des Anführers führt. Eine Flotte, die früh genug da wäre, wartet und kommt mit den anderen an. Eine, die später käme, verzögert den Verband, aber höchstens um {delay} der Restflugzeit; dann verschieben sich Ankunft und Rückkehr aller Flotten im Verband um die Verspätung. Eine Flotte, die den Verband stärker verzögern würde, wird abgelehnt. {cutoff} Ein Verband, der angekommen ist, ist geschlossen. Eine beigetretene Flotte kehrt nach der Dauer ihres eigenen Flugs zurück.',
-      { delay: `${number(delay)} %`, cutoff: cutoffWords(s.u) },
+      'Ein Verband hat eine feste Ankunftszeit. Alle Flotten eines Verbands kommen genau dann an und kämpfen in einem Kampf als mehrere Angreifer, jede mit der Forschung ihres Besitzers; die Flotte des Anführers führt. Eine Flotte, die beitritt, startet sofort: Ihre Geschwindigkeit liegt zwischen {slowest} und {fastest}, auch zwischen den Stufen, sodass sie genau zur Ankunft des Verbands da ist, und ihr Treibstoff richtet sich nach dieser Geschwindigkeit. Wäre sie selbst mit {slowest} zu früh da, wird sie abgelehnt, und die Meldung nennt, wann du sie frühestens losschicken kannst; erreicht sie das Ziel selbst mit {fastest} nicht rechtzeitig, wird sie ebenfalls abgelehnt. {cutoff} Ein Verband, der angekommen ist, ist geschlossen. Eine beigetretene Flotte kehrt nach der Dauer ihres eigenen Flugs zurück.',
+      {
+        slowest: `${number(SLOWEST * 10)} %`,
+        fastest: `${number(FASTEST * 10)} %`,
+        cutoff: cutoffWords(s.u),
+      },
     ),
-    allowedFormula(),
-    table(
-      'Die größte Verspätung nach der Restflugzeit',
-      ['Restflugzeit', 'Größte Verspätung'],
-      LEFT.map((left) => [duration(left), duration((left * delay) / 100)]),
-    ),
+    speedFormula(),
     unionLimits(s.u),
   );
-};
 
 const lootFormula = (): Block =>
   formulas({

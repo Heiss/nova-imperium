@@ -27,7 +27,8 @@ import {
   type FleetRow,
   fleetRows,
 } from './overview.ts';
-import { joinChoices, openRows, unionRows } from './union.ts';
+import { unionOpen } from '../../core/union.ts';
+import { joinChoices, PLAN, unionRows } from './union.ts';
 
 /** A ship on the shown planet that can fly. */
 interface FleetShip {
@@ -63,9 +64,12 @@ export const SPEEDS: readonly FleetOption[] = [
   10, 9, 8, 7, 6, 5, 4, 3, 2, 1,
 ].map((x) => ({ value: String(x), label: `${x * 10} %` }));
 
-/** What a recall does with a union, said under the box (owner, 2026-11-16, Q2). */
+/**
+ * How a union arrives and what a recall does with it, said under the box
+ * (#466; owner, 2026-11-16, Q2) [V].
+ */
 export const UNION_HINT =
-  'Ruft der Anführer seine Flotte zurück, kehren alle Flotten des Verbands um; ein Beteiligter ruft nur seine eigene zurück.';
+  'Alle Flotten des Verbands kommen zur geplanten Ankunft an; wer beitritt, startet sofort mit der Geschwindigkeit, die ihn genau dann ans Ziel bringt. Ruft der Anführer seine Flotte zurück, kehren alle Flotten des Verbands um; ein Beteiligter ruft nur seine eigene zurück.';
 
 /** A union of the box „Verbandsangriff“ with the countdown to its arrival. */
 interface UnionBoxRow {
@@ -76,20 +80,15 @@ interface UnionBoxRow {
   counts: string;
   fleets: string;
   invited: string;
+  /** The player leads it and the switch of the round is on: he can invite. */
   leads: boolean;
+  /** The switch of the round is on: „Beitreten“ is offered (#466). */
+  joins: boolean;
 }
 
-/** An own Sturmangriff that can open a union. */
-interface OpenBoxRow {
-  id: string;
-  target: string;
-  due: Countdown;
-}
-
-/** The box „Verbandsangriff“; none while no union concerns the player and no attack can open one. */
+/** The box „Verbandsangriff“; none while no union concerns the player. */
 interface UnionBox {
   unions: UnionBoxRow[];
-  open: OpenBoxRow[];
 }
 
 /** The target of the form the page starts with, and the limits of its fields. */
@@ -120,6 +119,8 @@ interface FleetFormPage {
   choose: (draft: FleetDraft) => FleetChoice;
   /** The unions the fleet can join (#225); empty when none. The one chosen is `choose(draft).union`. */
   unions: FleetOption[];
+  /** A Sturmangriff can plan a union: the switch of the round is on (#466). */
+  plans: boolean;
   /** All slots are taken: „Flotte losschicken“ is disabled. */
   full: boolean;
 }
@@ -159,18 +160,38 @@ function expeditionTitle(v: V): string {
   return ` · Expeditionen (${used} / ${expeditionSlots(level, extraSlots(v.s.cfg))})`;
 }
 
+/**
+ * The box „Verbandsangriff“. While the switch of the round is off (#466),
+ * the unions in flight stay listed with their arrival, but nothing opens,
+ * invites or joins.
+ */
 function unionBox(v: V): UnionBox | null {
-  const unions = unionRows(v).map((u) => ({
-    ...u,
-    due: countdown(u.arr, v.now),
-  }));
-  const open = openRows(v).map((f) => ({
-    id: f.id,
-    target: f.target,
-    due: countdown(f.arr, v.now),
-  }));
-  return unions.length || open.length ? { unions, open } : null;
+  const rows = unionRows(v);
+  if (!rows.length) return null;
+  const on = unionOpen(v.s.round);
+  return {
+    unions: rows.map((u) => ({
+      ...u,
+      leads: on && u.leads,
+      joins: on,
+      due: countdown(u.arr, v.now),
+    })),
+  };
 }
+
+/** The unions the fleet form can join; none while the switch of the round is off (#466). */
+function joinOptions(v: V): FleetOption[] {
+  const choices = joinChoices(v);
+  return choices.length && unionOpen(v.s.round)
+    ? choices.map((c) => ({ value: c.id, label: c.label }))
+    : [];
+}
+
+/** The choice of the row „Verband“ that plans a new union with a Sturmangriff (#466, A1a). */
+export const PLAN_OPTION: FleetOption = {
+  value: PLAN,
+  label: 'Neuen Verband planen',
+};
 
 function jumpBox(v: V): JumpBox | null {
   const panel = jumpPanel(v.s, v.P, v.now);
@@ -198,7 +219,9 @@ function formPage(v: V, full: boolean): FleetFormPage {
       positions: maxPosition(s),
     },
     choose: (draft) => fleetChoice(v, draft, v.now),
-    unions: joinChoices(v).map((c) => ({ value: c.id, label: c.label })),
+    unions: joinOptions(v),
+    // A Sturmangriff can plan a union while the switch of the round is on.
+    plans: unionOpen(v.s.round),
     full,
   };
 }

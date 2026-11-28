@@ -1,7 +1,8 @@
-// The attack union (#225, okf/features/holding-acs.md, „Built with #225“): the
-// leader opens a union from an own Sturmangriff on its way and invites a
-// friend, who joins from the box „Verbandsangriff“ with „Beitreten“; the
-// fleets arrive together and both owners get the report of the battle with
+// The attack union (#225, #466, okf/features/holding-acs.md): the leader
+// plans a union in the fleet form with his own Sturmangriff and an arrival
+// („Neuen Verband planen“, #466, A1a) and invites a friend, who joins from
+// the box „Verbandsangriff“ with „Beitreten“ at the speed that brings his
+// fleet there at that arrival; the fleets arrive together and both owners get the report of the battle with
 // the other attacker. A friend without an invitation is refused, and the
 // recall of the leader's fleet turns back every fleet of the union. The texts
 // of the box and of the refusals are drafts [V] of the build, so the specs
@@ -86,18 +87,49 @@ const arm = (name: string, lf: number): void => {
   seed({ name, ships: { lf }, res: { m: 0, c: 0, d: 50000 } });
 };
 
-/** Sends `ships` Abfangjäger against the home planet of `target` with a Sturmangriff. */
-async function sturmangriff(
-  p: Player,
-  target: Player,
-  ships: number,
-): Promise<void> {
+/**
+ * The arrival of a planned union, 30 minutes from now, as the field takes it
+ * (local date and time): within the speeds of every fleet of a test, whose
+ * players live in one system (a flight there takes about 10 minutes at
+ * 100 % and 100 at 10 % in the universe of the specs, tempo 5).
+ */
+const arrivalIn30Minutes = (page: Page): Promise<string> =>
+  page.evaluate(() => {
+    const t = new Date(Date.now() + 30 * 60_000);
+    const two = (n: number) => String(n).padStart(2, '0');
+    return `${t.getFullYear()}-${two(t.getMonth() + 1)}-${two(t.getDate())}T${two(t.getHours())}:${two(t.getMinutes())}`;
+  });
+
+/**
+ * The leader plans a union on the home planet of `target` with a Sturmangriff
+ * of `ships` Abfangjäger (#466): „Neuen Verband planen“, the arrival, and the
+ * speed the form shows for it.
+ */
+async function plan(p: Player, target: Player, ships: number): Promise<void> {
   await openSystemOf(p.page, target.name);
   await (
     await galaxyAction(p.page, galaxyRow(p.page, target.name), 'Sturmangriff')
   ).click();
   await expect(p.page.getByLabel('Auftrag')).toHaveValue('attack');
   await p.page.getByLabel('Anzahl Abfangjäger').fill(String(ships));
+  await p.page
+    .getByLabel('Verband', { exact: true })
+    .selectOption({ label: 'Neuen Verband planen' });
+  // Another mission drops the plan, and nothing hidden is sent (review of
+  // #473); a Sturmangriff offers it again.
+  await p.page.getByLabel('Auftrag').selectOption('transport');
+  await expect(p.page.getByLabel('Ankunft des Verbands')).toHaveCount(0);
+  await expect(p.page.getByLabel('Verband', { exact: true })).toHaveCount(0);
+  await p.page.getByLabel('Auftrag').selectOption('attack');
+  await expect(p.page.getByLabel('Verband', { exact: true })).toHaveValue(
+    'plan',
+  );
+  await p.page
+    .getByLabel('Ankunft des Verbands')
+    .fill(await arrivalIn30Minutes(p.page));
+  await expect(p.page.locator('#i_arr')).toContainText(
+    'Verband: Geschwindigkeit',
+  );
   await p.page.getByRole('button', { name: 'Flotte losschicken' }).click();
   await expect(lastToast(p.page)).toContainText('Flotte unterwegs nach');
 }
@@ -105,12 +137,11 @@ async function sturmangriff(
 /** The box of a union in the fleet view; `.union` is its row. */
 const union = (page: Page): Locator => page.locator('#view .union');
 
-/** The leader opens the union of the Sturmangriff on its way and invites `invited`. */
-async function openAndInvite(leader: Player, invited: Player): Promise<void> {
+/** The leader invites `invited` to the union he planned. */
+async function invite(leader: Player, invited: Player): Promise<void> {
   const { page } = leader;
   await nav(page, 'fleet');
-  await expect(union(page)).toHaveCount(0);
-  await page.getByRole('button', { name: 'Angriffsverband eröffnen' }).click();
+  await expect(page.getByText('Angriffsverband eröffnen')).toHaveCount(0);
   await expect(union(page)).toContainText(`Anführer ${leader.name}`);
   await page
     .getByLabel('Spieler zum Angriffsverband einladen')
@@ -119,7 +150,11 @@ async function openAndInvite(leader: Player, invited: Player): Promise<void> {
   await expect(union(page)).toContainText(`Eingeladen: ${invited.name}`);
 }
 
-/** The invited player joins with „Beitreten“ and sends the fleet the form is filled with. */
+/**
+ * The invited player joins with „Beitreten“ and sends the fleet the form is
+ * filled with; the form shows the speed that brings it there at the
+ * union's arrival (#466).
+ */
 async function joinUnion(p: Player, ships: number): Promise<void> {
   await nav(p.page, 'fleet');
   await expect(union(p.page)).toContainText('Anführer');
@@ -129,6 +164,9 @@ async function joinUnion(p: Player, ships: number): Promise<void> {
     '',
   );
   await p.page.getByLabel('Anzahl Abfangjäger').fill(String(ships));
+  await expect(p.page.locator('#i_arr')).toContainText(
+    'Verband: Geschwindigkeit',
+  );
   await p.page.getByRole('button', { name: 'Flotte losschicken' }).click();
   await expect(lastToast(p.page)).toContainText('Flotte unterwegs nach');
 }
@@ -150,11 +188,11 @@ test.describe('the attack union (#225)', () => {
     await befriend(leader, friend);
     await befriend(leader, outsider);
 
-    await sturmangriff(leader, target, 5);
-    // Nobody but the leader sees the union before it is opened and invited to.
+    await plan(leader, target, 5);
+    // Nobody but the leader sees the union before he invites to it.
     await nav(friend.page, 'fleet');
     await expect(union(friend.page)).toHaveCount(0);
-    await openAndInvite(leader, friend);
+    await invite(leader, friend);
     await expect(
       leader.page.getByText('Ruft der Anführer seine Flotte zurück', {
         exact: false,
@@ -177,9 +215,10 @@ test.describe('the attack union (#225)', () => {
         'Sturmangriff',
       )
     ).click();
+    // His row „Verband“ offers only to plan a union of his own (#466).
     await expect(
-      outsider.page.getByLabel('Verband', { exact: true }),
-    ).toHaveCount(0);
+      outsider.page.getByLabel('Verband', { exact: true }).locator('option'),
+    ).toHaveText(['Kein Verband', 'Neuen Verband planen']);
     const refused = await outsider.page.evaluate(async (union) => {
       const value = (i: string) =>
         Number((document.getElementById(i) as HTMLInputElement).value);
@@ -256,8 +295,8 @@ for (const phone of ['', ' @phone'])
     arm(leader.name, 5);
     arm(friend.name, 3);
     await befriend(leader, friend);
-    await sturmangriff(leader, target, 5);
-    await openAndInvite(leader, friend);
+    await plan(leader, target, 5);
+    await invite(leader, friend);
     await friend.page.reload();
     await joinUnion(friend, 3);
     await expect(
@@ -266,7 +305,7 @@ for (const phone of ['', ' @phone'])
         .filter({ hasText: 'im Angriffsverband' }),
     ).toHaveCount(1);
 
-    // The leader recalls the fleet that opened the union.
+    // The leader recalls the fleet that leads the union.
     await leader.page.reload();
     await nav(leader.page, 'fleet');
     const lead = leader.page
