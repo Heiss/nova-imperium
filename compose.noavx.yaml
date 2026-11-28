@@ -3,8 +3,8 @@
 # user mode with the CPU model Denverton (an Atom of the same Goldmont family,
 # no AVX) runs the image's Node; an instruction this CPU lacks stops the
 # process with "Illegal instruction". The runner provides a static QEMU
-# binary, named by NOVA_QEMU (newer Ubuntu ships it in the package qemu-user,
-# older ones in qemu-user-static); -xsavec only silences a QEMU warning.
+# binary, named by NOVA_QEMU (Ubuntu 24.04 ships it in the package
+# qemu-user-static, newer ones in qemu-user; scripts/static-qemu.sh); -xsavec only silences a QEMU warning.
 #   COMPOSE_FILE=compose.yaml:compose.demo.yaml:compose.noavx.yaml docker compose up --wait
 services:
   app:

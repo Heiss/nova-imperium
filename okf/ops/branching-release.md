@@ -77,7 +77,10 @@ bullets they replace below are marked.
   (CodeRabbit on #395), before the job „latest and stable“ moves the aliases. A finding
   stops the aliases (they stay on the previous release), the run fails
   visibly, and the loop tells the owner. The tag and the `<version>` image
-  stay as they are. **[V]** Trivy reads the image of each platform from the
+  stay as they are. **[V]** The same holds for the check of the release
+  image on a CPU without AVX (#456, job „The release image runs on a CPU
+  without AVX“, [Docker](/architecture/docker.md)): the job „latest and
+  stable“ needs it too. **[V]** Trivy reads the image of each platform from the
   registry (`--image-src remote --platform`), with the credentials of the
   login as a read-only docker config, not from the daemon of the runner:
   the pull of the arm64 image into the amd64 runner left its export to

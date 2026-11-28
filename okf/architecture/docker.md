@@ -46,10 +46,26 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 * **[V]** How: `compose.noavx.yaml` runs the image's Node under QEMU user
   mode with the CPU model Denverton (an Atom of the Goldmont family, no AVX)
   in the job „Docker image and Compose stack“, on an empty data volume, so
-  the fresh database is created and migrated under QEMU. The release image
-  is not checked this way yet (#456). Shown on 2026-11-27: a
+  the fresh database is created and migrated under QEMU. Shown on 2026-11-27: a
   binary built with `-mavx` stops there with „Illegal instruction“, and the
   server starts, creates its database and answers.
+* **[V]** The release image too (#456): the job „The release image runs on
+  a CPU without AVX“ of `release.yml` (`scripts/release-noavx.sh`) starts
+  the pushed amd64 image by digest under QEMU, with the entrypoint of
+  `compose.noavx.yaml` and the static binary of `qemu-user-static` (or of
+  `qemu-user` where that is only virtual, newer Ubuntu; `scripts/static-qemu.sh`, the one rule that the check
+  of CI uses too: ldd's words decide, not its exit code, since a static
+  binary that is not static-pie makes ldd exit 1), on a fresh volume, with
+  the hardening of the app in `compose.yaml` (read-only, `/tmp` as tmpfs,
+  no capabilities, no new privileges) and the mail codes off (no mail
+  server), and waits up to 90 tries two seconds apart for `/healthz`; a
+  container that stopped fails at once. Then it checks that PID 1 runs under
+  QEMU. A failure shows the log of the container and stops the aliases. A
+  change of `scripts/static-qemu.sh` runs the image checks of CI. It differs
+  from the CI check: no Caddy, no mail and no smoke test, only the server,
+  its fresh database and `/healthz`, as the issue asks. The script is tested
+  with stubs (`src/test/release-noavx.test.ts`); the real release is not run
+  for it.
 
 # Hardening (proposals, in place)
 
