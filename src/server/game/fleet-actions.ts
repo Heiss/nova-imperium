@@ -67,8 +67,13 @@ import {
   type JoinPlan,
   joinPlan,
   joinUnion,
+  planLater,
+  plannedBy,
   planOf,
   recalledWith,
+  reservedAt,
+  startText,
+  type UnionPlan,
 } from './union.ts';
 import { isProtected } from './points.ts';
 import { exactPoints } from './scores.ts';
@@ -85,11 +90,17 @@ import {
  * The picked ships, each at most as many as stand on the place; what is no
  * ship or not there is left out. The jump of the Warp-Tor picks so too (#230).
  */
-export const pickedShips = (p: Planet, wanted: unknown): Levels => {
+export const pickedShips = (
+  p: Planet,
+  wanted: unknown,
+  reserved: Levels = {},
+): Levels => {
   const ships: Levels = {};
   for (const [k, n] of Object.entries((wanted as Levels | null) ?? {})) {
     if (!isShip(k)) continue;
-    const m = Math.min(int(n, 0, 1e12), p.ships[k] ?? 0);
+    // The ships a planned start holds back are no longer free (#478).
+    const free = Math.max(0, (p.ships[k] ?? 0) - (reserved[k] ?? 0));
+    const m = Math.min(int(n, 0, 1e12), free);
     if (m > 0) ships[k] = m;
   }
   return ships;
@@ -205,9 +216,12 @@ const loadCargo = (p: Planet, rules: MissionRules, raw: unknown): Resources => {
   };
 };
 
-/** The fleet slots a player uses: no gift (#161) and no missiles (#54). */
+/**
+ * The fleet slots a player uses: no gift (#161) and no missiles (#54); a
+ * planned start takes its slot from the planning (#478).
+ */
 const usedSlots = (ctx: Ctx, owner: string): number =>
-  ctx.fleets.count(owner, SILO_MISSIONS);
+  ctx.fleets.count(owner, SILO_MISSIONS) + plannedBy(ctx, owner);
 
 interface Plan {
   mission: Mission;
@@ -224,7 +238,24 @@ interface Plan {
   stay: number;
 }
 
-function checkDestination(
+/**
+ * What the checks of a target read of its position at `t`: a Trümmerfeld
+ * there, the moon or the planet, the lock of a given-up position and the
+ * expedition position. The send and the planned start (#478) ask the same.
+ */
+export const placeFacts = (
+  ctx: Ctx,
+  dest: Coords,
+  moon: boolean,
+  t: number,
+) => ({
+  debris: !!ctx.debris.get(placeId({ ...dest, kind: 'debris' })),
+  moon,
+  lockEnd: lockedUntil(ctx, dest, t),
+  expedition: isExpeditionPlace(dest, universe(ctx)),
+});
+
+export function checkDestination(
   ctx: Ctx,
   u: User,
   p: Planet,
@@ -287,7 +318,7 @@ function checkDestination(
 
 function plan(ctx: Ctx, u: User, p: Planet, d: Wire<'send'>): Plan {
   const mission = String(d.mission) as Mission;
-  const ships = pickedShips(p, d.ships);
+  const ships = pickedShips(p, d.ships, reservedAt(ctx, p.id));
   // Missiles start from the silo in the Sternenkarte, never as a fleet (#54).
   refuse(
     startError(
@@ -313,12 +344,7 @@ function plan(ctx: Ctx, u: User, p: Planet, d: Wire<'send'>): Plan {
     rules,
     occupied,
     ships,
-    {
-      debris: !!ctx.debris.get(field),
-      moon,
-      lockEnd: lockedUntil(ctx, dest, ctx.now()),
-      expedition: isExpeditionPlace(dest, universe(ctx)),
-    },
+    placeFacts(ctx, dest, moon, ctx.now()),
     mission,
   );
   return {
@@ -399,7 +425,7 @@ const timesOf = (
     : { arr: t + ms + stay, ret: t + 2 * ms + hold + stay };
 
 /** The ships, the cargo and the fuel leave the planet with the fleet. */
-function takeOff(
+export function takeOff(
   p: Planet,
   ships: Levels,
   cargo: Resources,
@@ -412,6 +438,56 @@ function takeOff(
   p.res.d -= cargo.d + fuel;
 }
 
+/**
+ * The union the leader plans with this Sturmangriff (#466, A1a): it arrives
+ * at the X he chose, at the speed that brings it there, or starts later by
+ * itself (#478). A fleet that joins an attack union starts now and arrives at
+ * its fixed arrival X, at the speed that brings it there (#466, 7b): its
+ * flight is the time left, its fuel that of the speed.
+ */
+const unionPlanOf = (
+  ctx: Ctx,
+  d: Wire<'send'>,
+  x: Plan,
+  dist: number,
+  speed: number,
+): UnionPlan | null =>
+  planOf(ctx, d.plan, {
+    mission: x.mission,
+    union: d.union,
+    dist,
+    speed,
+    pct: x.pct,
+  });
+
+/** Whether the plan starts the fleet later by itself (#478). */
+const startsLater = (
+  planned: UnionPlan | null,
+): planned is Required<UnionPlan> => planned?.start !== undefined;
+
+/**
+ * The union the fleet plans or joins, its speed and its flight: to X for a
+ * fleet of a union (#466), else at the speed of the form.
+ */
+function flightAt(
+  ctx: Ctx,
+  u: User,
+  d: Wire<'send'>,
+  x: Plan,
+  planned: UnionPlan | null,
+  at: { dist: number; speed: number; t: number },
+): { joining: UnionPlan | JoinPlan | null; pct: number; ms: number } {
+  const { dist, speed, t } = at;
+  const joining =
+    planned ??
+    joinPlan(ctx, u.id, d.union, { mission: x.mission, to: x.to, dist, speed });
+  const pct = joining ? joining.pct : x.pct;
+  const ms = joining
+    ? joining.arr - t
+    : flightMs(dist, speed, pct, universe(ctx));
+  return { joining, pct, ms };
+}
+
 export const send: Handler<'send'> = (ctx, u, d, event) => {
   const t = ctx.now();
   const p = mine(ctx, u, d.planet);
@@ -420,18 +496,13 @@ export const send: Handler<'send'> = (ctx, u, d, event) => {
   const holds = missionRules(mission)!.holds;
   const dist = distance(p, dest);
   const speed = fleetSpeed(ships, researchOf(ctx, u));
-  // A fleet that joins an attack union starts now and arrives at its fixed
-  // arrival X, at the speed that brings it there (#466, 7b): its flight is
-  // the time left, its fuel that of the speed.
-  // The leader plans a union with his own Sturmangriff, which arrives at
-  // the X he chose, at the speed that brings it there (#466, A1a).
-  const planned = planOf(ctx, d.plan, { mission, union: d.union, dist, speed });
-  const joining =
-    planned ?? joinPlan(ctx, u.id, d.union, { mission, to, dist, speed });
-  const pct = joining ? joining.pct : x.pct;
-  const ms = joining
-    ? joining.arr - t
-    : flightMs(dist, speed, pct, universe(ctx));
+  const planned = unionPlanOf(ctx, d, x, dist, speed);
+  if (startsLater(planned)) return sendLater(ctx, u, p, x, planned, d, event);
+  const { joining, pct, ms } = flightAt(ctx, u, d, x, planned, {
+    dist,
+    speed,
+    t,
+  });
   const fuel = launchFuel({ ...x, pct }, holds, dist);
   const hold = x.hours * HOUR_MS;
   // The „alles“ buttons ask for amounts the server computes on its stock of
@@ -468,6 +539,48 @@ export const send: Handler<'send'> = (ctx, u, d, event) => {
   if (event) logLaunch(event, fleet, targetOwner);
   return `Flotte unterwegs nach ${coords(fleet.toC)}.`;
 };
+
+/**
+ * The leader plans a union whose arrival his fleet cannot reach at once
+ * even at 10 % (owner, 2026-11-28, #478): the fleet starts by itself at the
+ * start of the plan; until then its ships stay on the planet and defend it,
+ * and nothing is paid. It takes no cargo [V].
+ */
+function sendLater(
+  ctx: Ctx,
+  u: User,
+  p: Planet,
+  x: Plan,
+  planned: Required<UnionPlan>,
+  d: Wire<'send'>,
+  event: AuditEntry | undefined,
+): string {
+  if (x.cargo.m + x.cargo.c + x.cargo.d > 0 || cargoIntentOf(d.cargoAll))
+    fail(LATER_NO_CARGO);
+  const fleet = { ...route(ctx, u, p, x.to, x.dest), ships: x.ships };
+  planLater(ctx, planned, fleet);
+  ctx.targets.record(u.id, {
+    place: x.to,
+    owner: x.targetOwner!,
+    at: ctx.now(),
+  });
+  if (event) {
+    event.target = x.targetOwner!;
+    event.detail = {
+      union: fleet.id,
+      planet: fleet.to,
+      origin: fleet.from,
+      mission: x.mission,
+      start: planned.start,
+      due: planned.arr,
+    };
+  }
+  return `Sturmangriff geplant: Start am ${startText(planned.start)}, Ankunft am ${startText(planned.arr)}.`;
+}
+
+/** The refusal of cargo for a fleet that starts later (#478) [V]. */
+const LATER_NO_CARGO =
+  'Eine Flotte, die später startet, nimmt keine Ladung mit.';
 
 /** A new flight of `u` from `p` to the place `to` at `toC`: id, owner, origin and target. */
 export const route = (
@@ -508,7 +621,7 @@ function logLaunch(
  * `ret - arr` is that flight (for every other mission it is at least the
  * time flown so far, so the old rule stays).
  */
-const recalledAt = (f: Fleet, t: number): number =>
+export const recalledAt = (f: Fleet, t: number): number =>
   t + (f.state === 'hold' ? f.arr - f.dep : Math.min(t - f.dep, f.ret - f.arr));
 
 export const recall: Handler<'recall'> = (ctx, u, d, event) => {

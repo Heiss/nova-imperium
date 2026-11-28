@@ -53,6 +53,7 @@ const KINDS: Record<string, Kinds> = {
   scan: { keep: ['planet', 'target'] },
   trade: { keep: ['planet', 'give', 'get', 'amount', 'price'] },
   inviteUnion: { keep: ['id'], name: ['name'] },
+  cancelPlan: { keep: ['id'] },
   abandon: { keep: ['target', 'created'] },
   claimAchievement: { keep: ['id'] },
   claimDailyReward: {},

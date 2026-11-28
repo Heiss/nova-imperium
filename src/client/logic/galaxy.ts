@@ -29,6 +29,7 @@ import { type Countdown, countdown } from './overview.ts';
 import { canScan, scanRows, scanTitle } from './phalanx.ts';
 import { canSurvey } from './survey.ts';
 import type { GalaxyPlanet } from './types.ts';
+import { freeShips } from './union.ts';
 
 /**
  * One action of a row: a link (`span.lnk`) or a small button with its
@@ -258,6 +259,9 @@ function ownActions(v: V, pl: GalaxyPlanet): GalaxyAction[] {
   ];
 }
 
+/** The ships of the shown planet free for an order: none a planned start holds back (#478). */
+const free = (v: V): Levels => freeShips(v.s, v.P);
+
 /**
  * The flight time to a place for all ships of the shown planet that fly, at
  * full speed [V]: the proposal names „the flight time“ without saying for
@@ -265,7 +269,7 @@ function ownActions(v: V, pl: GalaxyPlanet): GalaxyAction[] {
  */
 function flightLine(v: V, to: Coords): string | null {
   const flying: Levels = Object.fromEntries(
-    Object.entries(v.P.ships).filter(([k, n]) => n > 0 && canFly(k)),
+    Object.entries(free(v)).filter(([k, n]) => n > 0 && canFly(k)),
   );
   if (!Object.keys(flying).length) return null;
   const ms = flightMs(distance(v.P, to), fleetSpeed(flying, v.R), 10, v.s.cfg);
@@ -333,13 +337,13 @@ const harvestAction = (c: Coords): GalaxyAction => ({
 
 /** „Landnahme“ at a free position, with a colony ship on the shown planet. */
 const colonize = (v: V, c: Coords): GalaxyAction[] =>
-  v.P.ships.colony
+  free(v).colony
     ? [fleetTo('button', 'colonize', 'Landnahme', at(c, false))]
     : [];
 
 /** „Vermessen“ at a free position, with Spähschädel and the research (#190). */
 const survey = (v: V, c: Coords): GalaxyAction[] =>
-  canSurvey(v.R.research, v.P.ships)
+  canSurvey(v.R.research, free(v))
     ? [
         {
           kind: 'button',
@@ -355,7 +359,7 @@ const survey = (v: V, c: Coords): GalaxyAction[] =>
  */
 const expedition = (v: V, c: Coords): GalaxyAction[] =>
   expeditionLevel(v.R.research) >= 1 &&
-  Object.entries(v.P.ships).some(([k, n]) => n > 0 && canFly(k))
+  Object.entries(free(v)).some(([k, n]) => n > 0 && canFly(k))
     ? [fleetTo('button', 'expedition', MISSION.expedition, at(c, false))]
     : [];
 

@@ -326,6 +326,13 @@ describe('fleet movements', () => {
     expect(fleetRows(view(), true)).toEqual([]);
   });
 
+  it('lists a foreign fleet of a mission this browser does not know yet as coming, not as one that holds', () => {
+    const fleets = [
+      fleet({ id: 'x', owner: 'u2', mission: 'later' as never, arr: 2000 }),
+    ];
+    expect(fleetRows(view({ fleets }), true).map((r) => r.id)).toEqual(['x']);
+  });
+
   it('shows an own fleet that holds until the end of its holding time, with a recall (#55)', () => {
     const [row] = fleetRows(
       view({

@@ -176,11 +176,10 @@ describe('planning a union (#466, A1a)', () => {
       ),
     );
   });
-  it('refuses another mission, a join at once, an arrival in the past, in the cut-off, too early or too late', () => {
+  it('refuses another mission, a join at once, an arrival in the past, in the cut-off or too late; too early plans a later start (#478)', () => {
     const ctx = setup();
     const t = ctx.now();
     const fast = flightOf(ctx, 'u_Anna', ANNA, { bs: 2 }, 10);
-    const slow = flightOf(ctx, 'u_Anna', ANNA, { bs: 2 }, 1);
     const plan = (over: object) =>
       refused(() =>
         runAction(ctx, 'u_Anna', {
@@ -198,9 +197,6 @@ describe('planning a union (#466, A1a)', () => {
       expect(plan({ plan: past })).toBe(
         'Die Ankunft muss in der Zukunft liegen.',
       );
-    expect(plan({ plan: t + slow + 1 })).toContain(
-      'Deine Flotte wäre selbst mit 10 % zu früh da.',
-    );
     expect(plan({ plan: t + fast - 1 })).toBe(
       'Deine Flotte erreicht das Ziel selbst mit 100 % nicht bis zur Ankunft des Verbands.',
     );

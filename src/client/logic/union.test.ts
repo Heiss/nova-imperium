@@ -6,11 +6,14 @@ import type { RoundRules } from '../../core/round.ts';
 import { roundDefaults } from '../../test/fixtures.ts';
 import { flightMs } from '../../core/flight.ts';
 import type { Universe } from '../../core/types.ts';
+import { text } from '../../core/text.ts';
 import { dt } from './format.ts';
 import {
   joinChoices,
   limitsOf,
   unionArrivalLine,
+  freeShips,
+  heldBack,
   planJoin,
   unionJoin,
   unionPart,
@@ -104,6 +107,7 @@ describe('the unions of the state', () => {
         fleets: 'Anna (1), Bert (2)',
         invited: 'Cora',
         leads: true,
+        start: null,
       },
     ]);
   });
@@ -119,13 +123,48 @@ describe('the unions of the state', () => {
       counts: 'Flotten 3 / 8 · Spieler 2 / 2',
       invited: '',
       leads: false,
+      start: null,
     });
+  });
+});
+
+describe('a union whose leader’s fleet starts later (#478)', () => {
+  it('counts the leader’s fleet from the planning and names its start', () => {
+    const planned = union({
+      start: 50_000,
+      fleets: [{ id: 'f2', owner: 'u2' }],
+    });
+    const [row] = unionRows(view([planned], 'u1'));
+    expect(row).toMatchObject({
+      start: 50_000,
+      counts: expect.stringMatching(/^Flotten 2 \/ \d+ · Spieler 2 \/ \d+$/),
+      fleets: 'Anna (1), Bert (1)',
+    });
+  });
+
+  it('holds back the planned ships of the leader on their planet only, for him only', () => {
+    const s = {
+      unions: [
+        union({ start: 1, held: { from: 'p1', ships: { bs: 3, lf: 1 } } }),
+        union({ id: 'u9', start: 2, held: { from: 'p1', ships: { bs: 2 } } }),
+        union({ id: 'u8', start: 3, held: { from: 'p2', ships: { bs: 9 } } }),
+        union({ id: 'u7' }),
+      ],
+    };
+    expect(heldBack(s, 'p1')).toEqual({ bs: 5, lf: 1 });
+    expect(heldBack(s, 'p3')).toEqual({});
+    expect(freeShips(s, { id: 'p1', ships: { bs: 4, lf: 3, sc: 2 } })).toEqual({
+      bs: 0,
+      lf: 2,
+      sc: 2,
+    });
+    expect(freeShips({}, { id: 'p1', ships: { bs: 4 } })).toEqual({ bs: 4 });
   });
 });
 
 describe('planning a union (#466, A1a)', () => {
   const cfg = { speed: 1 } as Universe;
-  const fleet1 = { dist: 1000, speed: 10000 };
+  const fleet1 = { dist: 1000, speed: 10000, pct: 5 };
   const fast = flightMs(1000, 10000, 10, cfg);
   const slow = flightMs(1000, 10000, 1, cfg);
   const s = (r = round()) => ({ round: r, cfg });
@@ -156,10 +195,15 @@ describe('planning a union (#466, A1a)', () => {
       refusal:
         'Deine Flotte erreicht das Ziel selbst mit 100 % nicht bis zur Ankunft des Verbands.',
     });
-    expect(planJoin(s(), 10_000 + slow + 1, 10_000, fleet1)).toEqual({
-      // Rounded up to the second, as the server says it.
-      refusal: `Deine Flotte wäre selbst mit 10 % zu früh da. Schicke sie frühestens am ${dt(11_000)} los.`,
-    });
+  });
+  it('starts the leader’s fleet later at the step of the form when even 10 % is too early (#478)', () => {
+    const arr = 10_000 + slow + 1;
+    const ms = flightMs(1000, 10000, 5, cfg);
+    const later = planJoin(s(), arr, 10_000, fleet1);
+    expect(later).toEqual({ pct: 5, ms, arr, start: arr - ms });
+    expect(unionArrivalLine(later)).toBe(
+      `${dt(arr)} / ${dt(arr + ms)} <span class="dim">(Verband: Start am ${dt(arr - ms)} mit 50 %)</span>`,
+    );
   });
 });
 
@@ -180,6 +224,41 @@ describe('a fleet of a union', () => {
       false,
     );
     expect(row!.parts[0]!.text).toContain(' · Angriffsverband (Anführer)');
+  });
+
+  it('lists a planned start of the leader among the movements, by its time, with „Abbrechen“ (#478)', () => {
+    const planned = union({
+      id: 'u9',
+      start: 50_000,
+      arr: 90_000,
+      held: { from: 'p1', ships: { bs: 3 } },
+    });
+    const v = {
+      ...view([planned, union({ id: 'u8', start: 60_000 })]),
+    } as V;
+    v.s = {
+      ...v.s,
+      fleets: [
+        fleet({ id: 'late', arr: 70_000 }),
+        fleet({ id: 'early', arr: 20_000 }),
+      ],
+    };
+    const rows = fleetRows(v, false);
+    expect(rows.map((r) => r.id)).toEqual(['early', 'plan_u9', 'late']);
+    expect(rows[1]).toEqual({
+      id: 'plan_u9',
+      due: { end: 50_000, left: expect.any(String) },
+      cls: 'fl-attack',
+      parts: [
+        {
+          text: `Geplanter Start: Deine Flotte (3 ${text('bs')!.n}) greift [1:4:8] an · Angriffsverband (Anführer), Ankunft ${dt(90_000)}`,
+          bold: false,
+        },
+      ],
+      recall: false,
+      cancel: 'u9',
+    });
+    expect(rows[0]).not.toHaveProperty('cancel');
   });
 });
 

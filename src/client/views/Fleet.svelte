@@ -46,6 +46,9 @@
         <div class="union" id="un_{union.id}">
           <b>{union.title}</b> · Anführer {union.leader} · Ankunft in
           <Due due={union.due} />
+          {#if union.start}<div class="dim">
+              Start der Flotte des Anführers in <Due due={union.start} />
+            </div>{/if}
           <div class="dim">{union.counts}</div>
           <div>Flotten: {union.fleets}</div>
           {#if union.invited}<div class="dim">
