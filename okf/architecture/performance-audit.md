@@ -41,6 +41,7 @@ unverified.
 | Server, structure | #481 | 77 uses of raw SQL outside the repositories; feature knowledge in hand-kept lists of the HTTP layer and `core` [M/R] |
 | Client | #482 | Every file downloaded in full on every load (`no-cache`, no ETag, fixed names); no timeout and no detection of a lost connection [R] |
 | CI and tests | #483 | A partial mutation run is one job up to 12 files (44 min for 11 files); E2E with one worker and process starts per test [M] |
+| Client, energy | #488 | The tick of every second also in a hidden tab, planet animations without a pause, no measurement; an E2E measurement with a gate decided [R] |
 | Docker image | #484 | `node_modules` (43 MB, 27 MB of it better-sqlite3) a new layer in every release; deletions in later layers that save nothing [M/R] |
 
 ## Server
@@ -65,6 +66,11 @@ unverified.
 * **[R]** The start runs `index.html` → `app.js` → policy → state → news
   one after another; an action is one request with the full state in the
   answer; `JSON.stringify` of the whole state compares every poll (#482).
+* **[E]** Energy on the phone (owner, 2026-11-28, #488): an issue of its
+  own, with a measurement in the E2E suite that catches a regression
+  automatically. **[R]** The tick of every second runs in a hidden tab too
+  (`clock.ts:42`), the planet animations have no pause outside the visible
+  area; the largest lever, the poll every 4 s, goes with #409 [U].
 * **[R]** What #409 decided (two states of the connection, no clicks while
   the server cannot be reached) needs a way to notice it: there is no
   timeout, no `AbortController` and no `online`/`offline` listener (#482).
