@@ -32,6 +32,8 @@ export interface Explained {
   choices?: readonly { value: number; label: string }[];
   /** The step of its number field, when it is not 1 (#433). */
   step?: number;
+  /** The words of the server for a value it refuses, for a setting of the round that has its own. */
+  refusal?: string;
 }
 
 const fromSpec = (s: UniverseSpec): Explained => ({
@@ -61,7 +63,12 @@ export function explainedSettings(
 ): Explained[] {
   const rows = specs.map((s) => {
     const name = roundName(s.key, settings);
-    return { ...fromSpec(s), ...(name ? { name } : {}) };
+    const refusal = settings.find((r) => r.key === s.key)?.refusal;
+    return {
+      ...fromSpec(s),
+      ...(name ? { name } : {}),
+      ...(refusal ? { refusal } : {}),
+    };
   });
   const known = new Set(rows.map((r) => r.key));
   const switches = settings
@@ -162,8 +169,9 @@ export const OWN_LABEL = 'Eigener Wert';
 /**
  * A value the admin typed for a setting with `own` (#358, part 2): the field
  * follows the rules of the setting's own field, so a value that is no whole
- * number of its range is refused with the words of the universe settings
- * (`rangeError`) and gets no column; an empty field is none.
+ * number of its range is refused with the words of the server (the
+ * setting's own refusal, else `rangeError`) and gets no column; an empty
+ * field is none.
  */
 export function ownValue(
   s: Explained,
@@ -175,7 +183,11 @@ export function ownValue(
   const value = Number(raw);
   return Number.isInteger(value) && value >= s.min && value <= s.max
     ? { value }
-    : { error: rangeError({ label: s.label, min: s.min, max: s.max }) };
+    : // The words of the dialog „Neue Runde“: its own, else the range (#214).
+      {
+        error:
+          s.refusal ?? rangeError({ label: s.label, min: s.min, max: s.max }),
+      };
 }
 
 /**

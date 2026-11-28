@@ -13,6 +13,7 @@
     EXPLAIN_PANEL_ID,
     explainPage,
     OWN_FIELD_ID,
+    typedOf,
     openedAt,
   } from '../logic/admin-explain.ts';
   import { client } from '../logic/state.svelte.ts';
@@ -107,19 +108,21 @@
         <!-- A value of the admin's own, a column more (#358, part 2); never saved. -->
         <p>
           <label for={OWN_FIELD_ID}>{page.own.label}</label>
-          <input
-            type="number"
-            id={OWN_FIELD_ID}
-            min={page.own.min}
-            max={page.own.max}
-            step={page.own.step}
-            value={adminExplain.own}
-            oninput={(e) => (adminExplain.own = e.currentTarget.value)}
-            aria-invalid={page.own.error ? true : undefined}
-            aria-describedby={page.own.error
-              ? `${OWN_FIELD_ID}-error`
-              : undefined}
-          />
+          <!-- The field keeps what the admin types; a new „?“ gives a new, empty one. -->
+          {#key adminExplain.opener}
+            <input
+              type="number"
+              id={OWN_FIELD_ID}
+              min={page.own.min}
+              max={page.own.max}
+              step={page.own.step}
+              oninput={(e) => (adminExplain.own = typedOf(e.currentTarget))}
+              aria-invalid={page.own.error ? true : undefined}
+              aria-describedby={page.own.error
+                ? `${OWN_FIELD_ID}-error`
+                : undefined}
+            />
+          {/key}
         </p>
         <p id="{OWN_FIELD_ID}-error" class="dim" aria-live="polite">
           {page.own.error ?? ''}

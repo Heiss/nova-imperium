@@ -134,7 +134,7 @@ test('the explanation keeps the focus where the admin put it and closes when the
   const close = panel(page).getByRole('button', { name: 'Schließen' });
   await close.focus();
   // A state of the server comes in (the poll, every 4 s): the focus stays.
-  await page.waitForTimeout(5000);
+  await page.waitForResponse((r) => r.url().includes('/api/state'));
   await expect(close).toBeFocused();
   await nav(page, 'overview');
   await nav(page, 'admin');
@@ -161,9 +161,21 @@ for (const phone of ['', ' @phone'])
     await expect(head).toHaveCount(7);
     // Typing keeps the focus in the field, over a poll too.
     await expect(own).toBeFocused();
-    await page.waitForTimeout(4500);
+    await page.waitForResponse((r) => r.url().includes('/api/state'));
     await expect(own).toBeFocused();
+    await expect(head.last()).toHaveText('7 (eigener Wert)');
     expect(await violations(page)).toEqual([]);
+    // A text the number field cannot read is refused, and the text stays (PR #476).
+    await own.fill('');
+    await own.pressSequentially('1e');
+    await expect(panel(page)).toContainText(
+      `${SPEED}: ganze Zahl von 1 bis 100.`,
+    );
+    await expect(own).toHaveAttribute('aria-invalid', 'true');
+    await expect(head).toHaveCount(6);
+    expect(
+      await own.evaluate((el: HTMLInputElement) => el.validity.badInput),
+    ).toBe(true);
     await own.fill('0');
     await expect(panel(page)).toContainText(
       `${SPEED}: ganze Zahl von 1 bis 100.`,

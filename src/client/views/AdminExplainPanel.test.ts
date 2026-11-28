@@ -76,8 +76,10 @@ describe('the panel of the explanations (#358)', () => {
     open('speed');
     let html = body();
     expect(html).toMatch(
-      /<label for="axp-own">Eigener Wert<\/label>\s*<input type="number" id="axp-own" min="1" max="100" step="1"/,
+      /<label for="axp-own">Eigener Wert<\/label>(\s|<!---->|<!--\[-->)*<input type="number" id="axp-own" min="1" max="100" step="1"/,
     );
+    // No value of its own: the field keeps what the admin types (PR #476).
+    expect(html).not.toMatch(/id="axp-own"[^>]*value=/);
     expect(html).not.toContain('aria-invalid');
     adminExplain.own = '7';
     html = body();

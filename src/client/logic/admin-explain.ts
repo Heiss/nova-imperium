@@ -34,6 +34,20 @@ export const openedAt = (opener: string | null, place: 'u' | 'r'): boolean =>
 /** The id of the field „Eigener Wert“ and of its refusal (#358, part 2). */
 export const OWN_FIELD_ID = 'axp-own';
 
+/**
+ * What the field „Eigener Wert“ holds after an input (PR #476): its value,
+ * or, for a text the number field cannot read (`badInput`: „1e“, „1,5“, a
+ * lone „-“, where its value is empty), a text that is no number, so the
+ * range is refused instead of the field taken for empty.
+ */
+export const typedOf = (field: {
+  value: string;
+  validity: { badInput: boolean };
+}): string => (field.validity.badInput ? UNREADABLE : field.value);
+
+/** The value of an input the number field cannot read. */
+export const UNREADABLE = '?';
+
 /** The field „Eigener Wert“ of a setting with a formula behind it (#358, part 2). */
 interface OwnField {
   label: string;

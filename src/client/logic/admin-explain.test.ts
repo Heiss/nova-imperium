@@ -16,6 +16,8 @@ import {
   explainPage,
   openedAt,
   OWN_FIELD_ID,
+  typedOf,
+  UNREADABLE,
 } from './admin-explain.ts';
 import type { GameState } from './types.ts';
 
@@ -114,6 +116,26 @@ describe('the field „Eigener Wert“ (#358, part 2)', () => {
     );
     expect(page.own!.error).toBe(
       ROUND_SETTINGS.find((r) => r.key === 'roundColonyResearch')!.refusal,
+    );
+  });
+
+  it('takes a text the number field cannot read for a refused value, not for an empty field (PR #476)', () => {
+    const read = (value: string, badInput: boolean) =>
+      typedOf({ value, validity: { badInput } });
+    expect(read('7', false)).toBe('7');
+    expect(read('', false)).toBe('');
+    // „1e“, „1,5“ or a lone „-“: the field's value is empty, its input bad.
+    expect(read('', true)).toBe(UNREADABLE);
+    const speed = explainedSettings().find((x) => x.key === 'speed')!;
+    const page = explainPage('speed', s, read('', true))!;
+    expect(page.own!.error).toBe(rangeError(speed as never));
+    expect(page.table).toEqual(explainPage('speed', s)!.table);
+  });
+
+  it('refuses with the setting’s own words where the round has them (the moon’s step, PR #476)', () => {
+    const moon = ROUND_SETTINGS.find((r) => r.key === 'roundMoonPerPercent')!;
+    expect(explainPage('roundMoonPerPercent', s, '1')!.own!.error).toBe(
+      moon.refusal,
     );
   });
 });
