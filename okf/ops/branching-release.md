@@ -101,8 +101,10 @@ bullets they replace below are marked.
 * **[E]** Decided for #486, not built yet (owner, 2026-11-28): the tag `next`
   goes away; in its place `nightly`, built and published only when the
   three night workflows (`ci.yml` on its schedule, `mutation.yml`,
-  `migrations-nightly.yml`) are green for the same commit of `main`, and not
-  built again while `main` is unchanged; only the moving tag, no dated tags.
+  `migrations-nightly.yml`) are green for the same commit of `main`, every
+  night, also when `main` is unchanged, so the staging server gets Debian's
+  security updates (replacing „not built again while `main` is unchanged“
+  of the same day); only the moving tag, no dated tags.
   The tags are then `<version>`, `latest` and `stable` from a release and
   `nightly` every night. The owner's staging server pulls `nightly` by
   itself; the repository only describes it in `docs/operations.md`. The
