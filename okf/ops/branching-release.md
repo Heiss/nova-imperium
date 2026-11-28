@@ -98,6 +98,16 @@ bullets they replace below are marked.
   (`src/server/news.ts` keeps only a CalVer version). A late run of an
   older push does not move `next` back. `docs/operations.md` names `next`
   for a test server [V].
+* **[E]** Decided for #486, not built yet (owner, 2026-11-28): the tag `next`
+  goes away; in its place `nightly`, built and published only when the
+  three night workflows (`ci.yml` on its schedule, `mutation.yml`,
+  `migrations-nightly.yml`) are green for the same commit of `main`, and not
+  built again while `main` is unchanged; only the moving tag, no dated tags.
+  The tags are then `<version>`, `latest` and `stable` from a release and
+  `nightly` every night. The owner's staging server pulls `nightly` by
+  itself; the repository only describes it in `docs/operations.md`. The
+  rest of #486 is proposals [V]. This replaces the bullet above once #486
+  is built.
 * **[E]** Every night a complete test run on `main` (#387 part 3, owner,
   2026-11-23; its contents accepted 2026-11-24, 77a): `ci.yml` runs on a
   schedule with the unit suite, the E2E suite, the image with the Compose
