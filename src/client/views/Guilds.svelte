@@ -42,6 +42,7 @@
           {/each}
         </tbody>
       </table>
+      {#if page.stand}<div class="dim stand">{page.stand}</div>{/if}
     {:else}
       <p>Es gibt noch keine Gilden.</p>
     {/if}
@@ -70,6 +71,7 @@
   {#if page.score !== null}
     <Box title="Punkte">
       <p>{page.score} gesamt · {page.average} pro Mitglied</p>
+      {#if page.stand}<div class="dim stand">{page.stand}</div>{/if}
     </Box>
   {/if}
   <Box title="Mitglieder"><GuildMembers roster={page.roster} /></Box>

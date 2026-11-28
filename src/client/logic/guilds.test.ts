@@ -57,7 +57,7 @@ function page(
   me: string,
   rights: GuildRight[],
   state: Partial<GuildState> = {},
-  over: { admin?: boolean; shown?: string | null } = {},
+  over: { admin?: boolean; shown?: string | null; scoresAt?: number } = {},
 ): GuildsPageResult {
   const own: GuildState = {
     directory: [guild()],
@@ -68,7 +68,12 @@ function page(
     ...state,
   };
   const v = {
-    s: { me: { id: me }, guilds: own, admin: over.admin ? {} : null },
+    s: {
+      me: { id: me },
+      guilds: own,
+      admin: over.admin ? {} : null,
+      scoresAt: over.scoresAt,
+    },
     ui: { params: { guild: over.shown === undefined ? 'g1' : over.shown } },
   } as unknown as V;
   return guildsPage(v);
@@ -78,6 +83,42 @@ const onGuild = (p: GuildsPageResult): GuildPage => {
   if (p.kind !== 'guild') throw new Error('not a guild page');
   return p;
 };
+
+describe('the „Stand“ of the guild points (#494)', () => {
+  // 08:05 in the time zone of the tests, as in logic/highscore.test.ts.
+  const at = new Date(2026, 10, 25, 8, 5).getTime();
+  const lone = { own: null, ranks: null, management: null };
+
+  it('names the pass in the directory and on the page of a guild, in the words of the highscore', () => {
+    const list = page('u_x', [], lone, { shown: null, scoresAt: at });
+    if (list.kind !== 'directory') throw new Error('not the directory');
+    expect(list.stand).toBe('Stand: 08:05');
+    expect(onGuild(page('u_x', [], lone, { scoresAt: at })).stand).toBe(
+      'Stand: 08:05',
+    );
+  });
+
+  it('is empty for a state that names no pass', () => {
+    const list = page('u_x', [], lone, { shown: null });
+    if (list.kind !== 'directory') throw new Error('not the directory');
+    expect(list.stand).toBe('');
+    expect(onGuild(page('u_x', [], lone)).stand).toBe('');
+  });
+
+  it('is empty while the highscore shows nothing (182a), and for a directory without guilds', () => {
+    const hidden = {
+      ...lone,
+      directory: [{ ...guild(), score: undefined, average: undefined }],
+    };
+    const list = page('u_x', [], hidden, { shown: null, scoresAt: at });
+    if (list.kind !== 'directory') throw new Error('not the directory');
+    expect(list.stand).toBe('');
+    expect(onGuild(page('u_x', [], hidden, { scoresAt: at })).stand).toBe('');
+    const empty = page('u_x', [], { ...lone, directory: [] }, { scoresAt: at });
+    if (empty.kind !== 'directory') throw new Error('not the directory');
+    expect(empty.stand).toBe('');
+  });
+});
 
 describe('a guild while the highscore shows nothing (#422, 182a)', () => {
   const pointless = (): Guild => ({
@@ -138,6 +179,8 @@ describe('the directory', () => {
           average: '508',
         },
       ],
+      // The state names no pass: no „Stand“ (#494).
+      stand: '',
       create: { edit: false, tag: '', name: '', description: '' },
     });
   });
@@ -181,6 +224,7 @@ describe('the directory', () => {
       rows: [],
       // No guild: no points to show.
       points: false,
+      stand: '',
       create: { edit: false, tag: '', name: '', description: '' },
     });
   });
