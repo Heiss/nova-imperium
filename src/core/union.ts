@@ -278,6 +278,20 @@ export function unionFlight(x: {
 }
 
 /**
+ * When the leader's fleet starts by itself for a union arriving at `arr`
+ * that it cannot reach at once even at 10 % (owner, 2026-11-28, #478): its
+ * arrival minus its flight at the speed step `pct` the leader chose (tenths,
+ * 1 to 10) [V], so it arrives exactly at `arr`.
+ */
+export const plannedStart = (x: {
+  dist: number;
+  speed: number;
+  universe: Universe;
+  arr: number;
+  pct: number;
+}): number => x.arr - flightMs(x.dist, x.speed, x.pct, x.universe);
+
+/**
  * The loot of a won battle split between the fleets of the union by their
  * free cargo space (owner, 2026-11-16, Q1): each resource in proportion to
  * the space, rounded down; the units the rounding leaves go one by one to

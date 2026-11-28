@@ -21,6 +21,7 @@ import type { Fleet, Planet } from '../../core/types.ts';
 import { type Ctx, addReport, coords, resLine, universe } from './context.ts';
 import { dueAt } from '../../core/holding.ts';
 import { endHold } from './holding.ts';
+import { startPlanned } from './union-start.ts';
 import { type MissionServer, land, playerOf, turnBack } from './missions.ts';
 import { lockedUntil } from './position-lock.ts';
 import { beginCause, dropCause, fleetBefore, journalFleet } from './journal.ts';
@@ -151,7 +152,17 @@ export function tick(
 ): number {
   const now = ctx.now();
   const due = ctx.fleets.due(now);
+  // The planned starts of attack unions (#478) go in the order of time with
+  // the fleets: a battle at the planet before the start comes first.
+  const starts = ctx.unions.dueStarts(now);
+  let next = 0;
+  const startUntil = (t: number): boolean => {
+    for (; next < starts.length && starts[next]!.start!.at <= t; next++)
+      if (!runStart(ctx, starts[next]!.id, now, log)) return false;
+    return true;
+  };
   for (const f of due) {
+    if (!startUntil(dueAt(f))) return due.length + next;
     try {
       ctx.tx(() => {
         const live = ctx.fleets.get(f.id);
@@ -179,5 +190,33 @@ export function tick(
       ctx.fleets.delete(f.id);
     }
   }
-  return due.length;
+  startUntil(now);
+  return due.length + next;
+}
+
+/**
+ * Starts the planned fleet of the union `id` when it is still due (#478);
+ * false when another writer holds the lock, so the tick stops and the start
+ * waits for the next one. A start that fails otherwise dissolves nothing:
+ * its plan is dropped and logged, as a failed fleet is removed.
+ */
+function runStart(
+  ctx: Ctx,
+  id: string,
+  now: number,
+  log: (msg: string, e: unknown) => void,
+): boolean {
+  try {
+    ctx.tx(() => {
+      const live = ctx.unions.get(id);
+      if (!live?.start || live.start.at > now) return;
+      startPlanned(ctx, live);
+    });
+    return true;
+  } catch (e) {
+    if (isDatabaseBusy(e)) return false;
+    log(`Planned start ${id} failed and was removed`, e);
+    ctx.unions.delete(id);
+    return true;
+  }
 }

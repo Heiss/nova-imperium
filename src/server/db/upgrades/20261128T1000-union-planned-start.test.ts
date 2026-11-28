@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest';
 import { databaseAt, migrationsThrough } from '../../../test/migrations.ts';
 import { migrate, type Db } from '../database.ts';
 import migrations from '../migrations/478/migrations.ts';
+import type { Union } from '../repos/unions.ts';
 import { Store } from '../store.ts';
 
 const ID = '20261128T1000-union-planned-start';
@@ -67,7 +68,7 @@ describe(`upgrade to migration ${ID}`, () => {
     migrate(db, through);
     const unions = new Store(db).repos.unions;
     const start = { at: 7000, from: 'p1_1_5', ships: { lf: 3, sc: 1 }, pct: 4 };
-    const u9 = {
+    const u9: Union = {
       id: 'u9',
       leader: 'u_Anna',
       lead: 'u9',
@@ -82,7 +83,8 @@ describe(`upgrade to migration ${ID}`, () => {
     expect(unions.dueStarts(7000)).toEqual([u9]);
     expect(unions.startsFrom('p1_1_5')).toEqual([u9]);
     expect(unions.startsFrom('p1_3_7')).toEqual([]);
-    const { start: _, ...started } = u9;
+    const started = { ...u9 };
+    delete started.start;
     unions.save(started);
     expect(unions.get('u9')).toEqual(started);
     expect(unions.dueStarts(Number.MAX_SAFE_INTEGER)).toEqual([]);

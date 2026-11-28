@@ -31,7 +31,7 @@ export interface Union {
 }
 
 /** The planned start of a leader's fleet (#478). */
-export interface PlannedStart {
+interface PlannedStart {
   at: number;
   from: string;
   ships: Levels;

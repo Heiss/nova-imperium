@@ -66,6 +66,7 @@ export const INPUT: Readonly<Record<string, Spec>> = {
     price: 'keep',
   },
   inviteUnion: { id: 'keep', name: 'seatByName' },
+  cancelPlan: { id: 'keep' },
   // The account and its rewards.
   abandon: { target: 'keep', created: 'keep' },
   claimAchievement: { id: 'keep' },

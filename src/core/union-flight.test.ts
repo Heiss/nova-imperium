@@ -5,7 +5,7 @@ import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { flightMs } from './flight.ts';
 import type { Universe } from './types.ts';
-import { FASTEST, SLOWEST, unionFlight } from './union.ts';
+import { FASTEST, plannedStart, SLOWEST, unionFlight } from './union.ts';
 
 const world = (speed: number) => ({ speed }) as Universe;
 
@@ -90,5 +90,39 @@ describe('the speed of a fleet that joins a union (#466)', () => {
       arr: 1000 + Math.round((slow + fast) / 2),
     });
     expect('pct' in out && out.pct).toBeCloseTo(1.818, 2);
+  });
+});
+
+describe('the planned start of a leader’s fleet that cannot reach X at once (#478)', () => {
+  it('is X minus the flight at the chosen step, so the fleet arrives at X, and lies after now when even 10 % is too early', () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 5, max: 100_000 }),
+        fc.integer({ min: 1, max: 1_000_000 }),
+        fc.integer({ min: 1, max: 10 }),
+        fc.integer({ min: SLOWEST, max: FASTEST }),
+        fc.integer({ min: 0, max: 100_000_000 }),
+        fc.integer({ min: 1, max: 400_000_000 }),
+        (dist, speed, s, pct, now, extra) => {
+          const u = world(s);
+          const arr = now + flightMs(dist, speed, SLOWEST, u) + extra;
+          expect(
+            unionFlight({ dist, speed, universe: u, now, arr }),
+          ).toMatchObject({ error: 'early' });
+          const start = plannedStart({ dist, speed, universe: u, arr, pct });
+          expect(start + flightMs(dist, speed, pct, u)).toBe(arr);
+          expect(start).toBeGreaterThan(now);
+        },
+      ),
+    );
+  });
+
+  it('starts later the faster the step', () => {
+    const u = world(1);
+    const at = (pct: number) =>
+      plannedStart({ dist: 20_000, speed: 10_000, universe: u, arr: 1e9, pct });
+    expect(at(1)).toBeLessThan(at(5));
+    expect(at(5)).toBeLessThan(at(10));
+    expect(at(10)).toBe(1e9 - flightMs(20_000, 10_000, 10, u));
   });
 });

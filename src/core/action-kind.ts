@@ -67,6 +67,7 @@ export const ACTION_KIND = {
   closeRound: 'change',
   deleteRound: 'change',
   inviteUnion: 'change',
+  cancelPlan: 'change',
   startVacation: 'change',
   endVacation: 'change',
   sendPrivateMessage: 'change',
