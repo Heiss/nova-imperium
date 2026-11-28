@@ -73,7 +73,7 @@ const SKIP = new Set(['parent', 'leadingComments', 'trailingComments', 'css']);
  */
 const ALLOWED: readonly string[] = [
   'server/delete-account.ts: Spionageaktivität',
-  'core/guild-chat.ts: Angriff auf',
+  'core/chat-events/attack.ts: Angriff auf',
 ];
 
 /** Every classic word in `texts`, as „file: word“. */
