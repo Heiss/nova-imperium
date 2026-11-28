@@ -144,7 +144,7 @@ const afterSection = (): PageSection =>
       { share: percent(LOOT_SHARE) },
     ),
     // The held cargo is no loot since #440 (233b): the words are the owner's.
-    say(HOLD_LEXICON.noLoot),
+    say(HOLD_LEXICON.cargoHandover),
     table(
       `Beute bei einem Planeten mit ${number(STOCK.m)} Adamant, ${number(STOCK.c)} Psikristall und ${number(STOCK.d)} Promethium`,
       ['Freier Laderaum', 'Adamant', 'Psikristall', 'Promethium'],

@@ -44,7 +44,8 @@ The battle with several parties is built with #55
   fleet (owner, 2026-11-16, classic values verified, owiki
   „Allianzkampfsystem“).
 * **[E]** Loot (owner, 2026-11-16, D3; replaced by #440, 233b: held
-  cargo is no loot): the cargo of held fleets can be plundered too. This is a Nova rule: no classic source documents it;
+  cargo is no loot; 233b replaced by #467, see „The cargo of a destroyed
+  hold“): the cargo of held fleets can be plundered too. This is a Nova rule: no classic source documents it;
   classic loot is 50 % of the planet's stock (owiki „Beute“), and owiki
   contradicts itself on whether held fleets keep their cargo.
 * **[U]** How the cargo of held fleets enters the loot (its share and the
@@ -53,7 +54,7 @@ The battle with several parties is built with #55
   (the noob protection part replaced by #440, 238c), as in classic (owiki „Allianzkampfsystem“; see
   [Vacation mode](/features/vacation-mode.md)).
 * **[E]** Loot (owner, 2026-11-17, completing the [U] above; replaced by
-  #440, 233b): when a planet with held fleets is raided, the loot takes the classic 50 % of
+  #440, 233b, then by #467): when a planet with held fleets is raided, the loot takes the classic 50 % of
   the planet's stock first, then the cargo of the held fleets with the
   capacity that is left.
 * **[E]** Who may hold is a value per round, set in the dialog „Neue
@@ -148,7 +149,8 @@ The battle with several parties is built with #55
   * The cargo of the held fleets is taken whole (not half) with the room
     left; the rest is lost with the fleets, which are destroyed when the
     attacker wins (superseded by #440, 2026-11-27, 233b: held cargo is no
-    loot; it is lost with the fleets). 1 hour is preselected in the form.
+    loot; it is lost with the fleets; 233b superseded by #467: the cargo
+    goes to the planet and is plundered there). 1 hour is preselected in the form.
   * „alles“ of the fleet form (#240) leaves the fuel of the holding time
     on the planet too, as the flight fuel.
   * The spy report (`withHeldFleets` in `src/server/game/holding.ts`, one
@@ -500,8 +502,39 @@ The owner's decisions on #440, built on `claude/hold-rework`.
   the switch, the option box is hidden, and the Lexicanum hides the article
   of the mission (`offered` of its rules, as #404 for the pages). The
   refusal of a launch is the mission's own (`offered.refusal`).
-* **[E]** Held cargo is no loot (233b); the debris and the moon chance of
-  destroyed held fleets stay.
+* **[E]** ~~Held cargo is no loot (233b)~~, replaced by #467 (below); the
+  debris and the moon chance of destroyed held fleets stay.
+
+## The cargo of a destroyed hold (#467, replaces 233b)
+
+* **[E]** (owner, 2026-11-28) A hold keeps its cargo in its fleet. When it
+  is destroyed in a battle, its cargo goes to the host's planet before the
+  plunder and is then part of the stock that can be plundered.
+* **[E]** (owner, 2026-11-28) When only part of a hold is destroyed, the
+  cargo that no longer fits into the surviving ships goes to the planet;
+  the rest stays in the fleet.
+* **[E]** (owner, 2026-11-28) The handed-over cargo follows the rule of a
+  delivery of a transport: `land` (`src/server/game/missions.ts`), no
+  storage cap.
+* **[E]** (owner, 2026-11-28) Explained clearly in the next release: the
+  changelog entry and the Lexicanum (pages `rule-allies` and
+  `rule-battle`, `HOLD_LEXICON.cargoHandover` in `src/core/hold-texts.ts`).
+* **[V]** Built (`handOver` in `src/server/game/fight.ts`): right after the
+  battle, in every battle in which holds defend (Sturmangriff, Mondbruch,
+  the fight of detected Auspex probes), whoever wins. The part a hold
+  keeps is `cutLoot(cargo, capacity(survivors))`, the order of the loot;
+  the rest lands on the planet (on the moon at a Mondbruch, where it is
+  plundered and then lost with a broken moon, like the moon's stock). The
+  plunder (50 % of the stock) comes after the handover.
+* **[V]** The battle report of the defender's side (the host and the
+  owners of the holds) shows per hold „Übergebene Ladung: …“ under its
+  „Verteidiger <Name>“ block; the attacker's report does not.
+* **[V]** Texts of #467 (proposals): the Lexicanum sentence „Wird eine
+  Wache im Kampf vernichtet, geht ihre Ladung an den Planeten des
+  Gastgebers, bei Verlusten der Teil, der nicht mehr in die übrigen
+  Schiffe passt. Dort gehört sie zum Vorrat und lässt sich wie jeder
+  Vorrat plündern.“, the report line „Übergebene Ladung: …“ and the
+  changelog fragment `changes/wachen-ladung.md`.
 * **[E]** The host gets „{Spieler} schickt eine Wache zu {Planet}.
   Ankunft: {Zeit}.“ at the launch and „{Spieler} hält mit einer Flotte
   Wache bei {Planet} bis {Zeit}.“ at the arrival (242c). All hold reports,

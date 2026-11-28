@@ -18,6 +18,9 @@
           Wiederhergestellte Verteidigung: {side.rebuilt}
         </div>{/if}
       {#if side.share}<div class="dim">Erbeutet: {side.share}</div>{/if}
+      {#if side.handed}<div class="dim">
+          Übergebene Ladung: {side.handed}
+        </div>{/if}
     </div>
   {/each}
 </div>

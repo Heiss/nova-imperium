@@ -384,6 +384,32 @@ describe('spy: detected probes at a planet where fleets hold (#55, owner, 2026-1
     });
   });
 
+  it('hand the cargo of a fleet that holds and falls to the planet, with no loot (#467)', () => {
+    const { ctx, f, at } = setup(1, { ships: { sc: 1 }, def: {}, defSpy: 30 });
+    f.ships = { probe: 1, dstar: 5 };
+    ctx.fleets.save(f);
+    const h = guard(ctx, { lf: 3 });
+    ctx.fleets.save({ ...h, cargo: { m: 100, c: 50, d: 0 } });
+    const before = ctx.planets.get('p1_2_6')!.res;
+    draws(ctx, [0.9, 0]);
+    onArrive(ctx, f, at);
+    expect(ctx.fleets.get(h.id)).toBeNull();
+    expect(ctx.planets.get('p1_2_6')!.res).toEqual({
+      m: before.m + 100,
+      c: before.c + 50,
+      d: before.d,
+    });
+    expect(ctx.reports.ofPlayer('u_Carl')[0]).toMatchObject({
+      held: [{ name: 'Carl', handed: { m: 100, c: 50, d: 0 } }],
+    });
+    expect(
+      ctx.reports.ofPlayer('u_Bert').find((r) => r.type === 'battle'),
+    ).toMatchObject({ held: [{ handed: { m: 100, c: 50, d: 0 } }] });
+    const spied = ctx.reports.ofPlayer('u_Anna')[1]!;
+    expect((spied.held as object[])[0]).not.toHaveProperty('handed');
+    expect(spied).not.toHaveProperty('loot');
+  });
+
   it('fight a planet without ships and defense when a fleet holds there', () => {
     const { ctx, f, at } = setup(4, { def: {}, defSpy: 30 });
     guard(ctx, { bs: 5 });

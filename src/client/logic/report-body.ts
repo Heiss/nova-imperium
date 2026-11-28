@@ -38,6 +38,8 @@ export interface BattleSide {
   rebuilt: string | null;
   /** The loot of an attacker of the union, when it took any. */
   share: string | null;
+  /** The cargo a fleet that held handed to the planet, when any (#467). */
+  handed: string | null;
 }
 
 export interface BattleBody {
@@ -104,6 +106,8 @@ interface HeldSide {
   before: Levels;
   after: Levels;
   tech: Levels;
+  /** In the report of the defender: the cargo it handed to the planet (#467). */
+  handed?: Resources;
 }
 
 /** A further fleet of an attack union that fought along (#225), with its share of the loot. */
@@ -122,7 +126,7 @@ const side = (
   before: unknown,
   after: unknown,
   keys: string[],
-  extra: Partial<Pick<BattleSide, 'rebuilt' | 'share'>> = {},
+  extra: Partial<Pick<BattleSide, 'rebuilt' | 'share' | 'handed'>> = {},
 ): BattleSide => ({
   cls,
   title,
@@ -130,6 +134,7 @@ const side = (
   units: unitRows(lv(before), lv(after), keys),
   rebuilt: null,
   share: null,
+  handed: null,
   ...extra,
 });
 
@@ -192,6 +197,7 @@ function battleBody(r: Report): BattleBody {
       h.before,
       h.after,
       Object.keys(SHIPS),
+      { handed: lootLine(h.handed) },
     ),
   );
   return {
