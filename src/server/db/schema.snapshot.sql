@@ -8,6 +8,8 @@ CREATE INDEX attack_union_invites_user ON attack_union_invites(user_id);
 
 CREATE INDEX attack_unions_leader ON attack_unions(leader);
 
+CREATE INDEX attack_unions_start ON attack_unions(start_at);
+
 CREATE INDEX audit_actor ON audit_events(actor, id);
 
 CREATE INDEX audit_target ON audit_events(target, id);
@@ -114,7 +116,7 @@ CREATE TABLE attack_unions (
       to_s INTEGER NOT NULL,
       to_p INTEGER NOT NULL,
       arr INTEGER NOT NULL
-    ) STRICT;
+    , start_at INTEGER, start_from TEXT, start_ships TEXT, start_pct INTEGER) STRICT;
 
 CREATE TABLE audit_events (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

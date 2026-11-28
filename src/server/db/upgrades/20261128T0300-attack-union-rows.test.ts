@@ -104,15 +104,12 @@ describe(`upgrade to migration ${ID}`, () => {
     const db = runningRound();
     migrate(db, through);
     const unions = new Store(db).repos.unions;
-    unions.save({
-      id: 'u9',
-      leader: 'u_Bert',
-      target: 'm1_3_7',
-      toC: { g: 1, s: 3, p: 7 },
-      arr: 8000,
-    });
+    // In SQL: the store writes the columns of the latest schema (#202), which
+    // has the planned start of #478 too.
+    db.exec(`INSERT INTO attack_unions (id, leader, lead, target, to_g, to_s, to_p, arr)
+      VALUES ('u9', 'u_Bert', NULL, 'm1_3_7', 1, 3, 7, 8000)`);
     expect(unions.get('u9')).not.toHaveProperty('lead');
-    unions.save({ ...unions.get('u9')!, lead: 'f4' });
+    db.exec(`UPDATE attack_unions SET lead = 'f4' WHERE id = 'u9'`);
     expect(unions.get('u9')).toMatchObject({ lead: 'f4', arr: 8000 });
     db.prepare('DELETE FROM users WHERE id = ?').run('u_Anna');
     expect(unions.get('f1')).toBeNull();
