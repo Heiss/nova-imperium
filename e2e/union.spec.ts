@@ -86,11 +86,17 @@ const arm = (name: string, lf: number): void => {
   seed({ name, ships: { lf }, res: { m: 0, c: 0, d: 50000 } });
 };
 
-/** Sends `ships` Abfangjäger against the home planet of `target` with a Sturmangriff. */
+/**
+ * Sends `ships` Abfangjäger against the home planet of `target` with a
+ * Sturmangriff at `pct` tenths of the speed. The union arrives with this
+ * fleet (#466): at 30 % a friend one position farther away reaches it
+ * between 10 % and 100 %.
+ */
 async function sturmangriff(
   p: Player,
   target: Player,
   ships: number,
+  pct = '3',
 ): Promise<void> {
   await openSystemOf(p.page, target.name);
   await (
@@ -98,6 +104,7 @@ async function sturmangriff(
   ).click();
   await expect(p.page.getByLabel('Auftrag')).toHaveValue('attack');
   await p.page.getByLabel('Anzahl Abfangjäger').fill(String(ships));
+  await p.page.getByLabel('Geschwindigkeit').selectOption(pct);
   await p.page.getByRole('button', { name: 'Flotte losschicken' }).click();
   await expect(lastToast(p.page)).toContainText('Flotte unterwegs nach');
 }
@@ -119,7 +126,11 @@ async function openAndInvite(leader: Player, invited: Player): Promise<void> {
   await expect(union(page)).toContainText(`Eingeladen: ${invited.name}`);
 }
 
-/** The invited player joins with „Beitreten“ and sends the fleet the form is filled with. */
+/**
+ * The invited player joins with „Beitreten“ and sends the fleet the form is
+ * filled with; the form shows the speed that brings it there at the
+ * union's arrival (#466).
+ */
 async function joinUnion(p: Player, ships: number): Promise<void> {
   await nav(p.page, 'fleet');
   await expect(union(p.page)).toContainText('Anführer');
@@ -129,6 +140,9 @@ async function joinUnion(p: Player, ships: number): Promise<void> {
     '',
   );
   await p.page.getByLabel('Anzahl Abfangjäger').fill(String(ships));
+  await expect(p.page.locator('#i_arr')).toContainText(
+    'Verband: Geschwindigkeit',
+  );
   await p.page.getByRole('button', { name: 'Flotte losschicken' }).click();
   await expect(lastToast(p.page)).toContainText('Flotte unterwegs nach');
 }

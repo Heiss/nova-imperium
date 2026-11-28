@@ -552,3 +552,76 @@ The owner's decisions on #440, built on `claude/hold-rework`.
     kehren von selbst um. Hält bei einem schwachen Spieler die Wache eines
     anderen, dürfen Dritte ihn dort trotz Noobschutz angreifen und
     erkunden. Ladung einer Wache ist keine Beute.“
+
+# Rework of 2026-11-28 (#466)
+
+The owner, 2026-11-28: the order of #225 is the wrong way round; the
+invitation comes before the attack.
+
+* **[E]** (1c) A union has a fixed arrival X; every fleet of it arrives
+  exactly at X. (2a) The opening from a running attack goes; only the new
+  action stays. (3) No expiry: X is set. (4) A switch per round
+  „Verbandsangriff“, „An“ in running universes. (5a) The assistant writes
+  the texts; the owner checks them after the release. (6b) With the next
+  release, on the owner's word. (7b) A fleet that joins starts at once, the
+  server picks its speed between 10 % and 100 %, also between the steps, so
+  that it arrives exactly at X, and the fuel follows that speed; too early
+  even at 10 % is refused, naming the earliest start. (8a) The delay
+  setting goes; the cut-off and the limits of 16 fleets and 5 players stay.
+* **[E]** The recall (owner, 2026-11-28, correction): when the leader aborts,
+  the union aborts, with no separate action. The recall of the leader's
+  fleet turns back every fleet of the union, as Q2 of 2026-11-16; a
+  member's recall turns back only his fleet.
+* **[U]** Whether the leader must send his own fleet when he plans (A1,
+  asked by the coordinator): (a) planning = his own attack with X and the
+  invitations, (b) planning without a fleet. The planning action, the form
+  and the removal of „Angriffsverband eröffnen“ wait for it.
+
+## Built with #466 (part 1, what does not wait for A1)
+
+Everything below is [V] unless it names an owner's decision.
+
+* **Data, replacing „Data“ of #225.** A union is a row of
+  `attack_unions` (id, leader, the leader's fleet that leads it `lead`,
+  target, coordinates, X), migration `20261128T0300-attack-union-rows`
+  (`src/server/db/migrations/466/`), repository `src/server/db/repos/unions.ts`.
+  The unions in flight moved into rows with their ID, the leader's fleet as
+  `lead` and X their present arrival, so `fleets.union_id` and
+  `attack_union_invites` stay; a fleet whose union has no row arrives alone,
+  as before. A union is alive while its row exists and X is in the future.
+  The hourly sweep deletes a union whose X has passed and that has no fleet
+  out any more (a union no fleet reached ends silently); a new round clears
+  the table.
+* **Joining, replacing „Timing“ of #225 (the 30 % rule).** `unionFlight` of
+  `src/core/union.ts` solves `flightMs` for the speed: `pct = 35000 ·
+  √(10 · dist / speed) ÷ ((X − now) · universe speed / 1000 − 10)` tenths,
+  clamped to 1..10. Too early even at 10 % names the earliest start (to the
+  second, German time), too late even at 100 % is refused, the bounds are
+  inside. The fleet's arrival is set to X itself (no rounding moves it), its
+  return is X plus the time it flew, its fuel `fuelFor` with that speed; the
+  speed the form sends is not used. The cut-off and the limits are as
+  before (`joinWindow`).
+* **The leader and the battle.** The fleet in `lead` leads the battle; a
+  union without one is led by the first fleet that joined, and the
+  leader's first fleet becomes `lead` when he joins one. The recall of the
+  `lead` fleet ends the union (Q2, unchanged).
+* **Settings, replacing „Settings“ of #225.** `roundUnionDelay` is gone from
+  the registry; a stored value is no longer read. New is the live switch
+  `roundUnionOn` „Verbandsangriff“, „An“ (1) or „Aus“ (0), order 240, the
+  shape `LIVE_SWITCH` of `src/core/live-switch.ts` that „Wache stellen“
+  shares. Off: nobody opens, invites or joins (refusal „Verbandsangriffe
+  sind in dieser Runde abgeschaltet.“); the box „Verbandsangriff“ keeps the
+  unions in flight with their arrival but offers no invitation, no
+  „Beitreten“, no opening, and the fleet form no row „Verband“; what flies
+  arrives; the recall of an own fleet always works.
+* **Browser.** The arrival line of a joining fleet shows X, its return and
+  „(Verband: Geschwindigkeit 37,5 %)“, or the refusal; the fuel of the form
+  is that of the solved speed. The hint under the box says the fixed
+  arrival.
+* **Texts [V].** The refusals „Deine Flotte wäre selbst mit 10 % zu früh
+  da. Schicke sie frühestens am … los.“ and „Deine Flotte erreicht das Ziel
+  selbst mit 100 % nicht bis zur Ankunft des Verbands.“, the switch
+  „Verbandsangriff“ with „An“/„Aus“ and its refusal, the form line, the new
+  hint, the Lexicanum section „Ankunft, Geschwindigkeit und Grenzen“.
+* **No limit** on the unions a leader has planned at once (coordinator,
+  2026-11-28) and no upper bound for X (owner, 3).
