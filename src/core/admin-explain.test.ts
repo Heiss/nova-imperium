@@ -35,6 +35,11 @@ const round = {
 } as RoundRules;
 const ALL = explainedSettings();
 const byKey = (key: string): Explained => ALL.find((s) => s.key === key)!;
+const OFF_AT_DEFAULTS = [
+  'roundColonyResearch',
+  'roundColonyPerLevel',
+  'roundColonyMaxLevel',
+];
 
 describe('every setting of the admin panel (#358)', () => {
   it('is listed once: the rows of „Universum“ and the switches of „Neue Runde“', () => {
@@ -86,6 +91,11 @@ describe('every setting of the admin panel (#358)', () => {
       const t = explainTable(s, u, round);
       if (!s.explain?.rows) {
         expect(t, s.key).toBeNull();
+        continue;
+      }
+      // The limit of planets is off at the defaults: those tables say nothing.
+      if (!t) {
+        expect(OFF_AT_DEFAULTS, s.key).toContain(s.key);
         continue;
       }
       const values = columnValues(s.min!, s.max!);
@@ -198,7 +208,20 @@ describe('a table computes each cell with src/core at its value', () => {
     // Each column has the setting at its value, in the round too.
     expect(at(2).rows[0]!.cells).toEqual(['Wert', '0', '1', '2', '3', '2']);
     // Neither in the universe nor in the round: the current value is 0.
-    const unnamed = { ...only, name: undefined };
+    const unnamed: Explained = {
+      ...only,
+      name: undefined,
+      explain: {
+        text: 'x',
+        rows: [
+          {
+            label: () => 'Wert',
+            cell: ({ u: at }) =>
+              (at as unknown as Record<string, number>).roundOnly!,
+          },
+        ],
+      },
+    };
     expect(explainTable(unnamed, u, round)!.head.at(-1)).toBe('0 (jetzt)');
   });
 
@@ -222,6 +245,68 @@ describe('a table computes each cell with src/core at its value', () => {
     expect(
       explainTable({ ...byKey('speed'), min: undefined }, u, round),
     ).toBeNull();
+  });
+});
+
+describe('a table and the rules between settings (PR #471)', () => {
+  const on = (base: number) =>
+    ({
+      ...u,
+      roundColonyBase: base,
+      roundColonyResearch: 1,
+    }) as unknown as Universe;
+
+  it('shows no values in a column the rules refuse: no research without a base', () => {
+    const t = explainTable(byKey('roundColonyBase'), on(5), round)!;
+    expect(t.head.slice(1, 3)).toEqual(['0', '7']);
+    // Base 0 with the research on is refused (`agrees`).
+    expect(t.rows.map((r) => r.cells[1])).toEqual(t.rows.map(() => NONE));
+    expect(t.rows.map((r) => r.cells[2])).not.toContain(NONE);
+    expect(t.head.at(-1)).toBe('5 (jetzt)');
+  });
+
+  it('leaves out a table whose other cells are all the same, and shows it once the limit is on', () => {
+    expect(explainTable(byKey('roundColonyPerLevel'), u, round)).toBeNull();
+    const t = explainTable(byKey('roundColonyPerLevel'), on(5), round)!;
+    expect(
+      new Set(t.rows.flatMap((r) => r.cells.slice(1))).size,
+    ).toBeGreaterThan(1);
+    const research = explainTable(byKey('roundColonyResearch'), on(5), round)!;
+    expect(research.head).toEqual([
+      'Kolonieforschung aktivieren',
+      'Nein',
+      'Ja',
+      'Ja (jetzt)',
+    ]);
+    expect(research.rows.flatMap((r) => r.cells)).not.toContain(NONE);
+  });
+
+  it('asks every rule of the given settings, and a table of one value is left out', () => {
+    const only: Explained = {
+      key: 'roundOnly',
+      label: 'Nur',
+      name: 'only',
+      min: 0,
+      max: 2,
+      explain: {
+        text: 'x',
+        rows: [{ label: () => 'Wert', cell: ({ round: r }) => r.only! }],
+      },
+    };
+    const never = {
+      kind: 'number',
+      key: 'roundOnly',
+      name: 'only',
+      label: 'Nur',
+      order: 1,
+      min: 0,
+      max: 2,
+      def: 0,
+      agrees: (value: number) => value !== 1,
+    } as const satisfies RoundSetting;
+    const t = explainTable(only, u, round, [never])!;
+    expect(t.rows[0]!.cells).toEqual(['Wert', '0', NONE, '2', '0']);
+    expect(explainTable({ ...only, max: 0 }, u, round, [never])).toBeNull();
   });
 });
 

@@ -9,3 +9,9 @@ export const adminExplain = $state<{
   key: null,
   opener: null,
 });
+
+/** Closes the explanation that is open, if any. */
+export function forgetExplain(): void {
+  adminExplain.key = null;
+  adminExplain.opener = null;
+}

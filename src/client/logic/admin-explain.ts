@@ -20,6 +20,14 @@ export const EXPLAIN_PANEL_ID = 'admin-explain-panel';
 export const explainButtonId = (key: string, place: 'u' | 'r'): string =>
   `axq${place}_${key}`;
 
+/**
+ * Whether the „?“ `opener` stands at `place`: the panel of the tab
+ * „Universum“ and the panel inside the dialog „Neue Runde“ each show only
+ * what was opened there (PR #471).
+ */
+export const openedAt = (opener: string | null, place: 'u' | 'r'): boolean =>
+  opener?.startsWith(explainButtonId('', place)) === true;
+
 /** What the panel shows of a setting. */
 export interface ExplainPage {
   key: string;

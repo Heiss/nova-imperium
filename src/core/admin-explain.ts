@@ -117,6 +117,21 @@ const withValue = (
   },
 });
 
+type At = ReturnType<typeof withValue>;
+
+/**
+ * Whether the values of a column agree with each other by the rules between
+ * settings (`agrees`, #237), as the server checks them: a column the server
+ * refuses shows no values (PR #471).
+ */
+function agreed(x: At, settings: readonly RoundSetting[]): boolean {
+  const stored = x.u as unknown as Record<string, number | undefined>;
+  const byKey = Object.fromEntries(
+    settings.map((r) => [r.key, stored[r.key] ?? x.round[r.name]!]),
+  );
+  return settings.every((r) => !r.agrees || r.agrees(byKey[r.key]!, byKey));
+}
+
 /** A cell as the table shows it. */
 export function cellText(cell: ExplainCell): string {
   if (cell === null) return NONE;
@@ -133,18 +148,28 @@ export const NOW = 'jetzt';
 
 /**
  * The table of an explanation, or null for a setting without one: a column
- * per value of `columnValues` and one for the current value.
+ * per value of `columnValues` and one for the current value. A column the
+ * rules between settings refuse shows `NONE`; a table whose other cells are
+ * all the same says nothing and is left out, so the text stands alone (the
+ * limit of planets while it is off, PR #471).
  */
 export function explainTable(
   s: Explained,
   u: Universe,
   round: RoundRules,
+  settings: readonly RoundSetting[] = ROUND_SETTINGS,
 ): Extract<Block, { t: 'table' }> | null {
   const rows = s.explain?.rows;
   if (!rows?.length || s.min === undefined || s.max === undefined) return null;
   const current = currentOf(s, u, round);
   const values = [...columnValues(s.min, s.max), current];
   const at = values.map((v) => withValue(s, u, round, v));
+  const open = at.map((x) => agreed(x, settings));
+  const cells = rows.map((row) =>
+    at.map((x, i) => (open[i] ? cellText(row.cell(x)) : NONE)),
+  );
+  const shown = cells.flat().filter((c, i) => open[i % at.length]);
+  if (new Set(shown).size < 2) return null;
   return {
     t: 'table',
     head: [
@@ -155,8 +180,8 @@ export function explainTable(
           : valueLabel(s, v),
       ),
     ],
-    rows: rows.map((row) => ({
-      cells: [row.label(nameOf), ...at.map((x) => cellText(row.cell(x)))],
+    rows: rows.map((row, r) => ({
+      cells: [row.label(nameOf), ...cells[r]!],
     })),
   };
 }

@@ -17,6 +17,7 @@
   import { isInvalid, isOpen, setOpen } from '../logic/admin-groups.svelte.ts';
   import { EXPLAIN_PANEL_ID, explainButtonId } from '../logic/admin-explain.ts';
   import { adminExplain } from './admin-explain-state.svelte.ts';
+  import AdminExplainPanel from './AdminExplainPanel.svelte';
 
   let { page }: { page: RoundDialogPage } = $props();
 </script>
@@ -136,3 +137,4 @@
   <button class="red" data-act="doReset">Ja, neue Runde</button>
   <button data-act="closeModal">Abbrechen</button>
 </p>
+<AdminExplainPanel place="r" />

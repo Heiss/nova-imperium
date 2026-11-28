@@ -181,30 +181,6 @@ Kolonialverwaltung Stufe 2 | unbegrenzt | 7 | 13 | 20 | unbegrenzt
 Kolonialverwaltung Stufe 4 | unbegrenzt | 7 | 13 | 20 | unbegrenzt
 Kolonialverwaltung Stufe 8 | unbegrenzt | 7 | 13 | 20 | unbegrenzt
 
-## roundColonyResearch
-Kolonieforschung aktivieren | Nein | Ja | Nein (jetzt)
-Kolonialverwaltung Stufe 0 | unbegrenzt | unbegrenzt | unbegrenzt
-Kolonialverwaltung Stufe 1 | unbegrenzt | unbegrenzt | unbegrenzt
-Kolonialverwaltung Stufe 2 | unbegrenzt | unbegrenzt | unbegrenzt
-Kolonialverwaltung Stufe 4 | unbegrenzt | unbegrenzt | unbegrenzt
-Kolonialverwaltung Stufe 8 | unbegrenzt | unbegrenzt | unbegrenzt
-
-## roundColonyPerLevel
-Zusätzliche Planeten je Forschungsstufe | 1 | 7 | 14 | 20 | 2 (jetzt)
-Kolonialverwaltung Stufe 0 | unbegrenzt | unbegrenzt | unbegrenzt | unbegrenzt | unbegrenzt
-Kolonialverwaltung Stufe 1 | unbegrenzt | unbegrenzt | unbegrenzt | unbegrenzt | unbegrenzt
-Kolonialverwaltung Stufe 2 | unbegrenzt | unbegrenzt | unbegrenzt | unbegrenzt | unbegrenzt
-Kolonialverwaltung Stufe 4 | unbegrenzt | unbegrenzt | unbegrenzt | unbegrenzt | unbegrenzt
-Kolonialverwaltung Stufe 8 | unbegrenzt | unbegrenzt | unbegrenzt | unbegrenzt | unbegrenzt
-
-## roundColonyMaxLevel
-Maximale Forschungsstufe (0 = unbegrenzt erforschbar) | 0 | 7 | 13 | 20 | 4 (jetzt)
-Kolonialverwaltung Stufe 0 | unbegrenzt | unbegrenzt | unbegrenzt | unbegrenzt | unbegrenzt
-Kolonialverwaltung Stufe 1 | unbegrenzt | unbegrenzt | unbegrenzt | unbegrenzt | unbegrenzt
-Kolonialverwaltung Stufe 2 | unbegrenzt | unbegrenzt | unbegrenzt | unbegrenzt | unbegrenzt
-Kolonialverwaltung Stufe 4 | unbegrenzt | unbegrenzt | unbegrenzt | unbegrenzt | unbegrenzt
-Kolonialverwaltung Stufe 8 | unbegrenzt | unbegrenzt | unbegrenzt | unbegrenzt | unbegrenzt
-
 ## roundHighscorePasses
 Highscore-Aktualisierungen pro Tag (0 = Echtzeit) | 0 | 8 | 16 | 24 | 3 (jetzt)
 Abstand zweier Durchgänge | Echtzeit | 3 Std. 0 Min. | 1 Std. 30 Min. | 1 Std. 0 Min. | 8 Std. 0 Min.

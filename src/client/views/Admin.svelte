@@ -93,7 +93,7 @@
   </table>
 {/snippet}
 
-<AdminExplainPanel />
+<AdminExplainPanel place="u" />
 <h2>Admin</h2>
 {#if !page}
   <div class="notice">Nur für den Admin.</div>

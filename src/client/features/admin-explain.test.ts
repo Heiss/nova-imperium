@@ -1,6 +1,9 @@
 // The „?“ of a setting opens its explanation, and closes it again (#358).
 import { afterEach, describe, expect, it } from 'vitest';
-import { adminExplain } from '../views/admin-explain-state.svelte.ts';
+import {
+  adminExplain,
+  forgetExplain,
+} from '../views/admin-explain-state.svelte.ts';
 import { clientFeature, toggleExplain } from './admin-explain.ts';
 
 afterEach(() => {
@@ -28,6 +31,12 @@ describe('the „?“ of a setting (#358)', () => {
   it('ignores a „?“ without its key or its id', () => {
     toggleExplain(undefined, 'axqu_speed');
     toggleExplain('speed', undefined);
+    expect(adminExplain).toEqual({ key: null, opener: null });
+  });
+
+  it('is closed by forgetExplain, as the view and the dialog do when they go (PR #471)', () => {
+    toggleExplain('speed', 'axqu_speed');
+    forgetExplain();
     expect(adminExplain).toEqual({ key: null, opener: null });
   });
 });

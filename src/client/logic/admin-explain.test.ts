@@ -7,6 +7,7 @@ import {
   EXPLAIN_PANEL_ID,
   explainButtonId,
   explainPage,
+  openedAt,
 } from './admin-explain.ts';
 import type { GameState } from './types.ts';
 
@@ -39,5 +40,13 @@ describe('the explanation of a setting (#358)', () => {
     expect(EXPLAIN_PANEL_ID).toBe('admin-explain-panel');
     expect(explainButtonId('speed', 'u')).toBe('axqu_speed');
     expect(explainButtonId('speed', 'r')).toBe('axqr_speed');
+  });
+
+  it('knows where a „?“ stands, and none for no „?“ (PR #471)', () => {
+    expect(openedAt('axqu_speed', 'u')).toBe(true);
+    expect(openedAt('axqu_speed', 'r')).toBe(false);
+    expect(openedAt('axqr_roundGuilds', 'r')).toBe(true);
+    expect(openedAt('x_axqr_roundGuilds', 'r')).toBe(false);
+    expect(openedAt(null, 'u')).toBe(false);
   });
 });
