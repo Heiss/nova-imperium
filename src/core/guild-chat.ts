@@ -3,6 +3,8 @@
 // shows only what the own rank may do. See okf/features/guild-chat.md.
 import { isBelow, type RankRule } from './guild-ranks.ts';
 import type { RoundSetting } from './round.ts';
+import { CHAT_EVENT_LISTS } from './chat-events/events.gen.ts';
+import { ownedOnce } from './owned-once.ts';
 
 /**
  * The heading of these settings in the admin panel (#357), the name the game
@@ -20,6 +22,9 @@ export const roundSettings = [
   {
     kind: 'switch',
     key: 'roundGuilds',
+    explain: {
+      text: 'Schaltet die Gilden mit Chat und Rängen für die neue Runde ein oder aus. Ohne Gilden zählt eine Gilde auch nicht als Bund für Wache stellen und Verbandsangriff. Eine Runde ohne Gilden beginnt ohne jede Gilde; mit Gilden bleiben sie mit ihren Mitgliedern und Rängen. Den Gilden-Chat leert jede neue Runde.',
+    },
     name: 'guilds',
     label: 'Gilden (mit Chat)',
     order: 30,
@@ -117,14 +122,71 @@ export const seeChatError = (actor: RankRule): 'right' | null =>
  * D4): a member joined, left or was removed, a member has a new rank, and
  * the launch of an attack on a member (owner, 2026-11-14 and 2026-11-15).
  */
-export const CHAT_EVENTS = [
-  'join',
-  'leave',
-  'remove',
-  'rank',
-  'attack',
-] as const;
-export type ChatEventKind = (typeof CHAT_EVENTS)[number];
+export type ChatEventKind = (typeof CHAT_EVENT_LISTS)[number][1][number]['key'];
+
+/** What a line of an event is made of: the names resolved, plain text (#426). */
+interface EventWords {
+  /** The name of the member, capitalised. */
+  who: string;
+  name: string;
+  text: string;
+  attacker: string;
+  arrival: string;
+}
+
+/** What a file of src/core/chat-events declares for an event (#426). */
+interface EventEntry {
+  key: string;
+  /** The place of the kind: the kinds go by ascending order. */
+  order: number;
+  /** The line of the event in the chat. */
+  sentence: (words: EventWords) => string;
+}
+
+/** The modules as the generated list gives them: `[name in the folder, chatEvents]`. */
+type ListedEvents = readonly (readonly [string, readonly EventEntry[]])[];
+
+/** The kind of an ordinary message of the chat, which no event may take. */
+const MESSAGE_KIND = 'message';
+
+/**
+ * The events of all modules by ascending order (#426); a key or an order
+ * defined twice stops the start with both files named, and so does an empty
+ * key or the key of the messages.
+ */
+export function assembleEvents(listed: ListedEvents): readonly EventEntry[] {
+  const once = ownedOnce('Chat event');
+  const entries = listed.flatMap(([name, events]) =>
+    events.map((event) => ({
+      file: `src/core/chat-events/${name}.ts`,
+      event,
+    })),
+  );
+  for (const { file, event } of entries) {
+    if (event.key === '')
+      throw new Error(`A chat event in ${file} has an empty key.`);
+    // „message“ is the kind of an ordinary message of the chat.
+    if (event.key === MESSAGE_KIND)
+      throw new Error(
+        `Chat event ${MESSAGE_KIND} in ${file} takes the kind of the messages.`,
+      );
+    if (!Number.isFinite(event.order))
+      throw new Error(`Chat event ${event.key} in ${file} has no order.`);
+    once('key', event.key, file);
+    once('order', String(event.order), file);
+  }
+  return entries.map((e) => e.event).sort((a, b) => a.order - b.order);
+}
+
+const EVENTS = assembleEvents(CHAT_EVENT_LISTS);
+
+/** The kind whose sentence an unknown kind gets: the rank, as before #426. */
+const FALLBACK_KIND = 'rank';
+
+/** Each kind registers itself in a file of src/core/chat-events (#426). */
+export const CHAT_EVENTS: readonly ChatEventKind[] = EVENTS.map(
+  (e) => e.key as ChatEventKind,
+);
 
 export const isChatEvent = (v: unknown): v is ChatEventKind =>
   (CHAT_EVENTS as readonly unknown[]).includes(v);
@@ -153,13 +215,20 @@ const UNKNOWN = 'Unbekannt';
  */
 export function chatEventText(e: ChatEvent, arrival: string): string {
   const name = e.name ?? FORMER;
-  if (e.kind === 'attack')
-    return `⚔ Angriff auf ${e.text} (${e.attacker ?? UNKNOWN} → ${name}), Ankunft ${arrival}`;
   const who = name.charAt(0).toUpperCase() + name.slice(1);
-  if (e.kind === 'join') return `${who} ist der Gilde beigetreten.`;
-  if (e.kind === 'leave') return `${who} hat die Gilde verlassen.`;
-  if (e.kind === 'remove') return `${who} wurde aus der Gilde entfernt.`;
-  return `${who} ist jetzt ${e.text}.`;
+  // A kind the registry does not know (an older bundle, a kind dropped while
+  // its rows remain) reads as the rank, as before #426: the chat log never
+  // breaks on it, and it adds no text of its own.
+  const event =
+    EVENTS.find((x) => x.key === e.kind) ??
+    EVENTS.find((x) => x.key === FALLBACK_KIND)!;
+  return event.sentence({
+    who,
+    name,
+    text: e.text,
+    attacker: e.attacker ?? UNKNOWN,
+    arrival,
+  });
 }
 
 /**

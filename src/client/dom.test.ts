@@ -25,15 +25,15 @@ describe('reading and writing a field', () => {
     expect(field.value).toBe('z');
   });
 
-  it('checks a checkbox by „true“ and unchecks it otherwise, its value unchanged (#441)', () => {
-    const box = { type: 'checkbox', value: 'on', checked: false };
-    setField(box as unknown as HTMLInputElement, 'true');
-    expect(box).toEqual({ type: 'checkbox', value: 'on', checked: true });
-    setField(box as unknown as HTMLInputElement, 'false');
+  it('ticks a checkbox for „true“ and clears it for anything else, and keeps its value (PR #469)', () => {
+    const box = { type: 'checkbox', checked: false, value: 'on' };
+    setField(box as HTMLInputElement, 'true');
+    expect(box).toEqual({ type: 'checkbox', checked: true, value: 'on' });
+    setField(box as HTMLInputElement, 'false');
     expect(box.checked).toBe(false);
-    const text = { type: 'number', value: '1', checked: false };
-    setField(text as unknown as HTMLInputElement, 'true');
-    expect(text).toEqual({ type: 'number', value: 'true', checked: false });
+    setField(box as HTMLInputElement, 'true');
+    setField(box as HTMLInputElement, 'on');
+    expect(box.checked).toBe(false);
   });
 });
 

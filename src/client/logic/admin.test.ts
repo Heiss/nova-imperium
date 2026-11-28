@@ -129,6 +129,7 @@ describe('the step of a number field (#433, 218a)', () => {
     expect(rows.map((r) => r.kind === 'field' && r.field)).toEqual([
       {
         kind: 'number',
+        key: 'roundX',
         id: 'round-per',
         label: 'Je',
         min: 10,
@@ -138,6 +139,7 @@ describe('the step of a number field (#433, 218a)', () => {
       },
       {
         kind: 'number',
+        key: 'roundX',
         id: 'round-days',
         label: 'Tage',
         min: 1,
@@ -156,6 +158,7 @@ describe('the dialog „Neue Runde“', () => {
         kind: 'field',
         field: {
           kind: 'switch',
+          key: 'roundX',
           id: 'round-research',
           label: 'Forschung',
           checked: true,
@@ -166,6 +169,7 @@ describe('the dialog „Neue Runde“', () => {
         kind: 'field',
         field: {
           kind: 'switch',
+          key: 'roundX',
           id: 'round-plain',
           label: 'Schlicht',
           checked: false,
@@ -179,6 +183,7 @@ describe('the dialog „Neue Runde“', () => {
           {
             field: {
               kind: 'number',
+              key: 'roundX',
               id: 'round-base',
               label: 'Basis',
               min: 1,
@@ -191,6 +196,7 @@ describe('the dialog „Neue Runde“', () => {
           {
             field: {
               kind: 'number',
+              key: 'roundX',
               id: 'round-cap',
               label: 'Grenze',
               min: 0,
@@ -208,6 +214,7 @@ describe('the dialog „Neue Runde“', () => {
         kind: 'field',
         field: {
           kind: 'choice',
+          key: 'roundX',
           id: 'round-mode',
           label: 'Art',
           choices: [
@@ -220,6 +227,7 @@ describe('the dialog „Neue Runde“', () => {
         kind: 'field',
         field: {
           kind: 'number',
+          key: 'roundX',
           id: 'round-days',
           label: 'Tage',
           min: 1,

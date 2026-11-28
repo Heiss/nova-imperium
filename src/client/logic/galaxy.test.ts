@@ -50,6 +50,8 @@ interface Setup {
   research?: Record<string, number>;
   /** The list of the noob protection the server sent (151a). */
   listed?: ShownProtection;
+  /** The ships the planned starts of Anna's unions hold back on the planet (#478). */
+  held?: Record<string, number>;
 }
 
 /** Anna (u1) looks at system 1:2 from her planet at [1:2:5]. */
@@ -65,6 +67,16 @@ function view(o: Setup = {}): V {
     galaxy: o.galaxy ?? [],
     debris: o.debris ?? [],
     ...(o.listed && { protectedOwners: o.listed }),
+    ...(o.held && {
+      unions: [
+        {
+          id: 'u9',
+          leader: 'u1',
+          start: 1,
+          held: { from: 'p1_2_5', ships: o.held },
+        },
+      ],
+    }),
   } as unknown as GameState;
   return {
     s,
@@ -816,6 +828,32 @@ describe('the sheet „⋯“ of a position on a phone (#189)', () => {
       U,
     );
     expect(rowAt(v, 6).planet!.sheet!.flight).toBe(
+      `Flugzeit mit allen Schiffen: ${dur(ms)}`,
+    );
+  });
+
+  it('offers only the ships a planned start does not hold back (#478)', () => {
+    const v = view({
+      galaxy: [place('planet', 6, 'u3')],
+      P: { ships: { lc: 2, probe: 1, colony: 1 } },
+      research: { carto: 1, expo: 1 },
+      held: { lc: 2, probe: 1, colony: 1 },
+    });
+    expect(rowAt(v, 6).planet!.sheet!.flight).toBeNull();
+    expect(rowAt(v, U.positions).actions).toEqual([]);
+    expect(rowAt(v, 9).actions).toEqual([]);
+    const some = view({
+      galaxy: [place('planet', 6, 'u3')],
+      P: { ships: { lc: 2, probe: 1 } },
+      held: { probe: 1 },
+    });
+    const ms = flightMs(
+      distance({ g: 1, s: 2, p: 5 }, { g: 1, s: 2, p: 6 }),
+      fleetSpeed({ lc: 2 }, some.R),
+      10,
+      U,
+    );
+    expect(rowAt(some, 6).planet!.sheet!.flight).toBe(
       `Flugzeit mit allen Schiffen: ${dur(ms)}`,
     );
   });

@@ -1,5 +1,6 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
+import { withoutExplain } from '../test/explain.ts';
 import { planet, U } from '../test/fixtures.ts';
 import { BUILD, buildable, PLACEMENT } from './catalog.ts';
 import {
@@ -49,7 +50,7 @@ describe('the settings of a demolition (#202, #283, #310)', () => {
   it('are two live number fields of one group with the legend „Rückbau“, in the order 180, 190 (D4, X1)', () => {
     const group = { name: 'demolition', legend: 'Rückbau' };
     const common = { kind: 'number', live: true, group };
-    expect(SETTINGS).toEqual([
+    expect(withoutExplain(SETTINGS)).toEqual([
       {
         ...common,
         key: 'roundDemolitionRefund',
@@ -88,7 +89,9 @@ describe('the settings of a demolition (#202, #283, #310)', () => {
       ['roundDemolitionTime', 'Rückbau-Dauer (% der Bauzeit)', 1, 200],
     ] as const;
     const keys: string[] = SETTINGS.map((s) => s.key);
-    expect(liveSpecs().filter((s) => keys.includes(s.key))).toEqual(
+    expect(
+      withoutExplain(liveSpecs().filter((s) => keys.includes(s.key))),
+    ).toEqual(
       rows.map(([key, label, min, max]) => ({ key, label, min, max, def: 50 })),
     );
     expect(DEFAULT_UNIVERSE).toMatchObject({

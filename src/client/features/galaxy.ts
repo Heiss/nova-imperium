@@ -11,6 +11,7 @@ import { GALAXY_VIEW } from '../logic/galaxy-shown.ts';
 import { targetOf } from '../logic/galaxy.ts';
 import { client } from '../logic/state.svelte.ts';
 import type { ClientCtx, ClientFeature, Handler } from './contract.ts';
+import { freeShips } from '../logic/union.ts';
 
 const ui = client.ui;
 
@@ -88,7 +89,8 @@ const targetActs = ({
   },
   gspy: (d) => {
     const n = Math.min(
-      client.view!.P.ships.probe ?? 0,
+      // The probes a planned start holds back stay (#478).
+      freeShips(client.game!, client.view!.P).probe ?? 0,
       client.game!.me.probes || 1,
     );
     if (!n) return toast('Keine Spähschädel auf dem Planeten.', true);

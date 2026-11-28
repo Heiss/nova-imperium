@@ -27,6 +27,9 @@
   import AdminErrors from './AdminErrors.svelte';
   import AdminInvitations from './AdminInvitations.svelte';
   import AdminReports from './AdminReports.svelte';
+  import { EXPLAIN_PANEL_ID, explainButtonId } from '../logic/admin-explain.ts';
+  import { adminExplain } from './admin-explain-state.svelte.ts';
+  import AdminExplainPanel from './AdminExplainPanel.svelte';
   import Box from './Box.svelte';
   import PresetRow from './PresetRow.svelte';
   import RoundArchive from './RoundArchive.svelte';
@@ -47,6 +50,18 @@
             <label for="set_{row.key}">{row.label}</label>{#if row.mark}<span
                 class="mark">{row.mark}</span
               >{/if}
+            <button
+              type="button"
+              class="exq"
+              id={explainButtonId(row.key, 'u')}
+              data-act="adminExplain"
+              data-k={row.key}
+              data-o={explainButtonId(row.key, 'u')}
+              aria-controls={EXPLAIN_PANEL_ID}
+              aria-expanded={adminExplain.opener ===
+                explainButtonId(row.key, 'u')}
+              aria-label="Erklärung">?</button
+            >
           </td>
           <td>
             {#if row.choices}
@@ -81,6 +96,7 @@
   </table>
 {/snippet}
 
+<AdminExplainPanel place="u" />
 <h2>Admin</h2>
 {#if !page}
   <div class="notice">Nur für den Admin.</div>

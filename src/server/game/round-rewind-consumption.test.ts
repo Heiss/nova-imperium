@@ -152,6 +152,15 @@ describe('the facts that show an unrecorded consumption, in the real journal', (
       union: 'lead',
     });
     fleet(ctx, 'join', 'u_Anna', { union: 'lead', arr: ctx.now() - 400 });
+    // A union is a row of its own since #466.
+    ctx.unions.save({
+      id: 'lead',
+      leader: 'u_Bert',
+      lead: 'lead',
+      target: 'p1_3_7',
+      toC: { g: 1, s: 3, p: 7 },
+      arr: ctx.now() - 500,
+    });
     tick(ctx);
     const me = seatOf(ctx, 'u_Anna')!;
     const battle = journal(ctx).find((e) => e.kind === EVENT_KIND.arrival)!;

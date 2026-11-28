@@ -91,14 +91,19 @@ export function pushSaver(
   let running: Promise<void> | null = null;
   const run = async (): Promise<void> => {
     let sent: PushTopic[] | undefined;
-    while (choice.pushChoice !== sent) {
-      sent = choice.pushChoice!;
-      // A failed save shows its toast; a newer choice is still sent.
-      await save(sent);
+    try {
+      // A choice forgotten with the player (`client.forgetPlayer`) is not sent.
+      while (choice.pushChoice && choice.pushChoice !== sent) {
+        sent = choice.pushChoice;
+        // A failed save shows its toast; a newer choice is still sent.
+        await save(sent);
+      }
+    } finally {
+      // Saved, failed or thrown: the page shows the server's kinds again,
+      // and the next change starts a save of its own.
+      choice.pushChoice = undefined;
+      running = null;
     }
-    // Saved or failed: the page shows the server's kinds again.
-    choice.pushChoice = undefined;
-    running = null;
   };
   return (server, topic, on) => {
     if (!isPushTopic(topic)) return Promise.resolve();

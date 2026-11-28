@@ -4,7 +4,8 @@
 // an ally is the admin's value per round: guild members, friends or both
 // (owner, 2026-11-16, Q2). The server, the fleet form and the overview ask
 // these rules (patterns, section 7). The alliance depot comes later (D1).
-import type { RoundSetting } from './round.ts';
+import { LIVE_SWITCH } from './live-switch.ts';
+import type { RoundSetting, SettingExplain } from './round.ts';
 import type { Fleet, Levels, Mission } from './types.ts';
 
 /** One hour in milliseconds; the holding time runs in real time [V]. */
@@ -15,7 +16,7 @@ export const HOLD_HOURS: readonly number[] = [0, 1, 2, 4, 8, 16, 32];
 
 /** Whether `hours` is a holding time a player can choose. */
 export const isHoldHours = (hours: unknown): hours is number =>
-  typeof hours === 'number' && HOLD_HOURS.includes(hours);
+  HOLD_HOURS.includes(hours as number);
 
 /**
  * At most four different players and 15 fleets hold at one planet, besides
@@ -62,6 +63,16 @@ const HELD_SPY_LABEL = 'Gehaltene Flotten im Auspex-Bericht ab Auspex-Lehre';
  */
 export const roundHeading = 'Wache stellen';
 
+/** The Auspex levels of the spy that the table of the explanations shows (#358). */
+const HELD_LEVELS = [0, 2, 5, 10, 20];
+
+/** How a spy report at a level shows the fleets that hold (#358). */
+const HELD_ROWS: SettingExplain['rows'] = HELD_LEVELS.map((spy) => ({
+  label: () => `Auspex-Lehre ${spy}`,
+  cell: ({ round }) =>
+    showsHeldApart(spy, round.heldSpy!) ? 'getrennt' : 'in der Flotte',
+}));
+
 /**
  * The two settings of holding as entries of the registry of the round
  * settings (#283, #310): selections and number fields of the dialog „Neue
@@ -75,6 +86,9 @@ export const roundSettings = [
   {
     kind: 'number',
     key: 'roundAllies',
+    explain: {
+      text: 'Wer als Verbündeter gilt, für Wache stellen und für den Verbandsangriff. Eine Gilde zählt nur, solange es in der Runde Gilden gibt. Nach einer Änderung kehren laufende Wachen, deren Besitzer kein Verbündeter des Gastgebers mehr ist, sofort um; ihre Besitzer bekommen einen Bericht.',
+    },
     name: 'allies',
     label: 'Verbündete für Halten und Verband',
     order: 100,
@@ -92,6 +106,10 @@ export const roundSettings = [
   {
     kind: 'number',
     key: 'roundHeldSpy',
+    explain: {
+      text: 'Ab welcher Auspex-Lehre des Spähers ein Auspex-Bericht die Flotten, die am Ziel Wache halten, getrennt zeigt; darunter zählen sie zur Flotte des Planeten. Gilt für Berichte ab jetzt.',
+      rows: HELD_ROWS,
+    },
     name: 'heldSpy',
     label: HELD_SPY_LABEL,
     order: 110,
@@ -109,17 +127,13 @@ export const roundSettings = [
     // the list, so the places of the two before stay (the Lexicanum reads them).
     kind: 'number',
     key: 'roundHoldOn',
+    explain: {
+      text: 'Schaltet Wache stellen für die Runde ein oder aus. Aus: Der Auftrag wird nicht angeboten, ein Start wird abgelehnt, und alle laufenden Wachen kehren sofort um, mit einem Bericht an ihre Besitzer.',
+    },
     name: 'holdOn',
     label: 'Wache stellen',
     order: 105,
-    min: 0,
-    max: 1,
-    def: 1,
-    choices: [
-      { value: 1, label: 'An' },
-      { value: 0, label: 'Aus' },
-    ],
-    live: true,
+    ...LIVE_SWITCH,
   },
 ] as const satisfies readonly RoundSetting[];
 

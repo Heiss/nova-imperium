@@ -221,6 +221,23 @@ describe('a spy probe from the map', () => {
     );
   });
 
+  it('sends no probe a planned start holds back (#478)', () => {
+    const ctx = fakeCtx();
+    (client.game as unknown as { unions: unknown[] }).unions = [
+      {
+        id: 'u9',
+        leader: 'u1',
+        start: 1,
+        held: { from: 'here', ships: { probe: 4 } },
+      },
+    ];
+    acts(ctx).gspy!({ g: '2', s: '3', p: '4' });
+    expect(ctx.act).toHaveBeenCalledWith(
+      'send',
+      expect.objectContaining({ ships: { probe: 1 } }),
+    );
+  });
+
   it('says so when there is no probe on the planet', () => {
     const ctx = fakeCtx();
     client.view!.P.ships = {};

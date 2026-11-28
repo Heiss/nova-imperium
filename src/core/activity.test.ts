@@ -3,6 +3,7 @@
 // their boundaries, the per-round values of the admin.
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
+import { withoutExplain } from '../test/explain.ts';
 import {
   ACTIVITY_DEFAULT,
   ACTIVITY_RANGE,
@@ -58,7 +59,7 @@ describe('the thresholds of a round', () => {
   it('are four settings of the round in one group, in the order of the thresholds (#283, X1)', () => {
     const group = { name: 'activity', legend: 'Aktivität' };
     const common = { kind: 'number', group, live: true };
-    expect(SETTINGS).toEqual([
+    expect(withoutExplain(SETTINGS)).toEqual([
       {
         ...common,
         key: 'roundActivityRecent',
@@ -130,7 +131,9 @@ describe('the thresholds of a round', () => {
       ['roundLongInactiveDays', 'Lange inaktiv ab (Tage)', 1, 365, 28],
     ] as const;
     const keys: string[] = SETTINGS.map((s) => s.key);
-    expect(liveSpecs().filter((s) => keys.includes(s.key))).toEqual(
+    expect(
+      withoutExplain(liveSpecs().filter((s) => keys.includes(s.key))),
+    ).toEqual(
       rows.map(([key, label, min, max, def]) => ({
         key,
         label,

@@ -2,6 +2,7 @@
 // refusals, the refund factor and time of the round, the cancel, the points
 // and the settings of the round in „Neue Runde“ and the universe settings.
 import { describe, expect, it } from 'vitest';
+import { withoutExplain } from '../../test/explain.ts';
 import {
   DEFAULT_UNIVERSE,
   liveSpecs,
@@ -357,8 +358,8 @@ describe('the settings of a demolition per round (#202, D4, X1)', () => {
     // Selected by key, never by position: other features add live rows too.
     const mine = (specs: readonly { key: string }[]) =>
       specs.filter((s) => rows.some((r) => r.key === s.key));
-    expect(mine(liveSpecs())).toEqual(rows);
-    expect(mine(UNIVERSE_SPECS)).toEqual(rows);
+    expect(withoutExplain(mine(liveSpecs()))).toEqual(rows);
+    expect(withoutExplain(mine(UNIVERSE_SPECS))).toEqual(rows);
   });
 
   it('stay editable in the universe settings during the round', () => {

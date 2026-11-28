@@ -72,11 +72,19 @@ const acts = (ctx = fakeCtx()): Record<string, Handler> => {
   return clientFeature.acts(ctx);
 };
 
-describe('opening and inviting', () => {
-  it('opens the union of a fleet by its id', () => {
-    const ctx = fakeCtx();
-    acts(ctx).openUnion!({ id: 'f1' });
-    expect(ctx.act).toHaveBeenCalledExactlyOnceWith('openUnion', { id: 'f1' });
+describe('inviting', () => {
+  it('has no action to open a union from a fleet any more (#466)', () => {
+    expect(acts()).not.toHaveProperty('openUnion');
+  });
+  it('plans a union by the choice „Neuen Verband planen“: a Sturmangriff, the target kept (#466)', () => {
+    acts();
+    fleetForm.to = { g: '1', s: '7', p: '9' };
+    listeners.change!({ target: { id: 't_u', value: 'plan' } });
+    expect(fleetForm.union).toBe('plan');
+    expect(fleetForm.mission).toBe('attack');
+    expect(client.ui.union).toBeNull();
+    expect(fleetForm.to).toEqual({ g: '1', s: '7', p: '9' });
+    expect(input).not.toHaveBeenCalled();
   });
   it('invites the player named in the field of the union, trimmed, and empties the field', async () => {
     const ctx = fakeCtx();

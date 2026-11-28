@@ -1,11 +1,14 @@
 // Holding on the server (#55): who may hold under the admin's setting of the
 // round, the send with its holding time and fuel, the end of holding, the
-// recall, the battle with the fleets that hold (a report per party, loot of
-// the planet only: held cargo is no loot since #440) and what the host sees.
+// recall, the battle with the fleets that hold (a report per party; the cargo
+// that no longer fits into a hold's survivors goes to the planet before the
+// loot, #467) and what the host sees.
 import { describe, expect, it } from 'vitest';
-import { distance, fuelFor, holdFuel } from '../../core/flight.ts';
+import { capacity, distance, fuelFor, holdFuel } from '../../core/flight.ts';
 import { HOUR_MS } from '../../core/holding.ts';
+import { cutLoot } from '../../core/loot.ts';
 import type { Fleet } from '../../core/types.ts';
+import { seeded } from '../../test/fixtures.ts';
 import type { AuditEntry } from '../audit.ts';
 import { type TestCtx, addPlanet, addUser, testCtx } from '../test-helpers.ts';
 import { arrive, tick } from './arrival.ts';
@@ -570,7 +573,7 @@ describe('a battle at a planet where fleets hold (#55)', () => {
     expect(reports).toHaveLength(1);
     expect((reports[0]!.held as unknown[]).length).toBe(2);
   });
-  it('loots half of the planet only: the cargo of the fleets that held is no loot, they are gone (#440, 233b)', () => {
+  it('hands the cargo of a destroyed hold to the planet before the loot, which takes half of it with the stock (#467)', () => {
     const ctx = setup();
     ctx.planets.save({
       ...ctx.planets.get('p1_2_6')!,
@@ -584,19 +587,31 @@ describe('a battle at a planet where fleets hold (#55)', () => {
     const r = ctx.reports.ofPlayer('u_Cora')[0]!;
     expect(r).toMatchObject({
       winner: 'att',
-      loot: { m: 5000, c: 3000, d: 0 },
+      // Half of 11,000 / 8,000 / 500: the stock with the handed cargo.
+      loot: { m: 5500, c: 4000, d: 250 },
       held: [{ name: 'Anna', before: { lf: 1 }, after: {} }],
       // 30 % of the Lichter Jäger (3,000 Adamant, 1,000 Psikristall).
       debris: { m: 900, c: 300 },
     });
+    // The attacker does not read what the hold handed over [V].
+    expect((r.held as object[])[0]).not.toHaveProperty('handed');
+    // The host and the owner of the hold do, in the report of the defender.
+    for (const owner of ['u_Bert', 'u_Anna'])
+      expect(ctx.reports.ofPlayer(owner)[0]).toMatchObject({
+        held: [{ name: 'Anna', handed: { m: 1000, c: 2000, d: 500 } }],
+      });
     expect(ctx.fleets.get('h1')).toBeNull();
-    expect(ctx.planets.get('p1_2_6')!.res).toEqual({ m: 5000, c: 3000, d: 0 });
+    expect(ctx.planets.get('p1_2_6')!.res).toEqual({
+      m: 5500,
+      c: 4000,
+      d: 250,
+    });
     expect(ctx.fleets.get('att')).toMatchObject({
       state: 'back',
-      cargo: { m: 5000, c: 3000, d: 0 },
+      cargo: { m: 5500, c: 4000, d: 250 },
     });
   });
-  it('takes none of the held cargo, though the holds still carry it (#440, 233b)', () => {
+  it('lands the handed cargo like a delivery, beyond the storage, and the loot takes it as far as the holds carry it (#467)', () => {
     const ctx = setup();
     ctx.planets.save({
       ...ctx.planets.get('p1_2_6')!,
@@ -606,13 +621,59 @@ describe('a battle at a planet where fleets hold (#55)', () => {
       ships: { lf: 1 },
       cargo: { m: 100000, c: 0, d: 0 },
     });
-    // One Schlachtschiff carries 1,500: 1,000 of the planet, none of the cargo.
+    // One Schlachtschiff carries 1,500 of the 51,000 it may take.
     attack(ctx, { bs: 1 });
     expect(ctx.reports.ofPlayer('u_Cora')[0]!.loot).toEqual({
-      m: 1000,
+      m: 1500,
       c: 0,
       d: 0,
     });
+    // Far beyond the storage of the planet, as a transport delivers.
+    expect(ctx.planets.get('p1_2_6')!.res.m).toBe(102000 - 1500);
+  });
+  it('hands over only what no longer fits into the survivors when the defender wins; nobody plunders (#467)', () => {
+    const ctx = setup();
+    ctx.planets.save({
+      ...ctx.planets.get('p1_2_6')!,
+      res: { m: 0, c: 0, d: 0 },
+    });
+    const ships = { bs: 5, sc: 10 };
+    // Full: 5 × 1,500 and 10 × 5,000.
+    const cargo = { m: 30000, c: 20000, d: 7500 };
+    holding(ctx, 'h1', 'u_Anna', { ships, cargo });
+    ctx.rng = seeded(7);
+    attack(ctx, { lf: 15 });
+    const r = ctx.reports.ofPlayer('u_Bert')[0]!;
+    expect(r.winner).toBe('def');
+    const after = ctx.fleets.get('h1')!.ships;
+    // Some Kleine Transporter fell; the Schlachtschiffe held.
+    expect(after.bs).toBe(5);
+    expect(after.sc ?? 0).toBeLessThan(10);
+    const kept = cutLoot(cargo, capacity(after));
+    expect(ctx.fleets.get('h1')!.cargo).toEqual(kept);
+    const handed = {
+      m: cargo.m - kept.m,
+      c: cargo.c - kept.c,
+      d: cargo.d - kept.d,
+    };
+    expect(handed.m + handed.c + handed.d).toBeGreaterThan(0);
+    expect(ctx.planets.get('p1_2_6')!.res).toEqual(handed);
+    expect(r).toMatchObject({ held: [{ name: 'Anna', handed }] });
+    expect(r.loot).toEqual({ m: 0, c: 0, d: 0 });
+  });
+  it('hands nothing over when no ship of the hold fell, and its report has no handover (#467)', () => {
+    const ctx = setup();
+    holding(ctx, 'h1', 'u_Anna', {
+      ships: { bs: 5 },
+      cargo: { m: 1000, c: 0, d: 0 },
+    });
+    const before = ctx.planets.get('p1_2_6')!.res;
+    attack(ctx, { lf: 1 });
+    expect(ctx.fleets.get('h1')!.cargo).toEqual({ m: 1000, c: 0, d: 0 });
+    expect(ctx.planets.get('p1_2_6')!.res).toEqual(before);
+    expect(
+      (ctx.reports.ofPlayer('u_Anna')[0]!.held as object[])[0],
+    ).not.toHaveProperty('handed');
   });
   it('leaves a fleet of the attacker that holds there out of the battle', () => {
     const ctx = setup();

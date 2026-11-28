@@ -1,14 +1,17 @@
-// The browser side of the attack union („Verbandsangriff“, #225): opening a
-// union from an own Sturmangriff, inviting a player by name, and joining:
-// „Beitreten“ and the choice „Verband“ of the fleet form fill the form with
-// the target and the mission of the union. The fleet form itself sends the
-// join (the field `union` of „send“, features/fleet.ts); the markup is in
+// The browser side of the attack union („Verbandsangriff“, #225, #466):
+// planning a union with an own Sturmangriff (the choice „Neuen Verband
+// planen“ of the row „Verband“ and its arrival), inviting a player by name,
+// and joining: „Beitreten“ and the choice „Verband“ of the fleet form fill
+// the form with the target and the mission of the union; „Abbrechen“ of a
+// planned start of the leader's fleet (#478). The fleet form
+// itself sends the plan and the join (the fields `plan` and `union` of
+// „send“, features/fleet.ts); the markup is in
 // views/union.ts, what it shows in logic/union.ts. The position of the
 // target, the kind, the mission, the union chosen and the names to invite are
 // the state of the fleet form (logic/fleet-form.svelte.ts, #332).
 import { flushSync } from 'svelte';
 import { fleetForm } from '../logic/fleet-form.svelte.ts';
-import { joinChoices } from '../logic/union.ts';
+import { joinChoices, PLAN } from '../logic/union.ts';
 import { client } from '../logic/state.svelte.ts';
 import type { ClientFeature } from './contract.ts';
 
@@ -17,6 +20,13 @@ import type { ClientFeature } from './contract.ts';
  * and a Sturmangriff, and calculates the preview again.
  */
 function pick(id: string): void {
+  // Planning keeps the target typed and makes the mission a Sturmangriff.
+  if (id === PLAN) {
+    client.ui.union = null;
+    fleetForm.union = PLAN;
+    fleetForm.mission = 'attack';
+    return;
+  }
   const choice = client.view
     ? joinChoices(client.view).find((c) => c.id === id)
     : undefined;
@@ -47,7 +57,6 @@ export const clientFeature = {
     });
   },
   acts: (ctx) => ({
-    openUnion: (d) => ctx.act('openUnion', { id: d.id }),
     inviteUnion: async (d) => {
       const id = d.id ?? '';
       const name = (fleetForm.invite[id] ?? '').trim();
@@ -55,5 +64,7 @@ export const clientFeature = {
         fleetForm.invite[id] = '';
     },
     joinUnion: (d) => pick(d.id ?? ''),
+    // The leader aborts his planned start: the union is dissolved (#478).
+    cancelPlan: (d) => ctx.act('cancelPlan', { id: d.id ?? '' }),
   }),
 } satisfies ClientFeature;

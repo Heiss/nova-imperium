@@ -13,7 +13,7 @@ import { afford, buildTime, lvlCost } from './economy.ts';
 import { holding } from './economy-checks.ts';
 import { maxFields, usedFields } from './fields.ts';
 import { waitsForLab } from './lab.ts';
-import type { RoundGroup, RoundSetting } from './round.ts';
+import type { RoundGroup, RoundSetting, SettingExplain } from './round.ts';
 import type { Cost, Planet, Queue, ResearchState, Universe } from './types.ts';
 import { siloUse, waitsForYard } from './yard.ts';
 
@@ -43,6 +43,35 @@ const percent = {
  */
 export const roundHeading = 'Zurückbauen';
 
+/** The example of the tables of the explanations (#358): a level of a mine, by id. */
+const TORN = 'metal';
+const TORN_LEVEL = 10;
+const sum = (c: Cost): number => c.reduce((all, n) => all + n, 0);
+
+/** What tearing down the example level gives back and costs (#358). */
+const REFUND_ROWS: SettingExplain['rows'] = [
+  {
+    label: (name) => `${name(TORN)} Stufe ${TORN_LEVEL}: Rohstoffe zurück`,
+    cell: ({ u }) =>
+      sum(demolitionMoves(lvlCost(BUILD[TORN]!, TORN_LEVEL), refundOf(u)).back),
+  },
+  {
+    label: (name) => `${name(TORN)} Stufe ${TORN_LEVEL}: Rohstoffe beim Start`,
+    cell: ({ u }) =>
+      sum(demolitionMoves(lvlCost(BUILD[TORN]!, TORN_LEVEL), refundOf(u)).pay),
+  },
+];
+
+/** How long tearing down the example level takes (#358). */
+const TIME_ROWS: SettingExplain['rows'] = [
+  {
+    label: (name) => `${name(TORN)} Stufe ${TORN_LEVEL}: Dauer`,
+    cell: ({ u }) => ({
+      ms: demolitionTime({ b: { [TORN]: TORN_LEVEL } }, TORN, u),
+    }),
+  },
+];
+
 /**
  * The two settings as entries of the registry (#283, #310): the refund
  * factor (D4, D7) and the duration of a demolition (D3) are number fields of
@@ -55,6 +84,11 @@ export const roundSettings = [
   {
     ...percent,
     key: 'roundDemolitionRefund',
+    explain: {
+      text: 'Wie viel der Kosten einer Stufe ein Spieler beim Rückbau zurückbekommt. Ein positiver Wert erstattet am Ende des Rückbaus, ein negativer kostet diesen Anteil beim Start, und der Spieler muss ihn bezahlen können. Ein laufender Rückbau behält seine Bedingungen.',
+      rows: REFUND_ROWS,
+      own: true,
+    },
     name: 'demolitionRefund',
     label: 'Rückbau-Erstattung (%)',
     order: 180,
@@ -65,6 +99,11 @@ export const roundSettings = [
   {
     ...percent,
     key: 'roundDemolitionTime',
+    explain: {
+      text: 'Wie lange ein Rückbau dauert, in Prozent der Bauzeit der Stufe. Ein laufender Rückbau behält sein Ende.',
+      rows: TIME_ROWS,
+      own: true,
+    },
     name: 'demolitionTime',
     label: 'Rückbau-Dauer (% der Bauzeit)',
     order: 190,

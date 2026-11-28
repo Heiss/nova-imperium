@@ -30,8 +30,10 @@ export interface FleetDraft {
   kind: 'planet' | 'moon' | null;
   /** The mission chosen, or null while the page says it (logic/fleet-choice.ts). */
   mission: string | null;
-  /** The union chosen (empty for „Kein Verband“), or null while the page says it. */
+  /** The union chosen (empty for „Kein Verband“, `plan` for a new one), or null while the page says it. */
   union: string | null;
+  /** The arrival of a union the fleet plans, as the field holds it (date and time), or null while empty (#466). */
+  plan: string | null;
   /** The holding time chosen (hours), or null while the first is shown. */
   hold: string | null;
   /** The hours of stay typed for an expedition, or null while 1 is shown. */
@@ -50,6 +52,7 @@ export const fleetForm = formState((): FleetDraft => ({
   kind: null,
   mission: null,
   union: null,
+  plan: null,
   hold: null,
   stay: null,
   jump: null,

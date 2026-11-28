@@ -137,6 +137,19 @@ The answers of the comment „Geklärt, Nachtrag“ (owner, 2026-11-15) to O15:
   the Leitung (two events: the new Leitung „ist jetzt Leitung“, the old
   one with the rank it chose) and by deleting a rank (one event per member
   moved to the default rank). An account deletion writes none.
+* **[V]** The kinds of event register themselves (#426 part 6; owner,
+  2026-11-26, 192a and 193b; the coordinator's choices of 2026-11-27): a
+  file of `src/core/chat-events/` exports `chatEvents`, entries of key,
+  order and the sentence of the kind (`membership.ts`: join 10, leave 20,
+  remove 30; `rank.ts`: rank 40; `attack.ts`: attack 50), moved unchanged
+  out of `chatEventText`, which keeps the names of a deleted member and
+  attacker and the capital letter and calls the entry of the kind.
+  `scripts/gen-features.ts` writes `chat-events/events.gen.ts`; `guild-chat.ts`
+  derives `CHAT_EVENTS` and `ChatEventKind` and stops the start at a key or
+  an order defined twice. The CHECK of `guild_chat.kind` stays in the
+  migrations (192a): `src/server/db/chat-events-check.test.ts` migrates an
+  in-memory database and fails when its kinds and „message“ with
+  `CHAT_EVENTS` differ, so a new kind needs a new migration.
 * **[V]** The attack event is written when an attack (the mission
   Sturmangriff, the rule `alertsGuild` of its `rules.ts`) is launched at a
   member of a guild, into the chat of the defender's guild only; not for

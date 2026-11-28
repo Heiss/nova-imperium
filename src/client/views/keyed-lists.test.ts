@@ -51,6 +51,10 @@ const LISTS: Record<string, Record<string, Verdict>> = {
       'one section per heading of ROUND_SECTIONS',
     ),
   },
+  'AdminExplainPanel.svelte': {
+    i: index,
+    r: index,
+  },
   'AdminBotCheck.svelte': {
     line: source('one line per day, grouped in a Map, starting with the date'),
   },
@@ -87,7 +91,6 @@ const LISTS: Record<string, Record<string, Verdict>> = {
   },
   'Fleet.svelte': {
     'union.id': source('union ids of the server (#362)'),
-    'attack.id': source('fleet ids (#362)'),
     'ship.key': constant('object keys of SHIPS'),
     'place.id': merged(
       'own places, friends, guild members and last targets, the first kept',
@@ -278,6 +281,11 @@ const LOOPS: Record<string, string[]> = {
     'page.tabs as tab (tab.key)',
     'page.settings.sections as section, i (section.heading ?? i)',
   ],
+  'AdminExplainPanel.svelte': [
+    'page.table.head as cell, i (i)',
+    'page.table.rows as row, r (r)',
+    'row as cell, i (i)',
+  ],
   'AdminBotCheck.svelte': ['check.lines as line (line)'],
   'AdminDiagnostics.svelte': [
     'Object.entries(players) as [id, p] (id)',
@@ -315,7 +323,6 @@ const LOOPS: Record<string, string[]> = {
   'Cost.svelte': ['parts as x (x.key)'],
   'Fleet.svelte': [
     'page.unions.unions as union (union.id)',
-    'page.unions.open as attack (attack.id)',
     'page.ships as ship (ship.key)',
     'form.quick as place (place.id)',
     'choice.missions as option (option.value)',

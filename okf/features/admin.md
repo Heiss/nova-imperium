@@ -204,6 +204,101 @@ universe settings) and their ranges are not decided yet.
   [V]); „Belohnungen für die neue Runde“ (heading „Tagesbelohnung und
   Erfolge“) and „Rückbau“ (heading „Zurückbauen“) stay.
 
+## An explanation per setting behind a „?“ (#358, part 1)
+
+* **[E]** (owner, 2026-11-22) An explanation per setting, written for an
+  admin: what changes when the value changes. It opens as a side panel,
+  like the help of the game, with information and tables. A table shows how
+  a change acts on the values that follow from it: the minimum, the
+  maximum, two values in between (owner E3) and, [V], the current value.
+* **[E]** (owner, 2026-11-22) Only the admin reads the explanations; they
+  are no part of the players' Lexicanum.
+* **[E]** (owner, 2026-11-27, 286c) Every setting, about 50, with its
+  explanation and table. The assistant writes the texts; they ship as
+  proposals [V], and the owner checks them in the admin panel after the
+  release. 288a: not in the release of the evening of 2026-11-27.
+* **[V]** Built (part 1):
+  * Each text lives beside its registry entry: the field `explain`
+    (`SettingExplain`, `src/core/round.ts`) of a universe spec
+    (`src/core/universe.ts`) and of a round setting (the file of its
+    feature). `src/core/admin-explain.ts` gathers them (`explainedSettings`:
+    the rows of „Universum“ and the switches of „Neue Runde“) and builds the
+    tables (`explainTable`). `src/core/admin-explain.test.ts` fails for a
+    setting without an explanation, and for a digit in a text: every number
+    comes from a table.
+  * A table row is a label (the names come from the catalog by id at render
+    time) and a cell per value, computed with the functions of `src/core`
+    (`buildTime`, `researchTime`, `unitTime`, `prod`, `flightMs`, `capOf`,
+    `maxFields`, `expeditionPosition`, `planetActivity`, `inactivity`,
+    `seenShips`, `showsHeldApart`, `demolitionMoves`, `demolitionTime`,
+    `expeditionSlots`, `maxStayHours`, `stayDuration`, `got`,
+    `priceAfter`, `priceNow`, `feePercent`, `planetLimit`, `lastSlot`,
+    `moonChance`), with the setting at the value of its column; none is
+    typed.
+  * The columns span the whole range of the setting: a value that means
+    „unlimited“ or „off“ (0) is its minimum and shows as such
+    („unbegrenzt“, „Echtzeit“).
+  * A column whose values the rules between settings refuse (`agrees`,
+    e.g. the colony research with no base) shows „–“. A table whose other
+    cells are all the same says nothing and is left out, so the text stands
+    alone: the tables of the colony research, its levels and its maximum
+    while the limit of planets is off, as at the defaults (PR #471).
+  * The „?“ stands after the label of each row of „Universum“
+    (`axqu_<key>`) and after each field of „Neue Runde“ (`axqr_<key>`);
+    its name is „Erklärung“. The panel (`AdminExplainPanel.svelte`) uses
+    the classes of the Lexicanum's panel, takes the whole width on a phone,
+    closes with Esc and „Schließen“ and gives the focus back to its „?“.
+    One stands in the view „Admin“, one inside the dialog „Neue Runde“, so
+    a screen reader reads it as part of the modal dialog; Esc closes only
+    the panel, never the dialog under it. It takes the focus when it opens,
+    not on a new state of the server, and closes with its view or dialog
+    (PR #471).
+  * No switch: the admin panel is part of the core
+    (okf/ops/feature-switches.md).
+  * Text only, without a table: the settings without values that follow
+    from them (the size of the map, the start stock, the reports, the
+    Endzeit, the switches, the locks and durations, „Verbündete“, the
+    limits of the union, the daily limit and the switch of the market, the
+    modes of the highscore). „Verbandsangriff: Verspätung“ and „kein
+    Beitritt“ have no table either: no function of `src/core` gives the
+    largest delay for a remaining time.
+* **[U]** Open: what happens to a level of the Kolonialverwaltung that is
+  in the research queue when the admin switches the research off (only
+  the start of a research is checked); its explanation says nothing on it.
+* **[E]** (owner, 2026-11-22, point 4) The tables may be dynamic: the
+  admin types values of his own, the field follows the rules of the
+  setting's input field, and the table shows what would follow.
+* **[V]** (2026-11-27, accepted 2026-11-28) Dynamic only for the settings
+  with a formula behind them; one typed value, one column more.
+* **[V]** Built (part 2):
+  * The rule: a setting is dynamic when the values that follow change
+    with it by an arithmetic function of `src/core`; one that is only
+    compared with a threshold, or has two or a handful of values, keeps
+    its static table. `own: true` beside its registry entry marks the 23:
+    the speed, the base storage, the extra fields, the refund and the time
+    of the demolition, the extra expedition slots and the hours of an
+    expedition, the six ratios, the step, the drift, the fee and the fee
+    step of the market, the three numbers of the planet limit, the passes
+    of the highscore and the two numbers of the moon chance. Static (11):
+    the positions, the four activity and inactivity thresholds, the held
+    fleets in the spy report, the three thresholds of the recognition of
+    foreign fleets, the speed switch of the expeditions and the switch of
+    the colony research. `src/core/admin-explain.test.ts` pins the split.
+  * The field „Eigener Wert“ [V] (`OWN_LABEL`) stands under the table while
+    the table is shown, a number field with the min, max and step of the
+    setting. An empty field adds nothing. A value that is no whole number
+    of the range adds no column and shows the server's words
+    (`rangeError`, moved to `src/core/round.ts`). A value the rules
+    between settings refuse (`agrees`, also a step) gets the column „–“
+    and the words of each refusing setting (`ownRefused`).
+  * The column „<Wert> (eigener Wert)“ [V] (`OWN`) after „(jetzt)“ is
+    computed as every other column (`explainTable`, its argument `own`);
+    whether a table is shown asks the other columns only.
+  * The value lives in the state of the panel (`adminExplain.own`): never
+    saved nor sent, gone when the panel closes or another „?“ opens it.
+  * The changelog fragment of part 1 got the clause „und lässt eigene
+    Werte vorab durchrechnen“ [V].
+
 ## The registry of the round settings (#283)
 
 * **[V]** Built with #283, a refactor without a visible change: every

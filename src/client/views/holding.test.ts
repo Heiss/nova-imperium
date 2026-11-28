@@ -2,6 +2,7 @@
 // form, and every fleet that held as a defender of its own in the battle
 // report.
 import { afterEach, describe, expect, it } from 'vitest';
+import { explainButton } from '../../test/explain.ts';
 import type { RoundRules } from '../../core/round.ts';
 import { text } from '../../core/text.ts';
 import { DEFAULT_UNIVERSE, UNIVERSE_SPECS } from '../../core/universe.ts';
@@ -49,7 +50,7 @@ describe('who may hold in the dialog „Neue Runde“ and the universe settings 
       const html = roundDialog(rules({ allies }));
       expect(html).toContain(
         normalize(
-          `<p><label for="round-allies">Verbündete für Halten und Verband</label> <select id="round-allies">${options(allies)}</select></p>`,
+          `<p><label for="round-allies">Verbündete für Halten und Verband</label> <select id="round-allies">${options(allies)}</select> ${explainButton('roundAllies', 'r')}</p>`,
         ),
       );
       expect(html.indexOf('id="round-allies"')).toBeGreaterThan(
@@ -65,7 +66,7 @@ describe('who may hold in the dialog „Neue Runde“ and the universe settings 
     const html = panel({ roundAllies: 1 });
     expect(html).toContain(
       normalize(
-        `<tr><td><label for="set_roundAllies">Verbündete für Halten und Verband</label></td><td><select id="set_roundAllies" data-setting="roundAllies" data-nokeep>${options(1)}</select></td></tr>`,
+        `<tr><td><label for="set_roundAllies">Verbündete für Halten und Verband</label> ${explainButton('roundAllies', 'u')}</td><td><select id="set_roundAllies" data-setting="roundAllies" data-nokeep>${options(1)}</select></td></tr>`,
       ),
     );
     expect(html).toContain(
@@ -81,7 +82,7 @@ describe('held fleets in the spy report in the dialog „Neue Runde“ and the u
     for (const heldSpy of [2, 5]) {
       const html = roundDialog(rules({ heldSpy }));
       const field = normalize(
-        `<p><label for="round-held-spy">Gehaltene Flotten im Auspex-Bericht ab Auspex-Lehre</label> <input type="number" id="round-held-spy" min="0" max="30" step="1" value="${heldSpy}" required> <span class="dim">0 bis 30</span></p>`,
+        `<p><label for="round-held-spy">Gehaltene Flotten im Auspex-Bericht ab Auspex-Lehre</label> <input type="number" id="round-held-spy" min="0" max="30" step="1" value="${heldSpy}" required> <span class="dim">0 bis 30</span> ${explainButton('roundHeldSpy', 'r')}</p>`,
       );
       expect(html).toContain(field);
       // Beside the selection of „Verbündete für Halten und Verband“, outside every fieldset.
@@ -98,7 +99,7 @@ describe('held fleets in the spy report in the dialog „Neue Runde“ and the u
   it('is a number field of the universe settings', () => {
     expect(panel({ roundHeldSpy: 4 })).toContain(
       normalize(
-        '<tr><td><label for="set_roundHeldSpy">Gehaltene Flotten im Auspex-Bericht ab Auspex-Lehre</label></td><td><input type="number" id="set_roundHeldSpy" data-setting="roundHeldSpy" min="0" max="30" value="4" data-nokeep> <span class="dim">0 bis 30</span></td></tr>',
+        `<tr><td><label for="set_roundHeldSpy">Gehaltene Flotten im Auspex-Bericht ab Auspex-Lehre</label> ${explainButton('roundHeldSpy', 'u')}</td><td><input type="number" id="set_roundHeldSpy" data-setting="roundHeldSpy" min="0" max="30" value="4" data-nokeep> <span class="dim">0 bis 30</span></td></tr>`,
       ),
     );
   });
@@ -131,6 +132,8 @@ describe('the row „Haltezeit“ of the fleet form', () => {
       ],
       debris: [],
       fleets: [],
+      // The round of every state: the row „Verband“ reads its switch (#466).
+      round: rules({}),
     } as unknown as GameState;
     const html = fleetView({
       s,

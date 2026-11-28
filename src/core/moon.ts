@@ -5,7 +5,7 @@
 // A moon is a row of the planets with the kind `moon` (#119, O11).
 import type { Rng } from './battle.ts';
 import type { Debris } from './debris.ts';
-import type { RoundSetting } from './round.ts';
+import type { RoundSetting, SettingExplain } from './round.ts';
 import type { Planet } from './types.ts';
 
 /**
@@ -43,6 +43,15 @@ export interface MoonRules {
 
 /** The section of the moon settings in „Neue Runde“ [V]: the title of the Lexikon page. */
 export const roundHeading = 'Monde';
+/** The Trümmerfelder the table of the explanations shows (#358). */
+const FIELDS = [100_000, 500_000, 1_000_000, 5_000_000];
+
+/** The moon chance in percent after a battle that leaves such a field (#358). */
+const MOON_ROWS: SettingExplain['rows'] = FIELDS.map((m) => ({
+  label: () => `Trümmerfeld mit ${m.toLocaleString('de-DE')} Rohstoffen`,
+  cell: ({ round }) =>
+    `${moonChance({ m, c: 0 }, round as unknown as MoonRules)} %`,
+}));
 
 // The cap and the resources per percent, effective at once for the next
 // battle [V] (#433, 207b, 211).
@@ -50,6 +59,11 @@ export const roundSettings = [
   {
     kind: 'number',
     key: 'roundMoonChanceMax',
+    explain: {
+      text: 'Die höchste Chance auf einen Mond nach einem Kampf, in Prozent; zugleich die Grenze für „Mond anlegen“ des Admins. Eine Änderung gilt ab dem nächsten Kampf.',
+      rows: MOON_ROWS,
+      own: true,
+    },
     name: 'moonChanceMax',
     label: 'Mondchance höchstens (%)',
     order: 510,
@@ -61,6 +75,11 @@ export const roundSettings = [
   {
     kind: 'number',
     key: 'roundMoonPerPercent',
+    explain: {
+      text: 'Wie viel Adamant und Psikristall im Trümmerfeld je Prozent Mondchance nötig ist. Eine Änderung gilt ab dem nächsten Kampf.',
+      rows: MOON_ROWS,
+      own: true,
+    },
     name: 'moonPerPercent',
     label: 'Rohstoffe je 1 % Mondchance',
     order: 520,

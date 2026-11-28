@@ -18,7 +18,8 @@ import { clampInt } from './format.ts';
 import { maxStay, staysAt } from './game.ts';
 import { shown } from './galaxy-position.svelte.ts';
 import { moonAt } from './moon.ts';
-import { joinChoices } from './union.ts';
+import { unionOpen } from '../../core/union.ts';
+import { joinChoices, PLAN } from './union.ts';
 
 /** What the choices read of the view: the state of the game, the shown planet and the memory of the page. */
 export type FleetSeen = Pick<V, 's' | 'P' | 'R' | 'ui'>;
@@ -44,8 +45,10 @@ export interface FleetChoice {
   mission: string;
   /** The planets against the limit for a Landnahme (#237). */
   limit: string;
-  /** The attack union the fleet joins (#225), or empty for „Kein Verband“. */
+  /** The attack union the fleet joins (#225), `plan` for a new one (#466), or empty for „Kein Verband“. */
   union: string;
+  /** The arrival of a union the fleet plans, as the field holds it; empty while none is chosen. */
+  plan: string;
   /** The mission stays at the target (an expedition, #93): the row has the hours of the stay, else the holding time. */
   stays: boolean;
   /** The mission holds (#55): the row of the holding time is shown, else hidden. */
@@ -74,9 +77,15 @@ function targetOf(v: FleetSeen, draft: FleetDraft) {
   return { to, wanted, moon: !!moonAt(v.s.galaxy, to) };
 }
 
-/** The union chosen, else the one of the page, while the player can join it. */
-function unionOf(v: FleetSeen, draft: FleetDraft): string {
+/**
+ * The union chosen, else the one of the page, while the player can join it;
+ * `plan` plans a new one with a Sturmangriff while the switch of the round
+ * is on (#466): another mission drops it, so a hidden choice is never sent.
+ */
+function unionOf(v: FleetSeen, draft: FleetDraft, mission: string): string {
   const chosen = draft.union ?? v.ui.union ?? '';
+  if (chosen === PLAN)
+    return mission === 'attack' && unionOpen(v.s.round) ? PLAN : '';
   return joinChoices(v).some((c) => c.id === chosen) ? chosen : '';
 }
 
@@ -123,7 +132,8 @@ export function fleetChoice(
     missions: options,
     mission: selected,
     limit: colonyNote(v.s, selected),
-    union: unionOf(v, draft),
+    union: unionOf(v, draft, selected),
+    plan: draft.plan ?? '',
     ...timeOf(v, selected, draft),
   };
 }

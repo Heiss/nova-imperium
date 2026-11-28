@@ -14,10 +14,12 @@
   import { fleetForm } from '../logic/fleet-form.svelte.ts';
   import { hoursLabel } from '../logic/fleet-time.ts';
   import { QUICK_FIRST } from '../logic/fleet-target.ts';
+  import { PLAN } from '../logic/union.ts';
   import { shown } from '../logic/galaxy-position.svelte.ts';
   import {
     CARGO_FIELDS,
     type FleetPage,
+    PLAN_OPTION,
     SPEEDS,
     UNION_HINT,
   } from '../logic/fleet.ts';
@@ -44,6 +46,9 @@
         <div class="union" id="un_{union.id}">
           <b>{union.title}</b> · Anführer {union.leader} · Ankunft in
           <Due due={union.due} />
+          {#if union.start}<div class="dim">
+              Start der Flotte des Anführers in <Due due={union.start} />
+            </div>{/if}
           <div class="dim">{union.counts}</div>
           <div>Flotten: {union.fleets}</div>
           {#if union.invited}<div class="dim">
@@ -64,32 +69,13 @@
                 >Einladen</button
               >
             </div>{/if}
-          <div class="mt">
-            <button class="small" data-act="joinUnion" data-id={union.id}
-              >Beitreten</button
-            >
-          </div>
+          {#if union.joins}<div class="mt">
+              <button class="small" data-act="joinUnion" data-id={union.id}
+                >Beitreten</button
+              >
+            </div>{/if}
         </div>
       {/each}
-      {#if page.unions.open.length}
-        <table class="mt">
-          <tbody>
-            {#each page.unions.open as attack (attack.id)}
-              <tr>
-                <td>Sturmangriff auf {attack.target}</td>
-                <td class="n w110"><Due due={attack.due} /></td>
-                <td
-                  ><button
-                    class="small"
-                    data-act="openUnion"
-                    data-id={attack.id}>Angriffsverband eröffnen</button
-                  ></td
-                >
-              </tr>
-            {/each}
-          </tbody>
-        </table>
-      {/if}
       {#if page.unions.unions.length}<div class="dim mt">{UNION_HINT}</div>{/if}
     </div>
   </div>
@@ -213,7 +199,7 @@
               <span id="t_limit" class="dim">{choice.limit}</span></td
             >
           </tr>
-          {#if form.unions.length}
+          {#if form.unions.length || (form.plans && choice.mission === 'attack')}
             <tr id="t_union_row">
               <td><label for="t_u">Verband</label></td>
               <td
@@ -221,7 +207,11 @@
                   id="t_u"
                   onchange={(e) => (fleetForm.union = e.currentTarget.value)}
                   ><option value="">Kein Verband</option
-                  >{#each form.unions as union (union.value)}<option
+                  >{#if form.plans && choice.mission === 'attack'}<option
+                      value={PLAN_OPTION.value}
+                      selected={choice.union === PLAN}
+                      >{PLAN_OPTION.label}</option
+                    >{/if}{#each form.unions as union (union.value)}<option
                       value={union.value}
                       selected={union.value === choice.union}
                       >{union.label}</option
@@ -229,6 +219,19 @@
                 ></td
               >
             </tr>
+            {#if choice.union === PLAN}
+              <tr id="t_plan_row">
+                <td><label for="t_ux">Ankunft des Verbands</label></td>
+                <td
+                  ><input
+                    type="datetime-local"
+                    id="t_ux"
+                    value={choice.plan}
+                    oninput={(e) => (fleetForm.plan = e.currentTarget.value)}
+                  /></td
+                >
+              </tr>
+            {/if}
           {/if}
           {#if choice.stays}
             <tr id="t_stay_row">

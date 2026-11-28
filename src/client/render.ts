@@ -53,7 +53,7 @@ function paintPlanets(root: ParentNode): void {
 }
 
 function renderLoggedOut(view: HTMLElement): void {
-  client.forget();
+  client.forgetPlayer();
   forgetLock();
   // The setup of the app under way was of the account signed out (#401).
   endTotpSetup();

@@ -67,4 +67,19 @@ describe('the client state', () => {
     expect(client.completedMenu.size).toBe(0);
     expect(client.completionNotices.size).toBe(0);
   });
+
+  it('forgets the choices of „Optionen“ whose save runs with the player or round, not with the planet (PR #469)', () => {
+    client.ui.holdChoice = true;
+    client.ui.pushChoice = ['news'];
+    client.forget();
+    expect(client.ui.holdChoice).toBe(true);
+    expect(client.ui.pushChoice).toEqual(['news']);
+    client.view = { now: 1 } as unknown as V;
+    client.completionNotices.add('Ausbau fertig: Mine (Stufe 2).');
+    client.forgetPlayer();
+    expect(client.ui.holdChoice).toBeUndefined();
+    expect(client.ui.pushChoice).toBeUndefined();
+    expect(client.view).toBeNull();
+    expect(client.completionNotices.size).toBe(0);
+  });
 });

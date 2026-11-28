@@ -18,7 +18,7 @@ export const byId = (id: string): string =>
  * field that holds its value in the page, such as the amounts of the lists and
  * the settings of the universe; a field of a form with state is written
  * through that state (#332), which the component shows. A checkbox takes
- * `'true'` or `'false'` (a preset of the round settings, #441).
+ * „true“ or „false“ and is ticked for „true“ (PR #469).
  */
 export function setField(
   el: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement,

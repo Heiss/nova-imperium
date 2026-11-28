@@ -86,8 +86,8 @@ generated: { by: claude-code/web, at: 2026-11-25T09:30:00Z }
     highscore with the default can be up to 8 h old (owner, 2026-11-25).
     **[V]** As built: `server/game/scores.ts` makes one pass (`scorePass`:
     each planet settled once for the total and the categories) and keeps it
-    per database in the memory of the server (`storedScores`); a restart
-    makes a new pass at the first reader. A pass holds until the next slot
+    per database in the memory of the server (`storedScores`) and, since
+    #491, in the database. A pass holds until the next slot
     (`core/highscore-passes.ts`: `lastSlot` from 23:05 UTC on UTC
     milliseconds only, every 24/N hours; a pass made between two slots, at a start,
     holds until the next) or, live, 10 s. The clock of the server makes the
@@ -102,6 +102,28 @@ generated: { by: claude-code/web, at: 2026-11-25T09:30:00Z }
     „Highscore“, the name of the view (the owner gave the label only). A
     property test holds the one pass equal to the two passes before it,
     frozen in `scores.test.ts`.
+  * **[E]** (owner, 2026-11-28, #491) The pass is stored in the SQLite
+    database, so a restart of the server (an update) does not make a new
+    one: the highscore and its „Stand“ stay, and the next pass comes at its
+    scheduled time.
+  * **[V]** Built (#491): the table `score_pass` (migration
+    `20261128T1300-score-pass`, repository `scorePasses`) holds one row,
+    the newest pass: the round it was made for (`roundOf`: the start of the
+    round, the revision of the scores and `PASS_VERSION`, a version of the
+    code raised with every change of the pass or its formula), its time and
+    the totals and categories as JSON. Every new pass is written with it,
+    whoever makes it: the clock, a reader, a live pass (at most every 10 s)
+    and „Neue Runde“ in its transaction. After a restart the memory is empty
+    and the stored row is taken while it is of the same round, revision and
+    version, has the shape of a pass and holds; else, and without a row (the
+    first start after #491), a new pass is made as before. The memory is
+    taken only while the database holds the same pass (round and time), so
+    a transaction that rolled back after a new pass leaves the older pass
+    of the database, which then wins. A new round empties the table (round
+    reset, order 130) and then stores its own pass at once. Nothing changes
+    for the players; the archive of a round still makes its own pass.
+    `src/server/game/scores-restart.test.ts` starts a second connection on
+    the same file database.
 * **[E]** The parts that are the same for every player are built once and
   sent to all (owner, 2026-11-25): `galaxy` (`state.ts`: its builder ignores
   the player), `players`, the universe and the rules of the round. Each is

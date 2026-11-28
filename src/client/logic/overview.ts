@@ -13,7 +13,7 @@ import { diameterLine } from './fields.ts';
 import { coords, dt, dur, fmt, resLine } from './format.ts';
 import { fleetEnd, nameOf, ranks, sortFleets } from './game.ts';
 import { planetLook } from './planet.ts';
-import { unionPart } from './union.ts';
+import { unionPart, unionsOf } from './union.ts';
 import type { ClientFleet } from './types.ts';
 
 /** A countdown to `end`; `left` is null when it is due. The clock counts it down. */
@@ -46,6 +46,8 @@ export interface FleetRow {
    * gift (#161) and missiles (#54) not.
    */
   recall: boolean;
+  /** A planned start of the player's attack union (#478): its union, which „Abbrechen“ dissolves. */
+  cancel?: string;
 }
 
 /** A foreign fleet that holds at the shown planet (#55), or flies there to hold (#440): its owner, ships and end. */
@@ -93,7 +95,7 @@ export interface OverviewPage {
 
 const part = (text: string, bold = false): TextPart => ({ text, bold });
 
-const shipList = (f: ClientFleet): string =>
+const shipList = (f: Pick<ClientFleet, 'ships'>): string =>
   Object.entries(f.ships ?? {})
     .filter(([, n]) => n > 0)
     .map(([k, n]) => `${fmt(n)} ${text(k)?.n ?? k}`)
@@ -181,9 +183,39 @@ const heldHere = (v: V, f: ClientFleet): boolean =>
  * they are due; foreign fleets that hold are no movement (#55).
  */
 export const fleetRows = (v: V, includeIncoming: boolean): FleetRow[] =>
-  sortFleets(
-    v.s.fleets.filter((f) => own(v, f) || (includeIncoming && !heldHere(v, f))),
-  ).map((f) => fleetRow(v, f));
+  [
+    ...sortFleets(
+      v.s.fleets.filter(
+        (f) => own(v, f) || (includeIncoming && !heldHere(v, f)),
+      ),
+    ).map((f) => fleetRow(v, f)),
+    ...plannedRows(v),
+  ].sort((a, b) => a.due.end - b.due.end);
+
+/**
+ * The planned starts of the player's attack unions (#478), each a row with
+ * the time to its start and „Abbrechen“ [V].
+ */
+const plannedRows = (v: V): FleetRow[] =>
+  unionsOf(v.s).flatMap((u) =>
+    // The leader's own unions with a planned start carry `held` (#478).
+    u.held === undefined
+      ? []
+      : [
+          {
+            id: `plan_${u.id}`,
+            due: countdown(u.start!, v.now),
+            cls: 'fl-attack',
+            parts: [
+              part(
+                `Geplanter Start: Deine Flotte (${shipList(u.held)}) greift ${coords(u.toC)} an · Angriffsverband (Anführer), Ankunft ${dt(u.arr)}`,
+              ),
+            ],
+            recall: false,
+            cancel: u.id,
+          },
+        ],
+  );
 
 /** The foreign fleets that hold at the shown planet, by when they fly home (#55). */
 export const heldRows = (v: V): HeldRow[] =>

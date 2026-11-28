@@ -95,6 +95,24 @@ describe('the fleets on their way', () => {
     expect(page.form.full).toBe(true);
   });
 
+  it('counts a planned start of the player against the slots, not one of another leader (#478, PR #490)', () => {
+    const planned = {
+      id: 'u9',
+      leader: 'u1',
+      to: 'p1_2_6',
+      toC: { g: 1, s: 2, p: 6 },
+      arr: 9000,
+      start: 4000,
+      held: { from: 'p1', ships: { lf: 1 } },
+      fleets: [],
+      invited: [],
+    };
+    const other = { ...planned, id: 'u8', leader: 'u2', held: undefined };
+    const page = fleetPage(view({ state: { unions: [planned, other] } }));
+    expect(page.heading).toBe('Flotten unterwegs (1 / 1 Slots)');
+    expect(page.form.full).toBe(true);
+  });
+
   it('lists the fleets as the overview does, the own ones only', () => {
     const fleets = [fleetOf({ id: 'a' }), fleetOf({ id: 'd', owner: 'u2' })];
     expect(fleetPage(view({ fleets })).fleets.map((f) => f.id)).toEqual(['a']);
@@ -195,6 +213,12 @@ describe('the ships and the form', () => {
       view({ ships: { lc: 1 }, state: { unions }, union: 'f9' }),
     );
     expect(page.form.unions.map((u) => u.value)).toEqual(['f9']);
+    // While the switch of the round is off, no union to join (#466).
+    const off = view({ ships: { lc: 1 }, state: { unions }, union: 'f9' });
+    off.s.round = { ...off.s.round, unionOn: 0 };
+    expect(fleetPage(off).form.unions).toEqual([]);
+    expect(fleetPage(off).form.plans).toBe(false);
+    expect(page.form.plans).toBe(true);
     // The one of the page, else the one chosen; none that is gone.
     expect(page.form.choose(fleetForm).union).toBe('f9');
     fleetForm.union = '';
@@ -207,11 +231,31 @@ describe('the ships and the form', () => {
 });
 
 describe('the box of the unions', () => {
-  it('is there for an own Sturmangriff that can open one, and else not', () => {
+  it('is there only for a union of the player: an own Sturmangriff opens none any more (#466)', () => {
     expect(fleetPage(view()).unions).toBeNull();
     const attack = fleetOf({ mission: 'attack', arr: 5000 });
-    const page = fleetPage(view({ fleets: [attack] }));
-    expect(page.unions?.open).toMatchObject([{ id: 'f1', target: '[1:2:6]' }]);
+    expect(fleetPage(view({ fleets: [attack] })).unions).toBeNull();
+  });
+});
+
+describe('the planned start of a union in the box (#478)', () => {
+  it('counts down to the start of the leader’s fleet while it is planned, else none', () => {
+    const union = {
+      id: 'f9',
+      leader: 'u2',
+      to: 'p1_2_6',
+      toC: { g: 1, s: 2, p: 6 },
+      arr: 9000,
+      fleets: [],
+      invited: ['u1'],
+    };
+    const box = (u: typeof union & { start?: number }) =>
+      fleetPage(view({ state: { unions: [u] } })).unions!.unions[0]!;
+    expect(box({ ...union, start: 4000 }).start).toEqual({
+      end: 4000,
+      left: expect.any(String),
+    });
+    expect(box(union).start).toBeNull();
   });
 });
 

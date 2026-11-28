@@ -1,14 +1,22 @@
-// The attack union on the server (#225, okf/features/holding-acs.md): opening
-// a union from an own Sturmangriff, inviting allies, joining with a fleet
-// (who, under which limits, with which arrival), the recall of the leader and
-// of a participant, the one battle of all fleets at the common arrival with
+// The attack union on the server (#225, #466, okf/features/holding-acs.md):
+// opening a union from an own Sturmangriff, inviting allies, joining with a
+// fleet (who, under which limits, at the fixed arrival X with the speed that
+// brings it there, #466), the switch of the round, the recall of the leader
+// and of a participant, the one battle of all fleets at the common arrival with
 // each owner's research, the loot split by free space, the reports and the
 // debris, and the interactions: holding, vacation, noob protection, fleet
 // slots, the defender's overview.
 import { describe, expect, it } from 'vitest';
 import { battleOf } from '../../core/battle.ts';
 import { debrisOf } from '../../core/debris.ts';
-import { capacity, countUnits } from '../../core/flight.ts';
+import {
+  capacity,
+  countUnits,
+  distance,
+  fleetSpeed,
+  flightMs,
+  fuelFor,
+} from '../../core/flight.ts';
 import type { Fleet } from '../../core/types.ts';
 import { seeded } from '../../test/fixtures.ts';
 import { type TestCtx, addPlanet, addUser, testCtx } from '../test-helpers.ts';
@@ -17,6 +25,7 @@ import { runAction } from './dispatch.ts';
 import { recall, send } from './fleet-actions.ts';
 import { roundRules } from './round.ts';
 import { stateFor } from './state.ts';
+import { deleteAccount } from '../delete-account.ts';
 import { arriving, limitsOf, unionOf, unionsFor } from './union.ts';
 
 const ANNA = { g: 1, s: 1, p: 5 };
@@ -78,12 +87,30 @@ const go = (planet: string, ships: Record<string, number>, over = {}) => ({
   ...over,
 });
 
-/** Anna's Sturmangriff on Dirk, and the union it opens: returns the union's ID. */
+/** The flight of `uid`'s fleet from `from` to Dirk at a speed in tenths. */
+const flightOf = (
+  ctx: TestCtx,
+  uid: string,
+  from: typeof ANNA,
+  ships: Record<string, number>,
+  pct: number,
+): number =>
+  flightMs(
+    distance(from, DIRK),
+    fleetSpeed(ships, { research: ctx.players.get(uid)!.research }),
+    pct,
+    ctx.admin.universe(),
+  );
+
+/**
+ * Anna plans a union on Dirk with her own Sturmangriff (#466, A1a), arriving
+ * after its flight at 100 %: returns the union's ID, her fleet's.
+ */
 function opened(ctx: TestCtx, ships: Record<string, number> = { bs: 4 }) {
-  send(ctx, user(ctx, 'Anna'), go('p1_1_5', ships));
-  const id = ctx.fleets.all()[0]!.id;
-  runAction(ctx, 'u_Anna', { type: 'openUnion', id });
-  return id;
+  const arr = ctx.now() + flightOf(ctx, 'u_Anna', ANNA, ships, 10);
+  const before = new Set(ctx.fleets.all().map((f) => f.id));
+  send(ctx, user(ctx, 'Anna'), go('p1_1_5', ships, { plan: arr }));
+  return ctx.fleets.all().find((f) => !before.has(f.id))!.id;
 }
 
 /** Anna invites Bert, and Bert joins with `ships`. */
@@ -112,48 +139,137 @@ const refused = (fn: () => unknown): string => {
   return 'not refused';
 };
 
-describe('opening a union', () => {
-  it('marks the own Sturmangriff on its way as the union and its leader', () => {
+describe('planning a union (#466, A1a)', () => {
+  it('is the own Sturmangriff of the leader, arriving at X: the union is its row, the fleet leads it', () => {
     const ctx = setup();
-    const id = opened(ctx);
-    expect(ctx.fleets.get(id)).toMatchObject({ union: id, owner: 'u_Anna' });
-    expect(unionOf(ctx, id)?.fleets.map((f) => f.id)).toEqual([id]);
-    expect(ctx.fleets.ofUnion(id)).toHaveLength(1);
+    const t = ctx.now();
+    const flight = flightOf(ctx, 'u_Anna', ANNA, { bs: 4 }, 10);
+    const arr = t + 2 * flight;
+    send(ctx, user(ctx, 'Anna'), go('p1_1_5', { bs: 4 }, { plan: arr }));
+    const f = ctx.fleets.all()[0]!;
+    expect(f).toMatchObject({
+      union: f.id,
+      owner: 'u_Anna',
+      arr,
+      ret: arr + 2 * flight,
+    });
+    expect(ctx.unions.get(f.id)).toEqual({
+      id: f.id,
+      leader: 'u_Anna',
+      lead: f.id,
+      target: DIRK_ID,
+      toC: DIRK,
+      arr,
+    });
+    expect(unionOf(ctx, f.id)?.fleets.map((m) => m.id)).toEqual([f.id]);
+    // The speed of half the time: 50 %, and its fuel.
+    expect(f.fuel).toBe(
+      fuelFor(
+        { bs: 4 },
+        distance(ANNA, DIRK),
+        (35000 *
+          Math.sqrt(
+            (10 * distance(ANNA, DIRK)) /
+              fleetSpeed({ bs: 4 }, { research: user(ctx, 'Anna').research }),
+          )) /
+          ((2 * flight * ctx.admin.universe().speed) / 1000 - 10),
+      ),
+    );
   });
-  it('refuses another mission, a fleet of somebody else, a fleet that is not out any more, and a second union', () => {
+  it('refuses another mission, a join at once, an arrival in the past, in the cut-off or too late; too early plans a later start (#478)', () => {
     const ctx = setup();
-    send(
-      ctx,
-      user(ctx, 'Anna'),
-      go('p1_1_5', { bs: 2 }, { mission: 'transport' }),
+    const t = ctx.now();
+    const fast = flightOf(ctx, 'u_Anna', ANNA, { bs: 2 }, 10);
+    const plan = (over: object) =>
+      refused(() =>
+        runAction(ctx, 'u_Anna', {
+          type: 'send',
+          ...go('p1_1_5', { bs: 2 }, over),
+        }),
+      );
+    expect(plan({ plan: t + fast, mission: 'transport' })).toBe(
+      'Einen Angriffsverband plant man mit einem Sturmangriff.',
     );
-    const transport = ctx.fleets.all()[0]!;
-    const open = (id: string, uid = 'u_Anna') =>
-      refused(() => runAction(ctx, uid, { type: 'openUnion', id }));
-    expect(open(transport.id)).toBe(
-      'Einen Angriffsverband eröffnet nur ein Sturmangriff.',
+    expect(plan({ plan: t + fast, union: 'x' })).toBe(
+      'Eine Flotte plant einen Angriffsverband oder tritt einem bei, nicht beides.',
     );
-    expect(open('nobody')).toBe('Diese Flotte gibt es nicht.');
-    ctx.fleets.delete(transport.id);
-    send(ctx, user(ctx, 'Anna'), go('p1_1_5', { bs: 2 }));
-    const attack = ctx.fleets.all()[0]!;
-    expect(open(attack.id, 'u_Bert')).toBe('Diese Flotte gibt es nicht.');
-    expect(open(attack.id)).toBe('not refused');
-    expect(open(attack.id)).toBe(
-      'Diese Flotte gehört schon zu einem Angriffsverband.',
+    for (const past of [t, t - 1, 0, 1.5, 'morgen'])
+      expect(plan({ plan: past })).toBe(
+        'Die Ankunft muss in der Zukunft liegen.',
+      );
+    expect(plan({ plan: t + fast - 1 })).toBe(
+      'Deine Flotte erreicht das Ziel selbst mit 100 % nicht bis zur Ankunft des Verbands.',
     );
-    ctx.fleets.save({ ...attack, id: 'back', state: 'back' });
-    expect(open('back')).toBe(
-      'Diese Flotte ist nicht mehr auf dem Weg zum Ziel.',
+    ctx.admin.putSettings([['roundUnionCutoff', 1440]]);
+    expect(plan({ plan: t + fast })).toBe(
+      'Die Ankunft muss mehr als 1440 Minuten in der Zukunft liegen, sonst kann niemand mehr beitreten.',
     );
+    expect(ctx.fleets.all()).toEqual([]);
+    expect(ctx.unions.ledBy('u_Anna')).toEqual([]);
   });
-  it('is refused for a player in vacation like every action', () => {
+  it('is a plain Sturmangriff without a plan, whatever the empty fields say', () => {
     const ctx = setup();
-    const id = opened(ctx);
-    ctx.players.save({ ...user(ctx, 'Anna'), vacation: ctx.now() });
+    for (const over of [
+      { plan: null },
+      { plan: null, union: '' },
+      { union: null },
+      { union: '' },
+    ]) {
+      runAction(ctx, 'u_Anna', {
+        type: 'send',
+        ...go('p1_1_5', { bs: 1 }, over),
+      });
+      const f = ctx.fleets.all().at(-1)!;
+      expect(f.union, JSON.stringify(over)).toBeUndefined();
+      ctx.fleets.delete(f.id);
+    }
+    expect(ctx.unions.ledBy('u_Anna')).toEqual([]);
+  });
+  it('plans with an empty or missing union beside the plan', () => {
+    const ctx = setup();
+    const arr = ctx.now() + flightOf(ctx, 'u_Anna', ANNA, { bs: 1 }, 10);
+    for (const union of ['', null]) {
+      runAction(ctx, 'u_Anna', {
+        type: 'send',
+        ...go('p1_1_5', { bs: 1 }, { plan: arr, union }),
+      });
+      const f = ctx.fleets.all().at(-1)!;
+      expect(f.union).toBe(f.id);
+      ctx.fleets.delete(f.id);
+      ctx.unions.delete(f.id);
+    }
+  });
+  it('checks the target as every attack: not the own planet, not a player in vacation', () => {
+    const ctx = setup();
+    const t = ctx.now();
+    const arr = t + flightOf(ctx, 'u_Anna', ANNA, { bs: 2 }, 10);
+    ctx.players.save({ ...user(ctx, 'Dirk'), vacation: t });
     expect(
-      refused(() => runAction(ctx, 'u_Anna', { type: 'openUnion', id })),
-    ).toBe('Im Urlaubsmodus nicht möglich.');
+      refused(() =>
+        runAction(ctx, 'u_Anna', {
+          type: 'send',
+          ...go('p1_1_5', { bs: 2 }, { plan: arr }),
+        }),
+      ),
+    ).not.toBe('not refused');
+    expect(ctx.unions.ledBy('u_Anna')).toEqual([]);
+  });
+  it('lets a leader plan several unions, one fleet each', () => {
+    const ctx = setup();
+    ctx.players.save({
+      ...user(ctx, 'Anna'),
+      research: { ...user(ctx, 'Anna').research, computer: 2 },
+    });
+    const a = opened(ctx, { bs: 2 });
+    ctx.clock.t += 1000;
+    const b = opened(ctx, { bs: 2 });
+    expect(ctx.unions.ledBy('u_Anna')).toEqual([a, b]);
+    // The state lists them by arrival, the earliest first.
+    expect(unionsFor(ctx, 'u_Anna').map((u) => u.id)).toEqual([a, b]);
+    const later = ctx.unions.get(a)!;
+    ctx.unions.delete(a);
+    ctx.unions.save({ ...later, arr: later.arr + 10_000_000 });
+    expect(unionsFor(ctx, 'u_Anna').map((u) => u.id)).toEqual([b, a]);
   });
 });
 
@@ -373,12 +489,7 @@ describe('joining with a fleet', () => {
         }),
       ),
     ).toBe('Am Angriffsverband nehmen bereits 2 Flotten teil.');
-    expect(limitsOf(ctx)).toEqual({
-      fleets: 2,
-      players: 5,
-      delay: 30,
-      cutoff: 0,
-    });
+    expect(limitsOf(ctx)).toEqual({ fleets: 2, players: 5, cutoff: 0 });
     ctx.admin.putSettings([
       ['roundUnionFleets', 16],
       ['roundUnionPlayers', 1],
@@ -410,24 +521,35 @@ describe('joining with a fleet', () => {
   });
 });
 
-describe('the arrival of the union when a fleet joins', () => {
-  /** The flight of Bert's fleet in milliseconds, measured with a fleet that waits. */
-  function flightOfBert(): number {
+describe('the arrival of a fleet that joins (#466, 7b)', () => {
+  /** Bert's flight to Dirk with four Kampfschiffe at a speed in tenths. */
+  const bertFlight = (ctx: TestCtx, pct: number): number =>
+    flightMs(
+      distance(BERT, DIRK),
+      fleetSpeed({ bs: 4 }, { research: user(ctx, 'Bert').research }),
+      pct,
+      ctx.admin.universe(),
+    );
+  /** Anna's union arrives `left` ms from now when Bert, invited, joins. */
+  function union(left: number, settings: [string, number][] = []) {
     const ctx = setup();
-    const bert = joined(ctx, opened(ctx));
-    return bert.ret - bert.arr;
-  }
-  /** The union flies on for `left` ms of its way when Bert joins. */
-  function late(left: number, settings: [string, number][] = []) {
-    const ctx = setup();
-    ctx.admin.putSettings(settings);
     const t = ctx.now();
-    send(ctx, user(ctx, 'Anna'), go('p1_1_5', { bs: 4 }));
-    const lead = ctx.fleets.all()[0]!;
-    // Anna's fleet is `left` ms from the target and her return the same flight.
+    // Anna's union arrives `left` from now; its row and her fleet say so.
+    const id = opened(ctx);
+    const lead = ctx.fleets.get(id)!;
     const flight = lead.ret - lead.arr;
     retime(ctx, lead.id, t + left, t + left + flight);
-    runAction(ctx, 'u_Anna', { type: 'openUnion', id: lead.id });
+    ctx.unions.delete(id);
+    ctx.unions.save({
+      id,
+      leader: 'u_Anna',
+      lead: id,
+      target: DIRK_ID,
+      toC: DIRK,
+      arr: t + left,
+    });
+    // The settings of the round from here on: a cut-off would refuse the plan.
+    ctx.admin.putSettings(settings);
     runAction(ctx, 'u_Anna', {
       type: 'inviteUnion',
       id: lead.id,
@@ -436,62 +558,157 @@ describe('the arrival of the union when a fleet joins', () => {
     const join = () =>
       runAction(ctx, 'u_Bert', {
         type: 'send',
-        ...go('p1_2_6', { bs: 4 }, { union: lead.id }),
+        ...go('p1_2_6', { bs: 4 }, { union: lead.id, pct: 10 }),
       });
-    return {
-      ctx,
-      lead: { ...lead, arr: t + left, ret: t + left + flight },
-      join,
-      t,
-    };
+    return { ctx, id: lead.id, arr: t + left, join, t };
   }
-  it('delays the leader and the others when the fleet is later, within 30 % of the time left', () => {
-    const ms = flightOfBert();
-    const { ctx, lead, join, t } = late(Math.ceil(ms / 1.2));
+  it('starts now and arrives exactly at X, the speed solved and the fuel of that speed', () => {
+    const probe = setup();
+    const fast = bertFlight(probe, 10);
+    const slow = bertFlight(probe, 1);
+    const left = Math.round((fast + slow) / 2);
+    const { ctx, arr, join, t } = union(left);
+    const before = ctx.planets.get('p1_2_6')!.res.d;
     join();
     const bert = ctx.fleets.all().find((f) => f.owner === 'u_Bert')!;
-    // Bert arrives at t + ms; the leader's fleet is moved to it, return too.
-    expect(bert.arr).toBe(t + ms);
-    expect(ctx.fleets.get(lead.id)).toMatchObject({
-      arr: t + ms,
-      ret: lead.ret + (t + ms - lead.arr),
+    expect(bert).toMatchObject({
+      dep: t,
+      arr,
+      ret: arr + left,
+      union: bert.union,
     });
-    expect(bert.ret).toBe(t + 2 * ms);
-  });
-  it('refuses a fleet that would delay the union by more than 30 %', () => {
-    const ms = flightOfBert();
-    const { ctx, lead, join } = late(Math.floor(ms / 1.4));
-    expect(refused(join)).toBe(
-      'Deine Flotte käme zu spät: Sie würde den Angriffsverband um mehr als 30 % der Restflugzeit verzögern.',
+    // The speed between the steps that makes the flight the time left.
+    const speed = fleetSpeed(
+      { bs: 4 },
+      { research: user(ctx, 'Bert').research },
     );
-    expect(ctx.fleets.get(lead.id)!.arr).toBe(lead.arr);
+    const pct =
+      (35000 * Math.sqrt((10 * distance(BERT, DIRK)) / speed)) /
+      ((left * ctx.admin.universe().speed) / 1000 - 10);
+    expect(pct).toBeGreaterThan(1);
+    expect(pct).toBeLessThan(10);
+    expect(bert.fuel).toBe(fuelFor({ bs: 4 }, distance(BERT, DIRK), pct));
+    expect(ctx.planets.get('p1_2_6')!.res.d).toBe(before - bert.fuel);
+    // The leader's fleet keeps its arrival: X never moves.
+    expect(ctx.fleets.all().find((f) => f.owner === 'u_Anna')!.arr).toBe(arr);
+  });
+  it('takes the bounds inside: the time at 100 % and at 10 % exactly', () => {
+    const probe = setup();
+    for (const left of [bertFlight(probe, 10), bertFlight(probe, 1)]) {
+      const { ctx, arr, join } = union(left);
+      join();
+      expect(ctx.fleets.all().find((f) => f.owner === 'u_Bert')!.arr).toBe(arr);
+    }
+  });
+  it('refuses a fleet too early even at 10 %, naming the earliest start, and spends nothing', () => {
+    const probe = setup();
+    const slow = bertFlight(probe, 1);
+    const { ctx, arr, join } = union(slow + 3_600_000);
+    const res = { ...ctx.planets.get('p1_2_6')!.res };
+    const earliest = new Date(Math.ceil((arr - slow) / 1000) * 1000);
+    const words = earliest.toLocaleString('de-DE', {
+      timeZone: 'Europe/Berlin',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+    expect(refused(join)).toBe(
+      `Deine Flotte wäre selbst mit 10 % zu früh da. Schicke sie frühestens am ${words} los.`,
+    );
+    expect(ctx.fleets.all()).toHaveLength(1);
+    expect(ctx.planets.get('p1_2_6')!.res).toEqual(res);
+  });
+  it('refuses a fleet too late even at 100 %', () => {
+    const probe = setup();
+    const { ctx, join } = union(bertFlight(probe, 10) - 1);
+    expect(refused(join)).toBe(
+      'Deine Flotte erreicht das Ziel selbst mit 100 % nicht bis zur Ankunft des Verbands.',
+    );
     expect(ctx.fleets.all()).toHaveLength(1);
   });
-  it('follows the percentage of the round', () => {
-    const ms = flightOfBert();
-    const left = Math.floor(ms / 1.4);
-    const tight = late(left, [['roundUnionDelay', 50]]);
-    tight.join();
-    expect(tight.ctx.fleets.all()).toHaveLength(2);
-    const none = late(Math.floor(ms / 1.001), [['roundUnionDelay', 0]]);
-    expect(refused(none.join)).toContain('mehr als 0 %');
-  });
   it('closes the union in the last minutes only when the round has a cut-off, default none', () => {
-    const left = 5 * 60_000;
-    expect(roundRules(setup()).unionCutoff).toBe(0);
-    const open = late(left * 100);
+    const probe = setup();
+    const left = 2 * bertFlight(probe, 10);
+    expect(roundRules(probe).unionCutoff).toBe(0);
+    const open = union(left);
     open.join();
     expect(open.ctx.fleets.all()).toHaveLength(2);
-    const closed = late(left * 100, [['roundUnionCutoff', 1440]]);
+    const closed = union(left, [['roundUnionCutoff', 1440]]);
     expect(refused(closed.join)).toBe(
       'In den letzten 1440 Minuten vor der Ankunft tritt niemand mehr bei.',
     );
   });
   it('refuses a union that has arrived', () => {
-    const { ctx, lead, join } = late(10_000);
+    const { ctx, arr, join } = union(10_000);
     // The arrival is due: the tick of the action settles it, so the union is gone.
-    ctx.clock.t = lead.arr;
+    ctx.clock.t = arr;
     expect(refused(join)).toBe('Diesen Angriffsverband gibt es nicht mehr.');
+  });
+});
+
+describe('the switch „Verbandsangriff“ (#466, 4)', () => {
+  const OFF = 'Verbandsangriffe sind in dieser Runde abgeschaltet.';
+  const off = (ctx: TestCtx) => ctx.admin.putSettings([['roundUnionOn', 0]]);
+  it('is on by default; off, nobody plans a union, and a plain attack flies', () => {
+    const ctx = setup();
+    expect(roundRules(ctx).unionOn).toBe(1);
+    off(ctx);
+    const arr = ctx.now() + flightOf(ctx, 'u_Anna', ANNA, { bs: 2 }, 10);
+    expect(
+      refused(() =>
+        runAction(ctx, 'u_Anna', {
+          type: 'send',
+          ...go('p1_1_5', { bs: 2 }, { plan: arr }),
+        }),
+      ),
+    ).toBe(OFF);
+    expect(ctx.unions.ledBy('u_Anna')).toEqual([]);
+    send(ctx, user(ctx, 'Anna'), go('p1_1_5', { bs: 2 }));
+    expect(ctx.fleets.all()).toHaveLength(1);
+  });
+  it('off, nobody invites or joins; the recall of an own fleet still works', () => {
+    const ctx = setup();
+    const id = opened(ctx);
+    runAction(ctx, 'u_Anna', { type: 'inviteUnion', id, name: 'Bert' });
+    off(ctx);
+    expect(
+      refused(() =>
+        runAction(ctx, 'u_Anna', { type: 'inviteUnion', id, name: 'Cora' }),
+      ),
+    ).toBe(OFF);
+    expect(
+      refused(() =>
+        runAction(ctx, 'u_Bert', {
+          type: 'send',
+          ...go('p1_2_6', { bs: 2 }, { union: id }),
+        }),
+      ),
+    ).toBe(OFF);
+    ctx.clock.t += 1;
+    expect(recall(ctx, user(ctx, 'Anna'), { id })).toBe(
+      'Flotte zurückgerufen.',
+    );
+    expect(ctx.unions.get(id)).toBeNull();
+  });
+  it('off, a union in flight arrives as one battle', () => {
+    const ctx = setup();
+    const id = opened(ctx);
+    const bert = joined(ctx, id);
+    off(ctx);
+    ctx.clock.t = ctx.fleets.get(id)!.arr;
+    tick(ctx);
+    const battle = ctx.reports
+      .ofPlayer('u_Bert')
+      .filter((r) => r.type === 'battle');
+    expect(battle).toHaveLength(1);
+    expect(battle[0]).toMatchObject({
+      attName: 'Anna',
+      attackers: [{ name: 'Bert' }],
+    });
+    expect(ctx.fleets.get(bert.id)?.union).toBeUndefined();
   });
 });
 
@@ -517,6 +734,40 @@ describe('the recall', () => {
       'Angriffsverband aufgelöst [1:4:8]',
     );
   });
+  it('is an ordinary recall for a fleet whose union has no row', () => {
+    const ctx = setup();
+    const id = opened(ctx);
+    const bert = joined(ctx, id);
+    ctx.unions.delete(id);
+    ctx.clock.t += 1000;
+    runAction(ctx, 'u_Bert', { type: 'recall', id: bert.id });
+    expect(ctx.fleets.get(bert.id)).toMatchObject({ state: 'back' });
+    expect(ctx.fleets.get(id)!.state).toBe('out');
+  });
+  it('ends the union when its leading fleet turns back another way: the target deletes its account (#466)', () => {
+    const ctx = setup();
+    const id = opened(ctx);
+    runAction(ctx, 'u_Anna', { type: 'inviteUnion', id, name: 'Bert' });
+    deleteAccount(ctx, user(ctx, 'Dirk'), 'secret1');
+    expect(ctx.fleets.get(id)!.state).toBe('back');
+    expect(unionOf(ctx, id)).toBeNull();
+    expect(unionsFor(ctx, 'u_Bert')).toEqual([]);
+    expect(unionsFor(ctx, 'u_Anna')).toEqual([]);
+    expect(
+      refused(() =>
+        runAction(ctx, 'u_Anna', { type: 'inviteUnion', id, name: 'Cora' }),
+      ),
+    ).toBe('Diesen Angriffsverband gibt es nicht mehr.');
+  });
+  it('is no union while its leading fleet is not in it, or is not out', () => {
+    const ctx = setup();
+    const id = opened(ctx);
+    ctx.fleets.save({ ...ctx.fleets.get(id)!, id: 'other' });
+    ctx.unions.save({ ...ctx.unions.get(id)!, id: 'u2', lead: 'other' });
+    // `other` carries the union `id`, not `u2`.
+    expect(unionOf(ctx, 'u2')).toBeNull();
+    expect(unionOf(ctx, id)).not.toBeNull();
+  });
   it('of a participant turns back only his fleet; the union flies on', () => {
     const ctx = setup();
     const id = opened(ctx);
@@ -532,16 +783,6 @@ describe('the recall', () => {
     expect(ctx.fleets.get(id)).toMatchObject({ state: 'out', union: id, arr });
     // He is invited still and may join again.
     expect(ctx.fleets.invited(id)).toEqual(['u_Bert']);
-  });
-  it('leaves the arrival of the union as it was after a recall of the fleet that delayed it', () => {
-    const ctx = setup();
-    const id = opened(ctx);
-    const bert = joined(ctx, id);
-    ctx.fleets.delayUnion(id, 500);
-    const arr = ctx.fleets.get(id)!.arr;
-    ctx.clock.t += 10;
-    runAction(ctx, 'u_Bert', { type: 'recall', id: bert.id });
-    expect(ctx.fleets.get(id)!.arr).toBe(arr);
   });
   it('is an ordinary recall for a fleet of no union', () => {
     const ctx = setup();
@@ -594,6 +835,14 @@ function arrived(
     dep: ctx.now() - 900,
     union: 'lead',
   };
+  ctx.unions.save({
+    id: 'lead',
+    leader: 'u_Anna',
+    lead: 'lead',
+    target: DIRK_ID,
+    toC: DIRK,
+    arr: lead.arr,
+  });
   ctx.fleets.save(lead);
   ctx.fleets.save(bert);
   ctx.fleets.invite('lead', 'u_Bert');
@@ -836,10 +1085,32 @@ describe('the battle of the union', () => {
           .sort(),
       ).toEqual(['battle', 'info']);
   });
+  it('lets the others arrive as single fleets when the leading fleet is gone, the invitations gone too', () => {
+    const ctx = setup();
+    arrived(ctx, { bs: 6 }, { bs: 4 });
+    ctx.fleets.delete('lead');
+    expect(arriving(ctx, ctx.fleets.get('bert')!)).toBeNull();
+    expect(ctx.unions.get('lead')).toBeNull();
+    expect(ctx.fleets.invited('lead')).toEqual([]);
+    expect(ctx.fleets.get('bert')!.union).toBeUndefined();
+  });
+  it('drops the invitations of a fleet whose union has no row at its arrival', () => {
+    const ctx = setup();
+    arrived(ctx, { bs: 6 }, { bs: 4 });
+    // As a union of before #466 whose leading fleet was gone: no row.
+    ctx.fleets.delete('lead');
+    ctx.unions.delete('lead');
+    ctx.fleets.invite('lead', 'u_Cora');
+    expect(arriving(ctx, ctx.fleets.get('bert')!)).toBeNull();
+    expect(ctx.fleets.invited('lead')).toEqual([]);
+  });
   it('lets a fleet whose union is gone attack alone, as a Sturmangriff', () => {
     const ctx = setup();
     const { bert } = arrived(ctx, { bs: 6 }, { bs: 4 });
+    // A fleet whose union has no row (#466: its leading fleet was gone when
+    // the unions moved into rows) arrives alone.
     ctx.fleets.delete('lead');
+    ctx.unions.delete('lead');
     ctx.fleets.save(bert);
     expect(arriving(ctx, ctx.fleets.get('bert')!)).toBeNull();
     ctx.fleets.save({ ...bert, union: 'lead' });
@@ -1047,22 +1318,45 @@ describe('the state', () => {
     const anna = stateFor(ctx, user(ctx, 'Anna')) as { fleets: Fleet[] };
     expect(anna.fleets[0]).toMatchObject({ union: id });
   });
-  it('forgets a union once its fleet is gone, and a new round forgets the invitations', () => {
+  it('forgets a union at its arrival X, the sweep deletes one no fleet reached, and a new round forgets every union', () => {
     const ctx = setup();
     const id = opened(ctx);
     runAction(ctx, 'u_Anna', { type: 'inviteUnion', id, name: 'Bert' });
+    const arr = ctx.unions.get(id)!.arr;
     ctx.fleets.delete(id);
-    // The invitation is no union any more: nobody sees it, and joining is refused.
+    // Without its leading fleet it is no union any more (review of #473);
+    // its row stays until X, then the sweep deletes it.
+    expect(unionsFor(ctx, 'u_Bert')).toEqual([]);
+    expect(ctx.unions.purge(ctx.now())).toBe(0);
+    ctx.clock.t = arr;
     expect(unionsFor(ctx, 'u_Bert')).toEqual([]);
     expect(unionsFor(ctx, 'u_Anna')).toEqual([]);
+    // No fleet is out: the sweep deletes the row and its invitations.
+    expect(ctx.unions.purge(ctx.now())).toBe(1);
+    expect(ctx.unions.get(id)).toBeNull();
+    expect(ctx.fleets.invitedTo('u_Bert')).toEqual([]);
     const next = opened(ctx);
     ctx.fleets.invite(next, 'u_Bert');
-    expect(ctx.fleets.invitedTo('u_Bert')).toEqual([id, next]);
     runAction(ctx, 'u_Ada', {
       type: 'reset',
       rewards: { achievements: true, daily: true },
     });
     expect(ctx.fleets.invitedTo('u_Bert')).toEqual([]);
+    expect(ctx.unions.get(next)).toBeNull();
     expect(ctx.fleets.all()).toEqual([]);
+  });
+  it('keeps a union whose fleets are still out past X for the tick, and leads it by the leader', () => {
+    const ctx = setup();
+    const id = opened(ctx);
+    joined(ctx, id);
+    ctx.clock.t = ctx.unions.get(id)!.arr + 1;
+    // The tick has not run yet: the sweep keeps the union for the arrival.
+    expect(ctx.unions.purge(ctx.now())).toBe(0);
+    tick(ctx);
+    expect(ctx.unions.get(id)).toBeNull();
+    const [report] = ctx.reports
+      .ofPlayer('u_Bert')
+      .filter((r) => r.type === 'battle');
+    expect(report).toMatchObject({ attName: 'Anna' });
   });
 });

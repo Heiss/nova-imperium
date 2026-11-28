@@ -2019,6 +2019,10 @@ table.lx-t {
   border-left: 1px solid var(--gold);
   box-shadow: -18px 0 50px rgba(0, 0, 0, 0.75);
 }
+/* The explanations of the admin panel (#358) open over the dialog „Neue Runde“ too. */
+.admin-explain {
+  z-index: 45;
+}
 .lx-drawer:focus {
   outline: none;
 }

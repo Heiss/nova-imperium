@@ -217,6 +217,36 @@ describe('saving the push kinds one at a time (CodeRabbit on #204)', () => {
     expect(choice.pushChoice).toBeUndefined();
   });
 
+  it('shows the server kinds again after a save that threw, and the next change saves anew (PR #469)', async () => {
+    const choice: PushChoice = {};
+    let fail = true;
+    const sent: string[][] = [];
+    const change = pushSaver(choice, async (off) => {
+      sent.push(off);
+      if (fail) throw new Error('down');
+      return true;
+    });
+    await expect(change([], 'news', false)).rejects.toThrow('down');
+    expect(choice.pushChoice).toBeUndefined();
+    fail = false;
+    await change([], 'fleet', false);
+    expect(sent).toEqual([['news'], ['fleet']]);
+    expect(choice.pushChoice).toBeUndefined();
+  });
+
+  it('sends no waiting choice once it was forgotten with the player (PR #469)', async () => {
+    const { calls, save } = slowServer();
+    const choice: PushChoice = {};
+    const change = pushSaver(choice, save);
+    const done = change([], 'news', false);
+    void change([], 'fleet', false);
+    // A sign-out or another player: `client.forgetPlayer`.
+    choice.pushChoice = undefined;
+    calls[0]!.answer(true);
+    await done;
+    expect(calls.map((c) => c.off)).toEqual([['news']]);
+  });
+
   it('ignores a change of an unknown kind', async () => {
     const { calls, save } = slowServer();
     const choice: PushChoice = {};

@@ -2,7 +2,7 @@
 // „Schnellwahl“ (#253), and names the limit of planets beside a Landnahme
 // (#237).
 import { describe, expect, it } from 'vitest';
-import { planet, U } from '../../test/fixtures.ts';
+import { planet, roundDefaults, U } from '../../test/fixtures.ts';
 import type { GameState } from '../logic/types.ts';
 import { fleetView as fleet } from '../../test/fleet-view.ts';
 import type { Ui, V } from './common.ts';
@@ -37,6 +37,8 @@ function view(
     galaxy,
     debris: [],
     fleets: [],
+    // The round of every state; the box „Verbandsangriff“ reads its switch (#466).
+    round: { number: 1, ...roundDefaults() },
   } as unknown as GameState;
   return {
     s,

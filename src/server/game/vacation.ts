@@ -19,6 +19,7 @@ import { heldAt, sendHome } from './holding.ts';
 import { lockEndText } from './main-planet.ts';
 import { roundRules } from './round.ts';
 import type { ServerFeature } from './feature.ts';
+import { plannedBy } from './union.ts';
 
 /** The refusal of an own game action during the vacation mode (Q2) [V]. */
 export const VACATION_REFUSED = 'Im Urlaubsmodus nicht möglich.';
@@ -73,7 +74,8 @@ const startVacation: Handler<'startVacation'> = (ctx, u, _d, event) => {
   const places = settledPlaces(ctx, u);
   const research = settleR(u, now);
   const error = vacationEntryError({
-    fleets: ctx.fleets.count(u.id),
+    // A planned start of an attack union counts as a fleet out (#478) [V].
+    fleets: ctx.fleets.count(u.id) + plannedBy(ctx, u.id),
     building: places.some((p) => p.bq !== null),
     research: research.rq !== null,
     shipyard: places.some((p) => p.sq.length > 0),

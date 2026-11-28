@@ -44,16 +44,19 @@ The battle with several parties is built with #55
   fleet (owner, 2026-11-16, classic values verified, owiki
   „Allianzkampfsystem“).
 * **[E]** Loot (owner, 2026-11-16, D3; replaced by #440, 233b: held
-  cargo is no loot): the cargo of held fleets can be plundered too. This is a Nova rule: no classic source documents it;
+  cargo is no loot; 233b replaced by #467, see „The cargo of a destroyed
+  hold“): the cargo of held fleets can be plundered too. This is a Nova rule: no classic source documents it;
   classic loot is 50 % of the planet's stock (owiki „Beute“), and owiki
   contradicts itself on whether held fleets keep their cargo.
-* **[U]** How the cargo of held fleets enters the loot (its share and the
-  order against the planet's stock) is not decided.
+* ~~**[U]** How the cargo of held fleets enters the loot (its share and the
+  order against the planet's stock) is not decided.~~ Closed by #467: see
+  „The cargo of a destroyed hold“.
 * **[V]** No holding at a player in vacation mode or in noob protection
   (the noob protection part replaced by #440, 238c), as in classic (owiki „Allianzkampfsystem“; see
   [Vacation mode](/features/vacation-mode.md)).
-* **[E]** Loot (owner, 2026-11-17, completing the [U] above; replaced by
-  #440, 233b): when a planet with held fleets is raided, the loot takes the classic 50 % of
+* ~~**[E]** Loot (owner, 2026-11-17, completing the [U] above)~~, replaced
+  by #440 (233b), then by #467; the current rule is „The cargo of a
+  destroyed hold“: when a planet with held fleets is raided, the loot takes the classic 50 % of
   the planet's stock first, then the cargo of the held fleets with the
   capacity that is left.
 * **[E]** Who may hold is a value per round, set in the dialog „Neue
@@ -148,7 +151,8 @@ The battle with several parties is built with #55
   * The cargo of the held fleets is taken whole (not half) with the room
     left; the rest is lost with the fleets, which are destroyed when the
     attacker wins (superseded by #440, 2026-11-27, 233b: held cargo is no
-    loot; it is lost with the fleets). 1 hour is preselected in the form.
+    loot; it is lost with the fleets; 233b superseded by #467: the cargo
+    goes to the planet and is plundered there). 1 hour is preselected in the form.
   * „alles“ of the fleet form (#240) leaves the fuel of the holding time
     on the planet too, as the flight fuel.
   * The spy report (`withHeldFleets` in `src/server/game/holding.ts`, one
@@ -500,8 +504,39 @@ The owner's decisions on #440, built on `claude/hold-rework`.
   the switch, the option box is hidden, and the Lexicanum hides the article
   of the mission (`offered` of its rules, as #404 for the pages). The
   refusal of a launch is the mission's own (`offered.refusal`).
-* **[E]** Held cargo is no loot (233b); the debris and the moon chance of
-  destroyed held fleets stay.
+* **[E]** ~~Held cargo is no loot (233b)~~, replaced by #467 (below); the
+  debris and the moon chance of destroyed held fleets stay.
+
+## The cargo of a destroyed hold (#467, replaces 233b)
+
+* **[E]** (owner, 2026-11-28) A hold keeps its cargo in its fleet. When it
+  is destroyed in a battle, its cargo goes to the host's planet before the
+  plunder and is then part of the stock that can be plundered.
+* **[E]** (owner, 2026-11-28) When only part of a hold is destroyed, the
+  cargo that no longer fits into the surviving ships goes to the planet;
+  the rest stays in the fleet.
+* **[E]** (owner, 2026-11-28) The handed-over cargo follows the rule of a
+  delivery of a transport: `land` (`src/server/game/missions.ts`), no
+  storage cap.
+* **[E]** (owner, 2026-11-28) Explained clearly in the next release: the
+  changelog entry and the Lexicanum (pages `rule-allies` and
+  `rule-battle`, `HOLD_LEXICON.cargoHandover` in `src/core/hold-texts.ts`).
+* **[V]** Built (`handOver` in `src/server/game/fight.ts`): right after the
+  battle, in every battle in which holds defend (Sturmangriff, Mondbruch,
+  the fight of detected Auspex probes), whoever wins. The part a hold
+  keeps is `cutLoot(cargo, capacity(survivors))`, the order of the loot;
+  the rest lands on the planet (on the moon at a Mondbruch, where it is
+  plundered and then lost with a broken moon, like the moon's stock). The
+  plunder (50 % of the stock) comes after the handover.
+* **[V]** The battle report of the defender's side (the host and the
+  owners of the holds) shows per hold „Übergebene Ladung: …“ under its
+  „Verteidiger <Name>“ block; the attacker's report does not.
+* **[V]** Texts of #467 (proposals): the Lexicanum sentence „Wird eine
+  Wache im Kampf vernichtet, geht ihre Ladung an den Planeten des
+  Gastgebers, bei Verlusten der Teil, der nicht mehr in die übrigen
+  Schiffe passt. Dort gehört sie zum Vorrat und lässt sich wie jeder
+  Vorrat plündern.“, the report line „Übergebene Ladung: …“ and the
+  changelog fragment `changes/wachen-ladung.md`.
 * **[E]** The host gets „{Spieler} schickt eine Wache zu {Planet}.
   Ankunft: {Zeit}.“ at the launch and „{Spieler} hält mit einer Flotte
   Wache bei {Planet} bis {Zeit}.“ at the arrival (242c). All hold reports,
@@ -539,7 +574,8 @@ The owner's decisions on #440, built on `claude/hold-rework`.
     Spielers Wache, gilt sein Schutz an diesem Ort nicht für Sturmangriff
     und Auspex-Erkundung, außer gegen den Besitzer dieser Wache; vor Raketen
     bleibt er geschützt.“ (after CodeRabbit on #455) and „Eine Wache wird
-    nicht geplündert: Ihre Ladung geht verloren, wenn sie zerstört wird.“;
+    nicht geplündert: Ihre Ladung geht verloren, wenn sie zerstört wird.“
+    (replaced by #467, see „The cargo of a destroyed hold“);
   * the line of the Auspex-Erkundung (page `spy`, after CodeRabbit on
     #455): „Erkunden lassen sich fremde Planeten und Monde. Wer im
     Urlaubsmodus ist, lässt sich nicht erkunden. Wer unter Noobschutz
@@ -551,4 +587,174 @@ The owner's decisions on #440, built on `claude/hold-rework`.
     Fremde Wachen kannst du wegschicken oder ablehnen; nicht mehr erlaubte
     kehren von selbst um. Hält bei einem schwachen Spieler die Wache eines
     anderen, dürfen Dritte ihn dort trotz Noobschutz angreifen und
-    erkunden. Ladung einer Wache ist keine Beute.“
+    erkunden. Ladung einer Wache ist keine Beute.“ (shipped in 26.11.30;
+    its last sentence is replaced by #467, see „The cargo of a destroyed
+    hold“ and `changes/wachen-ladung.md`)
+
+# Rework of 2026-11-28 (#466)
+
+The owner, 2026-11-28: the order of #225 is the wrong way round; the
+invitation comes before the attack.
+
+* **[E]** (1c) A union has a fixed arrival X; every fleet of it arrives
+  exactly at X. (2a) The opening from a running attack goes; only the new
+  action stays. (3) No expiry: X is set. (4) A switch per round
+  „Verbandsangriff“, „An“ in running universes. (5a) The assistant writes
+  the texts; the owner checks them after the release. (6b) With the next
+  release, on the owner's word. (7b) A fleet that joins starts at once, the
+  server picks its speed between 10 % and 100 %, also between the steps, so
+  that it arrives exactly at X, and the fuel follows that speed; too early
+  even at 10 % is refused, naming the earliest start. (8a) The delay
+  setting goes; the cut-off and the limits of 16 fleets and 5 players stay.
+* **[E]** The recall (owner, 2026-11-28, correction): when the leader aborts,
+  the union aborts, with no separate action. The recall of the leader's
+  fleet turns back every fleet of the union, as Q2 of 2026-11-16; a
+  member's recall turns back only his fleet.
+* **[E]** (A1a, owner, 2026-11-28) Planning is the leader's own
+  Sturmangriff with X; the invitations follow from the box. So a union
+  always has its leader's fleet, and his recall aborts it. No separate
+  call-off. The migration fills `lead` with the founder. No upper bound for
+  X; the unions of a leader are bounded by his fleet slots.
+
+## Built with #466
+
+Everything below is [V] unless it names an owner's decision.
+
+* **Data, replacing „Data“ of #225.** A union is a row of
+  `attack_unions` (id, leader, the leader's fleet that leads it `lead`,
+  target, coordinates, X), migration `20261128T0300-attack-union-rows`
+  (`src/server/db/migrations/466/`), repository `src/server/db/repos/unions.ts`.
+  The unions in flight moved into rows with their ID, the leader's fleet as
+  `lead` and X their present arrival, so `fleets.union_id` and
+  `attack_union_invites` stay; a fleet whose union has no row arrives alone,
+  as before. A union is alive while its row exists and X is in the future.
+  The hourly sweep deletes a union whose X has passed and that has no fleet
+  out any more (a union no fleet reached ends silently); a new round clears
+  the table.
+* **Joining, replacing „Timing“ of #225 (the 30 % rule).** `unionFlight` of
+  `src/core/union.ts` solves `flightMs` for the speed: `pct = 35000 ·
+  √(10 · dist / speed) ÷ ((X − now) · universe speed / 1000 − 10)` tenths,
+  clamped to 1..10. Too early even at 10 % names the earliest start (to the
+  second, German time), too late even at 100 % is refused, the bounds are
+  inside. The fleet's arrival is set to X itself (no rounding moves it), its
+  return is X plus the time it flew, its fuel `fuelFor` with that speed; the
+  speed the form sends is not used. The cut-off and the limits are as
+  before (`joinWindow`).
+* **The leader and the battle.** The fleet the leader planned the union
+  with leads the battle; its ID is the union's and is kept as `lead`. A
+  union is alive while its row exists, X is in the future and this leading
+  fleet is still on its way out in it; a leading fleet turned back by
+  another way than the recall (the target deletes its account) ends the
+  union for invitations and joins. A union whose leading fleet is gone
+  arrives as single fleets, as before #466. The recall of the leading fleet
+  ends the union (Q2, unchanged).
+* **Settings, replacing „Settings“ of #225.** `roundUnionDelay` is gone from
+  the registry; a stored value is no longer read. New is the live switch
+  `roundUnionOn` „Verbandsangriff“, „An“ (1) or „Aus“ (0), order 240, the
+  shape `LIVE_SWITCH` of `src/core/live-switch.ts` that „Wache stellen“
+  shares. Off: nobody opens, invites or joins (refusal „Verbandsangriffe
+  sind in dieser Runde abgeschaltet.“); the box „Verbandsangriff“ keeps the
+  unions in flight with their arrival but offers no invitation, no
+  „Beitreten“, no opening, and the fleet form no row „Verband“; what flies
+  arrives; the recall of an own fleet always works.
+* **Browser.** The arrival line of a joining fleet shows X, its return and
+  „(Verband: Geschwindigkeit 37,5 %)“, or the refusal; the fuel of the form
+  is that of the solved speed. The hint under the box says the fixed
+  arrival.
+* **Texts [V].** The refusals „Deine Flotte wäre selbst mit 10 % zu früh
+  da. Schicke sie frühestens am … los.“ and „Deine Flotte erreicht das Ziel
+  selbst mit 100 % nicht bis zur Ankunft des Verbands.“, the switch
+  „Verbandsangriff“ with „An“/„Aus“ and its refusal, the form line, the new
+  hint, the Lexicanum section „Ankunft, Geschwindigkeit und Grenzen“.
+* **Planning, replacing „Opening“ of #225 (A1a).** The fleet form of a
+  Sturmangriff has, while the switch is on, the choice „Neuen Verband
+  planen“ in the row „Verband“ and then the row „Ankunft des Verbands“
+  (date and time); the action `send` carries `plan` (X in milliseconds).
+  `planOf` of `src/server/game/union.ts` checks the switch, a Sturmangriff,
+  no join at once, X in the future and beyond the cut-off (`planError` of
+  `src/core/union.ts`, else nobody could join [V]) and the speed for X
+  (`unionFlight`, the same refusals as a join); the target has every check
+  of an attack. The fleet arrives at X, the union is a row with its ID and
+  `lead` this fleet (`foundUnion`). The action `openUnion`, the button
+  „Angriffsverband eröffnen“ and its refusals are gone.
+* **Texts [V] of planning.** „Neuen Verband planen“, „Ankunft des
+  Verbands“, „Bitte die Ankunft des Verbands wählen.“, „Einen
+  Angriffsverband plant man mit einem Sturmangriff.“, „Eine Flotte plant
+  einen Angriffsverband oder tritt einem bei, nicht beides.“, „Die Ankunft
+  muss in der Zukunft liegen.“, „Die Ankunft muss mehr als N Minuten in der
+  Zukunft liegen, sonst kann niemand mehr beitreten.“; the Lexicanum section
+  „Verbandsangriff: planen, einladen, beitreten“.
+* **No limit** on the unions a leader has planned at once beyond his fleet
+  slots (owner, A1a).
+* ~~**[U]** The upper bound of X.~~ Closed by #478 (below): a later X
+  starts the leader's fleet by itself.
+
+## Delayed start of the leader (#478)
+
+* **[E]** (owner, 2026-11-28, 1) The leader may choose a later arrival X.
+  His fleet then starts by itself at X minus its flight time, at the speed
+  that brings it there at X.
+* **[E]** (owner, 2026-11-28, 2) Until the start the ships stay on the
+  planet: they defend it and can be lost there. At the start what is left
+  flies; the fuel is paid at the start. If the fuel is not there then,
+  nothing starts and the union is dissolved.
+* **[E]** (owner, 2026-11-28) When the leader aborts, the union aborts: the
+  abort of a planned start dissolves it, as his recall does (Q2).
+* **[V]** Built (accepted by the coordinator, 2026-11-28):
+  * **Which speed.** The leader chooses the speed step of the fleet form;
+    the start is X minus the flight at that step (`plannedStart` of
+    `src/core/union.ts`). A union X reaches within the window of 10 % to
+    100 % starts at once as before (#466).
+  * **Data.** The union row keeps the start (`start_at`, `start_from`,
+    `start_ships`, `start_pct`, migration
+    `20261128T1000-union-planned-start`); `lead` is the ID the fleet gets.
+    A union is alive while its start is planned (`unionOf`), so invitations
+    and joins work as before; the leader's fleet counts against the limits
+    from the planning.
+  * **Until the start.** The ships are held back from every other order
+    (`reservedAt` in `pickedShips`, the send and the Warp-Tor); the fleet
+    form shows only the free ships. The plan takes a fleet slot from the
+    planning and blocks the leader's vacation like a fleet out. A plan takes
+    no cargo („Eine Flotte, die später startet, nimmt keine Ladung mit.“).
+  * **The start** (`startPlanned` in `src/server/game/union-start.ts`) is a
+    due event of the tick, in the order of time with the fleets: the planet
+    settled to the start, what is left of the planned ships, every check of
+    a Sturmangriff at the target, the fuel of the step paid then; the fleet
+    arrives at X and comes back after a flight as long. The guild of the
+    defender learns of the attack at the start.
+  * **A failed start.** No planned ship left (owner: yes), too little
+    Promethium, the planet no longer the leader's, or the target refuses
+    the attack: nothing starts, every joined fleet turns back as on the
+    recall, each owner gets „Angriffsverband aufgelöst [g:s:p]“ with „Die
+    Flotte des Anführers ist nicht gestartet; der Angriffsverband auf
+    [g:s:p] ist aufgelöst. Deine Flotte kehrt um.“, and the leader
+    „Geplanter Angriff nicht gestartet [g:s:p]“ with the reason.
+  * **An error of the server at the start** (PR #490): the start is logged
+    and, after the rollback, dissolves the union as one that did not
+    happen; the leader reads „… ist nicht gestartet: Beim Start ist ein
+    Fehler aufgetreten. Der Angriffsverband ist aufgelöst.“ [V]. A fleet
+    whose writer is busy before a start in the same tick holds that start
+    back too, so the order of time holds. A fleet that joined after the
+    start was due (only when the tick before the action was busy) turns
+    back from its own departure, never before it.
+  * **Shown slots.** The fleet view, its form and the hint of the
+    Lexicanum count a planned start against the slots, as the server does;
+    the Sternenkarte (Auspex-Erkundung, Landnahme, Vermessen, Expedition,
+    the flight time) offers only the free ships.
+  * **Abort.** „Abbrechen“ of the planned start in the fleet movements
+    (action `cancelPlan`, the leader only) dissolves the union; the members
+    get the report of the recall.
+  * **The switch „Verbandsangriff“ off:** no new delayed plan; a start
+    already planned still starts.
+  * **Shown.** The fleet movements list the planned start („Geplanter
+    Start: Deine Flotte (…) greift [g:s:p] an · Angriffsverband (Anführer),
+    Ankunft …“) by its time; the union box says „Start der Flotte des
+    Anführers in …“; the arrival line of the form says „(Verband: Start am
+    … mit 50 %)“. The state gives every member the start, the leader also
+    the planet and the ships held back.
+  * **Texts [V]:** the refusal of cargo, the report texts, the answer
+    „Sturmangriff geplant: Start am …, Ankunft am ….“, „Geplanter Start
+    abgebrochen. Der Angriffsverband ist aufgelöst.“, „Diesen geplanten
+    Start gibt es nicht mehr.“, the lines above, the Lexicanum paragraph of
+    „Verbandsangriff: planen, einladen, beitreten“ and the changelog
+    fragment `changes/verband-spaeter-start.md`.

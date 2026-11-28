@@ -205,8 +205,8 @@ may pass on a right its holder lacks.
   Mitglied gets them too (`MEMBER_RIGHTS`).
 * The rights register themselves (#426 part 5; owner, 2026-11-26, 192a and
   193b; the coordinator's choices of 2026-11-27, [V]): a file of
-  `src/core/guild-rights/` exports `guildRights`, entries of key, order,
-  name and, for the rights of the first „Mitglied“, `member`
+  `src/core/guild-rights/` exports `guildRights`, entries of `key`,
+  `order`, `label` and, for the rights of the first „Mitglied“, `member`
   (`management.ts`: applications 10, remove 20, assign 30, profile 40,
   ranks 50; `chat.ts`: chat-read 60, chat-write 70, both `member`,
   chat-delete 80). `scripts/gen-features.ts` writes

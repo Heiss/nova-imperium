@@ -197,7 +197,12 @@ export function adminPage(v: V): AdminPage | null {
 }
 
 /** The field of one setting of the round (#283), preselected with its value. */
-export type RoundField = { id: string; label: string } & (
+export type RoundField = {
+  id: string;
+  label: string;
+  /** The stored key of the setting: its explanation (#358). */
+  key: string;
+} & (
   | { kind: 'switch'; checked: boolean; note: string | null }
   | { kind: 'choice'; choices: Choice[] }
   | {
@@ -217,6 +222,7 @@ function roundField(s: RoundSetting, value: number | boolean): RoundField {
   const field = {
     id: roundFieldId(s),
     label: s.label,
+    key: s.key,
     ...(s.mark ? { mark: MARK_LABELS[s.mark] } : {}),
   };
   if (s.kind === 'switch')
@@ -349,32 +355,6 @@ export function roundDialogPage(
   return { rows, sections: rowSections(rows, settings, sections) };
 }
 
-/**
- * A row under the heading `h`: a legend that repeats the heading goes, the
- * heading (`id`) names the fieldset instead (owner, 2026-11-22). By kind, so
- * a field, which has no legend, stays as it is.
- */
-const UNDER_HEADING: {
-  [K in RoundRow['kind']]: (
-    row: Extract<RoundRow, { kind: K }>,
-    h: string | null,
-    id: string,
-  ) => RoundRow;
-} = {
-  field: (row) => row,
-  group: (row, h, id) =>
-    row.legend === h ? { ...row, legend: null, labelledBy: id } : row,
-};
-
-const underHeading = (row: RoundRow, h: string | null, id: string): RoundRow =>
-  (
-    UNDER_HEADING[row.kind] as (
-      r: RoundRow,
-      h: string | null,
-      id: string,
-    ) => RoundRow
-  )(row, h, id);
-
 /** The ids of the fields of a row of the dialog. */
 const idsOf = (row: RoundRow): string[] =>
   row.kind === 'field' ? [row.field.id] : row.members.map((m) => m.field.id);
@@ -402,10 +382,29 @@ function rowSections(
       last = { heading: h, id: `round-heading-${out.length}`, rows: [] };
       out.push(last);
     }
-    last.rows.push(underHeading(row, h, last.id!));
+    last.rows.push(UNDER_HEADING[row.kind](row as never, h, last.id!));
   }
   return out;
 }
+
+type Row<K extends RoundRow['kind']> = Extract<RoundRow, { kind: K }>;
+
+/**
+ * A row under its heading, by its kind: a legend that repeats the heading of
+ * its group goes, and the heading names the fieldset instead (owner,
+ * 2026-11-22); a field stays as it is.
+ */
+const UNDER_HEADING: {
+  [K in RoundRow['kind']]: (
+    row: Row<K>,
+    heading: string | null,
+    id: string,
+  ) => RoundRow;
+} = {
+  field: (row) => row,
+  group: (row, heading, id) =>
+    row.legend === heading ? { ...row, legend: null, labelledBy: id } : row,
+};
 
 /** What the dialog „Endzeit einläuten“ shows (#161): the numbers of the gift and the flight time. */
 export const endzeitDialogPage = (minutes: number) => ({

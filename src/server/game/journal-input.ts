@@ -50,6 +50,7 @@ export const INPUT: Readonly<Record<string, Spec>> = {
     hold: 'keep',
     stay: 'keep',
     union: 'keep',
+    plan: 'keep',
     id: 'keep',
   },
   recall: { id: 'keep' },
@@ -64,8 +65,8 @@ export const INPUT: Readonly<Record<string, Spec>> = {
     amount: 'keep',
     price: 'keep',
   },
-  openUnion: { id: 'keep', name: 'length' },
   inviteUnion: { id: 'keep', name: 'seatByName' },
+  cancelPlan: { id: 'keep' },
   // The account and its rewards.
   abandon: { target: 'keep', created: 'keep' },
   claimAchievement: { id: 'keep' },

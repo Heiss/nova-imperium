@@ -22,7 +22,7 @@
 // its base and a fee is never negative, so a chain of exchanges returns at
 // most what it started with unless the admin's ratios themselves gain on a
 // round trip (`gainingTrips` names those, the panel warns).
-import type { RoundGroup, RoundSetting } from './round.ts';
+import type { RoundGroup, RoundSetting, SettingExplain } from './round.ts';
 import type { Planet, Resources, Universe } from './types.ts';
 
 /** A resource: Adamant `m`, Psikristall `c`, Promethium `d`; energy is no resource here. */
@@ -123,6 +123,60 @@ export const feePercent = (level: number, base: number, step: number): number =>
 
 /** The level of the Handelsposten on a planet; 0 without one. */
 export const postLevel = (p: Pick<Planet, 'b'>): number => p.b.market ?? 0;
+/** The amounts given that the table of the price step shows (#358). */
+const GIVEN = [10_000, 100_000, 1_000_000];
+/** The hours after a trade that the table of the recovery shows (#358). */
+const AFTER_HOURS = [1, 6, 24, 72];
+/** The levels of the Handelsposten that the table of the fee shows (#358). */
+const POST_LEVELS = [1, 2, 3, 5, 10, 15];
+
+/** A price in percent of the base price, as the tables show it (#358). */
+const pricePercent = (price: number): number =>
+  Math.round((price * 1000) / PRICE_UNIT) / 10;
+
+/** The price of a pair after an amount given at the base price (#358). */
+const STEP_ROWS: SettingExplain['rows'] = GIVEN.map((given) => ({
+  label: () =>
+    `Preis nach ${given.toLocaleString('de-DE')} getauschten Einheiten (%)`,
+  cell: ({ round }) =>
+    pricePercent(priceAfter(PRICE_UNIT, given, round.marketStep!)),
+}));
+
+/** A price that fell to half, some hours after the trade (#358). */
+const DRIFT_ROWS: SettingExplain['rows'] = AFTER_HOURS.map((hours) => ({
+  label: () => `Halber Preis, ${hours} Std. nach dem Tausch (%)`,
+  cell: ({ round }) =>
+    pricePercent(
+      priceNow(
+        { price: PRICE_UNIT / 2, at: 0 },
+        hours * HOUR_MS,
+        round.marketDrift!,
+      ),
+    ),
+}));
+
+/** The fee at a level of the Handelsposten (#358). */
+const FEE_ROWS: SettingExplain['rows'] = POST_LEVELS.map((level) => ({
+  label: () => `Handelsposten Stufe ${level}: Gebühr (%)`,
+  cell: ({ round }) =>
+    feePercent(level, round.marketFee!, round.marketFeeStep!),
+}));
+
+/** What a player gets for the unit of a ratio at the base price on level 1 (#358). */
+const ratioRows = (pair: Pair): SettingExplain['rows'] => [
+  {
+    label: () =>
+      `Für ${RATIO_UNIT.toLocaleString('de-DE')} ${RES_NAME[pair[0] as Res]} auf Stufe 1`,
+    cell: ({ round }) =>
+      got(RATIO_UNIT, {
+        ratio: ratiosOf(round as unknown as MarketRound)[pair],
+        price: PRICE_UNIT,
+        fee:
+          feePercent(1, round.marketFee!, round.marketFeeStep!) *
+          (FEE_UNIT / 100),
+      }),
+  },
+];
 
 /** The group of the settings in the dialog „Neue Runde“ and in the universe settings. */
 const MARKET_GROUP: RoundGroup = { name: 'market', legend: 'Marktplatz' };
@@ -145,6 +199,11 @@ const ratio = (pair: Pair) =>
     min: RATIO_RANGE.min,
     max: RATIO_RANGE.max,
     def: DEFAULT_RATIOS[pair],
+    explain: {
+      text: 'Wie viel ein Spieler bei diesem Tausch zum Grundpreis bekommt, bevor die Gebühr abgeht. Gilt ab dem nächsten Tausch; ein gesunkener Preis bleibt als Anteil am Grundpreis erhalten.',
+      rows: ratioRows(pair),
+      own: true,
+    },
   }) as const;
 
 /**
@@ -164,6 +223,9 @@ export const roundSettings = [
   {
     ...number,
     key: 'roundMarketOn',
+    explain: {
+      text: 'Schaltet den Marktplatz für die Runde ein oder aus. Aus: Niemand kann tauschen, die Seite ist verborgen, und der Handelsposten bekommt keine neue Stufe; gebaute Stufen bleiben.',
+    },
     name: 'marketOn',
     label: 'Marktplatz aktiv',
     order: 320,
@@ -220,6 +282,11 @@ export const roundSettings = [
   {
     ...number,
     key: 'roundMarketStep',
+    explain: {
+      text: 'Wie stark jeder Tausch den Preis seines Paars senkt; nur dieses Paar, für alle Spieler gemeinsam. Gilt ab dem nächsten Tausch.',
+      rows: STEP_ROWS,
+      own: true,
+    },
     name: 'marketStep',
     label: 'Marktplatz Preisschritt (Promille je 1.000 getauschte Einheiten)',
     order: 390,
@@ -230,6 +297,11 @@ export const roundSettings = [
   {
     ...number,
     key: 'roundMarketDrift',
+    explain: {
+      text: 'In wie vielen Stunden ein gesunkener Preis gleichmäßig wieder den Grundpreis erreicht. Beim Wert null erholt er sich nicht. Eine Änderung gilt sofort, gemessen ab dem letzten Tausch.',
+      rows: DRIFT_ROWS,
+      own: true,
+    },
     name: 'marketDrift',
     label: 'Marktplatz Preiserholung (Stunden, 0 = keine Erholung)',
     order: 400,
@@ -240,6 +312,9 @@ export const roundSettings = [
   {
     ...number,
     key: 'roundMarketLimit',
+    explain: {
+      text: 'Wie viele Einheiten ein Spieler je Tag (UTC) höchstens hergeben darf, über alle Rohstoffe zusammen. Beim Wert null gibt es keine Grenze. Eine Änderung gilt sofort; was heute schon getauscht ist, zählt mit.',
+    },
     name: 'marketLimit',
     label: 'Marktplatz Tageslimit je Spieler (Einheiten, 0 = unbegrenzt)',
     order: 410,
@@ -250,6 +325,11 @@ export const roundSettings = [
   {
     ...number,
     key: 'roundMarketFee',
+    explain: {
+      text: 'Die Gebühr in Prozent, die auf der ersten Stufe des Handelspostens vom Ergebnis eines Tauschs abgeht. Gilt ab dem nächsten Tausch.',
+      rows: FEE_ROWS,
+      own: true,
+    },
     name: 'marketFee',
     label: 'Marktplatz Gebühr auf Stufe 1 des Handelspostens (Prozent)',
     order: 420,
@@ -260,6 +340,11 @@ export const roundSettings = [
   {
     ...number,
     key: 'roundMarketFeeStep',
+    explain: {
+      text: 'Um so viele Prozentpunkte sinkt die Gebühr mit jeder Stufe des Handelspostens über der ersten, nie unter null. Gilt ab dem nächsten Tausch.',
+      rows: FEE_ROWS,
+      own: true,
+    },
     name: 'marketFeeStep',
     label: 'Marktplatz Gebühr sinkt je weitere Stufe um (Prozentpunkte)',
     order: 430,

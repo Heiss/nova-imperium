@@ -3,6 +3,7 @@
 // when a fleet's next event is due.
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
+import { withoutExplain } from '../test/explain.ts';
 import {
   holdOpen,
   turnHomeAt,
@@ -71,6 +72,17 @@ describe('a hold that turns home (#440, 231a, 4a)', () => {
     expect(turnHomeAt({ ...f, state: 'hold' }, 20_000)).toEqual({
       ret: 11_600 + 600,
     });
+    // The state decides, not the time: a fleet that holds is never recalled,
+    // even at a time before its arrival.
+    expect(turnHomeAt({ ...f, state: 'hold' }, 1200)).toEqual({
+      ret: 1200 + 600,
+    });
+  });
+  it('flies home from its place for a hold, even before its arrival time', () => {
+    // A hold is home after the time of its flight back, never recalled.
+    expect(turnHomeAt({ ...f, state: 'hold' }, 1200)).toEqual({
+      ret: 1200 + 600,
+    });
   });
   it('flies home from its arrival when it turns there', () => {
     expect(turnHomeAt({ ...f, state: 'out' }, 1600)).toEqual({
@@ -103,7 +115,7 @@ describe('who may hold', () => {
     expect(ALLIES_RANGE).toEqual({ min: 1, max: 3, default: 3 });
   });
   it('is a live selection of the round, order 100, without a group (#283, #310, X1)', () => {
-    expect(setting('roundAllies')).toEqual({
+    expect(withoutExplain(setting('roundAllies'))).toEqual({
       kind: 'number',
       key: 'roundAllies',
       name: 'allies',
@@ -123,9 +135,9 @@ describe('who may hold', () => {
     expect(roundFieldId(setting('roundAllies'))).toBe('round-allies');
   });
   it('is a row of the universe settings with its choices, checked there, 3 by default (X1)', () => {
-    expect(liveSpecs().find((s) => s.key === 'roundAllies')).toEqual(
-      ALLIES_ROW,
-    );
+    expect(
+      withoutExplain(liveSpecs().find((s) => s.key === 'roundAllies')),
+    ).toEqual(ALLIES_ROW);
     const codes = (input: Record<string, unknown>) =>
       universeErrors(
         { ...DEFAULT_UNIVERSE, ...input },
@@ -253,7 +265,7 @@ describe('held fleets in the spy report (#55, owner, 2026-11-17)', () => {
     expect(HELD_SPY).toEqual({ min: 0, max: 30, default: 2 });
   });
   it('is a live number field of the round, order 110, without a group (#283, #310, X1)', () => {
-    expect(setting('roundHeldSpy')).toEqual({
+    expect(withoutExplain(setting('roundHeldSpy'))).toEqual({
       kind: 'number',
       key: 'roundHeldSpy',
       name: 'heldSpy',
@@ -269,9 +281,9 @@ describe('held fleets in the spy report (#55, owner, 2026-11-17)', () => {
     expect(roundFieldId(setting('roundHeldSpy'))).toBe('round-held-spy');
   });
   it('is a row of the universe settings, 0 to 30, checked there, 2 by default (X1)', () => {
-    expect(liveSpecs().find((s) => s.key === 'roundHeldSpy')).toEqual(
-      HELD_SPY_ROW,
-    );
+    expect(
+      withoutExplain(liveSpecs().find((s) => s.key === 'roundHeldSpy')),
+    ).toEqual(HELD_SPY_ROW);
     const codes = (input: Record<string, unknown>) =>
       universeErrors(
         { ...DEFAULT_UNIVERSE, ...input },

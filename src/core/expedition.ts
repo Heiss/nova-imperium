@@ -6,7 +6,7 @@
 // (version 1.4.1 on), „Expeditionstechnik“ and the discussion page of
 // „Expedition“; without Dunkle Materie and without the Händler (#171).
 import type { Rng } from './battle.ts';
-import type { RoundGroup, RoundSetting } from './round.ts';
+import type { RoundGroup, RoundSetting, SettingExplain } from './round.ts';
 import { HOUR_MS } from './vacation.ts';
 import type { Coords, Levels, Resources, Universe } from './types.ts';
 
@@ -71,6 +71,24 @@ const EXPEDITIONS: RoundGroup = { name: 'expedition', legend: 'Expeditionen' };
  */
 export const roundHeading = 'Expeditionen';
 
+/** The levels of the research that the tables of the explanations show (#358). */
+const EXPO_LEVELS = [1, 4, 9, 16];
+const EXPO = 'expo';
+
+/** The expedition slots at a level of the research (#358). */
+const SLOT_ROWS: SettingExplain['rows'] = EXPO_LEVELS.map((level) => ({
+  label: (name) => `${name(EXPO)} Stufe ${level}: Expeditionsplätze`,
+  cell: ({ u }) => expeditionSlots(level, extraSlots(u)),
+}));
+
+/** The longest stay at a level, as long as it really lasts (#358). */
+const STAY_ROWS: SettingExplain['rows'] = EXPO_LEVELS.map((level) => ({
+  label: (name) => `${name(EXPO)} Stufe ${level}: längste Haltezeit`,
+  cell: ({ u }) => ({
+    ms: stayDuration(maxStayHours(level, hoursPerLevel(u)), u),
+  }),
+}));
+
 /**
  * The three settings of expeditions as entries of the registry (#283, #310):
  * number fields of the dialog „Neue Runde“ in one fieldset and, `live`, rows
@@ -86,6 +104,11 @@ export const roundSettings = [
     group: EXPEDITIONS,
     live: true,
     key: 'roundExpeditionExtraSlots',
+    explain: {
+      text: 'So viele Expeditionen kann jeder Spieler zusätzlich gleichzeitig schicken, über die Plätze aus der Forschung hinaus. Geprüft beim Start.',
+      rows: SLOT_ROWS,
+      own: true,
+    },
     name: 'expeditionExtraSlots',
     label: 'Zusätzliche Expeditionsplätze',
     order: 300,
@@ -98,6 +121,11 @@ export const roundSettings = [
     group: EXPEDITIONS,
     live: true,
     key: 'roundExpeditionHours',
+    explain: {
+      text: 'Wie lange eine Expedition höchstens an der Expeditionsposition bleiben darf, je Stufe ihrer Forschung. Geprüft beim Start; laufende Expeditionen behalten ihre Zeit.',
+      rows: STAY_ROWS,
+      own: true,
+    },
     name: 'expeditionHours',
     label: 'Haltezeit in Stunden je Stufe',
     order: 310,
@@ -110,6 +138,10 @@ export const roundSettings = [
     group: EXPEDITIONS,
     live: true,
     key: 'roundExpeditionSpeed',
+    explain: {
+      text: 'Ja: Die Haltezeit einer Expedition wird wie eine Flugzeit durch das Tempo des Universums geteilt. Nein: Sie läuft in Echtzeit. Gilt ab dem nächsten Start.',
+      rows: STAY_ROWS,
+    },
     name: 'expeditionSpeed',
     label: 'Haltezeit durch das Universums-Tempo teilen',
     order: 315,

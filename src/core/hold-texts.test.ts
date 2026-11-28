@@ -40,8 +40,8 @@ describe('the texts of „Wache stellen“ (#440)', () => {
     expect(HOLD_LEXICON).toEqual({
       lapsedProtection:
         'Hält bei einem geschützten Spieler die Flotte eines anderen Spielers Wache, gilt sein Schutz an diesem Ort nicht für Sturmangriff und Auspex-Erkundung, außer gegen den Besitzer dieser Wache; vor Raketen bleibt er geschützt.',
-      noLoot:
-        'Eine Wache wird nicht geplündert: Ihre Ladung geht verloren, wenn sie zerstört wird.',
+      cargoHandover:
+        'Wird eine Wache im Kampf vernichtet, geht ihre Ladung an den Planeten des Gastgebers, bei Verlusten der Teil, der nicht mehr in die übrigen Schiffe passt. Dort gehört sie zum Vorrat und lässt sich wie jeder Vorrat plündern.',
     });
   });
 
