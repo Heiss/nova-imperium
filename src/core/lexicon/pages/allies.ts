@@ -160,9 +160,9 @@ const cutoffWords = (u: Universe): string => {
 const unionOpen = (): PageSection =>
   section(
     'union-open',
-    'Verbandsangriff: eröffnen, einladen, beitreten',
+    'Verbandsangriff: planen, einladen, beitreten',
     say(
-      'Einen Angriffsverband eröffnest du aus einem eigenen [[mission-attack|Sturmangriff]], der noch unterwegs ist: nicht zurückgerufen, noch nicht angekommen und in keinem Verband. Dieser Angriff führt den Verband an. Der Anführer lädt Verbündete mit Namen ein, nicht den Besitzer des Ziels; die Eingeladenen zählen schon gegen die Grenze der Spieler. Wer Verbündeter ist, bestimmt dieselbe Einstellung wie bei der Wache. Beitreten heißt, einen Sturmangriff auf dasselbe Ziel zu schicken, mit allen Prüfungen eines Angriffs: Schiffe, Treibstoff, Flottenslots, Urlaubsmodus und Schutz des Ziels. Der Anführer und wer schon im Verband ist, braucht keine Einladung, alle anderen schon; ein Spieler darf mehrere Flotten schicken. Ein Spieler im Urlaubsmodus kann nicht beitreten.',
+      'Einen Angriffsverband planst du mit einem eigenen [[mission-attack|Sturmangriff]]: Im Flottenauftrag planst du in der Zeile Verband einen neuen Verband und wählst seine Ankunft. Deine Flotte fliegt mit der Geschwindigkeit los, die sie genau dann ans Ziel bringt, und führt den Verband an. Der Anführer lädt Verbündete mit Namen ein, nicht den Besitzer des Ziels; die Eingeladenen zählen schon gegen die Grenze der Spieler. Wer Verbündeter ist, bestimmt dieselbe Einstellung wie bei der Wache. Beitreten heißt, einen Sturmangriff auf dasselbe Ziel zu schicken, mit allen Prüfungen eines Angriffs: Schiffe, Treibstoff, Flottenslots, Urlaubsmodus und Schutz des Ziels. Der Anführer und wer schon im Verband ist, braucht keine Einladung, alle anderen schon; ein Spieler darf mehrere Flotten schicken. Ein Spieler im Urlaubsmodus kann nicht beitreten.',
     ),
   );
 

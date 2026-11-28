@@ -99,6 +99,8 @@ export interface FleetForm {
   stay?: number;
   /** The attack union the fleet joins (#225); only a Sturmangriff reads it. */
   union?: string;
+  /** The arrival X of a union the fleet plans (#466); 0 while the field is empty. */
+  plan?: number;
 }
 
 /** Whether the mission stays at its target for hours the player chooses (#93): an expedition, not a Halten (`holds`). */

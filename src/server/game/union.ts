@@ -1,6 +1,6 @@
 // The attack union („Verbandsangriff“, #225, #466, okf/features/holding-acs.md)
-// on the server: opening a union from an own Sturmangriff on its way,
-// inviting allies, joining with a fleet that arrives at the fixed arrival X
+// on the server: planning a union with the leader's own Sturmangriff that
+// arrives at a fixed time X (#466, A1a), inviting allies, joining with a fleet that arrives at the fixed arrival X
 // (the action `send` asks `joinPlan`), the recall of a fleet of a union and
 // the arrival of all fleets at once. The rules (limits, the window, the
 // speed, the split of the loot) are the pure ones of src/core/union.ts; here
@@ -10,14 +10,14 @@
 // the leader recalls the fleet that leads it (owner, 2026-11-16, Q2).
 import { ALLIES } from '../../core/holding.ts';
 import {
-  type FoundError,
   type UnionFacts,
   type UnionLimits,
-  foundError,
   inviteLimitError,
   joinLimitError,
   joinMessage,
   joinWindow,
+  planError,
+  planMessage,
   UNION_OFF_REFUSAL,
   unionFlight,
   unionOpen,
@@ -90,13 +90,6 @@ const startText = (t: number): string =>
     second: '2-digit',
   });
 
-const FOUND_ERROR: Readonly<Record<FoundError, string>> = {
-  notAttack: 'Einen Angriffsverband eröffnet nur ein Sturmangriff.',
-  notOut: 'Diese Flotte ist nicht mehr auf dem Weg zum Ziel.',
-  started: 'Diese Flotte ist schon beim Ziel angekommen.',
-  inUnion: 'Diese Flotte gehört schon zu einem Angriffsverband.',
-};
-
 const GONE = 'Diesen Angriffsverband gibt es nicht mehr.';
 
 /** Who may join or be invited, as the refusal names them by the setting of the round (D2) [V]. */
@@ -112,28 +105,6 @@ function notAlly(ctx: Ctx, what: 'invite' | 'join'): string {
     ? `Zum Angriffsverband laden nur ${who} ein.`
     : `Dem Angriffsverband treten nur ${who} des Anführers bei.`;
 }
-
-/**
- * Opens an attack union with the own Sturmangriff `d.id` on its way: its
- * arrival is X, and the fleet leads it.
- */
-const openUnion: Handler<'openUnion'> = (ctx, u, d) => {
-  switchedOn(ctx);
-  const f = ctx.fleets.get(String(d.id));
-  if (!f || f.owner !== u.id) return fail('Diese Flotte gibt es nicht.');
-  const error = foundError(f, ctx.now(), f.union !== undefined);
-  if (error) return fail(FOUND_ERROR[error]);
-  ctx.unions.save({
-    id: f.id,
-    leader: u.id,
-    lead: f.id,
-    target: f.to,
-    toC: f.toC,
-    arr: f.arr,
-  });
-  ctx.fleets.setUnion(f.id, f.id);
-  return `Angriffsverband für ${coords(f.toC)} eröffnet.`;
-};
 
 /** The leader invites the player `d.name` to the union `d.id`. */
 const inviteUnion: Handler<'inviteUnion'> = (ctx, u, d) => {
@@ -168,6 +139,87 @@ const inviteUnion: Handler<'inviteUnion'> = (ctx, u, d) => {
   );
   return `Einladung an ${invitee.name} gesendet.`;
 };
+
+/** The arrival of a fleet that flies to X: the speed that brings it there, or the refusal. */
+function flightTo(
+  ctx: Ctx,
+  arr: number,
+  at: { dist: number; speed: number },
+  limits: UnionLimits,
+): number {
+  const flight = unionFlight({
+    dist: at.dist,
+    speed: at.speed,
+    universe: universe(ctx),
+    now: ctx.now(),
+    arr,
+  });
+  if ('error' in flight)
+    return fail(
+      joinMessage(
+        flight.error,
+        limits,
+        flight.error === 'early' ? `am ${startText(flight.earliest)}` : '',
+      ),
+    );
+  return flight.pct;
+}
+
+/** A union the fleet plans: its arrival X and the speed that brings the leader's fleet there. */
+export interface UnionPlan {
+  arr: number;
+  pct: number;
+}
+
+/**
+ * The checks of a Sturmangriff of the leader that plans a union arriving at
+ * `plan` (#466, owner, 2026-11-28, A1a): the switch of the round, an attack,
+ * no join at once, X in the future and beyond the cut-off (else nobody could
+ * join [V]), and the speed that brings the fleet there at X. The checks of
+ * the target are those of the attack. Returns X and the speed.
+ */
+export function planOf(
+  ctx: Ctx,
+  plan: unknown,
+  at: { mission: string; union: unknown; dist: number; speed: number },
+): UnionPlan | null {
+  if (plan === undefined || plan === null) return null;
+  switchedOn(ctx);
+  if (at.mission !== 'attack')
+    return fail('Einen Angriffsverband plant man mit einem Sturmangriff.');
+  if (at.union !== undefined && at.union !== null && at.union !== '')
+    return fail(
+      'Eine Flotte plant einen Angriffsverband oder tritt einem bei, nicht beides.',
+    );
+  const arr = Number(plan);
+  const limits = limitsOf(ctx);
+  const refused = Number.isSafeInteger(arr)
+    ? planError({ now: ctx.now(), arr, limits })
+    : 'past';
+  if (refused) return fail(planMessage(refused, limits));
+  return { arr, pct: flightTo(ctx, arr, at, limits) };
+}
+
+/**
+ * Founds the union of a planned fleet before it is saved: the fleet carries
+ * the union's ID, its own, and leads it.
+ */
+export function foundUnion(
+  ctx: Ctx,
+  plan: UnionPlan | null,
+  fleet: Fleet,
+): void {
+  if (!plan) return;
+  fleet.union = fleet.id;
+  ctx.unions.save({
+    id: fleet.id,
+    leader: fleet.owner,
+    lead: fleet.id,
+    target: fleet.to,
+    toC: fleet.toC,
+    arr: plan.arr,
+  });
+}
 
 /** A fleet that joins a union: the union, its arrival X and the speed that brings the fleet there. */
 export interface JoinPlan {
@@ -210,22 +262,11 @@ export function joinPlan(
   const now = ctx.now();
   const closed = joinWindow({ now, arr: row.arr, limits });
   if (closed) return fail(joinMessage(closed, limits));
-  const flight = unionFlight({
-    dist: at.dist,
-    speed: at.speed,
-    universe: universe(ctx),
-    now,
+  return {
+    union: row.id,
     arr: row.arr,
-  });
-  if ('error' in flight)
-    return fail(
-      joinMessage(
-        flight.error,
-        limits,
-        flight.error === 'early' ? `am ${startText(flight.earliest)}` : '',
-      ),
-    );
-  return { union: row.id, arr: row.arr, pct: flight.pct };
+    pct: flightTo(ctx, row.arr, at, limits),
+  };
 }
 
 /**
@@ -363,7 +404,7 @@ export function unionsFor(ctx: Ctx, uid: string): UnionView[] {
 }
 
 export const serverFeature = {
-  actions: { openUnion, inviteUnion },
+  actions: { inviteUnion },
   state: {
     order: 210,
     keys: ['unions'],

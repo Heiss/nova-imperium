@@ -28,7 +28,7 @@ import {
   fleetRows,
 } from './overview.ts';
 import { unionOpen } from '../../core/union.ts';
-import { joinChoices, openRows, unionRows } from './union.ts';
+import { joinChoices, PLAN, unionRows } from './union.ts';
 
 /** A ship on the shown planet that can fly. */
 interface FleetShip {
@@ -86,17 +86,9 @@ interface UnionBoxRow {
   joins: boolean;
 }
 
-/** An own Sturmangriff that can open a union. */
-interface OpenBoxRow {
-  id: string;
-  target: string;
-  due: Countdown;
-}
-
-/** The box „Verbandsangriff“; none while no union concerns the player and no attack can open one. */
+/** The box „Verbandsangriff“; none while no union concerns the player. */
 interface UnionBox {
   unions: UnionBoxRow[];
-  open: OpenBoxRow[];
 }
 
 /** The target of the form the page starts with, and the limits of its fields. */
@@ -127,6 +119,8 @@ interface FleetFormPage {
   choose: (draft: FleetDraft) => FleetChoice;
   /** The unions the fleet can join (#225); empty when none. The one chosen is `choose(draft).union`. */
   unions: FleetOption[];
+  /** A Sturmangriff can plan a union: the switch of the round is on (#466). */
+  plans: boolean;
   /** All slots are taken: „Flotte losschicken“ is disabled. */
   full: boolean;
 }
@@ -173,23 +167,16 @@ function expeditionTitle(v: V): string {
  */
 function unionBox(v: V): UnionBox | null {
   const rows = unionRows(v);
-  const opens = openRows(v);
-  if (!rows.length && !opens.length) return null;
+  if (!rows.length) return null;
   const on = unionOpen(v.s.round);
-  const unions = rows.map((u) => ({
-    ...u,
-    leads: on && u.leads,
-    joins: on,
-    due: countdown(u.arr, v.now),
-  }));
-  const open = on
-    ? opens.map((f) => ({
-        id: f.id,
-        target: f.target,
-        due: countdown(f.arr, v.now),
-      }))
-    : [];
-  return unions.length || open.length ? { unions, open } : null;
+  return {
+    unions: rows.map((u) => ({
+      ...u,
+      leads: on && u.leads,
+      joins: on,
+      due: countdown(u.arr, v.now),
+    })),
+  };
 }
 
 /** The unions the fleet form can join; none while the switch of the round is off (#466). */
@@ -199,6 +186,12 @@ function joinOptions(v: V): FleetOption[] {
     ? choices.map((c) => ({ value: c.id, label: c.label }))
     : [];
 }
+
+/** The choice of the row „Verband“ that plans a new union with a Sturmangriff (#466, A1a). */
+export const PLAN_OPTION: FleetOption = {
+  value: PLAN,
+  label: 'Neuen Verband planen',
+};
 
 function jumpBox(v: V): JumpBox | null {
   const panel = jumpPanel(v.s, v.P, v.now);
@@ -227,6 +220,8 @@ function formPage(v: V, full: boolean): FleetFormPage {
     },
     choose: (draft) => fleetChoice(v, draft, v.now),
     unions: joinOptions(v),
+    // A Sturmangriff can plan a union while the switch of the round is on.
+    plans: unionOpen(v.s.round),
     full,
   };
 }

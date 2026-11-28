@@ -8,11 +8,10 @@ import { flightMs } from '../../core/flight.ts';
 import type { Universe } from '../../core/types.ts';
 import { dt } from './format.ts';
 import {
-  canOpenUnion,
   joinChoices,
   limitsOf,
-  openRows,
   unionArrivalLine,
+  planJoin,
   unionJoin,
   unionPart,
   unionSpeed,
@@ -120,36 +119,46 @@ describe('the unions of the state', () => {
   });
 });
 
-describe('opening a union', () => {
-  it('is offered for an own Sturmangriff on its way that has not arrived, in no union', () => {
-    expect(canOpenUnion(fleet(), 'u1', 10_000)).toBe(true);
-    expect(canOpenUnion(fleet({ arr: 10_000 }), 'u1', 10_000)).toBe(false);
-    expect(canOpenUnion(fleet({ owner: 'u2' }), 'u1', 10_000)).toBe(false);
-    expect(canOpenUnion(fleet({ mission: 'transport' }), 'u1', 10_000)).toBe(
-      false,
-    );
-    expect(canOpenUnion(fleet({ state: 'back' }), 'u1', 10_000)).toBe(false);
-    expect(canOpenUnion(fleet({ state: 'hold' }), 'u1', 10_000)).toBe(false);
-    expect(canOpenUnion(fleet({ gift: true }), 'u1', 10_000)).toBe(false);
-    expect(canOpenUnion(fleet({ union: 'f1' }), 'u1', 10_000)).toBe(false);
+describe('planning a union (#466, A1a)', () => {
+  const cfg = { speed: 1 } as Universe;
+  const fleet1 = { dist: 1000, speed: 10000 };
+  const fast = flightMs(1000, 10000, 10, cfg);
+  const slow = flightMs(1000, 10000, 1, cfg);
+  const s = (r = round()) => ({ round: r, cfg });
+  it('flies the fleet of the leader at the speed that brings it there at X', () => {
+    expect(planJoin(s(), 10_000 + fast, 10_000, fleet1)).toEqual({
+      pct: expect.closeTo(10, 6),
+      ms: fast,
+      arr: 10_000 + fast,
+    });
+    expect(planJoin(s(), 10_000 + slow, 10_000, fleet1)).toMatchObject({
+      pct: expect.closeTo(1, 6),
+    });
   });
-  it('lists the own fleets that can open one, by arrival, with their target', () => {
-    const rows = (fleets: ClientFleet[], now = 10_000) =>
-      openRows({ ...view([]), s: { ...view([]).s, fleets }, now } as V);
+  it('asks for an arrival, in the future and beyond the cut-off, and says the bounds of the speed', () => {
+    expect(planJoin(s(), Number.NaN, 10_000, fleet1)).toEqual({
+      refusal: 'Bitte die Ankunft des Verbands wählen.',
+    });
+    expect(planJoin(s(), 10_000, 10_000, fleet1)).toEqual({
+      refusal: 'Die Ankunft muss in der Zukunft liegen.',
+    });
     expect(
-      rows([
-        fleet({ id: 'late', arr: 300_000 }),
-        fleet({ id: 'soon', arr: 200_000, toC: { g: 2, s: 3, p: 4 } }),
-        fleet({ id: 'union', union: 'union' }),
-        fleet({ id: 'foreign', owner: 'u2' }),
-        fleet({ id: 'back', state: 'back' }),
-      ]),
-    ).toEqual([
-      { id: 'soon', target: '[2:3:4]', arr: 200_000 },
-      { id: 'late', target: '[1:4:8]', arr: 300_000 },
-    ]);
-    expect(rows([fleet()], 100_000)).toEqual([]);
+      planJoin(s(round({ unionCutoff: 60 })), 10_000 + fast, 10_000, fleet1),
+    ).toEqual({
+      refusal:
+        'Die Ankunft muss mehr als 60 Minuten in der Zukunft liegen, sonst kann niemand mehr beitreten.',
+    });
+    expect(planJoin(s(), 10_000 + fast - 1, 10_000, fleet1)).toEqual({
+      refusal:
+        'Deine Flotte erreicht das Ziel selbst mit 100 % nicht bis zur Ankunft des Verbands.',
+    });
+    expect(planJoin(s(), 10_000 + slow + 1, 10_000, fleet1)).toEqual({
+      refusal: `Deine Flotte wäre selbst mit 10 % zu früh da. Schicke sie frühestens am ${dt(10_001)} los.`,
+    });
   });
+});
+
+describe('a fleet of a union', () => {
   it('is told in the line of an own fleet of a union', () => {
     expect(unionPart(fleet())).toBe('');
     expect(unionPart(fleet({ union: 'f1' }))).toBe(

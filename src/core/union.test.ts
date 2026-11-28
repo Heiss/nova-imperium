@@ -1,7 +1,7 @@
 // The rules of the attack union (#225, owner, 2026-11-16 and 2026-11-17;
 // #466, owner, 2026-11-28): the settings of the round with the classic
-// values and the switch, who can open a union, who can join under the
-// limits, the window of a join (closed at the arrival, the cut-off), and the
+// values and the switch, when a union can be planned, who can join under
+// the limits, the window of a join (closed at the arrival, the cut-off), and the
 // split of the loot by free space. The speed of a joining fleet is tested in
 // union-flight.test.ts.
 import fc from 'fast-check';
@@ -17,11 +17,12 @@ import {
   UNION_DEFAULTS,
   UNION_OFF_REFUSAL,
   UNION_RANGES,
-  foundError,
   inviteLimitError,
   joinLimitError,
   joinMessage,
   joinWindow,
+  planError,
+  planMessage,
   roundSettings,
   splitLoot,
   unionOpen,
@@ -148,30 +149,22 @@ describe('the settings of the round', () => {
   });
 });
 
-describe('opening a union', () => {
-  const attack = {
-    mission: 'attack',
-    state: 'out',
-    arr: 100,
-    recalled: false,
-  } as const;
-  it('takes a Sturmangriff on its way that has not arrived', () => {
-    expect(foundError(attack, 99, false)).toBeUndefined();
-  });
-  it('refuses every other mission, a fleet that is not out, one that has arrived, a gift, a union already', () => {
-    expect(foundError({ ...attack, mission: 'transport' }, 0, false)).toBe(
-      'notAttack',
+describe('planning a union (#466, A1a)', () => {
+  it('needs an arrival in the future and beyond the cut-off, where somebody can still join', () => {
+    const at = (now: number, arr: number, cutoff = 0) =>
+      planError({ now, arr, limits: { cutoff } });
+    expect(at(1000, 1001)).toBeUndefined();
+    expect(at(1000, 1000)).toBe('past');
+    expect(at(1000, 999)).toBe('past');
+    expect(at(1000, Number.NaN)).toBe('past');
+    expect(at(0, 10 * MIN, 10)).toBe('cutoff');
+    expect(at(0, 10 * MIN + 1, 10)).toBeUndefined();
+    expect(planMessage('past', { cutoff: 0 })).toBe(
+      'Die Ankunft muss in der Zukunft liegen.',
     );
-    expect(foundError({ ...attack, mission: 'hold' }, 0, false)).toBe(
-      'notAttack',
+    expect(planMessage('cutoff', { cutoff: 15 })).toBe(
+      'Die Ankunft muss mehr als 15 Minuten in der Zukunft liegen, sonst kann niemand mehr beitreten.',
     );
-    expect(foundError({ ...attack, state: 'back' }, 0, false)).toBe('notOut');
-    expect(foundError({ ...attack, state: 'hold' }, 0, false)).toBe('notOut');
-    expect(foundError({ ...attack, recalled: true }, 0, false)).toBe('notOut');
-    expect(foundError({ ...attack, gift: true }, 0, false)).toBe('notOut');
-    expect(foundError(attack, 100, false)).toBe('started');
-    expect(foundError(attack, 101, false)).toBe('started');
-    expect(foundError(attack, 99, true)).toBe('inUnion');
   });
 });
 

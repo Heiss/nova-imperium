@@ -572,12 +572,13 @@ invitation comes before the attack.
   the union aborts, with no separate action. The recall of the leader's
   fleet turns back every fleet of the union, as Q2 of 2026-11-16; a
   member's recall turns back only his fleet.
-* **[U]** Whether the leader must send his own fleet when he plans (A1,
-  asked by the coordinator): (a) planning = his own attack with X and the
-  invitations, (b) planning without a fleet. The planning action, the form
-  and the removal of „Angriffsverband eröffnen“ wait for it.
+* **[E]** (A1a, owner, 2026-11-28) Planning is the leader's own
+  Sturmangriff with X; the invitations follow from the box. So a union
+  always has its leader's fleet, and his recall aborts it. No separate
+  call-off. The migration fills `lead` with the founder. No upper bound for
+  X; the unions of a leader are bounded by his fleet slots.
 
-## Built with #466 (part 1, what does not wait for A1)
+## Built with #466
 
 Everything below is [V] unless it names an owner's decision.
 
@@ -623,5 +624,23 @@ Everything below is [V] unless it names an owner's decision.
   selbst mit 100 % nicht bis zur Ankunft des Verbands.“, the switch
   „Verbandsangriff“ with „An“/„Aus“ and its refusal, the form line, the new
   hint, the Lexicanum section „Ankunft, Geschwindigkeit und Grenzen“.
-* **No limit** on the unions a leader has planned at once (coordinator,
-  2026-11-28) and no upper bound for X (owner, 3).
+* **Planning, replacing „Opening“ of #225 (A1a).** The fleet form of a
+  Sturmangriff has, while the switch is on, the choice „Neuen Verband
+  planen“ in the row „Verband“ and then the row „Ankunft des Verbands“
+  (date and time); the action `send` carries `plan` (X in milliseconds).
+  `planOf` of `src/server/game/union.ts` checks the switch, a Sturmangriff,
+  no join at once, X in the future and beyond the cut-off (`planError` of
+  `src/core/union.ts`, else nobody could join [V]) and the speed for X
+  (`unionFlight`, the same refusals as a join); the target has every check
+  of an attack. The fleet arrives at X, the union is a row with its ID and
+  `lead` this fleet (`foundUnion`). The action `openUnion`, the button
+  „Angriffsverband eröffnen“ and its refusals are gone.
+* **Texts [V] of planning.** „Neuen Verband planen“, „Ankunft des
+  Verbands“, „Bitte die Ankunft des Verbands wählen.“, „Einen
+  Angriffsverband plant man mit einem Sturmangriff.“, „Eine Flotte plant
+  einen Angriffsverband oder tritt einem bei, nicht beides.“, „Die Ankunft
+  muss in der Zukunft liegen.“, „Die Ankunft muss mehr als N Minuten in der
+  Zukunft liegen, sonst kann niemand mehr beitreten.“; the Lexicanum section
+  „Verbandsangriff: planen, einladen, beitreten“.
+* **No limit** on the unions a leader has planned at once beyond his fleet
+  slots (owner, A1a) and no upper bound for X (owner, 3).

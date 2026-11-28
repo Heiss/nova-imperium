@@ -66,7 +66,6 @@ export const ACTION_KIND = {
   holdOption: 'change',
   closeRound: 'change',
   deleteRound: 'change',
-  openUnion: 'change',
   inviteUnion: 'change',
   startVacation: 'change',
   endVacation: 'change',

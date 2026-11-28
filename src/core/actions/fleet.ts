@@ -24,6 +24,11 @@ export interface FleetOrder {
   stay?: number;
   /** The attack union the fleet joins (#225). */
   union?: string;
+  /**
+   * The arrival X of the attack union the fleet plans (#466, owner,
+   * 2026-11-28, A1a): the leader's own Sturmangriff, which arrives at X.
+   */
+  plan?: number;
 }
 
 export const actionInputs = {

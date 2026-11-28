@@ -207,11 +207,10 @@ describe('the ships and the form', () => {
 });
 
 describe('the box of the unions', () => {
-  it('is there for an own Sturmangriff that can open one, and else not', () => {
+  it('is there only for a union of the player: an own Sturmangriff opens none any more (#466)', () => {
     expect(fleetPage(view()).unions).toBeNull();
     const attack = fleetOf({ mission: 'attack', arr: 5000 });
-    const page = fleetPage(view({ fleets: [attack] }));
-    expect(page.unions?.open).toMatchObject([{ id: 'f1', target: '[1:2:6]' }]);
+    expect(fleetPage(view({ fleets: [attack] })).unions).toBeNull();
   });
 });
 

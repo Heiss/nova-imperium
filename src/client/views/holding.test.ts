@@ -131,6 +131,8 @@ describe('the row „Haltezeit“ of the fleet form', () => {
       ],
       debris: [],
       fleets: [],
+      // The round of every state: the row „Verband“ reads its switch (#466).
+      round: rules({}),
     } as unknown as GameState;
     const html = fleetView({
       s,

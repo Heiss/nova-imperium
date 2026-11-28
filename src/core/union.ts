@@ -13,7 +13,7 @@
 import { flightMs } from './flight.ts';
 import { LIVE_SWITCH } from './live-switch.ts';
 import type { RoundSetting } from './round.ts';
-import type { Fleet, Resources, Universe } from './types.ts';
+import type { Resources, Universe } from './types.ts';
 
 /** One minute in milliseconds. */
 const MINUTE_MS = 60_000;
@@ -110,25 +110,6 @@ export interface UnionLimits {
   cutoff: number;
 }
 
-/** Why an attack cannot open a union. */
-export type FoundError = 'notAttack' | 'notOut' | 'started' | 'inUnion';
-
-/**
- * Whether an own fleet can open a union at `now`: a Sturmangriff on its way
- * out that has not arrived yet, no gift, not recalled and not in a union
- * already.
- */
-export function foundError(
-  f: Pick<Fleet, 'mission' | 'state' | 'arr' | 'recalled' | 'gift'>,
-  now: number,
-  inUnion: boolean,
-): FoundError | undefined {
-  if (f.mission !== 'attack') return 'notAttack';
-  if (f.state !== 'out' || f.recalled || f.gift) return 'notOut';
-  if (f.arr <= now) return 'started';
-  return inUnion ? 'inUnion' : undefined;
-}
-
 /** Why a fleet cannot join a union (besides the checks of every attack). */
 export type JoinError =
   'closed' | 'cutoff' | 'early' | 'late' | 'fleets' | 'players' | 'notInvited';
@@ -196,6 +177,28 @@ export function inviteLimitError(
     ? 'players'
     : undefined;
 }
+
+/**
+ * Why a leader cannot plan a union arriving at `arr` at `now` (#466, A1a):
+ * X lies in the past, or within the cut-off, where nobody could join [V].
+ */
+export function planError(x: {
+  now: number;
+  arr: number;
+  limits: Pick<UnionLimits, 'cutoff'>;
+}): 'past' | 'cutoff' | undefined {
+  if (!(x.arr > x.now)) return 'past';
+  return joinWindow(x) ? 'cutoff' : undefined;
+}
+
+/** The message of a refused plan [V]; the server and the fleet form say the same. */
+export const planMessage = (
+  error: 'past' | 'cutoff',
+  limits: Pick<UnionLimits, 'cutoff'>,
+): string =>
+  error === 'past'
+    ? 'Die Ankunft muss in der Zukunft liegen.'
+    : `Die Ankunft muss mehr als ${limits.cutoff} Minuten in der Zukunft liegen, sonst kann niemand mehr beitreten.`;
 
 /**
  * Whether a fleet may still join at `now` a union that arrives at `arr`
