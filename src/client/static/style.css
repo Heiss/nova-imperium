@@ -960,6 +960,52 @@ textarea:focus-visible {
 #modal.show {
   display: flex;
 }
+/* The chat window at the bottom right (#496), below the toasts and the
+   modal; none on a phone (ChatWindow.svelte leaves it empty there too). */
+#chatwin {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 35;
+  max-width: calc(100vw - 32px);
+}
+.chatwin-open {
+  box-shadow: 0 4px 20px #000a;
+}
+.chatwin {
+  display: flex;
+  flex-direction: column;
+  width: 360px;
+  max-width: 100%;
+  max-height: min(70vh, 560px);
+  background: var(--box-2);
+  border: 1px solid var(--gold);
+  border-radius: 4px;
+  box-shadow: 0 4px 20px #000a;
+}
+.chatwin-hd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+}
+.chatwin-hd h2 {
+  margin: 0;
+  font-size: 1em;
+}
+.chatwin .pm-tabs {
+  padding: 0 10px;
+}
+.chatwin-bd {
+  overflow: auto;
+  padding: 6px 10px 10px;
+}
+@media (max-width: 760px) {
+  #chatwin {
+    display: none;
+  }
+}
 #modal .in {
   max-width: 420px;
   /* A long dialog (the new round has three groups of settings) scrolls

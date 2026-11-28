@@ -48,6 +48,10 @@ const TURNS_OFF: Readonly<
     views: [],
     none: 'hides planning, the invitation and „Beitreten“ in the fleet view (the box „Verbandsangriff“ keeps listing the unions in flight) and refuses planning, inviting and joining (#466): parts of a view, no view',
   },
+  chatWindowOn: {
+    views: [],
+    none: 'hides the chat window at the bottom right (#496), a frame of its own; the guild chat and the private messages stay in their views: no view',
+  },
   colonyResearch: {
     views: [],
     none: 'the research Kolonialverwaltung, a catalog entry the research list shows only in a round with it (#237); catalog entries are #375',

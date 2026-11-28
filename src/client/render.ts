@@ -30,6 +30,8 @@ import { rememberCompletions, renderCompletions } from './completions.ts';
 import { forgetForms } from './logic/form-state.svelte.ts';
 import { endTotpSetup } from './logic/totp-setup.svelte.ts';
 import { forgetDrafts } from './logic/pm-compose.ts';
+import { chatWindowPage } from './logic/chat-window.ts';
+import { showChatWindow } from './views/chat-window.ts';
 import { seeNews } from './news-seen.ts';
 import { urlOf } from './view-address.ts';
 import { runAfterRender } from './features/assemble.ts';
@@ -117,9 +119,12 @@ export function render(fresh = false): void {
     forgetForms();
     // The drafts of private messages stay until a reload or a logout (#349).
     forgetDrafts();
+    showChatWindow(null);
     return renderLoggedOut(view);
   }
-  if (renderGate(view, client.game, ui, unmountViews)) return;
+  // The lock screen and the other gates have no chat window (#496, Q4 [V]).
+  if (renderGate(view, client.game, ui, unmountViews))
+    return showChatWindow(null);
   // A fresh render drops what was typed, as it dropped the typed fields.
   if (fresh) {
     drafts.reset();
@@ -135,6 +140,7 @@ export function render(fresh = false): void {
   updateBar();
   showHeader(headerLine(client.game, client.view.P));
   renderView(view, client.view, fresh);
+  showChatWindow(chatWindowPage(client.view, ui.view), client.game.me.id);
   renderCompletions(view);
   paintPlanets(view);
   if (focus) document.getElementById(focus)?.focus();
