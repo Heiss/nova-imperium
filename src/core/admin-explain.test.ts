@@ -197,6 +197,9 @@ describe('a table computes each cell with src/core at its value', () => {
     expect(at(false).head.at(-1)).toBe('0 (jetzt)');
     // Each column has the setting at its value, in the round too.
     expect(at(2).rows[0]!.cells).toEqual(['Wert', '0', '1', '2', '3', '2']);
+    // Neither in the universe nor in the round: the current value is 0.
+    const unnamed = { ...only, name: undefined };
+    expect(explainTable(unnamed, u, round)!.head.at(-1)).toBe('0 (jetzt)');
   });
 
   it('names a value without its choice by its number, and the table by its kind', () => {
