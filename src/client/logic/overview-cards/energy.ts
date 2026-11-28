@@ -7,6 +7,7 @@ export const overviewLines: readonly OverviewLines[] = [
   {
     card: 'attention',
     order: 20,
+    keys: ['energy'],
     lines: ({ s, P, R }) => {
       const pr = production(P, s.cfg, R.research);
       const missing = Math.ceil(pr.eUse - pr.eProd);

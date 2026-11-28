@@ -59,14 +59,39 @@ export function runningItems(v: V): RunningItem[] {
 /** The modules as the generated list gives them: `[name in the folder, overviewLines]`. */
 type ListedLines = readonly (readonly [string, readonly OverviewLines[]])[];
 
+/** The cards a source may name. */
+const CARDS: readonly OverviewLines['card'][] = ['attention', 'ready'];
+
 /**
- * The sources of each card by ascending order (#426); a card and an order
- * defined twice stop the start with both files named.
+ * Stops the start at a source that cannot work: an unknown card (it would be
+ * dropped), no order, no function `lines` (it would fail only when drawn), no
+ * list of the kinds of its keys.
+ */
+function checkSource(source: OverviewLines, file: string): void {
+  if (!CARDS.includes(source.card))
+    throw new Error(
+      `Overview line in ${file} has an unknown card "${String(source.card)}".`,
+    );
+  if (!Number.isFinite(source.order))
+    throw new Error(`Overview line of ${source.card} in ${file} has no order.`);
+  if (typeof source.lines !== 'function')
+    throw new Error(`Overview line of ${source.card} in ${file} has no lines.`);
+  if (!Array.isArray(source.keys))
+    throw new Error(
+      `Overview line of ${source.card} in ${file} names no kinds of keys.`,
+    );
+}
+
+/**
+ * The sources of each card by ascending order (#426); a card and an order,
+ * or a kind of key in a card, defined twice stop the start with both files
+ * named.
  */
 export function assembleLines(
   listed: ListedLines,
 ): Record<OverviewLines['card'], readonly OverviewLines[]> {
   const once = ownedOnce('Overview line');
+  const ownKey = ownedOnce('Overview line key');
   const all = listed.flatMap(([name, sources]) =>
     sources.map((source) => ({
       file: `src/client/logic/overview-cards/${name}.ts`,
@@ -74,11 +99,9 @@ export function assembleLines(
     })),
   );
   for (const { file, source } of all) {
-    if (!Number.isFinite(source.order))
-      throw new Error(
-        `Overview line of ${source.card} in ${file} has no order.`,
-      );
+    checkSource(source, file);
     once(source.card, String(source.order), file);
+    for (const kind of source.keys) ownKey(source.card, kind, file);
   }
   const of = (card: OverviewLines['card']): readonly OverviewLines[] =>
     all

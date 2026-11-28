@@ -163,8 +163,9 @@ describe('writes to the fields of the page', () => {
   it('has the one writer, and it writes a field', () => {
     expect(files()).toContain(WRITER.file);
     const code = readFileSync(WRITER.file, 'utf8');
-    // Only the writer writes a field in its file: take it out and nothing is left.
-    expect(writesInTs(code)).toHaveLength(1);
+    // Only the writer writes a field in its file: the value, and the tick of
+    // a checkbox (PR #469); take it out and nothing is left.
+    expect(writesInTs(code)).toHaveLength(2);
     expect(writesInTs(code, WRITER.name)).toEqual([]);
   });
 });

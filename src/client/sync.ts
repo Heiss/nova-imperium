@@ -30,7 +30,7 @@ export function apply(st: GameState | undefined, fresh = false): void {
     (st.me.id !== client.game.me.id ||
       st.round.number !== client.game.round.number)
   )
-    client.forget();
+    client.forgetPlayer();
   client.offset = st.now - Date.now();
   client.game = st;
   void loadNews();
