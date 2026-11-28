@@ -46,7 +46,7 @@ export const roundHeading = 'Zurückbauen';
 /** The example of the tables of the explanations (#358): a level of a mine, by id. */
 const TORN = 'metal';
 const TORN_LEVEL = 10;
-const sum = (c: Cost): number => c[0] + c[1] + c[2];
+const sum = (c: Cost): number => c.reduce((all, n) => all + n, 0);
 
 /** What tearing down the example level gives back and costs (#358). */
 const REFUND_ROWS: SettingExplain['rows'] = [

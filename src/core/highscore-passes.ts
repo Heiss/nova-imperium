@@ -28,8 +28,8 @@ const PASS_ROWS: SettingExplain['rows'] = [
     cell: ({ round }) => {
       const perDay = round.highscorePasses!;
       if (perDay === 0) return 'Echtzeit';
-      const last = lastSlot(ANCHOR_MS + DAY_MS, perDay);
-      return { ms: last - lastSlot(last - 1, perDay) };
+      // The pass at the anchor and the one before it.
+      return { ms: ANCHOR_MS - lastSlot(ANCHOR_MS - 1, perDay) };
     },
   },
 ];

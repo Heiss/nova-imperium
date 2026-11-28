@@ -63,8 +63,9 @@ const SEEN_LEVELS = [0, 2, 4, 8, 16];
 const SEEN_ROWS: SettingExplain['rows'] = SEEN_LEVELS.map((level) => ({
   label: () => `Auspex-Lehre ${level}`,
   cell: ({ round }) => {
+    // What is seen depends on the level and the thresholds, not on the ships.
     const seen = seenShips(
-      { x: 1 },
+      {},
       level,
       recognitionOf(round as unknown as Parameters<typeof recognitionOf>[0]),
     );

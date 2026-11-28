@@ -174,11 +174,66 @@ describe('a table computes each cell with src/core at its value', () => {
     expect(t.rows).toHaveLength(6);
   });
 
+  it('takes a value only the round has by its name, a switch as 1 or 0', () => {
+    const rows = [
+      {
+        label: () => 'Wert',
+        cell: ({ round: r }: { round: Readonly<Record<string, number>> }) =>
+          r.only!,
+      },
+    ];
+    const only: Explained = {
+      key: 'roundOnly',
+      label: 'Nur in der Runde',
+      name: 'only',
+      min: 0,
+      max: 3,
+      explain: { text: 'x', rows },
+    };
+    const at = (value: number | boolean) =>
+      explainTable(only, u, { ...round, only: value } as never)!;
+    expect(at(2).head.at(-1)).toBe('2 (jetzt)');
+    expect(at(true).head.at(-1)).toBe('1 (jetzt)');
+    expect(at(false).head.at(-1)).toBe('0 (jetzt)');
+    // Each column has the setting at its value, in the round too.
+    expect(at(2).rows[0]!.cells).toEqual(['Wert', '0', '1', '2', '3', '2']);
+  });
+
+  it('names a value without its choice by its number, and the table by its kind', () => {
+    const s = byKey('roundAllies');
+    const last = s.choices!.at(-1)!;
+    expect(valueLabel(s, last.value)).toBe(last.label);
+    expect(valueLabel(s, 99)).toBe('99');
+    expect(explainTable(byKey('speed'), u, round)!.t).toBe('table');
+  });
+
   it('is none for a setting without rows or without a range', () => {
+    expect(
+      explainTable({ ...byKey('speed'), explain: undefined }, u, round),
+    ).toBeNull();
+    expect(
+      explainTable({ ...byKey('speed'), max: undefined }, u, round),
+    ).toBeNull();
     expect(explainTable(byKey('galaxies'), u, round)).toBeNull();
     expect(explainTable(byKey('roundGuilds'), u, round)).toBeNull();
     expect(
       explainTable({ ...byKey('speed'), min: undefined }, u, round),
     ).toBeNull();
+  });
+});
+
+describe('the tables of every setting at the defaults (#358)', () => {
+  it('are as written down, cell by cell, for the owner to read', async () => {
+    const text = ALL.flatMap((s) => {
+      const t = explainTable(s, u, round);
+      if (!t) return [];
+      return [
+        `## ${s.key}`,
+        t.head.join(' | '),
+        ...t.rows.map((r) => r.cells.join(' | ')),
+        '',
+      ];
+    }).join('\n');
+    await expect(text).toMatchFileSnapshot('admin-explain.tables.txt');
   });
 });

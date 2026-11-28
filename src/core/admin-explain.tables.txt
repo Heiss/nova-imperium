@@ -1,0 +1,224 @@
+## speed
+Tempo (Faktor) | 1 | 34 | 67 | 100 | 5 (jetzt)
+Adamant-Tiefbohrung Stufe 10: Bauzeit | 1 Std. 9 Min. | 2 Min. 2 Sek. | 1 Min. 2 Sek. | 42 Sek. | 13 Min. 50 Sek.
+Machina-Energetik Stufe 5: Forschungszeit | 12 Std. 48 Min. | 22 Min. 35 Sek. | 11 Min. 28 Sek. | 7 Min. 41 Sek. | 2 Std. 33 Min.
+Abfangjäger: Bauzeit je Schiff | 1 Std. 36 Min. | 2 Min. 49 Sek. | 1 Min. 26 Sek. | 58 Sek. | 19 Min. 12 Sek.
+Adamant-Tiefbohrung Stufe 10 mit Sonnenkathedrale Stufe 10: Förderung je Stunde | 798 | 27.136 | 53.474 | 79.812 | 3.990
+Flug Frachtläufer, ein System weiter | 2 Std. 18 Min. | 4 Min. 4 Sek. | 2 Min. 4 Sek. | 1 Min. 23 Sek. | 27 Min. 37 Sek.
+Flug Frachtläufer, eine Galaxie weiter | 6 Std. 9 Min. | 10 Min. 51 Sek. | 5 Min. 31 Sek. | 3 Min. 41 Sek. | 1 Std. 13 Min.
+
+## positions
+Positionen je System | 12 | 15 | 17 | 20 | 15 (jetzt)
+Expeditionsposition | 13 | 16 | 18 | 21 | 16
+
+## baseStore
+Grundlager je Rohstoff | 10.000 | 3.340.000 | 6.670.000 | 10.000.000 | 100.000 (jetzt)
+Lager bei Adamant-Gewölbe Stufe 0 | 10.000 | 3.340.000 | 6.670.000 | 10.000.000 | 100.000
+Lager bei Adamant-Gewölbe Stufe 1 | 60.000 | 3.390.000 | 6.720.000 | 10.050.000 | 150.000
+Lager bei Adamant-Gewölbe Stufe 5 | 510.000 | 3.840.000 | 7.170.000 | 10.500.000 | 600.000
+Lager bei Adamant-Gewölbe Stufe 10 | 5.460.000 | 8.790.000 | 12.120.000 | 15.450.000 | 5.550.000
+
+## extraFields
+Zusatzfelder pro Planet | 0 | 33 | 67 | 100 | 0 (jetzt)
+Planet mit 10.000 km | 100 | 133 | 167 | 200 | 100
+Planet mit 12.768 km | 163 | 196 | 230 | 263 | 163
+Planet mit 15.000 km | 225 | 258 | 292 | 325 | 225
+
+## roundActivityRecent
+Aktivität ohne Minutenangabe (Minuten) | 1 | 21 | 40 | 60 | 15 (jetzt)
+5 Minuten danach | vor 5 Min. | aktiv | aktiv | aktiv | aktiv
+15 Minuten danach | vor 15 Min. | aktiv | aktiv | aktiv | vor 15 Min.
+30 Minuten danach | vor 30 Min. | vor 30 Min. | aktiv | aktiv | vor 30 Min.
+60 Minuten danach | – | – | – | – | –
+120 Minuten danach | – | – | – | – | –
+
+## roundActivityMinutes
+Aktivität mit Minutenangabe bis (Minuten) | 1 | 481 | 960 | 1.440 | 59 (jetzt)
+5 Minuten danach | aktiv | aktiv | aktiv | aktiv | aktiv
+15 Minuten danach | – | vor 15 Min. | vor 15 Min. | vor 15 Min. | vor 15 Min.
+30 Minuten danach | – | vor 30 Min. | vor 30 Min. | vor 30 Min. | vor 30 Min.
+60 Minuten danach | – | vor 60 Min. | vor 60 Min. | vor 60 Min. | –
+120 Minuten danach | – | vor 120 Min. | vor 120 Min. | vor 120 Min. | –
+
+## roundInactiveDays
+Inaktiv ab (Tage) | 1 | 122 | 244 | 365 | 7 (jetzt)
+3 Tage ohne Aktivität | inaktiv | – | – | – | –
+7 Tage ohne Aktivität | inaktiv | – | – | – | inaktiv
+14 Tage ohne Aktivität | inaktiv | – | – | – | inaktiv
+28 Tage ohne Aktivität | lange inaktiv | lange inaktiv | lange inaktiv | lange inaktiv | lange inaktiv
+60 Tage ohne Aktivität | lange inaktiv | lange inaktiv | lange inaktiv | lange inaktiv | lange inaktiv
+
+## roundLongInactiveDays
+Lange inaktiv ab (Tage) | 1 | 122 | 244 | 365 | 28 (jetzt)
+3 Tage ohne Aktivität | lange inaktiv | – | – | – | –
+7 Tage ohne Aktivität | lange inaktiv | inaktiv | inaktiv | inaktiv | inaktiv
+14 Tage ohne Aktivität | lange inaktiv | inaktiv | inaktiv | inaktiv | inaktiv
+28 Tage ohne Aktivität | lange inaktiv | inaktiv | inaktiv | inaktiv | lange inaktiv
+60 Tage ohne Aktivität | lange inaktiv | inaktiv | inaktiv | inaktiv | lange inaktiv
+
+## roundHeldSpy
+Gehaltene Flotten im Auspex-Bericht ab Auspex-Lehre | 0 | 10 | 20 | 30 | 2 (jetzt)
+Auspex-Lehre 0 | getrennt | in der Flotte | in der Flotte | in der Flotte | in der Flotte
+Auspex-Lehre 2 | getrennt | in der Flotte | in der Flotte | in der Flotte | getrennt
+Auspex-Lehre 5 | getrennt | in der Flotte | in der Flotte | in der Flotte | getrennt
+Auspex-Lehre 10 | getrennt | getrennt | in der Flotte | in der Flotte | getrennt
+Auspex-Lehre 20 | getrennt | getrennt | getrennt | in der Flotte | getrennt
+
+## roundRecognitionTotal
+Fremde Flotten: Schiffe insgesamt ab Auspex-Lehre | 0 | 33 | 67 | 100 | 2 (jetzt)
+Auspex-Lehre 0 | Anzahl | – | – | – | –
+Auspex-Lehre 2 | Anzahl | – | – | – | Anzahl
+Auspex-Lehre 4 | Anzahl, Typen | Typen | Typen | Typen | Anzahl, Typen
+Auspex-Lehre 8 | Anzahl, Typen, je Typ | Typen, je Typ | Typen, je Typ | Typen, je Typ | Anzahl, Typen, je Typ
+Auspex-Lehre 16 | Anzahl, Typen, je Typ | Typen, je Typ | Typen, je Typ | Typen, je Typ | Anzahl, Typen, je Typ
+
+## roundRecognitionTypes
+Fremde Flotten: Schiffstypen ab Auspex-Lehre | 0 | 33 | 67 | 100 | 4 (jetzt)
+Auspex-Lehre 0 | Typen | – | – | – | –
+Auspex-Lehre 2 | Anzahl, Typen | Anzahl | Anzahl | Anzahl | Anzahl
+Auspex-Lehre 4 | Anzahl, Typen | Anzahl | Anzahl | Anzahl | Anzahl, Typen
+Auspex-Lehre 8 | Anzahl, Typen, je Typ | Anzahl, je Typ | Anzahl, je Typ | Anzahl, je Typ | Anzahl, Typen, je Typ
+Auspex-Lehre 16 | Anzahl, Typen, je Typ | Anzahl, je Typ | Anzahl, je Typ | Anzahl, je Typ | Anzahl, Typen, je Typ
+
+## roundRecognitionCounts
+Fremde Flotten: Anzahl je Schiffstyp ab Auspex-Lehre | 0 | 33 | 67 | 100 | 8 (jetzt)
+Auspex-Lehre 0 | je Typ | – | – | – | –
+Auspex-Lehre 2 | Anzahl, je Typ | Anzahl | Anzahl | Anzahl | Anzahl
+Auspex-Lehre 4 | Anzahl, Typen, je Typ | Anzahl, Typen | Anzahl, Typen | Anzahl, Typen | Anzahl, Typen
+Auspex-Lehre 8 | Anzahl, Typen, je Typ | Anzahl, Typen | Anzahl, Typen | Anzahl, Typen | Anzahl, Typen, je Typ
+Auspex-Lehre 16 | Anzahl, Typen, je Typ | Anzahl, Typen | Anzahl, Typen | Anzahl, Typen | Anzahl, Typen, je Typ
+
+## roundDemolitionRefund
+Rückbau-Erstattung (%) | -100 | -33 | 33 | 100 | 50 (jetzt)
+Adamant-Tiefbohrung Stufe 10: Rohstoffe zurück | 0 | 0 | 950 | 2.882 | 1.441
+Adamant-Tiefbohrung Stufe 10: Rohstoffe beim Start | 2.882 | 950 | 0 | 0 | 0
+
+## roundDemolitionTime
+Rückbau-Dauer (% der Bauzeit) | 1 | 67 | 134 | 200 | 50 (jetzt)
+Adamant-Tiefbohrung Stufe 10: Dauer | 8 Sek. | 9 Min. 16 Sek. | 18 Min. 32 Sek. | 27 Min. 40 Sek. | 6 Min. 55 Sek.
+
+## roundExpeditionExtraSlots
+Zusätzliche Expeditionsplätze | 0 | 3 | 7 | 10 | 0 (jetzt)
+Kreuzzugs-Kartografie Stufe 1: Expeditionsplätze | 1 | 4 | 8 | 11 | 1
+Kreuzzugs-Kartografie Stufe 4: Expeditionsplätze | 2 | 5 | 9 | 12 | 2
+Kreuzzugs-Kartografie Stufe 9: Expeditionsplätze | 3 | 6 | 10 | 13 | 3
+Kreuzzugs-Kartografie Stufe 16: Expeditionsplätze | 4 | 7 | 11 | 14 | 4
+
+## roundExpeditionHours
+Haltezeit in Stunden je Stufe | 1 | 9 | 16 | 24 | 1 (jetzt)
+Kreuzzugs-Kartografie Stufe 1: längste Haltezeit | 1 Std. 0 Min. | 9 Std. 0 Min. | 16 Std. 0 Min. | 24 Std. 0 Min. | 1 Std. 0 Min.
+Kreuzzugs-Kartografie Stufe 4: längste Haltezeit | 4 Std. 0 Min. | 36 Std. 0 Min. | 64 Std. 0 Min. | 96 Std. 0 Min. | 4 Std. 0 Min.
+Kreuzzugs-Kartografie Stufe 9: längste Haltezeit | 9 Std. 0 Min. | 81 Std. 0 Min. | 144 Std. 0 Min. | 216 Std. 0 Min. | 9 Std. 0 Min.
+Kreuzzugs-Kartografie Stufe 16: längste Haltezeit | 16 Std. 0 Min. | 144 Std. 0 Min. | 256 Std. 0 Min. | 384 Std. 0 Min. | 16 Std. 0 Min.
+
+## roundExpeditionSpeed
+Haltezeit durch das Universums-Tempo teilen | Nein | Ja | Nein (jetzt)
+Kreuzzugs-Kartografie Stufe 1: längste Haltezeit | 1 Std. 0 Min. | 12 Min. 0 Sek. | 1 Std. 0 Min.
+Kreuzzugs-Kartografie Stufe 4: längste Haltezeit | 4 Std. 0 Min. | 48 Min. 0 Sek. | 4 Std. 0 Min.
+Kreuzzugs-Kartografie Stufe 9: längste Haltezeit | 9 Std. 0 Min. | 1 Std. 48 Min. | 9 Std. 0 Min.
+Kreuzzugs-Kartografie Stufe 16: längste Haltezeit | 16 Std. 0 Min. | 3 Std. 12 Min. | 16 Std. 0 Min.
+
+## roundMarketMc
+Marktplatz Adamant → Psikristall (Psikristall je 1.000 Adamant) | 1 | 33.334 | 66.667 | 100.000 | 500 (jetzt)
+Für 1.000 Adamant auf Stufe 1 | 0 | 30.000 | 60.000 | 90.000 | 450
+
+## roundMarketMd
+Marktplatz Adamant → Promethium (Promethium je 1.000 Adamant) | 1 | 33.334 | 66.667 | 100.000 | 250 (jetzt)
+Für 1.000 Adamant auf Stufe 1 | 0 | 30.000 | 60.000 | 90.000 | 225
+
+## roundMarketCm
+Marktplatz Psikristall → Adamant (Adamant je 1.000 Psikristall) | 1 | 33.334 | 66.667 | 100.000 | 2.000 (jetzt)
+Für 1.000 Psikristall auf Stufe 1 | 0 | 30.000 | 60.000 | 90.000 | 1.800
+
+## roundMarketCd
+Marktplatz Psikristall → Promethium (Promethium je 1.000 Psikristall) | 1 | 33.334 | 66.667 | 100.000 | 500 (jetzt)
+Für 1.000 Psikristall auf Stufe 1 | 0 | 30.000 | 60.000 | 90.000 | 450
+
+## roundMarketDm
+Marktplatz Promethium → Adamant (Adamant je 1.000 Promethium) | 1 | 33.334 | 66.667 | 100.000 | 4.000 (jetzt)
+Für 1.000 Promethium auf Stufe 1 | 0 | 30.000 | 60.000 | 90.000 | 3.600
+
+## roundMarketDc
+Marktplatz Promethium → Psikristall (Psikristall je 1.000 Promethium) | 1 | 33.334 | 66.667 | 100.000 | 2.000 (jetzt)
+Für 1.000 Promethium auf Stufe 1 | 0 | 30.000 | 60.000 | 90.000 | 1.800
+
+## roundMarketStep
+Marktplatz Preisschritt (Promille je 1.000 getauschte Einheiten) | 1 | 334 | 667 | 1.000 | 5 (jetzt)
+Preis nach 10.000 getauschten Einheiten (%) | 99 | 23 | 13 | 9,1 | 95,2
+Preis nach 100.000 getauschten Einheiten (%) | 90,9 | 2,9 | 1,5 | 1 | 66,7
+Preis nach 1.000.000 getauschten Einheiten (%) | 50 | 0,3 | 0,1 | 0,1 | 16,7
+
+## roundMarketDrift
+Marktplatz Preiserholung (Stunden, 0 = keine Erholung) | 0 | 240 | 480 | 720 | 24 (jetzt)
+Halber Preis, 1 Std. nach dem Tausch (%) | 50 | 50,2 | 50,1 | 50,1 | 52,1
+Halber Preis, 6 Std. nach dem Tausch (%) | 50 | 51,3 | 50,6 | 50,4 | 62,5
+Halber Preis, 24 Std. nach dem Tausch (%) | 50 | 55 | 52,5 | 51,7 | 100
+Halber Preis, 72 Std. nach dem Tausch (%) | 50 | 65 | 57,5 | 55 | 100
+
+## roundMarketFee
+Marktplatz Gebühr auf Stufe 1 des Handelspostens (Prozent) | 0 | 33 | 67 | 100 | 10 (jetzt)
+Handelsposten Stufe 1: Gebühr (%) | 0 | 33 | 67 | 100 | 10
+Handelsposten Stufe 2: Gebühr (%) | 0 | 32 | 66 | 99 | 9
+Handelsposten Stufe 3: Gebühr (%) | 0 | 31 | 65 | 98 | 8
+Handelsposten Stufe 5: Gebühr (%) | 0 | 29 | 63 | 96 | 6
+Handelsposten Stufe 10: Gebühr (%) | 0 | 24 | 58 | 91 | 1
+Handelsposten Stufe 15: Gebühr (%) | 0 | 19 | 53 | 86 | 0
+
+## roundMarketFeeStep
+Marktplatz Gebühr sinkt je weitere Stufe um (Prozentpunkte) | 0 | 33 | 67 | 100 | 1 (jetzt)
+Handelsposten Stufe 1: Gebühr (%) | 10 | 10 | 10 | 10 | 10
+Handelsposten Stufe 2: Gebühr (%) | 10 | 0 | 0 | 0 | 9
+Handelsposten Stufe 3: Gebühr (%) | 10 | 0 | 0 | 0 | 8
+Handelsposten Stufe 5: Gebühr (%) | 10 | 0 | 0 | 0 | 6
+Handelsposten Stufe 10: Gebühr (%) | 10 | 0 | 0 | 0 | 1
+Handelsposten Stufe 15: Gebühr (%) | 10 | 0 | 0 | 0 | 0
+
+## roundColonyBase
+Maximale Planeten ohne Forschung (0 = unbegrenzt, der Heimatplanet zählt mit) | 0 | 7 | 13 | 20 | 0 (jetzt)
+Kolonialverwaltung Stufe 0 | unbegrenzt | 7 | 13 | 20 | unbegrenzt
+Kolonialverwaltung Stufe 1 | unbegrenzt | 7 | 13 | 20 | unbegrenzt
+Kolonialverwaltung Stufe 2 | unbegrenzt | 7 | 13 | 20 | unbegrenzt
+Kolonialverwaltung Stufe 4 | unbegrenzt | 7 | 13 | 20 | unbegrenzt
+Kolonialverwaltung Stufe 8 | unbegrenzt | 7 | 13 | 20 | unbegrenzt
+
+## roundColonyResearch
+Kolonieforschung aktivieren | Nein | Ja | Nein (jetzt)
+Kolonialverwaltung Stufe 0 | unbegrenzt | unbegrenzt | unbegrenzt
+Kolonialverwaltung Stufe 1 | unbegrenzt | unbegrenzt | unbegrenzt
+Kolonialverwaltung Stufe 2 | unbegrenzt | unbegrenzt | unbegrenzt
+Kolonialverwaltung Stufe 4 | unbegrenzt | unbegrenzt | unbegrenzt
+Kolonialverwaltung Stufe 8 | unbegrenzt | unbegrenzt | unbegrenzt
+
+## roundColonyPerLevel
+Zusätzliche Planeten je Forschungsstufe | 1 | 7 | 14 | 20 | 2 (jetzt)
+Kolonialverwaltung Stufe 0 | unbegrenzt | unbegrenzt | unbegrenzt | unbegrenzt | unbegrenzt
+Kolonialverwaltung Stufe 1 | unbegrenzt | unbegrenzt | unbegrenzt | unbegrenzt | unbegrenzt
+Kolonialverwaltung Stufe 2 | unbegrenzt | unbegrenzt | unbegrenzt | unbegrenzt | unbegrenzt
+Kolonialverwaltung Stufe 4 | unbegrenzt | unbegrenzt | unbegrenzt | unbegrenzt | unbegrenzt
+Kolonialverwaltung Stufe 8 | unbegrenzt | unbegrenzt | unbegrenzt | unbegrenzt | unbegrenzt
+
+## roundColonyMaxLevel
+Maximale Forschungsstufe (0 = unbegrenzt erforschbar) | 0 | 7 | 13 | 20 | 4 (jetzt)
+Kolonialverwaltung Stufe 0 | unbegrenzt | unbegrenzt | unbegrenzt | unbegrenzt | unbegrenzt
+Kolonialverwaltung Stufe 1 | unbegrenzt | unbegrenzt | unbegrenzt | unbegrenzt | unbegrenzt
+Kolonialverwaltung Stufe 2 | unbegrenzt | unbegrenzt | unbegrenzt | unbegrenzt | unbegrenzt
+Kolonialverwaltung Stufe 4 | unbegrenzt | unbegrenzt | unbegrenzt | unbegrenzt | unbegrenzt
+Kolonialverwaltung Stufe 8 | unbegrenzt | unbegrenzt | unbegrenzt | unbegrenzt | unbegrenzt
+
+## roundHighscorePasses
+Highscore-Aktualisierungen pro Tag (0 = Echtzeit) | 0 | 8 | 16 | 24 | 3 (jetzt)
+Abstand zweier Durchgänge | Echtzeit | 3 Std. 0 Min. | 1 Std. 30 Min. | 1 Std. 0 Min. | 8 Std. 0 Min.
+
+## roundMoonChanceMax
+Mondchance höchstens (%) | 1 | 34 | 67 | 100 | 20 (jetzt)
+Trümmerfeld mit 100.000 Rohstoffen | 1 % | 1 % | 1 % | 1 % | 1 %
+Trümmerfeld mit 500.000 Rohstoffen | 1 % | 5 % | 5 % | 5 % | 5 %
+Trümmerfeld mit 1.000.000 Rohstoffen | 1 % | 10 % | 10 % | 10 % | 10 %
+Trümmerfeld mit 5.000.000 Rohstoffen | 1 % | 34 % | 50 % | 50 % | 20 %
+
+## roundMoonPerPercent
+Rohstoffe je 1 % Mondchance | 10.000 | 340.000 | 670.000 | 1.000.000 | 100.000 (jetzt)
+Trümmerfeld mit 100.000 Rohstoffen | 10 % | 0 % | 0 % | 0 % | 1 %
+Trümmerfeld mit 500.000 Rohstoffen | 20 % | 1 % | 0 % | 0 % | 5 %
+Trümmerfeld mit 1.000.000 Rohstoffen | 20 % | 2 % | 1 % | 1 % | 10 %
+Trümmerfeld mit 5.000.000 Rohstoffen | 20 % | 14 % | 7 % | 5 % | 20 %

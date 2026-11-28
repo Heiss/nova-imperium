@@ -79,6 +79,9 @@ const FIGHTER = 'lf';
 const CARGO = 'sc';
 const STORE = 'smetal';
 const HOME = { g: 1, s: 1, p: 1 };
+/** One system and one galaxy away from `HOME`. */
+const NEXT_SYSTEM = { g: 1, s: 2, p: 1 };
+const NEXT_GALAXY = { g: 2, s: 1, p: 1 };
 
 /** The flight of one ship of `CARGO` at full speed from `HOME` to `to`. */
 const flight = (to: Coords, u: Universe): string =>
@@ -118,11 +121,11 @@ const SPEED_ROWS: SettingExplain['rows'] = [
   },
   {
     label: (name) => `Flug ${name(CARGO)}, ein System weiter`,
-    cell: ({ u }) => flight({ ...HOME, s: HOME.s + 1 }, u),
+    cell: ({ u }) => flight(NEXT_SYSTEM, u),
   },
   {
     label: (name) => `Flug ${name(CARGO)}, eine Galaxie weiter`,
-    cell: ({ u }) => flight({ ...HOME, g: HOME.g + 1 }, u),
+    cell: ({ u }) => flight(NEXT_GALAXY, u),
   },
 ];
 
