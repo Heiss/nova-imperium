@@ -143,9 +143,13 @@ interface EventEntry {
 /** The modules as the generated list gives them: `[name in the folder, chatEvents]`. */
 type ListedEvents = readonly (readonly [string, readonly EventEntry[]])[];
 
+/** The kind of an ordinary message of the chat, which no event may take. */
+const MESSAGE_KIND = 'message';
+
 /**
  * The events of all modules by ascending order (#426); a key or an order
- * defined twice stops the start with both files named.
+ * defined twice stops the start with both files named, and so does an empty
+ * key or the key of the messages.
  */
 export function assembleEvents(listed: ListedEvents): readonly EventEntry[] {
   const once = ownedOnce('Chat event');
@@ -156,6 +160,13 @@ export function assembleEvents(listed: ListedEvents): readonly EventEntry[] {
     })),
   );
   for (const { file, event } of entries) {
+    if (event.key === '')
+      throw new Error(`A chat event in ${file} has an empty key.`);
+    // „message“ is the kind of an ordinary message of the chat.
+    if (event.key === MESSAGE_KIND)
+      throw new Error(
+        `Chat event ${MESSAGE_KIND} in ${file} takes the kind of the messages.`,
+      );
     if (!Number.isFinite(event.order))
       throw new Error(`Chat event ${event.key} in ${file} has no order.`);
     once('key', event.key, file);
@@ -165,6 +176,9 @@ export function assembleEvents(listed: ListedEvents): readonly EventEntry[] {
 }
 
 const EVENTS = assembleEvents(CHAT_EVENT_LISTS);
+
+/** The kind whose sentence an unknown kind gets: the rank, as before #426. */
+const FALLBACK_KIND = 'rank';
 
 /** Each kind registers itself in a file of src/core/chat-events (#426). */
 export const CHAT_EVENTS: readonly ChatEventKind[] = EVENTS.map(
@@ -199,7 +213,13 @@ const UNKNOWN = 'Unbekannt';
 export function chatEventText(e: ChatEvent, arrival: string): string {
   const name = e.name ?? FORMER;
   const who = name.charAt(0).toUpperCase() + name.slice(1);
-  return EVENTS.find((event) => event.key === e.kind)!.sentence({
+  // A kind the registry does not know (an older bundle, a kind dropped while
+  // its rows remain) reads as the rank, as before #426: the chat log never
+  // breaks on it, and it adds no text of its own.
+  const event =
+    EVENTS.find((x) => x.key === e.kind) ??
+    EVENTS.find((x) => x.key === FALLBACK_KIND)!;
+  return event.sentence({
     who,
     name,
     text: e.text,
