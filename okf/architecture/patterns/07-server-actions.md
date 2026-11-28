@@ -72,15 +72,23 @@ description: 'Server actions as commands, their checks in pure functions of the 
   header, not a body field, because actions have a body field `key` of their
   own (`pct`, `tearDownMissiles`).
 * **[V]** The check: `once` of `src/server/http/action-keys.ts`, keyed by the
-  player and the key, after the session and before the handler, wraps
+  player, the route and the key (the same key on two routes runs on both),
+  after the session and before the handler, wraps
   `POST /api/action` (game, guild and admin actions) and the admin writes
   (`/api/admin/{invite, revoke, announce, moderate, moon, bot-check,
-  totp-reset}`). Sign-in, registration, passkeys and passwords are not
-  wrapped.
-* **[V]** Kept in memory per player for 60 s, at most 50 keys per player (the
-  oldest goes first), dropped once past their time when the player's keys
-  are read; a restart forgets them. Kept are only final outcomes: an answer below 500 or a
-  refusal of the game. A busy database (503 `ACTION_DB_BUSY`), a server
+  totp-reset}`). Sign-in, registration, passkeys, passwords, push, reports
+  and deleting the account are not wrapped; they ignore the key the browser
+  sends with them.
+* **[V]** Kept in memory per player for 60 s from the end of the run, at
+  most 240 keys per player (twice the 120 actions of a minute, room for the
+  admin writes; the oldest finished key goes first, a run in progress is
+  never dropped). Every request with a key first drops the keys past their
+  time and the players left without one, of every player; a restart forgets
+  them. An answer is kept without its `state`, which a repeat builds anew.
+  Kept are only final outcomes: an answer below 500 or a
+  refusal of the game. The refusal of the limit of actions („Zu viele
+  Aktionen …“) is a refusal of the game too, so a repeat of its key gets it
+  again (by design). A busy database (503 `ACTION_DB_BUSY`), a server
   error, a missing session and every other failure are forgotten, so a
   resend runs again.
 * **[V]** A repeat gets the outcome of the first run, an answer with a

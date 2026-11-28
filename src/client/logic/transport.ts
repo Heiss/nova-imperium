@@ -3,7 +3,8 @@
 // maintenance answer shows the banner, and a busy database is tried once
 // more for an action. Every call with a body carries a key of its own in the
 // header `Idempotency-Key`, the same on its resend, so the server runs a
-// repeated request once (#450). The browser, the banner and the error log are handed
+// repeated request once (#450); the routes the server does not wrap (sign-in,
+// passkeys, password, push, reports, deleting the account) ignore it. The browser, the banner and the error log are handed
 // in, so the rules are tested without a page.
 import { apiFailure, type ClientError, failedCall } from './error-report.ts';
 import { maintenanceNotice } from './maintenance.ts';

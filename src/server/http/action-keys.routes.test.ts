@@ -226,6 +226,28 @@ describe('an admin write with a key (#450)', () => {
     });
   });
 
+  it('runs the same key on /api/action and on an admin write, once each', async () => {
+    const s = await asAdmin();
+    addUser(s.ctx, 'Pilot');
+    addPlanet(s.ctx, 'u_Pilot', { g: 1, s: 4, p: 4 });
+    const rename = await s.call(
+      'POST',
+      '/api/action',
+      { type: 'rename', name: 'Zentrale' },
+      { [KEY]: 'same' },
+    );
+    expect(rename.status).toBe(200);
+    const announce = await s.call(
+      'POST',
+      '/api/admin/announce',
+      { message: 'Hallo' },
+      { [KEY]: 'same' },
+    );
+    expect(announce.json).toEqual({ recipients: 2 });
+    expect(s.ctx.planets.home('u_Boss')!.name).toBe('Zentrale');
+    expect(s.ctx.reports.ofPlayer('u_Pilot')).toHaveLength(1);
+  });
+
   it('sends a server message once for the same key', async () => {
     const s = await asAdmin();
     addUser(s.ctx, 'Pilot');
