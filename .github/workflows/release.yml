@@ -175,7 +175,7 @@ jobs:
   # 2026-11-27, #449, 291a): it differs from the image of CI only by the
   # Debian updates of this release (OS_UPDATES), so it gets the same check.
   # Its amd64 image, by digest, starts under QEMU in user mode with the CPU
-  # model Denverton (the static binary of qemu-user, as compose.noavx.yaml
+  # model Denverton (the static QEMU binary of scripts/static-qemu.sh, as compose.noavx.yaml
   # in CI) on a fresh data volume, creates and migrates the database and
   # answers /healthz. A failure stops the aliases below, like the scan.
   noavx:

@@ -52,8 +52,8 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 * **[V]** The release image too (#456): the job „The release image runs on
   a CPU without AVX“ of `release.yml` (`scripts/release-noavx.sh`) starts
   the pushed amd64 image by digest under QEMU, with the entrypoint of
-  `compose.noavx.yaml` and the static binary of `qemu-user` (or
-  `qemu-user-static`; `scripts/static-qemu.sh`, the one rule that the check
+  `compose.noavx.yaml` and the static binary of `qemu-user-static` (or of
+  `qemu-user` where that is only virtual, newer Ubuntu; `scripts/static-qemu.sh`, the one rule that the check
   of CI uses too: ldd's words decide, not its exit code, since a static
   binary that is not static-pie makes ldd exit 1), on a fresh volume, and waits up to 90 tries two
   seconds apart for `/healthz`; then it checks that PID 1 runs under QEMU. A

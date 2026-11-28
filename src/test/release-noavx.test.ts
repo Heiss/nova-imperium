@@ -31,8 +31,8 @@ interface Stubs {
   healthyAt?: number;
   /** What PID 1 of the container runs. */
   cmdline?: string;
-  /** Whether the package qemu-user cannot be installed. */
-  noQemuUser?: boolean;
+  /** Whether the package qemu-user-static cannot be installed. */
+  noQemuUserStatic?: boolean;
 }
 
 /** Runs the script with the stubs; its exit code, its output and the calls. */
@@ -52,8 +52,8 @@ function run(env: Record<string, string>, stubs: Stubs = {}, script = SCRIPT) {
   stub('sudo', '"$@"');
   stub(
     'apt-get',
-    stubs.noQemuUser
-      ? 'case "$*" in *" qemu-user") exit 100 ;; esac'
+    stubs.noQemuUserStatic
+      ? 'case "$*" in *" qemu-user-static") exit 100 ;; esac'
       : 'exit 0',
   );
   stub('qemu-x86_64-static', 'exit 0');
@@ -149,12 +149,23 @@ describe('the release image on a CPU without AVX (#456)', () => {
     expect(r.calls.some((c) => c.startsWith('docker '))).toBe(false);
   });
 
-  it('takes qemu-user-static where qemu-user cannot be installed', () => {
-    const r = run(ENV, { noQemuUser: true });
+  it('installs qemu-user-static first, where it is a real package (24.04)', () => {
+    const r = run(ENV);
     expect(r.code, r.out).toBe(0);
-    expect(r.calls).toContain(
+    const installs = r.calls.filter((c) => c.startsWith('apt-get install'));
+    expect(installs).toEqual([
       'apt-get install -y -q --no-install-recommends qemu-user-static',
-    );
+    ]);
+  });
+
+  it('takes qemu-user where qemu-user-static cannot be installed (newer Ubuntu)', () => {
+    const r = run(ENV, { noQemuUserStatic: true });
+    expect(r.code, r.out).toBe(0);
+    const installs = r.calls.filter((c) => c.startsWith('apt-get install'));
+    expect(installs).toEqual([
+      'apt-get install -y -q --no-install-recommends qemu-user-static',
+      'apt-get install -y -q --no-install-recommends qemu-user',
+    ]);
   });
 
   it('refuses a missing digest, before anything else', () => {
