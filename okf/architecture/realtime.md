@@ -235,6 +235,11 @@ generated: { by: claude-code/web, at: 2026-11-25T09:30:00Z }
   images pinned by digest (O29): HTTP/2, an event arrives at once, the
   stream outlives the idle timeout, 401 without a session, the limits. This
   also checks U2.
+* **[E]** The owner's own chain (HAProxy in `mode tcp` → WireGuard →
+  NPMplus, where TLS ends → Caddy → Node) is not added to the operator
+  texts or to the CI spec of O29 (owner, 2026-11-28). HTTP/3 for that chain
+  is an idea in the backlog, after #409 and #482, measured before and after
+  (#489); HTTP/2 stays the requirement.
 * **[E]** Cobalt27 (`@cobalt27/*`, GraphQL APIs generated from TypeScript)
   is rejected: nothing is gained over the standards. The research of
   2026-11-24 also found version 0.5.27, a Bun runtime and the license
