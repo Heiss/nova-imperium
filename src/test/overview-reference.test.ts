@@ -24,7 +24,7 @@ import type { ClientFleet, GameState } from '../client/logic/types.ts';
 import { box, cd, type Ui, type V } from '../client/views/common.ts';
 import Overview from '../client/views/Overview.svelte';
 import OverviewCards from '../client/views/OverviewCards.svelte';
-import { planet, U } from './fixtures.ts';
+import { planet, roundDefaults, U } from './fixtures.ts';
 import { fleetView } from './fleet-view.ts';
 import { planetHTML } from './html-pieces-frozen.ts';
 import { normalize } from './markup.ts';
@@ -286,6 +286,9 @@ function view(x: Parts): V {
     galaxy: [],
     // The shown planet is the main planet now and then (#224).
     mainPlanet: x.now % 3 === 0 ? x.P.id : null,
+    // The round of every state: the box „Verbandsangriff“ of the fleet view
+    // reads its switch since #466.
+    round: { number: 1, ...roundDefaults() },
   } as unknown as GameState;
   return {
     s,

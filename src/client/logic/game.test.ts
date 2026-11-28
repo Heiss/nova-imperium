@@ -210,6 +210,14 @@ describe('fleet form', () => {
     );
     expect(stayMs({ mission: 'transport', stay: 3 }, world(1))).toBe(0);
   });
+  it('flies a fleet of a union the time left to X, with the fuel of the solved speed (#466)', () => {
+    const attack = { ...form, mission: 'attack', cargo: { m: 0, c: 0, d: 0 } };
+    const r = { research: {}, rq: null };
+    const pv = fleetPreview(p, r, attack, U, { pct: 3.5, ms: 123_456 })!;
+    expect(pv.ms).toBe(123_456);
+    expect(pv.fuel).toBe(fleetPreview(p, r, { ...attack, pct: 3.5 }, U)!.fuel);
+    expect(pv.fuel).not.toBe(fleetPreview(p, r, attack, U)!.fuel);
+  });
   it('adds the stay of an expedition to the preview, divided by the speed when the round says so', () => {
     const exp = { ...form, mission: 'expedition', stay: 3 };
     const r = { research: {}, rq: null };

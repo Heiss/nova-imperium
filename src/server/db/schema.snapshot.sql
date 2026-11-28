@@ -6,6 +6,8 @@ CREATE INDEX account_tokens_user ON account_tokens(user_id, purpose, expires);
 
 CREATE INDEX attack_union_invites_user ON attack_union_invites(user_id);
 
+CREATE INDEX attack_unions_leader ON attack_unions(leader);
+
 CREATE INDEX audit_actor ON audit_events(actor, id);
 
 CREATE INDEX audit_target ON audit_events(target, id);
@@ -101,6 +103,17 @@ CREATE TABLE attack_union_invites (
       union_id TEXT NOT NULL,
       user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       PRIMARY KEY (union_id, user_id)
+    ) STRICT;
+
+CREATE TABLE attack_unions (
+      id TEXT PRIMARY KEY,
+      leader TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      lead TEXT,
+      target TEXT NOT NULL,
+      to_g INTEGER NOT NULL,
+      to_s INTEGER NOT NULL,
+      to_p INTEGER NOT NULL,
+      arr INTEGER NOT NULL
     ) STRICT;
 
 CREATE TABLE audit_events (

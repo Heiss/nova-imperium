@@ -91,7 +91,6 @@ const LISTS: Record<string, Record<string, Verdict>> = {
   },
   'Fleet.svelte': {
     'union.id': source('union ids of the server (#362)'),
-    'attack.id': source('fleet ids (#362)'),
     'ship.key': constant('object keys of SHIPS'),
     'place.id': merged(
       'own places, friends, guild members and last targets, the first kept',
@@ -321,7 +320,6 @@ const LOOPS: Record<string, string[]> = {
   'Cost.svelte': ['parts as x (x.key)'],
   'Fleet.svelte': [
     'page.unions.unions as union (union.id)',
-    'page.unions.open as attack (attack.id)',
     'page.ships as ship (ship.key)',
     'form.quick as place (place.id)',
     'choice.missions as option (option.value)',

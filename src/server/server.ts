@@ -91,7 +91,7 @@ export function clockBeat(ctx: Ctx, log: Log, version: string | null): void {
   }
 }
 
-/** The hourly cleanup: sessions, audit and error log, surveys (#190), the app's limits. */
+/** The hourly cleanup: sessions, audit and error log, surveys (#190), attack unions that are over (#466), the app's limits. */
 export function hourlySweep(
   ctx: Ctx,
   sweepApp: () => void,
@@ -102,6 +102,8 @@ export function hourlySweep(
     ctx.players.purgeSessions(ctx.now());
     purgeAudit(ctx);
     purgeSurveys(ctx);
+    // A planned attack union no fleet reached ends silently (#466).
+    ctx.unions.purge(ctx.now());
     sweepApp();
   } catch (e) {
     jobFailure(ctx, log, 'sweep', version)('Sweep failed', e);

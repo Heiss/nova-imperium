@@ -5,13 +5,17 @@
 // limits those of the round the server sends.
 import type { RoundRules } from '../../core/round.ts';
 import {
-  foundError,
+  flightRefusal,
   joinMessage,
-  joinTiming,
+  planError,
+  planMessage,
+  joinWindow,
+  unionFlight,
   type UnionLimits,
 } from '../../core/union.ts';
+import type { Universe } from '../../core/types.ts';
 import type { V } from '../views/common.ts';
-import { coords, dt, dur } from './format.ts';
+import { coords, dt } from './format.ts';
 import { nameOf } from './game.ts';
 import type { ClientFleet, GameState, UnionState } from './types.ts';
 
@@ -19,7 +23,6 @@ import type { ClientFleet, GameState, UnionState } from './types.ts';
 export const limitsOf = (round: RoundRules): UnionLimits => ({
   fleets: round.unionFleets,
   players: round.unionPlayers,
-  delay: round.unionDelay,
   cutoff: round.unionCutoff,
 });
 
@@ -58,43 +61,25 @@ function fleetsLine(v: Pick<V, 's'>, u: UnionState): string {
 
 /** The unions of the box „Verbandsangriff“, the earliest arrival first (the server sorts them). */
 export function unionRows(v: Pick<V, 's'>): UnionRow[] {
-  const unions = unionsOf(v.s);
-  if (!unions.length) return [];
-  const limits = limitsOf(v.s.round);
-  return unions.map((u) => ({
-    id: u.id,
-    title: `Verbandsangriff auf ${coords(u.toC)}`,
-    toC: u.toC,
-    arr: u.arr,
-    leader: nameOf(v.s.players, u.leader),
-    counts: `Flotten ${u.fleets.length} / ${limits.fleets} · Spieler ${new Set(u.fleets.map((f) => f.owner)).size} / ${limits.players}`,
-    fleets: fleetsLine(v, u),
-    invited: u.invited.map((i) => nameOf(v.s.players, i)).join(', '),
-    leads: u.leader === v.s.me.id,
-  }));
+  return unionsOf(v.s).map((u) => unionRow(v, u, limitsOf(v.s.round)));
 }
 
-/**
- * Whether the own fleet can open a union now: a Sturmangriff on its way that
- * has not arrived and belongs to no union (the rule of the server).
- */
-export const canOpenUnion = (
-  f: ClientFleet,
-  me: string,
-  now: number,
-): boolean =>
-  f.owner === me &&
-  foundError(
-    {
-      mission: f.mission,
-      state: f.state,
-      arr: f.arr,
-      recalled: false,
-      gift: f.gift,
-    },
-    now,
-    f.union !== undefined,
-  ) === undefined;
+/** One union of the box. */
+const unionRow = (
+  v: Pick<V, 's'>,
+  u: UnionState,
+  limits: UnionLimits,
+): UnionRow => ({
+  id: u.id,
+  title: `Verbandsangriff auf ${coords(u.toC)}`,
+  toC: u.toC,
+  arr: u.arr,
+  leader: nameOf(v.s.players, u.leader),
+  counts: `Flotten ${u.fleets.length} / ${limits.fleets} · Spieler ${new Set(u.fleets.map((f) => f.owner)).size} / ${limits.players}`,
+  fleets: fleetsLine(v, u),
+  invited: u.invited.map((i) => nameOf(v.s.players, i)).join(', '),
+  leads: u.leader === v.s.me.id,
+});
 
 /** „ · Angriffsverband“ behind an own fleet that flies in a union, the leader's own „ (Anführer)“. */
 export const unionPart = (f: ClientFleet): string =>
@@ -103,21 +88,6 @@ export const unionPart = (f: ClientFleet): string =>
     : f.union === f.id
       ? ' · Angriffsverband (Anführer)'
       : ' · im Angriffsverband';
-
-/** An own Sturmangriff that can open a union: its target and its arrival. */
-export interface OpenRow {
-  id: string;
-  /** „[1:4:8]“. */
-  target: string;
-  arr: number;
-}
-
-/** The own fleets that can open an attack union now, by arrival. */
-export const openRows = (v: Pick<V, 's' | 'now'>): OpenRow[] =>
-  v.s.fleets
-    .filter((f) => canOpenUnion(f, v.s.me.id, v.now))
-    .sort((a, b) => a.arr - b.arr)
-    .map((f) => ({ id: f.id, target: coords(f.toC), arr: f.arr }));
 
 /** A union the fleet form can join: its ID, its label and its target. */
 export interface JoinChoice {
@@ -137,27 +107,82 @@ export const joinChoices = (v: Pick<V, 's'>): JoinChoice[] =>
     moon: u.to.startsWith('m'),
   }));
 
+/** How a fleet of the form joins a union: its speed, its flight and the arrival X, or the refusal. */
+export type UnionJoin =
+  { pct: number; ms: number; arr: number } | { refusal: string };
+
 /**
- * „Ankunft / Rückkehr“ of a fleet that joins the union `id` with a flight of
- * `ms` (the rules of the arrival, src/core/union.ts): it arrives with the
- * union, or delays it, or is refused; null when the union is not known.
+ * How a fleet that starts at `now`, flying `dist` at the speed `speed`,
+ * joins the union `id` (the rules of the server, src/core/union.ts, #466):
+ * the cut-off, then the speed that brings it there at X; null when the
+ * union is not known.
  */
-export function unionArrivalLine(
-  s: Pick<GameState, 'unions' | 'round'>,
+export function unionJoin(
+  s: Pick<GameState, 'unions' | 'round'> & { cfg: Universe },
   id: string,
   now: number,
-  ms: number,
-): string | null {
+  fleet: { dist: number; speed: number },
+): UnionJoin | null {
   const union = unionsOf(s).find((u) => u.id === id);
   if (!union) return null;
   const limits = limitsOf(s.round);
-  const timing = joinTiming({ now, arr: union.arr, flight: ms, limits });
-  if ('error' in timing)
-    return `<span class="bad">${joinMessage(timing.error, limits)}</span>`;
-  const delay = timing.arr - union.arr;
-  const note =
-    delay > 0
-      ? ` <span class="dim">(verzögert den Verband um ${dur(delay)})</span>`
-      : '';
-  return `${dt(timing.arr)} / ${dt(timing.arr + ms)}${note}`;
+  const closed = joinWindow({ now, arr: union.arr, limits });
+  if (closed) return { refusal: joinMessage(closed, limits) };
+  return flightAt(s, union.arr, now, fleet);
 }
+
+/** The value of the choice „Verband“ that plans a new union (#466, A1a). */
+export const PLAN = 'plan';
+
+/**
+ * How the leader's own Sturmangriff plans a union arriving at `arr` (#466,
+ * the rules of the server): the arrival in the future and beyond the
+ * cut-off, then the speed that brings the fleet there; `arr` NaN while no
+ * time is chosen.
+ */
+export function planJoin(
+  s: Pick<GameState, 'round'> & { cfg: Universe },
+  arr: number,
+  now: number,
+  fleet: { dist: number; speed: number },
+): UnionJoin {
+  if (Number.isNaN(arr))
+    return { refusal: 'Bitte die Ankunft des Verbands wählen.' };
+  const limits = limitsOf(s.round);
+  const refused = planError({ now, arr, limits });
+  if (refused) return { refusal: planMessage(refused, limits) };
+  return flightAt(s, arr, now, fleet);
+}
+
+/** The speed that brings a fleet starting at `now` there at `arr`, or the refusal. */
+function flightAt(
+  s: { cfg: Universe; round: RoundRules },
+  arr: number,
+  now: number,
+  fleet: { dist: number; speed: number },
+): UnionJoin {
+  const limits = limitsOf(s.round);
+  const flight = unionFlight({ ...fleet, universe: s.cfg, now, arr });
+  // The server names the earliest start to the second, rounded up: a fleet
+  // sent at it makes the arrival.
+  if ('error' in flight)
+    return {
+      refusal: flightRefusal(flight, limits, (t) =>
+        dt(Math.ceil(t / 1000) * 1000),
+      ),
+    };
+  return { pct: flight.pct, ms: arr - now, arr };
+}
+
+/** The speed of a joining fleet as the form shows it: „37,5 %“. */
+export const unionSpeed = (pct: number): string =>
+  `${(pct * 10).toLocaleString('de-DE', { maximumFractionDigits: 1 })} %`;
+
+/**
+ * „Ankunft / Rückkehr“ of a fleet that joins a union: X and the way back
+ * after a flight as long, with the speed it flies at; the refusal in red.
+ */
+export const unionArrivalLine = (join: UnionJoin): string =>
+  'refusal' in join
+    ? `<span class="bad">${join.refusal}</span>`
+    : `${dt(join.arr)} / ${dt(join.arr + join.ms)} <span class="dim">(Verband: Geschwindigkeit ${unionSpeed(join.pct)})</span>`;

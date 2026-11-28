@@ -1,26 +1,32 @@
-// The attack union („Verbandsangriff“, #225, okf/features/holding-acs.md) on
-// the server: opening a union from an own Sturmangriff on its way, inviting
-// allies, joining with a fleet (the action `send` asks `joinPlan`), the
-// recall of a fleet of a union and the arrival of all fleets at once. The
-// rules (limits, timing, the split of the loot) are the pure ones of
-// src/core/union.ts; here the facts are gathered and the codes worded. A
-// union is the fleets that carry its ID (`fleets.union_id`); its ID is the ID
-// of the fleet that opened it, whose owner leads it, and it ends at the
-// arrival or when the leader recalls that fleet.
+// The attack union („Verbandsangriff“, #225, #466, okf/features/holding-acs.md)
+// on the server: planning a union with the leader's own Sturmangriff that
+// arrives at a fixed time X (#466, A1a), inviting allies, joining with a fleet that arrives at the fixed arrival X
+// (the action `send` asks `joinPlan`), the recall of a fleet of a union and
+// the arrival of all fleets at once. The rules (limits, the window, the
+// speed, the split of the loot) are the pure ones of src/core/union.ts; here
+// the facts are gathered and the codes worded. A union is a row of
+// `attack_unions` (leader, target, X, the leader's fleet that leads it) and
+// the fleets that carry its ID (`fleets.union_id`); it ends at X, or when
+// the leader recalls the fleet that leads it (owner, 2026-11-16, Q2).
 import { ALLIES } from '../../core/holding.ts';
 import {
-  type FoundError,
   type UnionFacts,
   type UnionLimits,
-  foundError,
   inviteLimitError,
   joinLimitError,
+  flightRefusal,
   joinMessage,
-  joinTiming,
+  joinWindow,
+  planError,
+  planMessage,
+  UNION_OFF_REFUSAL,
+  unionFlight,
+  unionOpen,
 } from '../../core/union.ts';
+import type { Union } from '../db/repos/unions.ts';
 import type { Coords, Fleet } from '../../core/types.ts';
 import type { Handler } from './actions.ts';
-import { addReport, coords, fail, str, type Ctx } from './context.ts';
+import { addReport, coords, fail, str, universe, type Ctx } from './context.ts';
 import { isAllyOf } from './holding.ts';
 import { roundRules } from './round.ts';
 import type { ServerFeature, StatePart } from './feature.ts';
@@ -32,38 +38,64 @@ export const limitsOf = (ctx: Ctx): UnionLimits => {
   return {
     fleets: r.unionFleets,
     players: r.unionPlayers,
-    delay: r.unionDelay,
     cutoff: r.unionCutoff,
   };
 };
 
-/** The union with the ID `id` as long as it is alive: its leader's fleet is on its way out. */
-export function unionOf(
-  ctx: Ctx,
-  id: unknown,
-): { id: string; founder: Fleet; fleets: Fleet[] } | null {
-  if (typeof id !== 'string') return null;
-  const founder = ctx.fleets.get(id);
-  if (!founder || founder.union !== id || founder.state !== 'out') return null;
-  return { id, founder, fleets: ctx.fleets.ofUnion(id) };
+/** A union that is alive, with its fleets on their way out, the leading one first. */
+export interface LiveUnion {
+  row: Union;
+  fleets: Fleet[];
+}
+
+/** The fleets of a union, its leading fleet first, then by departure. */
+const fleetsOf = (ctx: Ctx, row: Union): Fleet[] => {
+  const all = ctx.fleets.ofUnion(row.id);
+  const lead = all.filter((f) => f.id === row.lead);
+  return [...lead, ...all.filter((f) => f.id !== row.lead)];
+};
+
+/**
+ * The union with the ID `id` as long as it is alive (#466): it has a row, has
+ * not arrived, and its leading fleet is still on its way out in it. A
+ * leading fleet that turned back by another way than the recall (the target
+ * deleted its account) ends the union too.
+ */
+export function unionOf(ctx: Ctx, id: unknown): LiveUnion | null {
+  const row = ctx.unions.get(String(id));
+  if (!row || row.arr <= ctx.now()) return null;
+  const lead = ctx.fleets.get(row.lead ?? '');
+  if (lead?.state !== 'out' || lead.union !== row.id) return null;
+  return { row, fleets: fleetsOf(ctx, row) };
 }
 
 /** What a joining fleet meets of the union. */
-const factsOf = (
-  ctx: Ctx,
-  union: { id: string; founder: Fleet; fleets: Fleet[] },
-): UnionFacts => ({
-  leader: union.founder.owner,
+const factsOf = (ctx: Ctx, union: LiveUnion): UnionFacts => ({
+  leader: union.row.leader,
+  // The leader first, though he may have sent no fleet yet.
   owners: union.fleets.map((f) => f.owner),
-  invited: ctx.fleets.invited(union.id),
+  invited: ctx.fleets.invited(union.row.id),
 });
 
-const FOUND_ERROR: Readonly<Record<FoundError, string>> = {
-  notAttack: 'Einen Angriffsverband eröffnet nur ein Sturmangriff.',
-  notOut: 'Diese Flotte ist nicht mehr auf dem Weg zum Ziel.',
-  started: 'Diese Flotte ist schon beim Ziel angekommen.',
-  inUnion: 'Diese Flotte gehört schon zu einem Angriffsverband.',
+/** Refuses while the switch of the round is off (#466, 4). */
+const switchedOn = (ctx: Ctx): void => {
+  if (!unionOpen(roundRules(ctx))) fail(UNION_OFF_REFUSAL);
 };
+
+/**
+ * The earliest start a refusal names, to the second in German time [V]: a
+ * fleet sent at that second or later and before X makes it.
+ */
+const startText = (t: number): string =>
+  new Date(Math.ceil(t / 1000) * 1000).toLocaleString('de-DE', {
+    timeZone: 'Europe/Berlin',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
 
 const GONE = 'Diesen Angriffsverband gibt es nicht mehr.';
 
@@ -81,27 +113,18 @@ function notAlly(ctx: Ctx, what: 'invite' | 'join'): string {
     : `Dem Angriffsverband treten nur ${who} des Anführers bei.`;
 }
 
-/** Opens an attack union with the own Sturmangriff `d.id` on its way. */
-const openUnion: Handler<'openUnion'> = (ctx, u, d) => {
-  const f = ctx.fleets.get(String(d.id));
-  if (!f || f.owner !== u.id) return fail('Diese Flotte gibt es nicht.');
-  const error = foundError(f, ctx.now(), f.union !== undefined);
-  if (error) return fail(FOUND_ERROR[error]);
-  ctx.fleets.setUnion(f.id, f.id);
-  return `Angriffsverband für ${coords(f.toC)} eröffnet.`;
-};
-
 /** The leader invites the player `d.name` to the union `d.id`. */
 const inviteUnion: Handler<'inviteUnion'> = (ctx, u, d) => {
+  switchedOn(ctx);
   const union = unionOf(ctx, d.id);
   if (!union) return fail(GONE);
-  const { founder } = union;
-  if (founder.owner !== u.id)
+  const { row } = union;
+  if (row.leader !== u.id)
     return fail('Nur der Anführer lädt zum Angriffsverband ein.');
   const invitee = ctx.players.byName(str(d.name, 20));
   if (!invitee) return fail('Spieler nicht gefunden.');
   if (invitee.id === u.id) return fail('Das bist du selbst.');
-  if (ctx.planets.get(founder.to)?.owner === invitee.id)
+  if (ctx.planets.get(row.target)?.owner === invitee.id)
     return fail('Der Verteidiger kann nicht eingeladen werden.');
   if (!isAllyOf(ctx, u.id, invitee.id)) return fail(notAlly(ctx, 'invite'));
   const limits = limitsOf(ctx);
@@ -109,64 +132,136 @@ const inviteUnion: Handler<'inviteUnion'> = (ctx, u, d) => {
     return fail(
       `Am Angriffsverband können höchstens ${limits.players} Spieler teilnehmen.`,
     );
-  ctx.fleets.invite(union.id, invitee.id);
+  ctx.fleets.invite(row.id, invitee.id);
   addReport(
     ctx,
     invitee.id,
     {
       time: ctx.now(),
       type: 'info',
-      title: `Einladung zum Verbandsangriff ${coords(founder.toC)}`,
-      text: `${u.name} lädt dich zu einem Verbandsangriff auf ${coords(founder.toC)} ein.`,
+      title: `Einladung zum Verbandsangriff ${coords(row.toC)}`,
+      text: `${u.name} lädt dich zu einem Verbandsangriff auf ${coords(row.toC)} ein.`,
     },
     { topic: 'fleet' },
   );
   return `Einladung an ${invitee.name} gesendet.`;
 };
 
-/** A fleet that joins a union: the union and the arrival all its fleets get. */
+/** The arrival of a fleet that flies to X: the speed that brings it there, or the refusal. */
+function flightTo(
+  ctx: Ctx,
+  arr: number,
+  at: { dist: number; speed: number },
+  limits: UnionLimits,
+): number {
+  const flight = unionFlight({
+    dist: at.dist,
+    speed: at.speed,
+    universe: universe(ctx),
+    now: ctx.now(),
+    arr,
+  });
+  if ('error' in flight) return fail(flightRefusal(flight, limits, startText));
+  return flight.pct;
+}
+
+/** A union the fleet plans: its arrival X and the speed that brings the leader's fleet there. */
+export interface UnionPlan {
+  arr: number;
+  pct: number;
+}
+
+/**
+ * The checks of a Sturmangriff of the leader that plans a union arriving at
+ * `plan` (#466, owner, 2026-11-28, A1a): the switch of the round, an attack,
+ * no join at once, X in the future and beyond the cut-off (else nobody could
+ * join [V]), and the speed that brings the fleet there at X. The checks of
+ * the target are those of the attack. Returns X and the speed.
+ */
+export function planOf(
+  ctx: Ctx,
+  plan: unknown,
+  at: { mission: string; union: unknown; dist: number; speed: number },
+): UnionPlan | null {
+  if (plan === undefined || plan === null) return null;
+  switchedOn(ctx);
+  if (at.mission !== 'attack')
+    return fail('Einen Angriffsverband plant man mit einem Sturmangriff.');
+  if (at.union !== undefined && at.union !== null && at.union !== '')
+    return fail(
+      'Eine Flotte plant einen Angriffsverband oder tritt einem bei, nicht beides.',
+    );
+  const arr = Number(plan);
+  const limits = limitsOf(ctx);
+  const refused = Number.isSafeInteger(arr)
+    ? planError({ now: ctx.now(), arr, limits })
+    : 'past';
+  if (refused) return fail(planMessage(refused, limits));
+  return { arr, pct: flightTo(ctx, arr, at, limits) };
+}
+
+/**
+ * Founds the union of a planned fleet before it is saved: the fleet carries
+ * the union's ID, its own, and leads it.
+ */
+export function foundUnion(ctx: Ctx, plan: UnionPlan, fleet: Fleet): void {
+  fleet.union = fleet.id;
+  ctx.unions.save({
+    id: fleet.id,
+    leader: fleet.owner,
+    lead: fleet.id,
+    target: fleet.to,
+    toC: fleet.toC,
+    arr: plan.arr,
+  });
+}
+
+/** A fleet that joins a union: the union, its arrival X and the speed that brings the fleet there. */
 export interface JoinPlan {
   union: string;
   arr: number;
-  /** How much later than before the union arrives, 0 when the fleet is there in time. */
-  delay: number;
+  /** The speed in tenths, between 1 (10 %) and 10 (100 %), not only the steps (#466, 7b). */
+  pct: number;
 }
 
 /**
  * The checks of a fleet of `uid` that joins the union `id` with a Sturmangriff
- * to `to` and a flight of `flight` milliseconds, before anything is spent:
- * the union is alive and flies to that place, the player is an ally of the
- * leader and invited (the leader and every player already in need no
- * invitation), the limits of fleets and players, and the timing. Returns
- * the arrival all fleets of the union get.
+ * to `to`, flying `dist` at the speed `speed`, before anything is spent: the
+ * switch of the round, the union is alive and flies to that place, the
+ * player is an ally of the leader and invited (the leader and every player
+ * already in need no invitation), the limits of fleets and players, the
+ * cut-off, and the speed that brings the fleet there at X (too early even at
+ * 10 % and too late even at 100 % are refused, #466). Returns the arrival
+ * and the speed.
  */
 export function joinPlan(
   ctx: Ctx,
   uid: string,
   id: unknown,
-  at: { mission: string; to: string; toC: Coords; flight: number },
+  at: { mission: string; to: string; dist: number; speed: number },
 ): JoinPlan | null {
   // A fleet of no union: the form sends no union, or an empty one.
   if (id === undefined || id === null || id === '') return null;
+  switchedOn(ctx);
   const union = unionOf(ctx, id);
   if (!union) return fail(GONE);
-  const { founder } = union;
+  const { row } = union;
   if (at.mission !== 'attack')
     return fail(
       'Einem Angriffsverband schließt man sich mit einem Sturmangriff an.',
     );
-  if (at.to !== founder.to)
-    return fail(`Der Angriffsverband fliegt nach ${coords(founder.toC)}.`);
+  if (at.to !== row.target)
+    return fail(`Der Angriffsverband fliegt nach ${coords(row.toC)}.`);
   const limits = limitsOf(ctx);
   mayJoin(ctx, uid, union, limits);
-  const timing = joinTiming({
-    now: ctx.now(),
-    arr: founder.arr,
-    flight: at.flight,
-    limits,
-  });
-  if ('error' in timing) return fail(joinMessage(timing.error, limits));
-  return { union: union.id, arr: timing.arr, delay: timing.arr - founder.arr };
+  const now = ctx.now();
+  const closed = joinWindow({ now, arr: row.arr, limits });
+  if (closed) return fail(joinMessage(closed, limits));
+  return {
+    union: row.id,
+    arr: row.arr,
+    pct: flightTo(ctx, row.arr, at, limits),
+  };
 }
 
 /**
@@ -177,7 +272,7 @@ export function joinPlan(
 function mayJoin(
   ctx: Ctx,
   uid: string,
-  union: { id: string; founder: Fleet; fleets: Fleet[] },
+  union: LiveUnion,
   limits: UnionLimits,
 ): void {
   const facts = factsOf(ctx, union);
@@ -187,11 +282,12 @@ function mayJoin(
   if (refused) fail(joinMessage(refused, limits));
 }
 
-/** Puts the new fleet into the union before it is saved: a later arrival moves the others. */
-export function joinUnion(ctx: Ctx, plan: JoinPlan | null, fleet: Fleet): void {
-  if (!plan) return;
-  if (plan.delay > 0) ctx.fleets.delayUnion(plan.union, plan.delay);
-  fleet.union = plan.union;
+/**
+ * Puts the new fleet into the union before it is saved; the fleet the
+ * leader planned it with leads it (#466, A1a).
+ */
+export function joinUnion(plan: JoinPlan | null, fleet: Fleet): void {
+  if (plan) fleet.union = plan.union;
 }
 
 /**
@@ -203,13 +299,14 @@ export function joinUnion(ctx: Ctx, plan: JoinPlan | null, fleet: Fleet): void {
  */
 export function recalledWith(ctx: Ctx, f: Fleet): Fleet[] {
   if (f.union === undefined) return [f];
-  const leads = f.union === f.id;
-  const all = leads ? ctx.fleets.ofUnion(f.id) : [f];
+  const row = ctx.unions.get(f.union);
+  const leads = row?.lead === f.id;
+  const all = leads ? ctx.fleets.ofUnion(f.union) : [f];
   for (const m of all) {
     ctx.fleets.setUnion(m.id, null);
     delete m.union;
   }
-  if (leads) ctx.fleets.dropInvites(f.id);
+  if (leads) ctx.unions.delete(row.id);
   for (const m of all)
     if (m.owner !== f.owner)
       addReport(
@@ -242,11 +339,15 @@ export interface Arriving {
 export function arriving(ctx: Ctx, f: Fleet): Arriving | null {
   if (f.union === undefined) return null;
   const all = ctx.fleets.ofUnion(f.union);
-  const lead = all.find((m) => m.id === f.union);
-  ctx.fleets.dropInvites(f.union);
   for (const m of all) ctx.fleets.setUnion(m.id, null);
-  if (!lead) return null;
-  return { lead, rest: all.filter((m) => m.id !== lead.id) };
+  // The row and the invitations go; the invitations of a fleet whose union
+  // has no row (its leading fleet was gone before #466) too.
+  ctx.unions.delete(f.union);
+  // The leader's fleet leads, the one he planned the union with: its ID is
+  // the union's (`lead`, #466). A union whose leading fleet is gone arrives
+  // as single fleets, as before.
+  const lead = all.find((m) => m.id === f.union);
+  return lead ? { lead, rest: all.filter((m) => m !== lead) } : null;
 }
 
 /** A union as a player in it, or invited to it, sees it. */
@@ -267,20 +368,20 @@ export interface UnionView {
  * every fleet as before, not the union, [V]).
  */
 export function unionsFor(ctx: Ctx, uid: string): UnionView[] {
-  const ids = new Set(ctx.fleets.invitedTo(uid));
-  for (const f of ctx.fleets.all())
-    if (f.owner === uid && f.union !== undefined) ids.add(f.union);
+  // A player in a union is its leader or was invited to it: the
+  // invitation stays when he joins.
+  const ids = new Set([...ctx.fleets.invitedTo(uid), ...ctx.unions.ledBy(uid)]);
   const views: UnionView[] = [];
   for (const id of ids) {
     const union = unionOf(ctx, id);
     if (!union) continue;
-    const { founder } = union;
+    const { row } = union;
     views.push({
       id,
-      leader: founder.owner,
-      to: founder.to,
-      toC: founder.toC,
-      arr: founder.arr,
+      leader: row.leader,
+      to: row.target,
+      toC: row.toC,
+      arr: row.arr,
       fleets: union.fleets.map((f) => ({ id: f.id, owner: f.owner })),
       // Whoever has joined is no longer „invited“.
       invited: ctx.fleets
@@ -292,7 +393,7 @@ export function unionsFor(ctx: Ctx, uid: string): UnionView[] {
 }
 
 export const serverFeature = {
-  actions: { openUnion, inviteUnion },
+  actions: { inviteUnion },
   state: {
     order: 210,
     keys: ['unions'],

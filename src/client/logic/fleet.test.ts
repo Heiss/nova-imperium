@@ -195,6 +195,12 @@ describe('the ships and the form', () => {
       view({ ships: { lc: 1 }, state: { unions }, union: 'f9' }),
     );
     expect(page.form.unions.map((u) => u.value)).toEqual(['f9']);
+    // While the switch of the round is off, no union to join (#466).
+    const off = view({ ships: { lc: 1 }, state: { unions }, union: 'f9' });
+    off.s.round = { ...off.s.round, unionOn: 0 };
+    expect(fleetPage(off).form.unions).toEqual([]);
+    expect(fleetPage(off).form.plans).toBe(false);
+    expect(page.form.plans).toBe(true);
     // The one of the page, else the one chosen; none that is gone.
     expect(page.form.choose(fleetForm).union).toBe('f9');
     fleetForm.union = '';
@@ -207,11 +213,10 @@ describe('the ships and the form', () => {
 });
 
 describe('the box of the unions', () => {
-  it('is there for an own Sturmangriff that can open one, and else not', () => {
+  it('is there only for a union of the player: an own Sturmangriff opens none any more (#466)', () => {
     expect(fleetPage(view()).unions).toBeNull();
     const attack = fleetOf({ mission: 'attack', arr: 5000 });
-    const page = fleetPage(view({ fleets: [attack] }));
-    expect(page.unions?.open).toMatchObject([{ id: 'f1', target: '[1:2:6]' }]);
+    expect(fleetPage(view({ fleets: [attack] })).unions).toBeNull();
   });
 });
 

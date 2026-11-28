@@ -24,7 +24,14 @@ import { type FleetChoice, fleetChoice } from '../logic/fleet-choice.ts';
 import { fleetForm } from '../logic/fleet-form.svelte.ts';
 import { targetInfo } from '../logic/fleet-target.ts';
 import { client } from '../logic/state.svelte.ts';
-import { unionArrivalLine } from '../logic/union.ts';
+import {
+  PLAN,
+  planJoin,
+  type UnionJoin,
+  unionArrivalLine,
+  unionJoin,
+} from '../logic/union.ts';
+import { distance, fleetSpeed } from '../../core/flight.ts';
 import type { ClientCtx, ClientFeature, Handler } from './contract.ts';
 import { askOne } from '../../core/cargo-fill.ts';
 
@@ -63,15 +70,27 @@ const cargoOf = (): FleetForm['cargo'] => ({
   d: clampInt(fleetForm.cargo.d ?? '', 0, 1e15),
 });
 
+/**
+ * The union the fleet joins (#225), or the arrival of one it plans (#466):
+ * the time of the field, 0 while it is empty, which the server refuses.
+ */
+function unionFields(
+  union: string,
+  plan: string,
+): Pick<FleetForm, 'union' | 'plan'> {
+  if (union !== PLAN) return union ? { union } : {};
+  const arr = new Date(plan).getTime();
+  return { plan: Number.isNaN(arr) ? 0 : arr };
+}
+
 function readFleetForm(): FleetForm {
-  const { to, kind, mission, union, stays, hold, stay } = choiceOf();
+  const { to, kind, mission, union, plan, stays, hold, stay } = choiceOf();
   return {
     ships: shipsOf(),
     // The planet or its moon (#53).
     to: { ...to, kind },
     mission,
-    // The attack union the fleet joins (#225); the row is there only while one concerns the player.
-    ...(union && { union }),
+    ...unionFields(union, plan),
     // The row of the time at the target holds one of the two: the stay of an expedition (#93) or the holding time (#55).
     hold: stays ? 0 : Number(hold),
     stay: stays ? clampInt(stay, 1, 1e6) : 1,
@@ -145,6 +164,30 @@ function showIntent(): void {
     fleetForm.cargo[k] = String(c[k]);
 }
 
+/**
+ * How the fleet of the form joins its attack union: at the speed that
+ * brings it there at the union's arrival (#466); null for a fleet of no
+ * union.
+ */
+function formJoin(f: FleetForm): UnionJoin | null {
+  const { game, view } = client;
+  if ((!f.union && f.plan === undefined) || !game || !view) return null;
+  const fleet = {
+    dist: distance(view.P, f.to),
+    speed: fleetSpeed(f.ships, view.R),
+  };
+  // A plan of 0 is a field still empty.
+  if (f.plan !== undefined)
+    return planJoin(game, f.plan || Number.NaN, client.now(), fleet);
+  return unionJoin(game, f.union!, client.now(), fleet);
+}
+
+/** The speed and flight of a join the preview takes; none for a refused one. */
+const flying = (
+  join: UnionJoin | null,
+): Extract<UnionJoin, { pct: number }> | undefined =>
+  join && 'pct' in join ? join : undefined;
+
 function fleetCalc(): void {
   if (!$('#t_g') || !client.view || !client.game) return;
   settleKind();
@@ -153,7 +196,14 @@ function fleetCalc(): void {
   showIntent();
   const f = readFleetForm();
   $('#t_info')!.innerHTML = targetInfo(client.game, f);
-  const pv = fleetPreview(client.view.P, client.view.R, f, client.game.cfg);
+  const join = formJoin(f);
+  const pv = fleetPreview(
+    client.view.P,
+    client.view.R,
+    f,
+    client.game.cfg,
+    flying(join),
+  );
   const set = (id: string, html: string): void =>
     void ($(`#${id}`)!.innerHTML = html);
   if (!pv)
@@ -163,11 +213,7 @@ function fleetCalc(): void {
   const now = client.now();
   set('i_dist', fmt(pv.dist));
   set('i_dur', dur(pv.ms));
-  set(
-    'i_arr',
-    (f.union && unionArrivalLine(client.game, f.union, now, pv.ms)) ||
-      arrivalLine(f.mission, now, pv),
-  );
+  set('i_arr', join ? unionArrivalLine(join) : arrivalLine(f.mission, now, pv));
   set(
     'i_fuel',
     `<span class="${pv.fuelShort ? 'bad' : ''}">${fmt(pv.fuel)}</span> Promethium`,

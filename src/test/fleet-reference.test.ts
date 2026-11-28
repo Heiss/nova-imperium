@@ -36,7 +36,7 @@ import { maxStay, staysAt } from '../client/logic/game.ts';
 import { jumpPanel } from '../client/logic/jump-gate.ts';
 import { moonAt } from '../client/logic/moon.ts';
 import { type FleetRow, fleetRows } from '../client/logic/overview.ts';
-import { joinChoices, openRows, unionRows } from '../client/logic/union.ts';
+import { joinChoices, unionRows } from '../client/logic/union.ts';
 import type {
   ClientFleet,
   GalaxyPlanet,
@@ -58,27 +58,14 @@ const quickOptions = (list: readonly QuickTarget[]): string =>
 
 // ----- frozen: src/client/views/union.ts before #118, bundle 3 -----
 
-/**
- * The own Sturmangriffe on their way that can open a union, each with its
- * button; the recall of the fleet that opened a union turns back the whole
- * union (owner, 2026-11-16, Q2), a participant's only his own.
- */
-function openList(v: V): string {
-  const rows = openRows(v);
-  if (!rows.length) return '';
-  const list = rows
-    .map(
-      (f) =>
-        `<tr><td>Sturmangriff auf ${esc(f.target)}</td><td class="n w110">${cd(f.arr, v.now)}</td><td><button class="small" data-act="openUnion" data-id="${esc(f.id)}">Angriffsverband eröffnen</button></td></tr>`,
-    )
-    .join('');
-  return `<table class="mt">${list}</table>`;
-}
+// The opening of a union from an own Sturmangriff on its way went with #466
+// (owner, 2026-11-28, 2a): a union is planned in the fleet form.
+const openList = (): string => '';
 
 /** The box „Verbandsangriff“; nothing while no union concerns the player and no attack can open one. */
 function unionBox(v: V): string {
   const rows = unionRows(v);
-  const open = openList(v);
+  const open = openList();
   if (!rows.length && !open) return '';
   const list = rows.map((u) => {
     const id = esc(u.id);
@@ -92,23 +79,33 @@ function unionBox(v: V): string {
 <div class="dim">${esc(u.counts)}</div><div>Flotten: ${esc(u.fleets)}</div>${invited}${invite}
 <div class="mt"><button class="small" data-act="joinUnion" data-id="${id}">Beitreten</button></div></div>`;
   });
+  // The words of the hint changed with #466 (the fixed arrival); the rest of
+  // the box is as frozen. The switch of the round is on in every state here.
   const hint = rows.length
-    ? '<div class="dim mt">Ruft der Anführer seine Flotte zurück, kehren alle Flotten des Verbands um; ein Beteiligter ruft nur seine eigene zurück.</div>'
+    ? '<div class="dim mt">Alle Flotten des Verbands kommen zur geplanten Ankunft an; wer beitritt, startet sofort mit der Geschwindigkeit, die ihn genau dann ans Ziel bringt. Ruft der Anführer seine Flotte zurück, kehren alle Flotten des Verbands um; ein Beteiligter ruft nur seine eigene zurück.</div>'
     : '';
   return box('Verbandsangriff', list.join('') + open + hint);
 }
 
-/** The row „Verband“ of the fleet form: the unions the fleet can join, none preselected unless chosen. */
-function unionFormRow(v: V): string {
+/**
+ * The row „Verband“ of the fleet form: the unions the fleet can join, none
+ * preselected unless chosen; since #466 (A1a) a Sturmangriff can also plan
+ * one („Neuen Verband planen“), the switch of the round on in every state.
+ */
+function unionFormRow(v: V, mission: string | undefined): string {
   const choices = joinChoices(v);
-  if (!choices.length) return '';
+  const plans = mission === 'attack';
+  if (!choices.length && !plans) return '';
+  const plan = plans
+    ? '<option value="plan">Neuen Verband planen</option>'
+    : '';
   const options = choices
     .map(
       (c) =>
         `<option value="${esc(c.id)}"${v.ui.union === c.id ? ' selected' : ''}>${esc(c.label)}</option>`,
     )
     .join('');
-  return `<tr id="t_union_row"><td><label for="t_u">Verband</label></td><td><select id="t_u"><option value="">Kein Verband</option>${options}</select></td></tr>`;
+  return `<tr id="t_union_row"><td><label for="t_u">Verband</label></td><td><select id="t_u"><option value="">Kein Verband</option>${plan}${options}</select></td></tr>`;
 }
 
 // ----- frozen: src/client/views/fleet.ts before #118, bundle 3 -----
@@ -207,7 +204,7 @@ function targetForm(v: V, slotsFull: boolean): string {
   return `<table class="kv">
   <tr><td><label for="t_q">Schnellwahl</label></td><td><select id="t_q"${quick.length ? '' : ' disabled'}>${quickOptions(quick)}</select></td></tr>
   <tr><td>Ziel</td><td><input class="c3" type="number" id="t_g" value="${t.g}" min="1" max="${u.galaxies}" aria-label="Galaxie">:<input class="c3" type="number" id="t_s" value="${t.s}" min="1" max="${u.systems}" aria-label="System">:<input class="c3" type="number" id="t_p" value="${t.p}" min="1" max="${maxPosition(s)}" aria-label="Position"> ${kinds} <span id="t_info" class="dim"></span></td></tr>
-  <tr><td>Auftrag</td><td><select id="t_m" aria-label="Auftrag">${missions}</select> <span id="t_limit" class="dim">${esc(colonyNote(s, selected))}</span></td></tr>${unionFormRow(v)}
+  <tr><td>Auftrag</td><td><select id="t_m" aria-label="Auftrag">${missions}</select> <span id="t_limit" class="dim">${esc(colonyNote(s, selected))}</span></td></tr>${unionFormRow(v, selected)}
   ${timeRowHtml(selected, v)}
   <tr><td>Geschwindigkeit</td><td><select id="t_v" aria-label="Geschwindigkeit">${speeds}</select></td></tr>
   <tr><td>Ladung (Adamant / Psikristall / Promethium)</td><td>${cargoFields} <span class="lnk" data-act="cmax">alles (gleichmäßig)</span></td></tr>
@@ -458,7 +455,7 @@ const MARKS = [
   'Verbandsangriff</div>',
   'data-act="inviteUnion"',
   'data-act="joinUnion"',
-  'data-act="openUnion"',
+  '<option value="plan">',
   'Ruft der Anführer',
   'Eingeladen: ',
   'Warp-Tor</div>',
@@ -475,6 +472,7 @@ const SAMPLE = { seed: 118, numRuns: 300 };
 /** A view of the player's planet at 1:1:5 with ships, the target and the mission chosen. */
 function handBuilt(over: {
   debris?: GameState['debris'];
+  galaxy?: GameState['galaxy'];
   fleets?: ClientFleet[];
   ft?: Ui['ft'];
   fm?: string;
@@ -485,7 +483,7 @@ function handBuilt(over: {
     round: { number: 1, ...roundDefaults() } as RoundRules,
     players: { u1: { name: 'Ich' } },
     fleets: over.fleets ?? [],
-    galaxy: [],
+    galaxy: over.galaxy ?? [],
     debris: over.debris ?? [],
   } as unknown as GameState;
   return {
@@ -496,20 +494,6 @@ function handBuilt(over: {
     ui: { ft: over.ft ?? null, fm: over.fm ?? 'attack' } as unknown as Ui,
   };
 }
-
-/** An own Sturmangriff on its way that can open an attack union (#225). */
-const attackOut = {
-  id: 'f0',
-  owner: 'u1',
-  fromC: { g: 1, s: 1, p: 5 },
-  toC: { g: 1, s: 1, p: 3 },
-  to: 'p1_1_3',
-  mission: 'attack',
-  state: 'out',
-  arr: 100_000,
-  ret: 200_000,
-  ships: { lc: 1 },
-} as ClientFleet;
 
 /**
  * The cases the sample reaches rarely or not at all, built by hand: it
@@ -526,8 +510,23 @@ const HAND_BUILT: [string, V][] = [
     }),
   ],
   [
-    'an own Sturmangriff that can open a union',
-    handBuilt({ fleets: [attackOut] }),
+    'a Sturmangriff on a foreign planet, which can plan a union (#466)',
+    handBuilt({
+      galaxy: [
+        {
+          id: 'p1_1_3',
+          kind: 'planet',
+          name: 'Ziel',
+          g: 1,
+          s: 1,
+          p: 3,
+          temp: 1,
+          owner: 'u2',
+        },
+      ] as unknown as GameState['galaxy'],
+      ft: { g: 1, s: 1, p: 3 },
+      fm: 'attack',
+    }),
   ],
   [
     'a mission that does not hold',
@@ -554,7 +553,7 @@ describe('Fleet against the view before #118, bundle 3', () => {
   it('reaches the rare branches by the hand-built cases alone', () => {
     const rare = [
       '<option selected value="harvest">',
-      'data-act="openUnion"',
+      '<option value="plan">',
       '<tr hidden id="t_hold">',
     ];
     const html = HAND_BUILT.map(([, v]) => normalize(fleetView(v))).join('');

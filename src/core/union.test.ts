@@ -1,7 +1,9 @@
-// The rules of the attack union (#225, owner, 2026-11-16 and 2026-11-17): the
-// four settings of the round with the classic values, who can open a union,
-// who can join under the limits, the arrival of the union when a fleet joins
-// (the 30 % rule, the cut-off), and the split of the loot by free space.
+// The rules of the attack union (#225, owner, 2026-11-16 and 2026-11-17;
+// #466, owner, 2026-11-28): the settings of the round with the classic
+// values and the switch, when a union can be planned, who can join under
+// the limits, the window of a join (closed at the arrival, the cut-off), and the
+// split of the loot by free space. The speed of a joining fleet is tested in
+// union-flight.test.ts.
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import {
@@ -13,63 +15,85 @@ import {
 import { DEFAULT_UNIVERSE, liveSpecs, universeErrors } from './universe.ts';
 import {
   UNION_DEFAULTS,
+  UNION_OFF_REFUSAL,
   UNION_RANGES,
-  delayed,
-  foundError,
   inviteLimitError,
   joinLimitError,
-  joinTiming,
+  joinMessage,
+  joinWindow,
+  planError,
+  planMessage,
   roundSettings,
   splitLoot,
+  unionOpen,
 } from './union.ts';
 
 const MIN = 60_000;
 const KEYS = [
   'roundUnionFleets',
   'roundUnionPlayers',
-  'roundUnionDelay',
   'roundUnionCutoff',
+  'roundUnionOn',
 ];
 const setting = (key: string) => ROUND_SETTINGS.find((s) => s.key === key)!;
 
 describe('the settings of the round', () => {
-  it('are four live number fields with the classic values as defaults (D3, X1)', () => {
-    expect(UNION_DEFAULTS).toEqual({
-      fleets: 16,
-      players: 5,
-      delay: 30,
-      cutoff: 0,
-    });
+  it('are three live number fields with the classic values and the live switch (D3, X1, #466)', () => {
+    expect(UNION_DEFAULTS).toEqual({ fleets: 16, players: 5, cutoff: 0 });
     expect(roundSettings.map((s) => [s.key, s.name, s.order, s.def])).toEqual([
       ['roundUnionFleets', 'unionFleets', 200, 16],
       ['roundUnionPlayers', 'unionPlayers', 210, 5],
-      ['roundUnionDelay', 'unionDelay', 220, 30],
       ['roundUnionCutoff', 'unionCutoff', 230, 0],
+      ['roundUnionOn', 'unionOn', 240, 1],
     ]);
     for (const s of roundSettings) {
       expect(s.live).toBe(true);
       expect(s.kind).toBe('number');
       expect(ROUND_SETTINGS).toContain(setting(s.key));
     }
+    // The delay of the classic 30 % rule went with the fixed arrival (8a).
+    expect(ROUND_SETTINGS.map((s) => s.key)).not.toContain('roundUnionDelay');
+  });
+  it('has the switch „Verbandsangriff“ with „An“ and „Aus“, on by default and when nothing is stored', () => {
+    const on = setting('roundUnionOn');
+    expect(on).toMatchObject({
+      label: 'Verbandsangriff',
+      min: 0,
+      max: 1,
+      choices: [
+        { value: 1, label: 'An' },
+        { value: 0, label: 'Aus' },
+      ],
+    });
+    expect(unionOpen({})).toBe(true);
+    expect(unionOpen({ unionOn: 1 })).toBe(true);
+    expect(unionOpen({ unionOn: 0 })).toBe(false);
+    expect(UNION_OFF_REFUSAL).toBe(
+      'Verbandsangriffe sind in dieser Runde abgeschaltet.',
+    );
   });
   it('read as the defaults when nothing is stored, and as stored', () => {
     expect(storedValues(() => undefined)).toMatchObject({
       unionFleets: 16,
       unionPlayers: 5,
-      unionDelay: 30,
       unionCutoff: 0,
+      unionOn: 1,
     });
     expect(
       storedValues((k) => (k === 'roundUnionCutoff' ? 10 : undefined)),
-    ).toMatchObject({ unionCutoff: 10, unionDelay: 30 });
+    ).toMatchObject({ unionCutoff: 10, unionOn: 1 });
+    // A stored value of the removed delay is no setting any more.
+    expect(
+      storedValues((k) => (k === 'roundUnionDelay' ? 50 : undefined)),
+    ).not.toHaveProperty('unionDelay');
   });
   it('are rows of the universe settings, checked against their ranges', () => {
     const rows = liveSpecs().filter((s) => KEYS.includes(s.key));
     expect(rows.map((s) => [s.key, s.min, s.max, s.def])).toEqual([
       ['roundUnionFleets', 1, 50, 16],
       ['roundUnionPlayers', 1, 20, 5],
-      ['roundUnionDelay', 0, 100, 30],
       ['roundUnionCutoff', 0, 1440, 0],
+      ['roundUnionOn', 0, 1, 1],
     ]);
     const codes = (input: Record<string, unknown>) =>
       universeErrors(
@@ -78,21 +102,20 @@ describe('the settings of the round', () => {
       ).map((e) => [e.spec.key, e.code]);
     expect(DEFAULT_UNIVERSE).toMatchObject({
       roundUnionFleets: 16,
-      roundUnionDelay: 30,
+      roundUnionOn: 1,
     });
+    expect(DEFAULT_UNIVERSE).not.toHaveProperty('roundUnionDelay');
     expect(
       codes({
         roundUnionFleets: 50,
-        roundUnionDelay: 0,
         roundUnionCutoff: 1440,
+        roundUnionOn: 0,
       }),
     ).toEqual([]);
     expect(codes({ roundUnionFleets: 51 })).toEqual([
       ['roundUnionFleets', 'range'],
     ]);
-    expect(codes({ roundUnionDelay: 101 })).toEqual([
-      ['roundUnionDelay', 'range'],
-    ]);
+    expect(codes({ roundUnionOn: 2 })).toEqual([['roundUnionOn', 'range']]);
     expect(codes({ roundUnionPlayers: 0 })).toEqual([
       ['roundUnionPlayers', 'range'],
     ]);
@@ -102,12 +125,12 @@ describe('the settings of the round', () => {
     const current = {
       unionFleets: 16,
       unionPlayers: 5,
-      unionDelay: 30,
       unionCutoff: 0,
+      unionOn: 1,
     };
-    expect(roundValues(current, { unionDelay: 10 }, only)).toEqual({
+    expect(roundValues(current, { unionCutoff: 10 }, only)).toEqual({
       ...current,
-      unionDelay: 10,
+      unionCutoff: 10,
     });
     expect(
       roundRefused(current, { unionFleets: UNION_RANGES.fleets.max }, only),
@@ -115,9 +138,10 @@ describe('the settings of the round', () => {
     for (const [name, bad] of [
       ['unionFleets', 0],
       ['unionPlayers', 21],
-      ['unionDelay', -1],
+      ['unionCutoff', -1],
       ['unionCutoff', 1441],
-      ['unionDelay', 1.5],
+      ['unionCutoff', 1.5],
+      ['unionOn', 2],
     ] as const)
       expect(
         roundRefused(current, { [name]: bad }, only).map((s) => s.name),
@@ -125,30 +149,22 @@ describe('the settings of the round', () => {
   });
 });
 
-describe('opening a union', () => {
-  const attack = {
-    mission: 'attack',
-    state: 'out',
-    arr: 100,
-    recalled: false,
-  } as const;
-  it('takes a Sturmangriff on its way that has not arrived', () => {
-    expect(foundError(attack, 99, false)).toBeUndefined();
-  });
-  it('refuses every other mission, a fleet that is not out, one that has arrived, a gift, a union already', () => {
-    expect(foundError({ ...attack, mission: 'transport' }, 0, false)).toBe(
-      'notAttack',
+describe('planning a union (#466, A1a)', () => {
+  it('needs an arrival in the future and beyond the cut-off, where somebody can still join', () => {
+    const at = (now: number, arr: number, cutoff = 0) =>
+      planError({ now, arr, limits: { cutoff } });
+    expect(at(1000, 1001)).toBeUndefined();
+    expect(at(1000, 1000)).toBe('past');
+    expect(at(1000, 999)).toBe('past');
+    expect(at(1000, Number.NaN)).toBe('past');
+    expect(at(0, 10 * MIN, 10)).toBe('cutoff');
+    expect(at(0, 10 * MIN + 1, 10)).toBeUndefined();
+    expect(planMessage('past', { cutoff: 0 })).toBe(
+      'Die Ankunft muss in der Zukunft liegen.',
     );
-    expect(foundError({ ...attack, mission: 'hold' }, 0, false)).toBe(
-      'notAttack',
+    expect(planMessage('cutoff', { cutoff: 15 })).toBe(
+      'Die Ankunft muss mehr als 15 Minuten in der Zukunft liegen, sonst kann niemand mehr beitreten.',
     );
-    expect(foundError({ ...attack, state: 'back' }, 0, false)).toBe('notOut');
-    expect(foundError({ ...attack, state: 'hold' }, 0, false)).toBe('notOut');
-    expect(foundError({ ...attack, recalled: true }, 0, false)).toBe('notOut');
-    expect(foundError({ ...attack, gift: true }, 0, false)).toBe('notOut');
-    expect(foundError(attack, 100, false)).toBe('started');
-    expect(foundError(attack, 101, false)).toBe('started');
-    expect(foundError(attack, 99, true)).toBe('inUnion');
   });
 });
 
@@ -209,78 +225,40 @@ describe('inviting', () => {
   });
 });
 
-describe('the arrival of the union when a fleet joins', () => {
-  const limits = { delay: 30, cutoff: 0 };
-  // The union arrives in 1000 ms; the joining fleet needs `flight`.
-  const timing = (flight: number, over = {}) =>
-    joinTiming({ now: 0, arr: 1000, flight, limits: { ...limits, ...over } });
-  it('lets a fleet that is there in time wait and arrive with the others', () => {
-    expect(timing(400)).toEqual({ arr: 1000 });
-    expect(timing(1000)).toEqual({ arr: 1000 });
-  });
-  it('lets a later fleet delay the union by at most 30 % of the remaining flight time', () => {
-    expect(timing(1001)).toEqual({ arr: 1001 });
-    expect(timing(1300)).toEqual({ arr: 1300 });
-    expect(timing(1301)).toEqual({ error: 'delay' });
-    expect(timing(5000)).toEqual({ error: 'delay' });
-  });
-  it('counts the percentage of the time that is left, not of the whole flight', () => {
-    expect(joinTiming({ now: 600, arr: 1000, flight: 500, limits })).toEqual({
-      arr: 1100,
-    });
-    expect(joinTiming({ now: 600, arr: 1000, flight: 521, limits })).toEqual({
-      error: 'delay',
-    });
-  });
-  it('follows the percentage of the round: none at 0, anything at 100 and more', () => {
-    expect(timing(1001, { delay: 0 })).toEqual({ error: 'delay' });
-    expect(timing(1000, { delay: 0 })).toEqual({ arr: 1000 });
-    expect(timing(2000, { delay: 100 })).toEqual({ arr: 2000 });
-    expect(timing(2001, { delay: 100 })).toEqual({ error: 'delay' });
-  });
-  it('is closed once the union has arrived', () => {
-    expect(joinTiming({ now: 1000, arr: 1000, flight: 1, limits })).toEqual({
-      error: 'closed',
-    });
-    expect(joinTiming({ now: 1500, arr: 1000, flight: 1, limits })).toEqual({
-      error: 'closed',
-    });
+describe('the window of a join (#466)', () => {
+  const limits = { cutoff: 0 };
+  it('is open before the arrival and closed once the union has arrived', () => {
+    expect(joinWindow({ now: 999, arr: 1000, limits })).toBeUndefined();
+    expect(joinWindow({ now: 1000, arr: 1000, limits })).toBe('closed');
+    expect(joinWindow({ now: 1500, arr: 1000, limits })).toBe('closed');
   });
   it('has no cut-off by default and refuses in the last minutes when the round sets one', () => {
     const arr = 100 * MIN;
     const at = (now: number, cutoff: number) =>
-      joinTiming({ now, arr, flight: 1, limits: { delay: 30, cutoff } });
-    expect(at(arr - 1, 0)).toEqual({ arr });
-    expect(at(arr - 11 * MIN, 10)).toEqual({ arr });
+      joinWindow({ now, arr, limits: { cutoff } });
+    expect(at(arr - 1, 0)).toBeUndefined();
+    expect(at(arr - 10 * MIN - 1, 10)).toBeUndefined();
     // Exactly N minutes before the arrival is inside the last N minutes [V].
-    expect(at(arr - 10 * MIN, 10)).toEqual({ error: 'cutoff' });
-    expect(at(arr - 1, 10)).toEqual({ error: 'cutoff' });
+    expect(at(arr - 10 * MIN, 10)).toBe('cutoff');
+    expect(at(arr - 1, 10)).toBe('cutoff');
   });
-  it('is never earlier than the union and never later than the rule allows', () => {
-    fc.assert(
-      fc.property(
-        fc.integer({ min: 1, max: 1e9 }),
-        fc.integer({ min: 1, max: 1e9 }),
-        fc.integer({ min: 0, max: 100 }),
-        (left, flight, delay) => {
-          const out = joinTiming({
-            now: 0,
-            arr: left,
-            flight,
-            limits: { delay, cutoff: 0 },
-          });
-          if ('error' in out) return flight > left;
-          return (
-            out.arr >= left &&
-            (out.arr - left) * 100 <= delay * left &&
-            out.arr === Math.max(left, flight)
-          );
-        },
-      ),
+  it('words every refusal; too early names the earliest start', () => {
+    const l = { fleets: 16, players: 5, cutoff: 15 };
+    expect(joinMessage('closed', l)).toBe(
+      'Der Angriffsverband ist schon angekommen.',
     );
-  });
-  it('moves the arrival and the return of a fleet by the delay', () => {
-    expect(delayed({ arr: 100, ret: 250 }, 30)).toEqual({ arr: 130, ret: 280 });
+    expect(joinMessage('cutoff', l)).toBe(
+      'In den letzten 15 Minuten vor der Ankunft tritt niemand mehr bei.',
+    );
+    expect(joinMessage('early', l, 'am 28.11.2026, 03:15:00')).toBe(
+      'Deine Flotte wäre selbst mit 10 % zu früh da. Schicke sie frühestens am 28.11.2026, 03:15:00 los.',
+    );
+    expect(joinMessage('late', l)).toBe(
+      'Deine Flotte erreicht das Ziel selbst mit 100 % nicht bis zur Ankunft des Verbands.',
+    );
+    expect(joinMessage('fleets', l)).toBe(
+      'Am Angriffsverband nehmen bereits 16 Flotten teil.',
+    );
   });
 });
 

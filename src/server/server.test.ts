@@ -295,9 +295,19 @@ describe('background jobs', () => {
         browser, message, detail, report)
       VALUES ('server', 1, 1, 'old', '', '', '', '', '', '');
     `);
+    // An attack union past its arrival with no fleet out ends (#466).
+    ctx.unions.save({
+      id: 'un1',
+      leader: 'u_Anna',
+      lead: 'un1',
+      target: 'p1_1_1',
+      toC: { g: 1, s: 1, p: 1 },
+      arr: 40 * DAY,
+    });
     const sweepApp = vi.fn();
     const log = vi.fn();
     hourlySweep(ctx, sweepApp, log, null);
+    expect(ctx.unions.get('un1')).toBeNull();
     expect(
       ctx.db.prepare('SELECT token_hash FROM sessions').pluck().all(),
     ).toEqual(['new']);
