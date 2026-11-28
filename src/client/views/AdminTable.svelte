@@ -4,6 +4,7 @@
   // the events of a reference, „Widerrufen“), the details of an event or an
   // error and the form „Mond anlegen“. The marks (`data-diagnostics`,
   // `data-act="revoke"`) are those of the panels and of features/admin.ts.
+  import { lockedSubmit } from '../logic/act-lock.ts';
   import type { TablePage } from '../logic/admin-panels.ts';
   import {
     filterByReference,
@@ -26,12 +27,11 @@
     panels.setOpen(key, !(details as HTMLDetailsElement).open);
   }
 
-  function moon(event: SubmitEvent, planet: string): void {
-    event.preventDefault();
+  function moon(event: SubmitEvent, planet: string): Promise<unknown> {
     const chance = Number(
       new FormData(event.currentTarget as HTMLFormElement).get('chance'),
     );
-    void setMoon(planet, chance);
+    return setMoon(planet, chance);
   }
 </script>
 
@@ -111,7 +111,9 @@
                   <form
                     class="moon-form flex"
                     data-planet={cell.planet}
-                    onsubmit={(event) => moon(event, cell.planet)}
+                    onsubmit={lockedSubmit((event: SubmitEvent) =>
+                      moon(event, cell.planet),
+                    )}
                   >
                     <label
                       >Mondchance in %

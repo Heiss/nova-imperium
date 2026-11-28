@@ -59,6 +59,8 @@ const KINDS: Record<string, Kinds> = {
   startVacation: {},
   endVacation: {},
   pushOptions: { keep: ['off'] },
+  sendAway: { keep: ['id'] },
+  holdOption: { keep: ['on'] },
   requestFriend: { name: ['name'] },
   answerFriend: { seat: ['uid'], keep: ['accept'] },
   cancelFriend: { seat: ['uid'] },

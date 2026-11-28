@@ -14,6 +14,7 @@
 // main.ts and style.css read.
 import fc from 'fast-check';
 import { afterEach, describe, expect, it } from 'vitest';
+import { HOLD_OPTION_TITLE } from '../core/hold-texts.ts';
 import { EXPLAIN_MODES } from '../core/explain.ts';
 import { LEVEL_MODES, type LevelMode } from '../core/level-overview.ts';
 import { mainLocked } from '../core/main-planet.ts';
@@ -132,6 +133,7 @@ const PUSH_LABELS: Record<PushTopic, string> = {
   attacked: 'Sturmangriff auf deine Planeten',
   spied: 'Auspex-Aktivität bei deinen Planeten',
   delivery: 'Lieferung eines anderen Spielers',
+  holds: 'Wachen',
   announcement: 'Servernachrichten',
   news: 'Neue Version',
   'guild-events': 'Gildenereignisse',
@@ -202,6 +204,17 @@ const totpBox = (on: boolean): string =>
       ? `${TOTP_TEXT}<form id="totpremoveform" class="flex"><span data-totp="status">Eingerichtet.</span><label for="totp_password">Passwort</label><input id="totp_password" type="password" autocomplete="current-password" required><label for="totp_remove_code">Code aus der Authenticator-App</label><input id="totp_remove_code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" required><button type="submit">Entfernen</button></form>`
       : `${TOTP_TEXT}<p><button type="button" data-act="totpSetup">Einrichten</button></p>`,
   );
+/**
+ * Changed on purpose since #118: the box „Keine Wachen annehmen“ (owner,
+ * 2026-11-27, #440, 230b), its title not decided yet; hidden only while
+ * „Wache stellen“ is off (an explicit 0; a missing value is „An“).
+ */
+const holdBox = (refused: boolean): string =>
+  sbox(
+    'game',
+    HOLD_OPTION_TITLE,
+    `<label class="switch"><input type="checkbox" id="o_holds" data-chg="holdOption" ${refused ? 'checked' : ''}> Keine Wachen annehmen</label>`,
+  );
 const notificationBoxes = (
   s: Pick<GameState, 'me' | 'round'>,
   ui: Ui,
@@ -227,6 +240,7 @@ const help = (
  ${sbox('game', 'Optionen', `<div class="flex">Spähschädel pro Auspex-Erkundung von der Sternenkarte: <input type="number" id="o_probes" min="1" value="${v.s.me.probes || 1}" aria-label="Spähschädel pro Auspex-Erkundung"></div><div class="flex mt"><label for="o_explain">(?)-Symbol:</label> <select id="o_explain">${explainOptionsHTML(v.s.me.explain)}</select></div><div class="flex mt"><label for="o_levels">Stufenübersicht:</label> <select id="o_levels">${levelOptionsHTML(v.s.me.levelTable)}</select></div><p><button data-act="saveopt">Speichern</button></p>`)}
  ${sbox('game', 'Hauptplanet', mainPlanetHTML(v.s, v.now))}
  ${sbox('round', 'Urlaubsmodus', vacationHTML(v.s.round.vacationHours))}
+ ${(v.s.round as { holdOn?: number }).holdOn !== 0 ? holdBox(v.s.holdsRefused === true) : ''}
  ${sbox('round', 'Meine Aktivität &amp; Spielzeit', OWN_ACTIVITY_PLACEHOLDER)}
  ${sbox('round', 'Rundenarchiv', archiveHTML(shownArchive(v.s)))}
  ${sbox('device', 'Darstellung', `<label class="switch"><input type="checkbox" id="o_anim" ${v.ui.animations ? 'checked' : ''}> Animationen</label><p class="dim">Planeten drehen sich, Wolken ziehen. Gilt für dieses Gerät; ist im System „Bewegung reduzieren“ eingestellt, bleibt alles ruhig.</p>`)}

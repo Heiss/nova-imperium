@@ -36,6 +36,7 @@ switches; both go into the next release.
   | `attacked` | Sturmangriff auf deine Planeten | „Feindkontakt!“, the defender's battle report |
   | `spied` | Auspex-Aktivität bei deinen Planeten | the defender's „Auspex-Aktivität“ |
   | `delivery` | Lieferung eines anderen Spielers | „Lieferung von …“, a transport of another player |
+  | `holds` | Wachen | every report of a hold to its host (launch, arrival) and to its owner (no longer allowed, sent away), since #440 (243b, 283a); the vacation report stays under `fleet` |
   | `announcement` | Servernachrichten | a server announcement of the admin |
   | `news` | Neue Version | the update message of a new version |
   | `guild-events` | Gildenereignisse | an event of the guild chat (joining, leaving, removal, a new rank, an attack at its launch), to every member with „Chat lesen“ but the member it is about and the one who caused it; „Gildenereignis“ (#169) |

@@ -1,5 +1,17 @@
 # Neuigkeiten
 
+## Version 26.11.30 – 28.11.2026
+
+### Geändert
+
+- Ist der Marktplatz abgeschaltet, lässt sich der Handelsposten nicht mehr bauen und fehlt im Lexicanum. Gebaute Stufen bleiben erhalten, zählen für die Punkte und lassen sich zurückbauen. Ist der Marktplatz wieder offen, ist der Handelsposten mit allen Stufen zurück.
+- Wie hoch die Chance auf einen Mond nach einem Kampf höchstens ist und wie viele Rohstoffe im Trümmerfeld 1 % ergeben, stellt jetzt der Admin ein (bisher fest 20 % und 100.000). Das Lexicanum erklärt außerdem, dass sich ein Mond nicht selbst erzeugen lässt.
+- Wache stellen lässt sich pro Runde abschalten. Fremde Wachen kannst du wegschicken oder ablehnen; nicht mehr erlaubte kehren von selbst um. Hält bei einem schwachen Spieler die Wache eines anderen, dürfen Dritte ihn dort trotz Noobschutz angreifen und erkunden. Ladung einer Wache ist keine Beute.
+
+### Behoben
+
+- Ein Knopf bleibt gesperrt, bis der Server geantwortet hat. Ein schneller Doppelklick, etwa auf „Abholen“, zeigt keine Fehlermeldung mehr. Dasselbe gilt jetzt für Formulare: Ein Doppelklick schickt sie nur einmal ab. Ein Umbau der Verbindung zwischen Browser und Server ist in Vorbereitung.
+
 ## Version 26.11.29 – 27.11.2026
 
 ### Neu

@@ -932,3 +932,67 @@ describe('the notes of the checks of #214', () => {
     });
   });
 });
+
+describe('the Handelsposten while the marketplace is off (#442, 226b)', () => {
+  const withMarket = (marketOn: number, P: Partial<Planet> = {}): V => {
+    const v = view({ P: { res: RICH, b: { robot: 4 }, ...P } });
+    return { ...v, s: { ...v.s, cfg: { ...U, roundMarketOn: marketOn } } };
+  };
+  const keys = (v: V) => rows(catalogPage(v, 'building')).map((r) => r.key);
+
+  it('is listed with the marketplace on, with or without the switch stored', () => {
+    expect(keys(withMarket(1))).toContain('market');
+    expect(keys(view())).toContain('market');
+  });
+
+  it('is not listed while the marketplace is off; every other building is', () => {
+    const off = keys(withMarket(0));
+    expect(off).not.toContain('market');
+    expect(off).toEqual(keys(withMarket(1)).filter((k) => k !== 'market'));
+  });
+
+  it('is listed while off only where it has a level, with the refusal and „Zurückbauen“ (278a)', () => {
+    const built = { b: { robot: 4, market: 3 } };
+    expect(row(withMarket(0, built), 'building', 'market')).toMatchObject({
+      key: 'market',
+      action: {
+        kind: 'note',
+        cls: 'req',
+        text: 'Der Marktplatz ist in dieser Runde geschlossen.',
+      },
+      demolish: true,
+    });
+    // On again: the build button is back, with its level.
+    const on = row(withMarket(1, built), 'building', 'market');
+    expect(on.action.kind).not.toBe('note');
+    expect(on.demolish).toBe(true);
+    // No „?“ while its article is hidden; with the marketplace on it is back.
+    expect(
+      row(withMarket(0, built), 'building', 'market').explanation,
+    ).toBeNull();
+    expect(on.explanation).toMatchObject({ key: 'market' });
+    // Every other row keeps its „?“.
+    expect(
+      row(withMarket(0, built), 'building', 'robot').explanation,
+    ).toMatchObject({
+      key: 'robot',
+    });
+  });
+
+  it('is listed while off with a level in the queue, the running order shown (277a)', () => {
+    const queued = withMarket(0, {
+      b: { robot: 4 },
+      bq: { key: 'market', lvl: 1, start: 0, end: 1000, cost: [0, 0, 0] },
+    });
+    expect(row(queued, 'building', 'market').action).toMatchObject({
+      kind: 'upgrading',
+      level: 1,
+    });
+    // Another order in the queue does not list it.
+    const other = withMarket(0, {
+      b: { robot: 4 },
+      bq: { key: 'metal', lvl: 1, start: 0, end: 1000, cost: [0, 0, 0] },
+    });
+    expect(keys(other)).not.toContain('market');
+  });
+});

@@ -2,48 +2,75 @@
 // ranks. Shared by the server, which checks every action, and the client,
 // which shows only what the own rank may do. See okf/features/guild-ranks.md.
 
-/**
- * The rights a rank can be given (owner, 2026-11-13). The Leitung holds all
- * of them. Dissolving the guild, handing over the Leitung and choosing the
- * default rank are no rights: only the Leitung does them. The right for
- * markers on the situation map comes with #160. The three rights of the
- * guild chat come with #169 (owner, 2026-11-14, D2): „Chat lesen“, „Chat
- * schreiben“ and „Chatnachrichten löschen“.
- */
-export const GUILD_RIGHTS = [
-  'applications',
-  'remove',
-  'assign',
-  'profile',
-  'ranks',
-  'chat-read',
-  'chat-write',
-  'chat-delete',
-] as const;
+import { ownedOnce } from './owned-once.ts';
+import { GUILD_RIGHT_LISTS } from './guild-rights/rights.gen.ts';
 
-export type GuildRight = (typeof GUILD_RIGHTS)[number];
+/** What a file of src/core/guild-rights declares for a right (#426). */
+interface RightEntry {
+  key: string;
+  /** The place in the guild view: the rights go by ascending order. */
+  order: number;
+  /** The name in the guild view and the Lexicanum (#163, #288). */
+  label: string;
+  /** A right of the first default rank „Mitglied“ of a new guild (#169). */
+  member?: boolean;
+}
+
+/** The modules as the generated list gives them: `[name in the folder, guildRights]`. */
+type ListedRights = readonly (readonly [string, readonly RightEntry[]])[];
+
+/**
+ * The rights of all modules by ascending order (#426); a key or an order
+ * defined twice stops the start with both files named.
+ */
+export function assembleRights(listed: ListedRights): readonly RightEntry[] {
+  const once = ownedOnce('Guild right');
+  const entries = listed.flatMap(([name, rights]) =>
+    rights.map((right) => ({
+      file: `src/core/guild-rights/${name}.ts`,
+      right,
+    })),
+  );
+  for (const { file, right } of entries) {
+    if (!Number.isFinite(right.order))
+      throw new Error(`Guild right ${right.key} in ${file} has no order.`);
+    once('key', right.key, file);
+    once('order', String(right.order), file);
+  }
+  return entries.map((e) => e.right).sort((a, b) => a.order - b.order);
+}
+
+export type GuildRight = (typeof GUILD_RIGHT_LISTS)[number][1][number]['key'];
+
+const RIGHTS = assembleRights(GUILD_RIGHT_LISTS);
+
+/**
+ * The rights a rank can be given (owner, 2026-11-13), in the order of the
+ * guild view; each registers itself in a file of src/core/guild-rights
+ * (#426). The Leitung holds all of them. The right for markers on the
+ * situation map comes with #160.
+ */
+export const GUILD_RIGHTS: readonly GuildRight[] = RIGHTS.map(
+  (r) => r.key as GuildRight,
+);
 
 /** The rights as the guild view and the Lexicanum name them (#163, #288). */
-export const RIGHT_TEXT: Readonly<Record<GuildRight, string>> = {
-  applications: 'Bewerbungen annehmen und ablehnen',
-  remove: 'Mitglieder entfernen',
-  assign: 'Ränge an Mitglieder vergeben',
-  profile: 'Gildenname, Kürzel und Text ändern',
-  ranks: 'Ränge verwalten',
-  // The guild chat (#169, owner, 2026-11-14, D2).
-  'chat-read': 'Chat lesen',
-  'chat-write': 'Chat schreiben',
-  'chat-delete': 'Chatnachrichten löschen',
-};
+export const RIGHT_TEXT: Readonly<Record<GuildRight, string>> =
+  Object.fromEntries(RIGHTS.map((r) => [r.key, r.label])) as Record<
+    GuildRight,
+    string
+  >;
 
 export const isGuildRight = (v: unknown): v is GuildRight =>
   (GUILD_RIGHTS as readonly unknown[]).includes(v);
 
 /**
  * The rights of the first default rank „Mitglied“ of a new guild: reading
- * and writing in the chat (owner, 2026-11-14, #169 D2).
+ * and writing in the chat (owner, 2026-11-14, #169 D2), marked `member`.
  */
-export const MEMBER_RIGHTS: readonly GuildRight[] = ['chat-read', 'chat-write'];
+export const MEMBER_RIGHTS: readonly GuildRight[] = RIGHTS.filter(
+  (r) => r.member === true,
+).map((r) => r.key as GuildRight);
 
 /** At most this many ranks per guild, the Leitung included (owner, 2026-11-13). */
 export const MAX_GUILD_RANKS = 25;

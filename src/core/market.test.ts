@@ -4,6 +4,8 @@
 // criterion of the issue).
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
+import { planet } from '../test/fixtures.ts';
+import { buildErrors } from './economy-checks.ts';
 import {
   DAILY_LIMIT,
   DAY_MS,
@@ -20,6 +22,9 @@ import {
   RES_NAME,
   STEP,
   TRADED,
+  TRADING_POST,
+  tradingPostOffered,
+  tradingPostOfferedIn,
   type Market,
   type Pair,
   type PriceState,
@@ -1219,5 +1224,40 @@ describe('the price the player saw (#406, O31)', () => {
     expect(priceChanged(m, 'mc')).toBe(
       'Der Kurs hat sich geändert: jetzt 405 Psikristall je 1.000 Adamant. Bitte erneut bestätigen.',
     );
+  });
+});
+
+describe('whether the round offers the Handelsposten (#442, 226b, 245a)', () => {
+  it('follows the marketplace, from the round and from the universe', () => {
+    expect(TRADING_POST).toBe('market');
+    expect(tradingPostOffered({ marketOn: 1 })).toBe(true);
+    expect(tradingPostOffered({ marketOn: 0 })).toBe(false);
+    expect(
+      tradingPostOfferedIn({ ...DEFAULT_UNIVERSE, roundMarketOn: 1 }),
+    ).toBe(true);
+    expect(
+      tradingPostOfferedIn({ ...DEFAULT_UNIVERSE, roundMarketOn: 0 }),
+    ).toBe(false);
+    // A universe without the stored switch keeps the default: on.
+    const bare: Record<string, number> = { ...DEFAULT_UNIVERSE };
+    delete bare.roundMarketOn;
+    expect(
+      tradingPostOfferedIn(bare as unknown as typeof DEFAULT_UNIVERSE),
+    ).toBe(true);
+  });
+
+  it('refuses its next level with `off` first, and no other building', () => {
+    const p = planet({ b: { robot: 4 }, res: { m: 1e9, c: 1e9, d: 1e9 } });
+    const r = { research: {}, rq: null };
+    const off = { ...DEFAULT_UNIVERSE, roundMarketOn: 0 };
+    expect(buildErrors(p, r, 'market', off)).toEqual(['off']);
+    expect(buildErrors(p, r, 'market', { ...off, roundMarketOn: 1 })).toEqual(
+      [],
+    );
+    expect(buildErrors(p, r, 'metal', off)).toEqual([]);
+    expect(buildErrors({ ...p, b: {} }, r, 'market', off)).toEqual([
+      'off',
+      'locked',
+    ]);
   });
 });

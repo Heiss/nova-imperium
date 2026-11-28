@@ -38,6 +38,7 @@ import type { Handler } from './actions.ts';
 import { fail, str, type Ctx } from './context.ts';
 import { GUILDS_OFF } from './round.ts';
 import { rankEvent } from './guild-events.ts';
+import { recheckHolds } from './holding.ts';
 import type { ServerFeature } from './feature.ts';
 
 /** The refusals the guild actions share (#163), by the codes of core/guild-checks.ts. */
@@ -252,6 +253,8 @@ const dissolveGuild: Handler<'dissolveGuild'> = (ctx, user, d) => {
     tag: 'Das Kürzel stimmt nicht.',
   });
   ctx.guilds.delete(a.guild.id);
+  // A bond that ends may end a hold too (#440, 229a).
+  recheckHolds(ctx);
   return 'Gilde aufgelöst.';
 };
 

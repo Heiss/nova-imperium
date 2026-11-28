@@ -14,10 +14,14 @@ import {
 } from './missions.ts';
 import type { Mission } from './types.ts';
 
-/** What the browser knows of the target: the place there, a Trümmerfeld, a moon, a lock, the expedition position. */
+/**
+ * What the browser knows of the target: the place there, a Trümmerfeld, a
+ * moon, a lock, the expedition position, and the rules of the round, which
+ * hide a mission that is off (#440).
+ */
 export type FitTarget = Pick<
   SendTarget,
-  'planet' | 'debris' | 'moon' | 'locked' | 'expedition'
+  'planet' | 'debris' | 'moon' | 'locked' | 'expedition' | 'round'
 >;
 
 /**

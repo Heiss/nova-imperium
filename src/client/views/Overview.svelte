@@ -35,6 +35,11 @@
               <tr>
                 <td class="n w110"><Due due={fleet.due} /></td>
                 <td><FleetText parts={fleet.parts} /></td>
+                <td class="w80"
+                  ><button class="small" data-act="sendAway" data-id={fleet.id}
+                    >Wegschicken</button
+                  ></td
+                >
               </tr>
             {/each}
           </tbody>

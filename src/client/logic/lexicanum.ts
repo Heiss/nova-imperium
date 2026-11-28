@@ -35,6 +35,7 @@ import type {
   Formula,
   LexState,
 } from '../../core/lexicon/types.ts';
+import { TRADING_POST, tradingPostOffered } from '../../core/market.ts';
 import { MISSION, missionRules } from '../../core/missions.ts';
 import type { Cost } from '../../core/types.ts';
 import type { V } from '../views/common.ts';
@@ -153,14 +154,18 @@ const ALL: Open = () => true;
 /**
  * Whether the player sees an article (#404; owner, 2026-11-25, 113a): the
  * page of a feature only while the round offers it (the rule of its page,
- * the one of its view), for the admin as for every player (114a); every
+ * the one of its view; a mission by the rule of its mission, #440), for the
+ * admin as for every player (114a), and the Handelsposten only while the
+ * round offers it (#442); every
  * other article, an unknown id too, always. A hidden article is not listed,
  * found or linked, and its address falls back like an unknown one.
  */
 export const opens =
   (v: V): Open =>
   (id) =>
-    article(id)?.page?.offered?.(v.s.round) ?? true;
+    // The Handelsposten follows the page „Marktplatz“ [V] (#442, 226b).
+    (id !== TRADING_POST || tradingPostOffered(v.s.round)) &&
+    (article(id)?.offered?.(v.s.round) ?? true);
 
 /** The pieces of a text; a link to an article the player does not see is plain words. */
 const textParts = (text: string, open: Open): Segment[] =>

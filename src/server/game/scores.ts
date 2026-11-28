@@ -18,6 +18,7 @@ import { pointsOf } from '../../core/points.ts';
 import { settle, settleR } from '../../core/settle.ts';
 import type { Levels } from '../../core/types.ts';
 import { type Ctx, universe } from './context.ts';
+import { recheckHolds } from './holding.ts';
 import { sumLevels } from '../../core/economy.ts';
 
 /** A category in both of its modes (#422): by number and by points. */
@@ -157,12 +158,22 @@ export function storedScores(ctx: Ctx): ScorePass {
   return pass;
 }
 
+/** The pass after which the running holds were last checked, by database (#440). */
+const checkedAt = new WeakMap<object, number>();
+
 /**
  * The beat of the clock: the pass of a slot is made at its time, not at the
- * first reader after it. Live (0) waits for a reader.
+ * first reader after it. Live (0) waits for a reader. Once per pass, whoever
+ * made it, the beat checks every running hold again (#440) in one write
+ * transaction: a change that no action names still turns a hold home at the
+ * latest there; a read of the state never ends a hold.
  */
 export function scoreBeat(ctx: Ctx): void {
-  if (passesPerDay(ctx) > 0) storedScores(ctx);
+  if (passesPerDay(ctx) === 0) return;
+  const { at } = storedScores(ctx);
+  if (checkedAt.get(ctx.db) === at) return;
+  ctx.tx(() => recheckHolds(ctx));
+  checkedAt.set(ctx.db, at);
 }
 
 /** A new round computes at once (#405), for the start it just stored. */
