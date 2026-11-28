@@ -1,7 +1,7 @@
 // „Wache stellen“ for the host (#440, 230b): „Wegschicken“ under „Gehaltene
 // Flotten“ sends a hold away, and the checkbox „Keine Wachen annehmen“ of
 // „Optionen“ saves at once.
-import { holdSaver } from '../logic/options/holding.ts';
+import { holdSaver, shownRefused } from '../logic/options/holding.ts';
 import { client } from '../logic/state.svelte.ts';
 import type { ClientFeature } from './contract.ts';
 
@@ -14,8 +14,18 @@ export const clientFeature = {
     );
     document.addEventListener('change', (e) => {
       const el = e.target as HTMLInputElement;
-      if (el.dataset?.chg === 'holdOption' && client.game)
-        void saveOption(el.checked).then(() => ctx.render());
+      if (el.dataset?.chg !== 'holdOption' || !client.game) return;
+      // Saved, refused or thrown: the page renders, and the box shows the
+      // option as kept. Svelte writes `checked` only when its value changes,
+      // and a refused save renders the value from before the click (PR #469).
+      void saveOption(el.checked)
+        .catch((err: unknown) =>
+          ctx.toast((err as Error).message, err as Error),
+        )
+        .finally(() => {
+          ctx.render();
+          if (client.game) el.checked = shownRefused(client.game, client.ui);
+        });
     });
   },
   acts: ({ act }) => ({

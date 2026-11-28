@@ -58,6 +58,18 @@ class ClientState {
     this.completionNotices.clear();
     this.view = null;
   }
+
+  /**
+   * Forgets what belonged to the player or round shown before, at a sign-out
+   * too: besides `forget`, the choices of „Optionen“ whose save still runs
+   * (PR #469), so they never show on the page of another player or round.
+   * Not on a switch of the planet: the choice is the player's.
+   */
+  forgetPlayer(): void {
+    this.forget();
+    this.ui.holdChoice = undefined;
+    this.ui.pushChoice = undefined;
+  }
 }
 
 /** The one state of the client. */

@@ -55,6 +55,24 @@ describe('the pending choice of „Keine Wachen annehmen“ (CodeRabbit on #455)
     expect(choice.holdChoice).toBeUndefined();
   });
 
+  it('sends no waiting click once the choice was forgotten with the player (PR #469)', async () => {
+    const choice: HoldChoice = {};
+    const answers: (() => void)[] = [];
+    const sent: boolean[] = [];
+    const change = holdSaver(choice, (on) => {
+      sent.push(on);
+      return new Promise<void>((r) => answers.push(r));
+    });
+    const done = change(true);
+    void change(false);
+    // A sign-out or another player: `client.forgetPlayer`.
+    choice.holdChoice = undefined;
+    answers.shift()!();
+    await done;
+    expect(sent).toEqual([true]);
+    expect(choice.holdChoice).toBeUndefined();
+  });
+
   it('shows the server again after a save that threw', async () => {
     const choice: HoldChoice = {};
     const change = holdSaver(choice, () => Promise.reject(new Error('down')));

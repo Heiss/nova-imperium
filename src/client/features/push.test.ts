@@ -72,6 +72,50 @@ describe('the checkbox of a kind', () => {
     expect(ctx.act).toHaveBeenCalledWith('pushOptions', { off: ['buildings'] });
   });
 
+  it('sets the box to the kinds of the server after a refused save (PR #469)', async () => {
+    const ctx = fakeCtx({ act: vi.fn(async () => false) as never });
+    clientFeature.listen(ctx);
+    const e = box({});
+    change(e);
+    await vi.waitFor(() => expect(ctx.render).toHaveBeenCalledTimes(1));
+    // The server keeps „buildings“ on: the box is ticked again.
+    expect(e.target.checked).toBe(true);
+  });
+
+  it('keeps the box unticked after a save the server took (PR #469)', async () => {
+    const ctx = fakeCtx({
+      act: vi.fn(async () => {
+        client.game = {
+          me: { pushOff: ['buildings'] },
+        } as unknown as GameState;
+        return true;
+      }) as never,
+    });
+    clientFeature.listen(ctx);
+    const e = box({ checked: true });
+    e.target.checked = false;
+    change(e);
+    await vi.waitFor(() => expect(ctx.render).toHaveBeenCalledTimes(1));
+    expect(e.target.checked).toBe(false);
+  });
+
+  it('shows a save that threw as an error, renders and leaves the box alone when signed out meanwhile (PR #469)', async () => {
+    const error = new Error('Keine Verbindung.');
+    const ctx = fakeCtx({
+      act: vi.fn(async () => {
+        client.game = null;
+        throw error;
+      }) as never,
+    });
+    clientFeature.listen(ctx);
+    const e = box({});
+    change(e);
+    await vi.waitFor(() => expect(ctx.render).toHaveBeenCalledTimes(1));
+    expect(ctx.toast).toHaveBeenCalledWith('Keine Verbindung.', error);
+    expect(e.target.checked).toBe(false);
+    expect(client.ui.pushChoice).toBeUndefined();
+  });
+
   it('ignores other fields and a signed-out page', () => {
     const ctx = fakeCtx();
     clientFeature.listen(ctx);

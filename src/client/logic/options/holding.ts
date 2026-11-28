@@ -20,8 +20,14 @@ export interface HoldPart {
  * The option as shown: the player's pending choice while its save runs, else
  * as the server keeps it (off until the state says otherwise).
  */
+export const shownRefused = (
+  s: Pick<OptionsState['s'], 'holdsRefused'>,
+  ui: HoldChoice,
+): boolean => ui.holdChoice ?? s.holdsRefused === true;
+
+/** The box as the page shows it. */
 export const holdPart = ({ s, ui }: OptionsState): HoldPart => ({
-  refused: ui.holdChoice ?? s.holdsRefused === true,
+  refused: shownRefused(s, ui),
   offered: holdOpen(s.round),
 });
 
@@ -39,7 +45,11 @@ export function holdSaver(
   choice: HoldChoice,
   save: (on: boolean) => Promise<unknown>,
 ): (on: boolean) => Promise<void> {
-  const saver = latestSaver(save);
+  // A value still waiting when the choice was forgotten with the player
+  // (`client.forgetPlayer`, PR #469) is not sent.
+  const saver = latestSaver((on: boolean) =>
+    choice.holdChoice === undefined ? Promise.resolve() : save(on),
+  );
   return async (on) => {
     choice.holdChoice = on;
     try {
