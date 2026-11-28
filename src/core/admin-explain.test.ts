@@ -413,6 +413,28 @@ describe('a value of the admin’s own (#358, part 2)', () => {
     });
   });
 
+  it('takes none for a setting without an explanation, and a table that says nothing stays out whatever its own column says', () => {
+    expect(ownValue({ key: 'x', label: 'X', min: 0, max: 9 }, '3')).toBeNull();
+    const flat: Explained = {
+      key: 'roundFlat',
+      label: 'Flach',
+      name: 'flat',
+      min: 0,
+      max: 2,
+      explain: {
+        text: 'x',
+        own: true,
+        rows: [
+          {
+            label: () => 'Wert',
+            cell: ({ round: r }) => (r.flat === 5 ? 'anders' : 'gleich'),
+          },
+        ],
+      },
+    };
+    expect(explainTable(flat, u, round, [], 5)).toBeNull();
+  });
+
   it('adds no column for a setting without a formula, and does not bring back a table that says nothing', () => {
     const positions = byKey('positions');
     expect(explainTable(positions, u, round, undefined, 15)).toEqual(
