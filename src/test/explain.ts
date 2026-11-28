@@ -18,9 +18,5 @@ export function withoutExplain<T>(x: T): T {
  * after the label in the tab „Universum“, `r` at the end of a field of the
  * dialog „Neue Runde“.
  */
-export const explainButton = (
-  key: string,
-  label: string,
-  place: 'u' | 'r',
-): string =>
-  `<button type="button" class="exq" id="axq${place}_${key}" data-act="adminExplain" data-k="${key}" data-o="axq${place}_${key}" aria-controls="admin-explain-panel" aria-expanded="false" aria-label="Erklärung: ${label}">?</button>`;
+export const explainButton = (key: string, place: 'u' | 'r'): string =>
+  `<button type="button" class="exq" id="axq${place}_${key}" data-act="adminExplain" data-k="${key}" data-o="axq${place}_${key}" aria-controls="admin-explain-panel" aria-expanded="false" aria-label="Erklärung">?</button>`;

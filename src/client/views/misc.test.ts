@@ -341,7 +341,7 @@ describe('the activity thresholds in the dialog „Neue Runde“ (#229, X1)', ()
     // repeats it).
     const rows = fields.map(
       ([id, key, label, min, max, value]) =>
-        `<label for="round-${id}">${label}</label> <input type="number" id="round-${id}" min="${min}" max="${max}" step="1" value="${value}" required> <span class="dim">${min} bis ${max}</span> ${explainButton(key, label, 'r')}`,
+        `<label for="round-${id}">${label}</label> <input type="number" id="round-${id}" min="${min}" max="${max}" step="1" value="${value}" required> <span class="dim">${min} bis ${max}</span> ${explainButton(key, 'r')}`,
     );
     const open = fieldsetOpen(html, 'Aktivität');
     expect(open).toMatch(/aria-labelledby/);
@@ -562,12 +562,12 @@ describe('a new setting of the round in both places (#283)', () => {
     const html = roundDialog(round, settings);
     expect(html).toContain(
       normalize(
-        `<p><label for="round-test-hours">Testdauer (Stunden)</label> <input type="number" id="round-test-hours" min="1" max="720" step="1" value="48" required> <span class="dim">1 bis 720</span> ${explainButton('roundTestHours', 'Testdauer (Stunden)', 'r')}</p>`,
+        `<p><label for="round-test-hours">Testdauer (Stunden)</label> <input type="number" id="round-test-hours" min="1" max="720" step="1" value="48" required> <span class="dim">1 bis 720</span> ${explainButton('roundTestHours', 'r')}</p>`,
       ),
     );
     expect(html).toContain(
       normalize(
-        `<p><label for="round-test-allies">Verbündete für Halten und Verband</label> <select id="round-test-allies"><option value="1" selected>Gilde</option><option value="3">Gilde und Freunde</option></select> ${explainButton('roundTestAllies', 'Verbündete für Halten und Verband', 'r')}</p>`,
+        `<p><label for="round-test-allies">Verbündete für Halten und Verband</label> <select id="round-test-allies"><option value="1" selected>Gilde</option><option value="3">Gilde und Freunde</option></select> ${explainButton('roundTestAllies', 'r')}</p>`,
       ),
     );
     // The new ones have the highest numbers, so they stand after the registry.
@@ -595,7 +595,7 @@ describe('a new setting of the round in both places (#283)', () => {
     } as unknown as V);
     expect(html).toContain(
       normalize(
-        `<tr><td><label for="set_roundTestHours">Testdauer (Stunden)</label> ${explainButton('roundTestHours', 'Testdauer (Stunden)', 'u')}</td><td><input type="number" id="set_roundTestHours" data-setting="roundTestHours" min="1" max="720" value="36" data-nokeep> <span class="dim">1 bis 720</span></td></tr>`,
+        `<tr><td><label for="set_roundTestHours">Testdauer (Stunden)</label> ${explainButton('roundTestHours', 'u')}</td><td><input type="number" id="set_roundTestHours" data-setting="roundTestHours" min="1" max="720" value="36" data-nokeep> <span class="dim">1 bis 720</span></td></tr>`,
       ),
     );
     expect(html).toContain(

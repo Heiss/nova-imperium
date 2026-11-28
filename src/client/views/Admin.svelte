@@ -57,7 +57,7 @@
               aria-controls={EXPLAIN_PANEL_ID}
               aria-expanded={adminExplain.opener ===
                 explainButtonId(row.key, 'u')}
-              aria-label="Erklärung: {row.label}">?</button
+              aria-label="Erklärung">?</button
             >
           </td>
           <td>

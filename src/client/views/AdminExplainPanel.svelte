@@ -53,7 +53,13 @@
       <h3 class="lx-title" id="axp-title">{page.label}</h3>
       <p>{page.text}</p>
       {#if page.table}
-        <div class="lx-scroll" role="region" aria-label={page.label}>
+        <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+        <div
+          class="lx-scroll"
+          role="region"
+          aria-label={page.label}
+          tabindex="0"
+        >
           <table class="lx-t">
             <thead>
               <tr>

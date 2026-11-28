@@ -86,7 +86,7 @@ function settingsForm(s: GameState, a: AdminState): string {
         ? `<select id="set_${x.key}" data-setting="${x.key}" data-nokeep>${choiceOptions(x.choices, Number(value))}</select>`
         : `<input type="number" id="set_${x.key}" data-setting="${x.key}" min="${x.min}" max="${x.max}"${x.step ? ` step="${x.step}"` : ''} value="${value}" data-nokeep> <span class="dim">${fmt(x.min)} bis ${fmt(x.max)}${hint}</span>`;
       // Changed on purpose since #118: the „?“ of its explanation (#358).
-      return `<tr><td><label for="set_${x.key}">${esc(x.label)}</label> ${explainButton(x.key, esc(x.label), 'u')}</td><td>${field}</td></tr>`;
+      return `<tr><td><label for="set_${x.key}">${esc(x.label)}</label> ${explainButton(x.key, 'u')}</td><td>${field}</td></tr>`;
     })
     .join('');
   const warning = gainWarning(s.cfg);
@@ -115,12 +115,12 @@ function roundField(s: RoundSetting, value: number | boolean): string {
   if (s.kind === 'switch') {
     const note = s.note ? ` aria-describedby="${id}-note"` : '';
     // Changed on purpose since #118: the „?“ of its explanation (#358).
-    return `<label><input type="checkbox" id="${id}"${note} ${value ? 'checked' : ''}> ${label}</label> ${explainButton(s.key, label, 'r')}`;
+    return `<label><input type="checkbox" id="${id}"${note} ${value ? 'checked' : ''}> ${label}</label> ${explainButton(s.key, 'r')}`;
   }
   const field = s.choices
     ? `<select id="${id}">${choiceOptions(s.choices, Number(value))}</select>`
     : `<input type="number" id="${id}" min="${s.min}" max="${s.max}" step="${s.step ?? 1}" value="${Number(value)}" required> <span class="dim">${s.min} bis ${s.max}</span>`;
-  return `<label for="${id}">${label}</label> ${field} ${explainButton(s.key, label, 'r')}`;
+  return `<label for="${id}">${label}</label> ${field} ${explainButton(s.key, 'r')}`;
 }
 
 /** One setting as its own paragraph, with the note below a checkbox. */

@@ -65,7 +65,7 @@
     data-o={explainButtonId(f.key, 'r')}
     aria-controls={EXPLAIN_PANEL_ID}
     aria-expanded={adminExplain.opener === explainButtonId(f.key, 'r')}
-    aria-label="Erklärung: {f.label}">?</button
+    aria-label="Erklärung">?</button
   >
 {/snippet}
 
