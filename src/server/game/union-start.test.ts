@@ -469,9 +469,10 @@ describe('the planned start in the tick (#478)', () => {
     expect(ctx.fleets.get('late')!.state).toBe('back');
   });
 
-  it('drops a start that fails otherwise, logs it and goes on with the fleets', () => {
+  it('dissolves the union of a start that fails otherwise, logs it and goes on with the fleets (PR #490)', () => {
     const ctx = setup();
     const { id, start } = planned(ctx);
+    const bert = bertJoins(ctx, id);
     homecoming(ctx, 'late', start + 10);
     ctx.clock.t = start + 20;
     const log = vi.fn();
@@ -487,8 +488,85 @@ describe('the planned start in the tick (#478)', () => {
       `Planned start ${id} failed and was removed`,
       expect.objectContaining({ message: 'kaputt' }),
     );
+    expect(log).toHaveBeenCalledTimes(1);
     expect(ctx.unions.get(id)).toBeNull();
+    expect(ctx.fleets.get(id)).toBeNull();
+    // The joined fleet turns back with its report, the leader learns it.
+    expect(ctx.fleets.get(bert.id)).toMatchObject({ state: 'back' });
+    expect(ctx.fleets.get(bert.id)).not.toHaveProperty('union');
+    expect(newest(ctx, 'u_Bert').text).toBe(LEAD_NOT_STARTED('[1:4:8]'));
+    expect(
+      ctx.reports
+        .ofPlayer('u_Anna')
+        .find((r) => r.title === 'Geplanter Angriff nicht gestartet [1:4:8]')!
+        .text,
+    ).toBe(
+      'Dein geplanter Sturmangriff auf [1:4:8] ist nicht gestartet: Beim Start ist ein Fehler aufgetreten. Der Angriffsverband ist aufgelöst.',
+    );
     expect(ctx.fleets.get('late')).toBeNull();
+  });
+
+  it('deletes the row alone when even the dissolving fails, and says so', () => {
+    const ctx = setup();
+    const { id, start } = planned(ctx);
+    ctx.clock.t = start;
+    const log = vi.fn();
+    const unions = Object.create(ctx.unions, {
+      save: {
+        value: () => {
+          throw new Error('kaputt');
+        },
+      },
+    });
+    const reports = Object.create(ctx.reports, {
+      add: {
+        value: () => {
+          throw new Error('auch kaputt');
+        },
+      },
+    });
+    tick({ ...ctx, unions, reports }, log);
+    expect(log).toHaveBeenCalledWith(
+      `Planned start ${id} could not be dissolved`,
+      expect.objectContaining({ message: 'auch kaputt' }),
+    );
+    expect(ctx.unions.get(id)).toBeNull();
+  });
+
+  it('waits with every planned start after a fleet whose writer is busy, so the order holds (PR #490)', () => {
+    const ctx = setup();
+    const { id, start } = planned(ctx);
+    homecoming(ctx, 'early', start - 10);
+    ctx.clock.t = start + 20;
+    let calls = 0;
+    const tx = <T>(fn: () => T): T => {
+      // The fleet before the start finds the writer busy.
+      if (++calls === 1)
+        throw new Database.SqliteError('database is locked', 'SQLITE_BUSY');
+      return ctx.tx(fn);
+    };
+    expect(tick({ ...ctx, tx })).toBe(1);
+    expect(ctx.fleets.get('early')!.state).toBe('back');
+    expect(ctx.unions.get(id)!.start).toBeDefined();
+    expect(ctx.fleets.get(id)).toBeNull();
+  });
+
+  it('turns a fleet that joined after a late start time back from its own departure, never before it (PR #490)', () => {
+    const ctx = setup();
+    const { id, start } = planned(ctx);
+    runAction(ctx, 'u_Anna', { type: 'inviteUnion', id, name: 'Bert' });
+    // Every action ticks first (dispatch), which would start the plan; only
+    // a busy tick lets a join through after the start was due: the send
+    // itself, without the tick.
+    ctx.clock.t = start + 5000;
+    send(ctx, user(ctx, 'Bert'), go('p1_2_6', { bs: 1 }, { union: id }));
+    const bert = ctx.fleets.ofUnion(id).find((f) => f.owner === 'u_Bert')!;
+    expect(bert.dep).toBe(start + 5000);
+    ctx.planets.save({ ...alpha(ctx), ships: { lf: 20 } });
+    tick(ctx);
+    const back = ctx.fleets.get(bert.id)!;
+    expect(back.state).toBe('back');
+    expect(back.ret).toBe(bert.dep);
   });
 
   it('skips a start that is gone, or whose row starts later, by the time it runs', () => {

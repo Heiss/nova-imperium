@@ -28,7 +28,13 @@ import {
   fleetRows,
 } from './overview.ts';
 import { unionOpen } from '../../core/union.ts';
-import { freeShips, joinChoices, PLAN, unionRows } from './union.ts';
+import {
+  freeShips,
+  joinChoices,
+  PLAN,
+  plannedStarts,
+  unionRows,
+} from './union.ts';
 
 /** A ship on the shown planet that can fly. */
 interface FleetShip {
@@ -238,9 +244,10 @@ function formPage(v: V, full: boolean): FleetFormPage {
 export function fleetPage(v: V): FleetPage {
   const slots = fleetSlots(v.R);
   // The gift of the „Endzeit“ (#161) and missiles (#54) take no slot.
-  const used = v.s.fleets.filter(
-    (f) => f.owner === v.s.me.id && isFleet(f),
-  ).length;
+  // A planned start takes its slot from the planning (#478).
+  const used =
+    v.s.fleets.filter((f) => f.owner === v.s.me.id && isFleet(f)).length +
+    plannedStarts(v.s);
   return {
     heading: `Flotten unterwegs (${used} / ${slots} Slots)${expeditionTitle(v)}`,
     fleets: fleetRows(v, false),

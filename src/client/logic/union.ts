@@ -109,6 +109,10 @@ export function heldBack(s: Pick<GameState, 'unions'>, planet: string): Levels {
   return out;
 }
 
+/** The planned starts of the player that have not started: each takes a fleet slot (#478). */
+export const plannedStarts = (s: Pick<GameState, 'unions'>): number =>
+  unionsOf(s).filter((u) => u.held !== undefined).length;
+
 /** The ships of `planet` free for an order: what is there, less what a planned start holds back (#478). */
 export function freeShips(
   s: Pick<GameState, 'unions'>,

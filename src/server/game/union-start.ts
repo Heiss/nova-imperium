@@ -45,9 +45,19 @@ export const NOT_STARTED = {
     `Dein geplanter Sturmangriff auf ${at} ist nicht gestartet: Der Planet des Starts gehört dir nicht mehr. Der Angriffsverband ist aufgelöst.`,
   fuel: (at: string, need: number, have: number) =>
     `Dein geplanter Sturmangriff auf ${at} ist nicht gestartet: zu wenig Promethium (nötig ${need.toLocaleString('de-DE')}, vorhanden ${Math.floor(have).toLocaleString('de-DE')}). Der Angriffsverband ist aufgelöst.`,
+  error: (at: string) =>
+    `Dein geplanter Sturmangriff auf ${at} ist nicht gestartet: Beim Start ist ein Fehler aufgetreten. Der Angriffsverband ist aufgelöst.`,
   target: (at: string, why: string) =>
     `Dein geplanter Sturmangriff auf ${at} ist nicht gestartet: ${why} Der Angriffsverband ist aufgelöst.`,
 } as const;
+
+/**
+ * Dissolves the union of a planned start that failed by an error of the
+ * server (PR #490): the joined fleets turn back with the report of a start
+ * that did not happen, and the leader learns it.
+ */
+export const dropPlanned = (ctx: Ctx, row: Union): void =>
+  notStarted(ctx, row, row.start!.at, NOT_STARTED.error(coords(row.toC)));
 
 /** The words to each member when the leader's fleet did not start (#478) [V]. */
 export const LEAD_NOT_STARTED = (at: string): string =>
@@ -76,7 +86,9 @@ function dissolve(
   for (const m of ctx.fleets.ofUnion(row.id)) {
     ctx.fleets.setUnion(m.id, null);
     delete m.union;
-    m.ret = recalledAt(m, at);
+    // A fleet that joined after the start was due (a late tick) turns back
+    // from its own departure at the earliest, never before it (PR #490).
+    m.ret = recalledAt(m, Math.max(at, m.dep));
     m.state = 'back';
     m.recalled = true;
     ctx.fleets.save(m);

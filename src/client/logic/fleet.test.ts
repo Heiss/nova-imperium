@@ -95,6 +95,24 @@ describe('the fleets on their way', () => {
     expect(page.form.full).toBe(true);
   });
 
+  it('counts a planned start of the player against the slots, not one of another leader (#478, PR #490)', () => {
+    const planned = {
+      id: 'u9',
+      leader: 'u1',
+      to: 'p1_2_6',
+      toC: { g: 1, s: 2, p: 6 },
+      arr: 9000,
+      start: 4000,
+      held: { from: 'p1', ships: { lf: 1 } },
+      fleets: [],
+      invited: [],
+    };
+    const other = { ...planned, id: 'u8', leader: 'u2', held: undefined };
+    const page = fleetPage(view({ state: { unions: [planned, other] } }));
+    expect(page.heading).toBe('Flotten unterwegs (1 / 1 Slots)');
+    expect(page.form.full).toBe(true);
+  });
+
   it('lists the fleets as the overview does, the own ones only', () => {
     const fleets = [fleetOf({ id: 'a' }), fleetOf({ id: 'd', owner: 'u2' })];
     expect(fleetPage(view({ fleets })).fleets.map((f) => f.id)).toEqual(['a']);

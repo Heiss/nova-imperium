@@ -21,7 +21,7 @@ import type { Fleet, Planet } from '../../core/types.ts';
 import { type Ctx, addReport, coords, resLine, universe } from './context.ts';
 import { dueAt } from '../../core/holding.ts';
 import { endHold } from './holding.ts';
-import { startPlanned } from './union-start.ts';
+import { dropPlanned, startPlanned } from './union-start.ts';
 import { type MissionServer, land, playerOf, turnBack } from './missions.ts';
 import { lockedUntil } from './position-lock.ts';
 import { beginCause, dropCause, fleetBefore, journalFleet } from './journal.ts';
@@ -184,8 +184,9 @@ export function tick(
       });
     } catch (e) {
       dropCause();
-      // Leave the fleet in place for the next tick when another writer holds the lock.
-      if (isDatabaseBusy(e)) break;
+      // Leave the fleet in place for the next tick when another writer holds
+      // the lock, and every planned start after it too, so the order holds (#478).
+      if (isDatabaseBusy(e)) return due.length + next;
       log(`Fleet ${f.id} failed and was removed`, e);
       ctx.fleets.delete(f.id);
     }
@@ -197,8 +198,9 @@ export function tick(
 /**
  * Starts the planned fleet of the union `id` when it is still due (#478);
  * false when another writer holds the lock, so the tick stops and the start
- * waits for the next one. A start that fails otherwise dissolves nothing:
- * its plan is dropped and logged, as a failed fleet is removed.
+ * waits for the next one. A start that fails otherwise is logged and, after
+ * the rollback, dissolves the union as a start that did not happen: the
+ * joined fleets turn back and every owner gets his report.
  */
 function runStart(
   ctx: Ctx,
@@ -216,7 +218,24 @@ function runStart(
   } catch (e) {
     if (isDatabaseBusy(e)) return false;
     log(`Planned start ${id} failed and was removed`, e);
-    ctx.unions.delete(id);
+    failedStart(ctx, id, log);
     return true;
+  }
+}
+
+/** Dissolves the union of a start that failed; if that fails too, its row goes alone. */
+function failedStart(
+  ctx: Ctx,
+  id: string,
+  log: (msg: string, e: unknown) => void,
+): void {
+  try {
+    ctx.tx(() => {
+      const row = ctx.unions.get(id);
+      if (row?.start) dropPlanned(ctx, row);
+    });
+  } catch (e) {
+    log(`Planned start ${id} could not be dissolved`, e);
+    ctx.unions.delete(id);
   }
 }

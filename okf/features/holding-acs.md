@@ -729,6 +729,18 @@ Everything below is [V] unless it names an owner's decision.
     Flotte des Anführers ist nicht gestartet; der Angriffsverband auf
     [g:s:p] ist aufgelöst. Deine Flotte kehrt um.“, and the leader
     „Geplanter Angriff nicht gestartet [g:s:p]“ with the reason.
+  * **An error of the server at the start** (PR #490): the start is logged
+    and, after the rollback, dissolves the union as one that did not
+    happen; the leader reads „… ist nicht gestartet: Beim Start ist ein
+    Fehler aufgetreten. Der Angriffsverband ist aufgelöst.“ [V]. A fleet
+    whose writer is busy before a start in the same tick holds that start
+    back too, so the order of time holds. A fleet that joined after the
+    start was due (only when the tick before the action was busy) turns
+    back from its own departure, never before it.
+  * **Shown slots.** The fleet view, its form and the hint of the
+    Lexicanum count a planned start against the slots, as the server does;
+    the Sternenkarte (Auspex-Erkundung, Landnahme, Vermessen, Expedition,
+    the flight time) offers only the free ships.
   * **Abort.** „Abbrechen“ of the planned start in the fleet movements
     (action `cancelPlan`, the leader only) dissolves the union; the members
     get the report of the recall.

@@ -2,6 +2,7 @@
 // planet, the planets the player owns, the own fleets in flight and the
 // points. The browser has all of it already, so the personal hints need no
 // request of their own; this stays a small pure function.
+import { plannedStarts } from './union.ts';
 import type { Own } from '../../core/lexicon/types.ts';
 import { isFleet } from '../../core/missions.ts';
 import type { V } from '../views/common.ts';
@@ -16,7 +17,10 @@ export function ownState(v: V): Own {
     planets: v.s.galaxy.filter((p) => p.owner === me && p.kind === 'planet')
       .length,
     // A fleet that takes a slot: no gift of the Endzeit, no missiles.
-    fleets: v.s.fleets.filter((f) => f.owner === me && isFleet(f)).length,
+    // A planned start of an attack union takes its slot too (#478).
+    fleets:
+      v.s.fleets.filter((f) => f.owner === me && isFleet(f)).length +
+      plannedStarts(v.s),
     points: {
       own: v.s.players[me]?.points ?? 0,
       top: Math.max(0, ...points),

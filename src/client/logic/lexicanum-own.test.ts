@@ -47,6 +47,15 @@ describe('the own state of the Lexicanum', () => {
     expect(own.now).toBe(1234);
   });
 
+  it('counts a planned start of an attack union as a fleet that takes a slot (#478, PR #490)', () => {
+    const v = view();
+    (v.s as unknown as { unions: unknown[] }).unions = [
+      { id: 'u9', leader: 'u1', start: 1, held: { from: 'p1_1_5', ships: {} } },
+      { id: 'u8', leader: 'u2', start: 1 },
+    ];
+    expect(ownState(v).fleets).toBe(2);
+  });
+
   it('knows a player without points and a state without players', () => {
     const v = view();
     v.s.players = {};
