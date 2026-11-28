@@ -108,9 +108,18 @@ when the second built on the first.
   names no table. `src/server/game/round-reset.test.ts` seeds a row into
   every table of the schema and fails when a table is neither emptied nor
   declared as kept (#317).
+* A new event of the guild chat is an entry `{ key, order, sentence }` of
+  `chatEvents` in a file of `src/core/chat-events/`, with an unused order
+  between its neighbours; the list ends in `as const`, so its keys stay
+  literal types and make `ChatEventKind`; `src/core/guild-chat.ts` is not
+  edited (the list `events.gen.ts` is generated). It also needs a new migration that rewrites
+  the CHECK of `guild_chat.kind` (and its other CHECKs where the kind needs
+  them): `src/server/db/chat-events-check.test.ts` fails without one (#426,
+  192a). Its sentence is a decided text, never invented.
 * A new right of the guild ranks is an entry `{ key, order, label, member? }`
   of `guildRights` in a file of `src/core/guild-rights/`, with an unused
-  order between its neighbours in the guild view; `src/core/guild-ranks.ts`
+  order between its neighbours in the guild view; the list ends in
+  `as const`, so its keys stay literal types and make `GuildRight`; `src/core/guild-ranks.ts`
   is not edited (the list `rights.gen.ts` is generated). It also needs a new
   migration that rewrites the CHECK of `guild_rank_rights.right_key`:
   `src/server/db/guild-rights-check.test.ts` fails without one (#426, 192a).
