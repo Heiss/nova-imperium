@@ -10,6 +10,7 @@
 // writes the event messages (guild-events.ts); nobody deletes them.
 import {
   chatUnread,
+  chatUnreadCount,
   deleteChatError,
   MAX_CHAT_TEXT,
   seeChatError,
@@ -151,6 +152,7 @@ export function chatState(ctx: Ctx, a: Actor, players: GuildPlayer[]) {
   const members = membersOf(a.guild, players);
   const chat = read ? ctx.guilds.chat(a.guild.id) : [];
   const seen = ctx.guilds.membership(a.uid)!.chat_seen;
+  const marks = chat.map((m) => ({ id: m.id, own: m.author === a.uid }));
   return {
     read,
     write,
@@ -158,10 +160,8 @@ export function chatState(ctx: Ctx, a: Actor, players: GuildPlayer[]) {
       ...entry(members, m),
       delete: deletable(a, members, m),
     })),
-    unread: chatUnread(
-      chat.map((m) => ({ id: m.id, own: m.author === a.uid })),
-      seen,
-    ),
+    unread: chatUnread(marks, seen),
+    unreadCount: chatUnreadCount(marks, seen),
   };
 }
 

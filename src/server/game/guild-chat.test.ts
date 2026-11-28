@@ -126,6 +126,7 @@ describe('the rights of the chat (#169, D2)', () => {
       write: true,
       messages: [],
       unread: false,
+      unreadCount: 0,
     });
     s.officer([], 'Bo', 'Stumm');
     expect(guildState(s.ctx, 'u_Bo', {}).chat).toBeNull();

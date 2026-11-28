@@ -79,6 +79,7 @@ describe('the chat box (#169)', () => {
       write: true,
       messages: [message()],
       unread: false,
+      unreadCount: 0,
     });
     expect(html).toContain('<div class="hd">Chat</div>');
     expect(html).toContain(
@@ -98,6 +99,7 @@ describe('the chat box (#169)', () => {
       write: false,
       messages: [],
       unread: false,
+      unreadCount: 0,
     });
     expect(html).toContain('<p>Noch keine Nachrichten.</p>');
     expect(html).not.toContain('guildchatform');
@@ -109,6 +111,7 @@ describe('the chat box (#169)', () => {
       write: true,
       messages: [],
       unread: false,
+      unreadCount: 0,
     });
     expect(html).not.toContain('role="log"');
     expect(html).toContain('guildchatform');
@@ -117,7 +120,7 @@ describe('the chat box (#169)', () => {
   it('has no chat box without a chat right or outside the guild', () => {
     expect(view(null)).not.toContain('<div class="hd">Chat</div>');
     const outside = view(
-      { read: true, write: true, messages: [message()], unread: false },
+      { read: true, write: true, messages: [message()], unread: false, unreadCount: 0 },
       { member: false },
     );
     expect(outside).not.toContain('<div class="hd">Chat</div>');
@@ -130,6 +133,7 @@ describe('the chat box (#169)', () => {
       write: true,
       messages: [message(), message({ id: 8, text: 'weg', delete: true })],
       unread: false,
+      unreadCount: 0,
     });
     expect(html.match(/data-act="guildChatDelete"/g)).toHaveLength(1);
     expect(html).toContain('data-act="guildChatDelete" data-id="8">Löschen');
@@ -141,6 +145,7 @@ describe('the chat box (#169)', () => {
       write: false,
       messages: [message({ name: null })],
       unread: false,
+      unreadCount: 0,
     });
     expect(html).toContain('<li><i>ehemaliges Mitglied</i>');
   });
@@ -152,6 +157,7 @@ describe('the chat box (#169)', () => {
         write: false,
         messages: [message({ name: XSS, text: `${XSS} & "q" 'a'` })],
         unread: false,
+        unreadCount: 0,
       },
       { name: XSS },
     );
@@ -164,7 +170,7 @@ describe('the chat box (#169)', () => {
 
 describe('events and the notice in the chat box (#169; owner, 2026-11-15)', () => {
   const chat = (messages: GuildChat['messages']): string =>
-    view({ read: true, write: true, messages, unread: false });
+    view({ read: true, write: true, messages, unread: false, unreadCount: 0 });
   const event = (over: Partial<GuildChat['messages'][number]>) =>
     message({ kind: 'join', name: 'Anna', text: '', ...over });
 
@@ -172,7 +178,7 @@ describe('events and the notice in the chat box (#169; owner, 2026-11-15)', () =
     const line = '<p class="dim">Die Spielleitung kann diesen Chat lesen.</p>';
     expect(chat([])).toContain(line);
     expect(
-      view({ read: false, write: true, messages: [], unread: false }),
+      view({ read: false, write: true, messages: [], unread: false, unreadCount: 0 }),
     ).toContain(line);
     expect(view(null)).not.toContain('Spielleitung');
   });

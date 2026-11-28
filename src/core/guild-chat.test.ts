@@ -10,6 +10,7 @@ import {
   chatLength,
   chatTextError,
   chatUnread,
+  chatUnreadCount,
   deleteChatError,
   isChatEvent,
   MAX_CHAT_TEXT,
@@ -251,6 +252,33 @@ describe('the red mark on „Gilden“ (#169; owner, 2026-11-15)', () => {
         },
       ),
       { seed: 169, numRuns: 200 },
+    );
+  });
+
+  it('counts the entries of the mark: of another, newer than the visit (#496)', () => {
+    expect(chatUnreadCount([], 0)).toBe(0);
+    expect(
+      chatUnreadCount(
+        [
+          { id: 1, own: false },
+          { id: 2, own: true },
+          { id: 3, own: false },
+          { id: 4, own: false },
+        ],
+        1,
+      ),
+    ).toBe(2);
+    fc.assert(
+      fc.property(
+        fc.array(fc.record({ id: fc.nat(50), own: fc.boolean() })),
+        fc.nat(60),
+        (messages, seen) => {
+          expect(chatUnreadCount(messages, seen) > 0).toBe(
+            chatUnread(messages, seen),
+          );
+        },
+      ),
+      { seed: 496, numRuns: 200 },
     );
   });
 });

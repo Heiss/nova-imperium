@@ -359,6 +359,24 @@ describe('the red mark on „Gilden“ (#169; owner, 2026-11-15)', () => {
     expect(unread(s, 'Lea')).toBe(true);
   });
 
+  it('counts the new entries for the tab „Gilde“, the same as the mark (#496)', () => {
+    const s = setup();
+    const count = (who: string) =>
+      guildState(s.ctx, `u_${who}`, {}).chat?.unreadCount;
+    expect(count('Lea')).toBe(0);
+    s.accept('Ada');
+    s.ctx.clock.t += 3000;
+    s.run('Ada', { type: 'sendGuildChat', text: 'Hi' });
+    // The event of the join and Ada's message are new for Lea; for Ada the
+    // event only (an event is nobody's own, as for the mark).
+    expect(count('Lea')).toBe(2);
+    expect(count('Ada')).toBe(1);
+    s.run('Lea', { type: 'seeGuildChat', id: newest(s) - 1 });
+    expect(count('Lea')).toBe(1);
+    s.run('Lea', { type: 'seeGuildChat', id: newest(s) });
+    expect(count('Lea')).toBe(0);
+  });
+
   it('stores at most the newest message of the guild and never goes back', () => {
     const s = setup();
     // An empty chat: nothing to see.

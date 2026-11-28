@@ -239,4 +239,13 @@ export function chatEventText(e: ChatEvent, arrival: string): string {
 export const chatUnread = (
   messages: readonly { id: number; own: boolean }[],
   seen: number,
-): boolean => messages.some((m) => !m.own && m.id > seen);
+): boolean => chatUnreadCount(messages, seen) > 0;
+
+/**
+ * How many of them there are: the count of the tab „Gilde“ (#496, Q5 [V]:
+ * the same entries as the mark, events included).
+ */
+export const chatUnreadCount = (
+  messages: readonly { id: number; own: boolean }[],
+  seen: number,
+): number => messages.filter((m) => !m.own && m.id > seen).length;

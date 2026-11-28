@@ -84,6 +84,8 @@ export interface GuildChat {
   messages: GuildChatMessage[];
   /** Whether something is new since the last visit: the mark on „Gilden“. */
   unread: boolean;
+  /** How many entries are new since then: the count of the tab „Gilde“ (#496). */
+  unreadCount: number;
 }
 
 export type StateShape = {

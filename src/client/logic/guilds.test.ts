@@ -518,6 +518,7 @@ describe('the chat', () => {
     write: true,
     messages: [msg()],
     unread: false,
+    unreadCount: 0,
     ...over,
   });
 
