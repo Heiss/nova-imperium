@@ -5,6 +5,7 @@
 // limits those of the round the server sends.
 import type { RoundRules } from '../../core/round.ts';
 import {
+  flightRefusal,
   joinMessage,
   planError,
   planMessage,
@@ -60,21 +61,25 @@ function fleetsLine(v: Pick<V, 's'>, u: UnionState): string {
 
 /** The unions of the box „Verbandsangriff“, the earliest arrival first (the server sorts them). */
 export function unionRows(v: Pick<V, 's'>): UnionRow[] {
-  const unions = unionsOf(v.s);
-  if (!unions.length) return [];
-  const limits = limitsOf(v.s.round);
-  return unions.map((u) => ({
-    id: u.id,
-    title: `Verbandsangriff auf ${coords(u.toC)}`,
-    toC: u.toC,
-    arr: u.arr,
-    leader: nameOf(v.s.players, u.leader),
-    counts: `Flotten ${u.fleets.length} / ${limits.fleets} · Spieler ${new Set(u.fleets.map((f) => f.owner)).size} / ${limits.players}`,
-    fleets: fleetsLine(v, u),
-    invited: u.invited.map((i) => nameOf(v.s.players, i)).join(', '),
-    leads: u.leader === v.s.me.id,
-  }));
+  return unionsOf(v.s).map((u) => unionRow(v, u, limitsOf(v.s.round)));
 }
+
+/** One union of the box. */
+const unionRow = (
+  v: Pick<V, 's'>,
+  u: UnionState,
+  limits: UnionLimits,
+): UnionRow => ({
+  id: u.id,
+  title: `Verbandsangriff auf ${coords(u.toC)}`,
+  toC: u.toC,
+  arr: u.arr,
+  leader: nameOf(v.s.players, u.leader),
+  counts: `Flotten ${u.fleets.length} / ${limits.fleets} · Spieler ${new Set(u.fleets.map((f) => f.owner)).size} / ${limits.players}`,
+  fleets: fleetsLine(v, u),
+  invited: u.invited.map((i) => nameOf(v.s.players, i)).join(', '),
+  leads: u.leader === v.s.me.id,
+});
 
 /** „ · Angriffsverband“ behind an own fleet that flies in a union, the leader's own „ (Anführer)“. */
 export const unionPart = (f: ClientFleet): string =>
@@ -158,14 +163,7 @@ function flightAt(
 ): UnionJoin {
   const limits = limitsOf(s.round);
   const flight = unionFlight({ ...fleet, universe: s.cfg, now, arr });
-  if ('error' in flight)
-    return {
-      refusal: joinMessage(
-        flight.error,
-        limits,
-        flight.error === 'early' ? `am ${dt(flight.earliest)}` : '',
-      ),
-    };
+  if ('error' in flight) return { refusal: flightRefusal(flight, limits, dt) };
   return { pct: flight.pct, ms: arr - now, arr };
 }
 

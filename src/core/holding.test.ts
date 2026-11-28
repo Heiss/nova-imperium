@@ -72,6 +72,12 @@ describe('a hold that turns home (#440, 231a, 4a)', () => {
       ret: 11_600 + 600,
     });
   });
+  it('flies home from its place for a hold, even before its arrival time', () => {
+    // A hold is home after the time of its flight back, never recalled.
+    expect(turnHomeAt({ ...f, state: 'hold' }, 1200)).toEqual({
+      ret: 1200 + 600,
+    });
+  });
   it('flies home from its arrival when it turns there', () => {
     expect(turnHomeAt({ ...f, state: 'out' }, 1600)).toEqual({
       ret: 1600 + 600,

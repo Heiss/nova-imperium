@@ -195,6 +195,12 @@ describe('the ships and the form', () => {
       view({ ships: { lc: 1 }, state: { unions }, union: 'f9' }),
     );
     expect(page.form.unions.map((u) => u.value)).toEqual(['f9']);
+    // While the switch of the round is off, no union to join (#466).
+    const off = view({ ships: { lc: 1 }, state: { unions }, union: 'f9' });
+    off.s.round = { ...off.s.round, unionOn: 0 };
+    expect(fleetPage(off).form.unions).toEqual([]);
+    expect(fleetPage(off).form.plans).toBe(false);
+    expect(page.form.plans).toBe(true);
     // The one of the page, else the one chosen; none that is gone.
     expect(page.form.choose(fleetForm).union).toBe('f9');
     fleetForm.union = '';

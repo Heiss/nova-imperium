@@ -14,6 +14,7 @@ import {
   type UnionLimits,
   inviteLimitError,
   joinLimitError,
+  flightRefusal,
   joinMessage,
   joinWindow,
   planError,
@@ -56,8 +57,7 @@ const fleetsOf = (ctx: Ctx, row: Union): Fleet[] => {
 
 /** The union with the ID `id` as long as it is alive: it has a row and has not arrived (#466). */
 export function unionOf(ctx: Ctx, id: unknown): LiveUnion | null {
-  if (typeof id !== 'string') return null;
-  const row = ctx.unions.get(id);
+  const row = ctx.unions.get(String(id));
   if (!row || row.arr <= ctx.now()) return null;
   return { row, fleets: fleetsOf(ctx, row) };
 }
@@ -154,14 +154,7 @@ function flightTo(
     now: ctx.now(),
     arr,
   });
-  if ('error' in flight)
-    return fail(
-      joinMessage(
-        flight.error,
-        limits,
-        flight.error === 'early' ? `am ${startText(flight.earliest)}` : '',
-      ),
-    );
+  if ('error' in flight) return fail(flightRefusal(flight, limits, startText));
   return flight.pct;
 }
 
@@ -204,12 +197,7 @@ export function planOf(
  * Founds the union of a planned fleet before it is saved: the fleet carries
  * the union's ID, its own, and leads it.
  */
-export function foundUnion(
-  ctx: Ctx,
-  plan: UnionPlan | null,
-  fleet: Fleet,
-): void {
-  if (!plan) return;
+export function foundUnion(ctx: Ctx, plan: UnionPlan, fleet: Fleet): void {
   fleet.union = fleet.id;
   ctx.unions.save({
     id: fleet.id,
@@ -288,15 +276,11 @@ function mayJoin(
 }
 
 /**
- * Puts the new fleet into the union before it is saved. The first fleet of
- * the leader leads the union from then on, if none does yet.
+ * Puts the new fleet into the union before it is saved; the fleet the
+ * leader planned it with leads it (#466, A1a).
  */
-export function joinUnion(ctx: Ctx, plan: JoinPlan | null, fleet: Fleet): void {
-  if (!plan) return;
-  fleet.union = plan.union;
-  const row = ctx.unions.get(plan.union)!;
-  if (row.lead === undefined && row.leader === fleet.owner)
-    ctx.unions.save({ ...row, lead: fleet.id });
+export function joinUnion(plan: JoinPlan | null, fleet: Fleet): void {
+  if (plan) fleet.union = plan.union;
 }
 
 /**
@@ -347,17 +331,15 @@ export interface Arriving {
  */
 export function arriving(ctx: Ctx, f: Fleet): Arriving | null {
   if (f.union === undefined) return null;
-  const row = ctx.unions.get(f.union);
   const all = ctx.fleets.ofUnion(f.union);
-  ctx.fleets.dropInvites(f.union);
   for (const m of all) ctx.fleets.setUnion(m.id, null);
-  // A fleet of a union without a row (its leading fleet was gone before
-  // #466) arrives alone, as before.
-  if (!row) return null;
-  ctx.unions.delete(row.id);
-  // The leader's fleet leads; a union he sent none to is led by the first
-  // fleet that joined.
-  const lead = all.find((m) => m.id === row.lead) ?? all[0];
+  // The row and the invitations go; the invitations of a fleet whose union
+  // has no row (its leading fleet was gone before #466) too.
+  ctx.unions.delete(f.union);
+  // The leader's fleet leads, the one he planned the union with: its ID is
+  // the union's (`lead`, #466). A union whose leading fleet is gone arrives
+  // as single fleets, as before.
+  const lead = all.find((m) => m.id === f.union);
   return lead ? { lead, rest: all.filter((m) => m !== lead) } : null;
 }
 

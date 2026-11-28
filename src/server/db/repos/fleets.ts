@@ -33,8 +33,6 @@ export interface Fleets {
   invitedTo(uid: string): string[];
   /** Invites a player to an attack union; inviting twice changes nothing. */
   invite(union: string, uid: string): void;
-  /** Deletes the invitations of an attack union that is over. */
-  dropInvites(union: string): void;
   /** Puts a fleet into an attack union, or takes it out with `null` (#225). */
   setUnion(id: string, union: string | null): void;
   save(f: Fleet): void;
@@ -202,12 +200,6 @@ class SqliteFleets implements Fleets {
         'INSERT OR IGNORE INTO attack_union_invites (union_id, user_id) VALUES (?, ?)',
       )
       .run(union, uid);
-  }
-
-  dropInvites(union: string): void {
-    this.db
-      .prepare('DELETE FROM attack_union_invites WHERE union_id = ?')
-      .run(union);
   }
 
   setUnion(id: string, union: string | null): void {

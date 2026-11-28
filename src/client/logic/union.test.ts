@@ -88,6 +88,10 @@ describe('the unions of the state', () => {
     expect(joinChoices(view(undefined))).toEqual([]);
     expect(unionRows(view([]))).toEqual([]);
   });
+  it('names every invited player who has not joined, in the order of the invitations', () => {
+    const [row] = unionRows(view([union({ invited: ['u3', 'u2'] })]));
+    expect(row!.invited).toBe('Cora, Bert');
+  });
   it('are shown with the leader, the counts against the limits, the fleets per owner and the invited', () => {
     expect(unionRows(view([union()]))).toEqual([
       {

@@ -210,6 +210,38 @@ describe('planning a union (#466, A1a)', () => {
     expect(ctx.fleets.all()).toEqual([]);
     expect(ctx.unions.ledBy('u_Anna')).toEqual([]);
   });
+  it('is a plain Sturmangriff without a plan, whatever the empty fields say', () => {
+    const ctx = setup();
+    for (const over of [
+      { plan: null },
+      { plan: null, union: '' },
+      { union: null },
+      { union: '' },
+    ]) {
+      runAction(ctx, 'u_Anna', {
+        type: 'send',
+        ...go('p1_1_5', { bs: 1 }, over),
+      });
+      const f = ctx.fleets.all().at(-1)!;
+      expect(f.union, JSON.stringify(over)).toBeUndefined();
+      ctx.fleets.delete(f.id);
+    }
+    expect(ctx.unions.ledBy('u_Anna')).toEqual([]);
+  });
+  it('plans with an empty or missing union beside the plan', () => {
+    const ctx = setup();
+    const arr = ctx.now() + flightOf(ctx, 'u_Anna', ANNA, { bs: 1 }, 10);
+    for (const union of ['', null]) {
+      runAction(ctx, 'u_Anna', {
+        type: 'send',
+        ...go('p1_1_5', { bs: 1 }, { plan: arr, union }),
+      });
+      const f = ctx.fleets.all().at(-1)!;
+      expect(f.union).toBe(f.id);
+      ctx.fleets.delete(f.id);
+      ctx.unions.delete(f.id);
+    }
+  });
   it('checks the target as every attack: not the own planet, not a player in vacation', () => {
     const ctx = setup();
     const t = ctx.now();
@@ -232,8 +264,15 @@ describe('planning a union (#466, A1a)', () => {
       research: { ...user(ctx, 'Anna').research, computer: 2 },
     });
     const a = opened(ctx, { bs: 2 });
+    ctx.clock.t += 1000;
     const b = opened(ctx, { bs: 2 });
-    expect(ctx.unions.ledBy('u_Anna').sort()).toEqual([a, b].sort());
+    expect(ctx.unions.ledBy('u_Anna')).toEqual([a, b]);
+    // The state lists them by arrival, the earliest first.
+    expect(unionsFor(ctx, 'u_Anna').map((u) => u.id)).toEqual([a, b]);
+    const later = ctx.unions.get(a)!;
+    ctx.unions.delete(a);
+    ctx.unions.save({ ...later, arr: later.arr + 10_000_000 });
+    expect(unionsFor(ctx, 'u_Anna').map((u) => u.id)).toEqual([b, a]);
   });
 });
 
@@ -698,6 +737,16 @@ describe('the recall', () => {
       'Angriffsverband aufgelöst [1:4:8]',
     );
   });
+  it('is an ordinary recall for a fleet whose union has no row', () => {
+    const ctx = setup();
+    const id = opened(ctx);
+    const bert = joined(ctx, id);
+    ctx.unions.delete(id);
+    ctx.clock.t += 1000;
+    runAction(ctx, 'u_Bert', { type: 'recall', id: bert.id });
+    expect(ctx.fleets.get(bert.id)).toMatchObject({ state: 'back' });
+    expect(ctx.fleets.get(id)!.state).toBe('out');
+  });
   it('of a participant turns back only his fleet; the union flies on', () => {
     const ctx = setup();
     const id = opened(ctx);
@@ -1014,6 +1063,25 @@ describe('the battle of the union', () => {
           .map((r) => r.type)
           .sort(),
       ).toEqual(['battle', 'info']);
+  });
+  it('lets the others arrive as single fleets when the leading fleet is gone, the invitations gone too', () => {
+    const ctx = setup();
+    arrived(ctx, { bs: 6 }, { bs: 4 });
+    ctx.fleets.delete('lead');
+    expect(arriving(ctx, ctx.fleets.get('bert')!)).toBeNull();
+    expect(ctx.unions.get('lead')).toBeNull();
+    expect(ctx.fleets.invited('lead')).toEqual([]);
+    expect(ctx.fleets.get('bert')!.union).toBeUndefined();
+  });
+  it('drops the invitations of a fleet whose union has no row at its arrival', () => {
+    const ctx = setup();
+    arrived(ctx, { bs: 6 }, { bs: 4 });
+    // As a union of before #466 whose leading fleet was gone: no row.
+    ctx.fleets.delete('lead');
+    ctx.unions.delete('lead');
+    ctx.fleets.invite('lead', 'u_Cora');
+    expect(arriving(ctx, ctx.fleets.get('bert')!)).toBeNull();
+    expect(ctx.fleets.invited('lead')).toEqual([]);
   });
   it('lets a fleet whose union is gone attack alone, as a Sturmangriff', () => {
     const ctx = setup();

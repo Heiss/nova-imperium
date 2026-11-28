@@ -16,7 +16,7 @@ export const HOLD_HOURS: readonly number[] = [0, 1, 2, 4, 8, 16, 32];
 
 /** Whether `hours` is a holding time a player can choose. */
 export const isHoldHours = (hours: unknown): hours is number =>
-  typeof hours === 'number' && HOLD_HOURS.includes(hours);
+  HOLD_HOURS.includes(hours as number);
 
 /**
  * At most four different players and 15 fleets hold at one planet, besides

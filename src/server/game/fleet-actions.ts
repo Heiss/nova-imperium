@@ -453,7 +453,7 @@ export const send: Handler<'send'> = (ctx, u, d, event) => {
     ...(holds && { hold }),
   };
   if (planned) foundUnion(ctx, planned, fleet);
-  else joinUnion(ctx, joining as JoinPlan | null, fleet);
+  else joinUnion(joining as JoinPlan | null, fleet);
   ctx.fleets.save(fleet);
   // A hostile launch is one of the last targets for the Schnellwahl (#292).
   // Only a launch at a planet is remembered: the missions that are, need its owner.

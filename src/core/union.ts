@@ -96,7 +96,7 @@ export const roundSettings = [
  * flies arrives.
  */
 export const unionOpen = (round: { unionOn?: number }): boolean =>
-  (round.unionOn ?? 1) !== 0;
+  round.unionOn !== 0;
 
 /** The refusal while the switch is off [V], as the one of „Wache stellen“. */
 export const UNION_OFF_REFUSAL =
@@ -122,7 +122,7 @@ export type JoinError =
 export const joinMessage = (
   error: JoinError,
   limits: Pick<UnionLimits, 'fleets' | 'players' | 'cutoff'>,
-  earliest = '',
+  earliest?: string,
 ): string =>
   ({
     closed: 'Der Angriffsverband ist schon angekommen.',
@@ -215,6 +215,19 @@ export function joinWindow(x: {
   if (left <= 0) return 'closed';
   return left <= x.limits.cutoff * MINUTE_MS ? 'cutoff' : undefined;
 }
+
+/**
+ * The refusal of a fleet that cannot make the arrival (#466): too early,
+ * naming the earliest start in the words of `when`, or too late.
+ */
+export const flightRefusal = (
+  flight: Exclude<UnionFlight, { pct: number }>,
+  limits: Pick<UnionLimits, 'fleets' | 'players' | 'cutoff'>,
+  when: (t: number) => string,
+): string =>
+  flight.error === 'early'
+    ? joinMessage('early', limits, `am ${when(flight.earliest)}`)
+    : joinMessage('late', limits);
 
 /** The slowest and the fastest speed of a fleet, in tenths (10 % and 100 %). */
 export const SLOWEST = 1;

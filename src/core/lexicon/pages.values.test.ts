@@ -386,6 +386,17 @@ describe('Wache stellen und Verbandsangriff say what the rules do', () => {
   it('the union: the fixed arrival and the speed of a joining fleet, the cut-off only when it is on (#466)', () => {
     const text = words('rule-allies');
     expect(text).toContain('Ein Verband hat eine feste Ankunftszeit.');
+    expect(PAGES.find((p) => p.id === 'rule-allies')!.keywords).toEqual([
+      'Wache',
+      'verteidigen',
+      'Verband',
+      'gemeinsam',
+      'Beute',
+    ]);
+    // A value of the allies outside its choices is shown as the number.
+    expect(words('rule-allies', live({ roundAllies: 9 }))).toContain(
+      'Verbündete für Halten und Verband: 9',
+    );
     expect(text).toContain('liegt zwischen 10 % und 100 %');
     expect(text).not.toContain('Verspätung');
     expect(text).toContain(
