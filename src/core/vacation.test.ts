@@ -5,6 +5,7 @@
 // the production (Q2).
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
+import { withoutExplain } from '../test/explain.ts';
 import {
   HOUR_MS,
   VACATION_HOURS,
@@ -47,7 +48,7 @@ describe('the minimum duration of a round', () => {
   });
 
   it('is the one entry of the file, as the registry holds it: live, no group, order 150 (#283, #310, X1)', () => {
-    expect(roundSettings).toEqual([
+    expect(withoutExplain(roundSettings)).toEqual([
       {
         kind: 'number',
         key: 'roundVacationHours',
@@ -81,7 +82,9 @@ describe('the minimum duration of a round', () => {
   });
 
   it('is a row of the universe settings with the same label, range and default, checked there (X1)', () => {
-    expect(liveSpecs().filter((s) => s.key === 'roundVacationHours')).toEqual([
+    expect(
+      withoutExplain(liveSpecs().filter((s) => s.key === 'roundVacationHours')),
+    ).toEqual([
       {
         key: 'roundVacationHours',
         label: 'Mindestdauer des Urlaubsmodus (Stunden)',

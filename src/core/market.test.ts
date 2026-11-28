@@ -4,6 +4,7 @@
 // criterion of the issue).
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
+import { withoutExplain } from '../test/explain.ts';
 import { planet } from '../test/fixtures.ts';
 import { buildErrors } from './economy-checks.ts';
 import {
@@ -184,7 +185,7 @@ describe('the settings of the round (#283, #310, X1)', () => {
   const ratio = { ...common, min: 1, max: 100000 };
 
   it('are twelve settings in one fieldset „Marktplatz“, in the order 320 to 430, all live', () => {
-    expect(SETTINGS).toEqual([
+    expect(withoutExplain(SETTINGS)).toEqual([
       {
         ...common,
         key: 'roundMarketOn',
@@ -353,7 +354,7 @@ describe('the settings of the round (#283, #310, X1)', () => {
   it('are rows of the universe settings, changed during the round (X1)', () => {
     const rows = liveSpecs().filter((s) => s.key.startsWith('roundMarket'));
     expect(rows.map((s) => s.key)).toEqual(SETTINGS.map((s) => s.key));
-    expect(rows[0]).toEqual({
+    expect(withoutExplain(rows[0])).toEqual({
       key: 'roundMarketOn',
       label: 'Marktplatz aktiv',
       min: 0,

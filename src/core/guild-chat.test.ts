@@ -1,5 +1,6 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
+import { withoutExplain } from '../test/explain.ts';
 import {
   canDeleteChat,
   CHAT_EVENTS,
@@ -260,7 +261,7 @@ describe('the guild switch of a round (#191, #283)', () => {
     roundRefused({ guilds: true }, { guilds: value }, guilds).length;
 
   it('is one entry of the registry: a switch, on by default, with its warning, not live', () => {
-    expect(guilds).toEqual([
+    expect(withoutExplain(guilds)).toEqual([
       {
         kind: 'switch',
         key: 'roundGuilds',

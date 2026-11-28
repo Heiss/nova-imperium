@@ -15,6 +15,52 @@ import {
   ROUND_ENTRIES,
   ROUND_SECTIONS as SECTIONS,
 } from './round-settings.gen.ts';
+import type { Universe } from './types.ts';
+
+/**
+ * Where a cell of an explanation's table is computed (#358): the universe
+ * and the rules of the round, both with the setting at the value of the
+ * column.
+ */
+interface ExplainAt {
+  u: Universe;
+  /**
+   * The values of the round by name, a switch as 1 or 0. Plain numbers, as
+   * `RoundRules` is derived from the entries that carry these explanations.
+   */
+  round: Readonly<Record<string, number>>;
+}
+
+/**
+ * A cell of such a table, computed with src/core; the table writes it: a
+ * number in German, a duration in ms, a word, or null for „–“ (none).
+ */
+export type ExplainCell = string | number | { ms: number } | null;
+
+/** A row of the table of an explanation: its label and its cell per value. */
+interface ExplainRow {
+  /**
+   * The label, from the data of the game at render time: `name` gives the
+   * name of a catalog entry by its id.
+   */
+  label: (name: (key: string) => string) => string;
+  /** The cell at one value of the setting. */
+  cell: (at: ExplainAt) => ExplainCell;
+}
+
+/**
+ * The explanation of a setting in the admin panel (#358; owner, 2026-11-22
+ * and 286c): what changes for the players when the value changes, for the
+ * admin. A proposal [V] until the owner checks it in the admin panel.
+ */
+export interface SettingExplain {
+  text: string;
+  /**
+   * The rows of a table over values of the setting: the minimum, two values
+   * in between, the maximum and the current value (owner E3).
+   */
+  rows?: readonly ExplainRow[];
+}
 
 /**
  * Entries sent as one object and refused together (#214): the reward
@@ -60,6 +106,8 @@ interface Common<N extends string> {
    * with the others, and it has no effect while the other one disagrees.
    */
   shownWhen?: { name: string; value: number };
+  /** The explanation behind its „?“ in the admin panel (#358); a test asks for one. */
+  explain?: SettingExplain;
 }
 
 /** A value of yes or no, a checkbox in the dialog. */

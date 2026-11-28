@@ -13,7 +13,7 @@
 // recent activity for 15 minutes, then the minutes up to 59, nothing after
 // an hour (owiki „Stern“ and „Galaxiemenü“, oldid=77826); inactive after 7
 // days, long inactive after 28 days (owiki „Inaktivität“, oldid=78925).
-import type { RoundGroup, RoundSetting } from './round.ts';
+import type { RoundGroup, RoundSetting, SettingExplain } from './round.ts';
 
 /** One minute and one day in milliseconds; activity runs in real time. */
 export const MINUTE_MS = 60_000;
@@ -76,6 +76,34 @@ const limit = <P extends LimitPart>(part: P) =>
  */
 export const roundHeading = 'Aktivität';
 
+/** The minutes and days since an activity that the tables of the explanations show (#358). */
+const AGES = [5, 15, 30, 60, 120];
+const IDLE_DAYS = [3, 7, 14, 28, 60];
+
+/** The limits of the round of a table cell, whose values carry the names of `ActivityRound`. */
+const limitsOf = (round: Readonly<Record<string, number>>): ActivityLimits =>
+  activityLimits(round as unknown as ActivityRound);
+
+/** What the Sternenkarte shows a number of minutes after an activity (#358). */
+const ACTIVITY_ROWS: SettingExplain['rows'] = AGES.map((age) => ({
+  label: () => `${age} Minuten danach`,
+  cell: ({ round }) => {
+    const shown = planetActivity(0, age * MINUTE_MS, limitsOf(round));
+    if (shown === null) return null;
+    return 'recent' in shown ? 'aktiv' : `vor ${shown.minutes} Min.`;
+  },
+}));
+
+/** How a player is marked a number of days after the last activity (#358). */
+const INACTIVITY_ROWS: SettingExplain['rows'] = IDLE_DAYS.map((d) => ({
+  label: () => `${d} Tage ohne Aktivität`,
+  cell: ({ round }) => {
+    const state = inactivity(0, d * DAY_MS, limitsOf(round));
+    if (state === null) return null;
+    return state === 'long' ? 'lange inaktiv' : 'inaktiv';
+  },
+}));
+
 /**
  * The thresholds as settings of the round (#283): number fields of the
  * dialog „Neue Runde“ and, `live`, rows of the universe settings, changed
@@ -87,6 +115,10 @@ export const roundSettings = [
   {
     ...limit('recent'),
     key: 'roundActivityRecent',
+    explain: {
+      text: 'Wie lange nach der letzten Aktivität ein Planet auf der Sternenkarte und im Auspex-Bericht nur als aktiv gilt, ohne Minutenangabe. Eine Änderung gilt sofort.',
+      rows: ACTIVITY_ROWS,
+    },
     name: 'activityRecent',
     label: 'Aktivität ohne Minutenangabe (Minuten)',
     order: 60,
@@ -94,6 +126,10 @@ export const roundSettings = [
   {
     ...limit('minutes'),
     key: 'roundActivityMinutes',
+    explain: {
+      text: 'Bis zu wie vielen Minuten nach der letzten Aktivität die Minutenangabe zu sehen ist; danach zeigt der Planet keine Aktivität mehr. Eine Änderung gilt sofort.',
+      rows: ACTIVITY_ROWS,
+    },
     name: 'activityMinutes',
     label: 'Aktivität mit Minutenangabe bis (Minuten)',
     order: 70,
@@ -101,6 +137,10 @@ export const roundSettings = [
   {
     ...limit('inactive'),
     key: 'roundInactiveDays',
+    explain: {
+      text: 'Nach wie vielen Tagen ohne Aktivität ein Spieler auf der Sternenkarte als inaktiv markiert ist. Nur eine Anzeige; eine Änderung gilt sofort.',
+      rows: INACTIVITY_ROWS,
+    },
     name: 'inactiveDays',
     label: 'Inaktiv ab (Tage)',
     order: 80,
@@ -108,6 +148,10 @@ export const roundSettings = [
   {
     ...limit('longInactive'),
     key: 'roundLongInactiveDays',
+    explain: {
+      text: 'Nach wie vielen Tagen ohne Aktivität ein Spieler auf der Sternenkarte als lange inaktiv markiert ist. Nur eine Anzeige; eine Änderung gilt sofort.',
+      rows: INACTIVITY_ROWS,
+    },
     name: 'longInactiveDays',
     label: 'Lange inaktiv ab (Tage)',
     order: 90,

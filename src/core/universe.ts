@@ -10,7 +10,21 @@ import {
   type RoundNumber,
   type RoundSection,
   type RoundSetting,
+  type SettingExplain,
 } from './round.ts';
+import { BUILD, RES, SHIPS } from './catalog.ts';
+import {
+  buildTime,
+  capOf,
+  lvlCost,
+  prod,
+  researchTime,
+  unitTime,
+} from './economy.ts';
+import { expeditionPosition } from './expedition.ts';
+import { maxFields, minDiameter } from './fields.ts';
+import { distance, fleetSpeed, flightMs } from './flight.ts';
+import { duration, number } from './lexicon/say.ts';
 import type { Coords, Universe } from './types.ts';
 
 type UniverseKey = keyof Universe;
@@ -30,6 +44,8 @@ export interface UniverseSpec {
   /** A rule between settings of the round (#237), with its wording. */
   agrees?: RoundNumber['agrees'];
   refusal?: string;
+  /** The explanation behind its „?“ in the admin panel (#358); a test asks for one. */
+  explain?: SettingExplain;
 }
 
 /** The rows of the `live` settings of the round (#283, X1). */
@@ -48,17 +64,106 @@ export const liveSpecs = (
             ...(s.choices ? { choices: s.choices } : {}),
             ...(s.step ? { step: s.step } : {}),
             ...(s.agrees ? { agrees: s.agrees, refusal: s.refusal } : {}),
+            ...(s.explain ? { explain: s.explain } : {}),
           },
         ]
       : [],
   );
 
+// The examples of the tables of the explanations (#358), by id: the names
+// come from the catalog when the table is drawn.
+const MINE = 'metal';
+const POWER = 'solar';
+const STUDY = 'energy';
+const FIGHTER = 'lf';
+const CARGO = 'sc';
+const STORE = 'smetal';
+const HOME = { g: 1, s: 1, p: 1 };
+/** One system and one galaxy away from `HOME`. */
+const NEXT_SYSTEM = { g: 1, s: 2, p: 1 };
+const NEXT_GALAXY = { g: 2, s: 1, p: 1 };
+
+/** The flight of one ship of `CARGO` at full speed from `HOME` to `to`. */
+const flight = (to: Coords, u: Universe): string =>
+  duration(
+    flightMs(
+      distance(HOME, to),
+      fleetSpeed({ [CARGO]: 1 }, { research: {} }),
+      10,
+      u,
+    ),
+  );
+
+const SPEED_ROWS: SettingExplain['rows'] = [
+  {
+    label: (name) => `${name(MINE)} Stufe 10: Bauzeit`,
+    cell: ({ u }) =>
+      duration(buildTime(lvlCost(BUILD[MINE]!, 10), { b: {} }, u)),
+  },
+  {
+    label: (name) => `${name(STUDY)} Stufe 5: Forschungszeit`,
+    cell: ({ u }) =>
+      duration(researchTime(lvlCost(RES[STUDY]!, 5), { b: {} }, u)),
+  },
+  {
+    label: (name) => `${name(FIGHTER)}: Bauzeit je Schiff`,
+    cell: ({ u }) => duration(unitTime(SHIPS[FIGHTER]!, { b: {} }, u)),
+  },
+  {
+    label: (name) =>
+      `${name(MINE)} Stufe 10 mit ${name(POWER)} Stufe 10: Förderung je Stunde`,
+    cell: ({ u }) =>
+      number(
+        Math.floor(
+          prod({ b: { [MINE]: 10, [POWER]: 10 }, pct: {}, temp: 50 }, u).m,
+        ),
+      ),
+  },
+  {
+    label: (name) => `Flug ${name(CARGO)}, ein System weiter`,
+    cell: ({ u }) => flight(NEXT_SYSTEM, u),
+  },
+  {
+    label: (name) => `Flug ${name(CARGO)}, eine Galaxie weiter`,
+    cell: ({ u }) => flight(NEXT_GALAXY, u),
+  },
+];
+
+/** The store levels of the table of the base storage. */
+const STORE_LEVELS = [0, 1, 5, 10];
+
+/** The planets of the table of the extra fields: one of each size by its fields. */
+const FIELD_SIZES = [100, 163, 225];
+
 const SPECS: readonly UniverseSpec[] = [
-  { key: 'speed', label: 'Tempo (Faktor)', min: 1, max: 100, def: 5 },
-  { key: 'galaxies', label: 'Galaxien', min: 1, max: 9, def: 2, size: 'g' },
+  {
+    key: 'speed',
+    label: 'Tempo (Faktor)',
+    min: 1,
+    max: 100,
+    def: 5,
+    explain: {
+      text: 'Das Tempo teilt alle Bau-, Forschungs- und Schiffsbauzeiten, die Flugzeiten von Flotten und Raketen und die Wartezeit der Warp-Tore. Es vervielfacht die Förderung der Minen und den Promethium-Verbrauch der Kraftwerke, die Promethium verbrennen. Der Treibstoff einer Flotte bleibt gleich. Die Haltezeit einer Expedition teilt es nur, wenn „Haltezeit durch das Universums-Tempo teilen“ an ist. Bei einer Änderung zählt die Zeit bis jetzt mit dem alten Tempo; laufende Aufträge und Flüge behalten ihr Ende.',
+      rows: SPEED_ROWS,
+    },
+  },
+  {
+    key: 'galaxies',
+    label: 'Galaxien',
+    min: 1,
+    max: 9,
+    def: 2,
+    size: 'g',
+    explain: {
+      text: 'Wie viele Galaxien das Universum hat: wo neue Heimatplaneten liegen, wohin Flotten fliegen können und wie weit die Sternenkarte reicht. Senken lässt sich der Wert nur bis zur höchsten Galaxie, in der ein Planet liegt.',
+    },
+  },
   {
     key: 'systems',
     label: 'Systeme je Galaxie',
+    explain: {
+      text: 'Wie viele Systeme jede Galaxie hat: wo neue Heimatplaneten liegen, wohin Flotten fliegen können und wie weit die Sternenkarte reicht. Senken lässt sich der Wert nur bis zum höchsten System, in dem ein Planet liegt.',
+    },
     min: 1,
     max: 499,
     def: 50,
@@ -68,6 +173,15 @@ const SPECS: readonly UniverseSpec[] = [
   {
     key: 'positions',
     label: 'Positionen je System',
+    explain: {
+      text: 'Wie viele Planetenpositionen jedes System hat. Die Position danach ist die Expeditionsposition; sie wandert mit. Eine Flotte, die zur alten Expeditionsposition fliegt, findet dort bei der Ankunft kein passendes Ziel mehr. Senken lässt sich der Wert nur bis zur höchsten Position, auf der ein Planet liegt.',
+      rows: [
+        {
+          label: () => 'Expeditionsposition',
+          cell: ({ u }) => number(expeditionPosition(u)),
+        },
+      ],
+    },
     min: 12,
     max: 20,
     def: 15,
@@ -76,6 +190,13 @@ const SPECS: readonly UniverseSpec[] = [
   {
     key: 'baseStore',
     label: 'Grundlager je Rohstoff',
+    explain: {
+      text: 'Das Lager jedes Rohstoffs, bevor ein Speicher gebaut ist; jede Stufe eines Speichers legt darauf etwas drauf. Wird der Wert gesenkt, bleibt ein Vorrat über der neuen Grenze erhalten, wächst aber nicht weiter.',
+      rows: STORE_LEVELS.map((level) => ({
+        label: (name) => `Lager bei ${name(STORE)} Stufe ${level}`,
+        cell: ({ u }) => number(capOf(level, u)),
+      })),
+    },
     min: 10000,
     max: 10000000,
     def: 100000,
@@ -83,6 +204,9 @@ const SPECS: readonly UniverseSpec[] = [
   {
     key: 'maxReports',
     label: 'Berichte je Spieler',
+    explain: {
+      text: 'Wie viele Berichte jeder Spieler behält; kommt ein neuer dazu, fällt der älteste weg. Wird der Wert gesenkt, kürzt das Spiel die Berichte eines Spielers erst bei seinem nächsten Bericht.',
+    },
     min: 10,
     max: 500,
     def: 60,
@@ -90,6 +214,9 @@ const SPECS: readonly UniverseSpec[] = [
   {
     key: 'startMetal',
     label: 'Start-Adamant',
+    explain: {
+      text: 'Wie viel davon ein neuer Heimatplanet mitbringt: bei der Anmeldung und für jeden Spieler in einer neuen Runde. Bestehende Planeten ändert der Wert nicht.',
+    },
     min: 0,
     max: 10000000,
     def: 500,
@@ -97,6 +224,9 @@ const SPECS: readonly UniverseSpec[] = [
   {
     key: 'startCrystal',
     label: 'Start-Psikristall',
+    explain: {
+      text: 'Wie viel davon ein neuer Heimatplanet mitbringt: bei der Anmeldung und für jeden Spieler in einer neuen Runde. Bestehende Planeten ändert der Wert nicht.',
+    },
     min: 0,
     max: 10000000,
     def: 500,
@@ -104,6 +234,9 @@ const SPECS: readonly UniverseSpec[] = [
   {
     key: 'startDeuterium',
     label: 'Start-Promethium',
+    explain: {
+      text: 'Wie viel davon ein neuer Heimatplanet mitbringt: bei der Anmeldung und für jeden Spieler in einer neuen Runde. Bestehende Planeten ändert der Wert nicht.',
+    },
     min: 0,
     max: 10000000,
     def: 0,
@@ -112,6 +245,19 @@ const SPECS: readonly UniverseSpec[] = [
   {
     key: 'extraFields',
     label: 'Zusatzfelder pro Planet',
+    explain: {
+      text: 'So viele Felder bekommt jeder Planet zusätzlich zu denen seines Durchmessers; Monde und Planeten ohne Grenze nicht. Wird der Wert gesenkt, kann ein Planet mehr Felder belegt haben, als er hat: Er baut dann nicht weiter.',
+      rows: FIELD_SIZES.map((fields) => ({
+        label: () => `Planet mit ${number(minDiameter(fields))} km`,
+        cell: ({ u }) =>
+          number(
+            maxFields(
+              { b: {}, diameter: minDiameter(fields), unlimited: false },
+              u,
+            )!,
+          ),
+      })),
+    },
     min: 0,
     max: 100,
     def: 0,
@@ -121,6 +267,9 @@ const SPECS: readonly UniverseSpec[] = [
   {
     key: 'endzeitMinutes',
     label: 'Flugzeit der Endzeit-Gabe (Minuten)',
+    explain: {
+      text: 'Nur der Vorschlag im Dialog „Endzeit einläuten“: die Flugzeit der Gaben, die er zuerst anbietet. Der Dialog kann sie für ein einzelnes Auslösen ändern.',
+    },
     min: GIFT_MINUTES.min,
     max: GIFT_MINUTES.max,
     def: GIFT_DEFAULT_MINUTES,

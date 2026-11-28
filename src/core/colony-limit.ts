@@ -5,7 +5,7 @@
 // a number of planets per level. The rules are pure: the server asks them
 // when a Landnahme is sent and when it arrives, the browser shows them (the
 // browser is only a preview).
-import type { RoundGroup, RoundSetting } from './round.ts';
+import type { RoundGroup, RoundSetting, SettingExplain } from './round.ts';
 import type { Levels, Universe } from './types.ts';
 
 /** The research that raises the limit (the folder src/features/colonial). */
@@ -60,6 +60,15 @@ const NEEDS_BASE =
  */
 export const roundHeading = 'Planetengrenze';
 
+/** The levels of the research that the table of the explanations shows (#358). */
+const LIMIT_LEVELS = [0, 1, 2, 4, 8];
+
+/** The planets a player may own at a level of the research (#358); „unbegrenzt“ without a limit. */
+const LIMIT_ROWS: SettingExplain['rows'] = LIMIT_LEVELS.map((level) => ({
+  label: (name) => `${name(RESEARCH)} Stufe ${level}`,
+  cell: ({ u }) => planetLimit(colonyRules(u), level) ?? 'unbegrenzt',
+}));
+
 /**
  * The four settings of the limit as entries of the registry (#283, #310): one
  * fieldset, `live` (owner, 2026-11-17, D1: set in „Neue Runde“ and editable
@@ -75,6 +84,10 @@ export const roundSettings = [
     group: COLONIES,
     live: true,
     key: 'roundColonyBase',
+    explain: {
+      text: 'Wie viele Planeten ein Spieler ohne Forschung besitzen darf; der Heimatplanet zählt mit, Monde nicht. Beim Wert null gibt es keine Grenze. Gesenkt nimmt das Spiel keinen Planeten weg: Wer darüber liegt, kann keine Kolonie mehr gründen.',
+      rows: LIMIT_ROWS,
+    },
     name: 'colonyBase',
     label:
       'Maximale Planeten ohne Forschung (0 = unbegrenzt, der Heimatplanet zählt mit)',
@@ -89,6 +102,10 @@ export const roundSettings = [
     group: COLONIES,
     live: true,
     key: 'roundColonyResearch',
+    explain: {
+      text: 'Ja: Die Forschung Kolonialverwaltung erhöht die Grenze mit jeder Stufe. Nein: Es gibt sie in der Runde nicht, und ihre Stufen zählen nicht.',
+      rows: LIMIT_ROWS,
+    },
     name: 'colonyResearch',
     label: 'Kolonieforschung aktivieren',
     order: 450,
@@ -107,6 +124,10 @@ export const roundSettings = [
     group: COLONIES,
     live: true,
     key: 'roundColonyPerLevel',
+    explain: {
+      text: 'Um so viele Planeten erhöht jede Stufe der Kolonialverwaltung die Grenze.',
+      rows: LIMIT_ROWS,
+    },
     name: 'colonyPerLevel',
     label: 'Zusätzliche Planeten je Forschungsstufe',
     order: 460,
@@ -120,6 +141,10 @@ export const roundSettings = [
     group: COLONIES,
     live: true,
     key: 'roundColonyMaxLevel',
+    explain: {
+      text: 'Die höchste Stufe der Kolonialverwaltung, die erforscht werden kann und zählt. Beim Wert null gibt es keine Obergrenze.',
+      rows: LIMIT_ROWS,
+    },
     name: 'colonyMaxLevel',
     label: 'Maximale Forschungsstufe (0 = unbegrenzt erforschbar)',
     order: 470,

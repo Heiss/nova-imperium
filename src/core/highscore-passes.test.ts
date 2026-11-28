@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { withoutExplain } from '../test/explain.ts';
 import {
   LIVE_MS,
   lastSlot,
@@ -78,7 +79,7 @@ describe('the passes of the highscore (#405)', () => {
       { value: 0, label: 'Anzahl' },
       { value: 1, label: 'Rohstoffen' },
     ];
-    expect(roundSettings.slice(2)).toEqual([
+    expect(withoutExplain(roundSettings.slice(2))).toEqual([
       {
         kind: 'number',
         key: 'roundHighscoreEconomy',
@@ -107,7 +108,7 @@ describe('the passes of the highscore (#405)', () => {
   });
 
   it('has the setting „Highscore zeigt“, every category by default (#422, 175a, 181a)', () => {
-    expect(roundSettings[1]).toEqual({
+    expect(withoutExplain(roundSettings[1])).toEqual({
       kind: 'number',
       key: 'roundHighscoreShows',
       name: 'highscoreShows',

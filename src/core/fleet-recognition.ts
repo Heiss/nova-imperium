@@ -8,7 +8,7 @@
 // (D2). The server sends only what is seen, so nothing hidden reaches the
 // browser; each threshold counts on its own. The thresholds are three
 // entries of the registry of the round settings (#283).
-import type { RoundGroup, RoundSetting } from './round.ts';
+import type { RoundGroup, RoundSetting, SettingExplain } from './round.ts';
 import type { Levels } from './types.ts';
 
 /** The level of the Auspex-Lehre from which each part of a foreign fleet is seen. */
@@ -56,6 +56,28 @@ const threshold = {
  */
 export const roundHeading = 'Fremde Flotten erkennen';
 
+/** The Auspex levels the table of the explanations shows (#358). */
+const SEEN_LEVELS = [0, 2, 4, 8, 16];
+
+/** What an observer at a level sees of a foreign fleet (#358): the parts `seenShips` gives. */
+const SEEN_ROWS: SettingExplain['rows'] = SEEN_LEVELS.map((level) => ({
+  label: () => `Auspex-Lehre ${level}`,
+  cell: ({ round }) => {
+    // What is seen depends on the level and the thresholds, not on the ships.
+    const seen = seenShips(
+      {},
+      level,
+      recognitionOf(round as unknown as Parameters<typeof recognitionOf>[0]),
+    );
+    const parts = [
+      ...(seen.total !== undefined ? ['Anzahl'] : []),
+      ...(seen.types ? ['Typen'] : []),
+      ...(seen.ships ? ['je Typ'] : []),
+    ];
+    return parts.length ? parts.join(', ') : null;
+  },
+}));
+
 /**
  * The three thresholds as settings of the round (#283): number fields of the
  * dialog „Neue Runde“ and, `live` by X1, rows of the universe settings. The
@@ -65,6 +87,10 @@ export const roundSettings = [
   {
     ...threshold,
     key: 'roundRecognitionTotal',
+    explain: {
+      text: 'Ab welcher Auspex-Lehre ein Spieler bei einer fremden Flotte, die zu ihm fliegt, die Zahl ihrer Schiffe sieht. Eine Flotte, die bei ihm Wache hält, zeigt er immer ganz. Eine Änderung gilt sofort.',
+      rows: SEEN_ROWS,
+    },
     name: 'recognitionTotal',
     label: 'Fremde Flotten: Schiffe insgesamt ab Auspex-Lehre',
     order: 120,
@@ -73,6 +99,10 @@ export const roundSettings = [
   {
     ...threshold,
     key: 'roundRecognitionTypes',
+    explain: {
+      text: 'Ab welcher Auspex-Lehre ein Spieler bei einer fremden Flotte, die zu ihm fliegt, ihre Schiffstypen sieht. Eine Änderung gilt sofort.',
+      rows: SEEN_ROWS,
+    },
     name: 'recognitionTypes',
     label: 'Fremde Flotten: Schiffstypen ab Auspex-Lehre',
     order: 130,
@@ -81,6 +111,10 @@ export const roundSettings = [
   {
     ...threshold,
     key: 'roundRecognitionCounts',
+    explain: {
+      text: 'Ab welcher Auspex-Lehre ein Spieler bei einer fremden Flotte, die zu ihm fliegt, die Zahl jedes Schiffstyps sieht. Eine Änderung gilt sofort.',
+      rows: SEEN_ROWS,
+    },
     name: 'recognitionCounts',
     label: 'Fremde Flotten: Anzahl je Schiffstyp ab Auspex-Lehre',
     order: 140,
