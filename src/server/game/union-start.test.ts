@@ -94,7 +94,7 @@ const STEP = 5;
  * Anna plans a union on Dirk arriving an hour after her fleet could at 10 %,
  * at the step 5: the union's ID, its X and the planned start.
  */
-function planned(ctx: TestCtx, ships = SHIPS) {
+function planned(ctx: TestCtx, ships: Record<string, number> = SHIPS) {
   const arr = ctx.now() + flightOf(ctx, 'u_Anna', ANNA, ships, 1) + HOUR;
   const message = send(
     ctx,
@@ -382,7 +382,12 @@ describe('the leader aborts a planned start (#478)', () => {
 });
 
 /** A fleet of Anna's that comes home to Alpha at `ret` with `ships`. */
-function homecoming(ctx: TestCtx, id: string, ret: number, ships = { bs: 2 }) {
+function homecoming(
+  ctx: TestCtx,
+  id: string,
+  ret: number,
+  ships: Record<string, number> = { bs: 2 },
+) {
   const f: Fleet = {
     id,
     owner: 'u_Anna',
@@ -505,6 +510,7 @@ describe('the planned start in the tick (#478)', () => {
     });
     tick({ ...ctx, planets }, log);
     expect(log).toHaveBeenCalledTimes(1);
+    expect(ctx.unions.get(id)).toBeNull();
     expect(
       ctx.reports
         .ofPlayer('u_Anna')

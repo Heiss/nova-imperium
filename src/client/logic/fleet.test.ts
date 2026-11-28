@@ -231,7 +231,7 @@ describe('the planned start of a union in the box (#478)', () => {
       fleets: [],
       invited: ['u1'],
     };
-    const box = (u: object) =>
+    const box = (u: typeof union & { start?: number }) =>
       fleetPage(view({ state: { unions: [u] } })).unions!.unions[0]!;
     expect(box({ ...union, start: 4000 }).start).toEqual({
       end: 4000,
