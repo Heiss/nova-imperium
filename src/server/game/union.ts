@@ -25,13 +25,13 @@ import {
   unionOpen,
 } from '../../core/union.ts';
 import type { Union } from '../db/repos/unions.ts';
-import type { Coords, Fleet, Levels } from '../../core/types.ts';
+import type { Fleet, Levels } from '../../core/types.ts';
 import type { Handler } from './actions.ts';
 import { addReport, coords, fail, str, universe, type Ctx } from './context.ts';
 import { isAllyOf } from './holding.ts';
 import { roundRules } from './round.ts';
 import type { ServerFeature, StatePart } from './feature.ts';
-import type { StateShape } from '../../core/state/union.ts';
+import type { StateShape, UnionState } from '../../core/state/union.ts';
 
 /** The limits and the timing rules of the round (owner, 2026-11-16, D3; 2026-11-17). */
 export const limitsOf = (ctx: Ctx): UnionLimits => {
@@ -440,22 +440,8 @@ export function arriving(ctx: Ctx, f: Fleet): Arriving | null {
   return lead ? { lead, rest: all.filter((m) => m !== lead) } : null;
 }
 
-/** A union as a player in it, or invited to it, sees it. */
-export interface UnionView {
-  id: string;
-  leader: string;
-  to: string;
-  toC: Coords;
-  arr: number;
-  /** When the leader's fleet starts by itself, while it is planned (#478). */
-  start?: number;
-  /** For the leader only: the planet of the planned start and its ships (#478). */
-  held?: { from: string; ships: Levels };
-  /** Its fleets with their owners, the leader's first; the ships stay hidden. */
-  fleets: { id: string; owner: string }[];
-  /** The players invited who have not joined. */
-  invited: string[];
-}
+/** A union as a player in it, or invited to it, sees it: the shape of the state (#225, #478). */
+export type UnionView = UnionState;
 
 /**
  * The unions `uid` leads, flies in or is invited to (the defender sees
