@@ -5,6 +5,9 @@
 import {
   explainedSettings,
   explainTable,
+  OWN_LABEL,
+  ownRefused,
+  ownValue,
   type Explained,
 } from '../../core/admin-explain.ts';
 import type { GameState } from './types.ts';
@@ -28,25 +31,47 @@ export const explainButtonId = (key: string, place: 'u' | 'r'): string =>
 export const openedAt = (opener: string | null, place: 'u' | 'r'): boolean =>
   opener?.startsWith(explainButtonId('', place)) === true;
 
+/** The id of the field „Eigener Wert“ and of its refusal (#358, part 2). */
+export const OWN_FIELD_ID = 'axp-own';
+
+/** The field „Eigener Wert“ of a setting with a formula behind it (#358, part 2). */
+export interface OwnField {
+  label: string;
+  min: number;
+  max: number;
+  step: number;
+  /** Why the typed value adds no column, or adds one of none; else null. */
+  error: string | null;
+}
+
 /** What the panel shows of a setting. */
 export interface ExplainPage {
   key: string;
   label: string;
   text: string;
   table: { head: string[]; rows: string[][] } | null;
+  /** The field for a value of the admin's own, while the table is shown. */
+  own: OwnField | null;
 }
 
 let settings: readonly Explained[] | null = null;
 const all = (): readonly Explained[] => (settings ??= explainedSettings());
 
-/** The explanation of the setting stored under `key`, or null for none. */
+/**
+ * The explanation of the setting stored under `key`, or null for none; with
+ * `typed`, the value the admin typed into „Eigener Wert“ (#358, part 2), a
+ * column more when it is a value of the setting.
+ */
 export function explainPage(
   key: string,
   s: Pick<GameState, 'cfg' | 'round'>,
+  typed = '',
 ): ExplainPage | null {
   const setting = all().find((x) => x.key === key);
   if (!setting?.explain) return null;
-  const table = explainTable(setting, s.cfg, s.round);
+  const own = ownValue(setting, typed);
+  const value = own && 'value' in own ? own.value : undefined;
+  const table = explainTable(setting, s.cfg, s.round, undefined, value);
   return {
     key,
     label: setting.label,
@@ -55,5 +80,20 @@ export function explainPage(
       head: table.head,
       rows: table.rows.map((r) => r.cells.map(String)),
     },
+    own:
+      table && setting.explain.own
+        ? {
+            label: OWN_LABEL,
+            min: setting.min!,
+            max: setting.max!,
+            step: setting.step ?? 1,
+            error:
+              own && 'error' in own
+                ? own.error
+                : value === undefined
+                  ? null
+                  : ownRefused(setting, s.cfg, s.round, value),
+          }
+        : null,
   };
 }

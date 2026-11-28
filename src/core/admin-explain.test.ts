@@ -386,8 +386,8 @@ describe('a value of the admin’s own (#358, part 2)', () => {
       `${speed.label}: ganze Zahl von ${speed.min} bis ${speed.max}.`,
     );
     for (const raw of [
-      String(speed.min - 1),
-      String(speed.max + 1),
+      String(speed.min! - 1),
+      String(speed.max! + 1),
       '1.5',
       'x',
     ])
@@ -474,7 +474,9 @@ describe('a value of the admin’s own (#358, part 2)', () => {
       roundB: 1,
       roundC: 1,
     } as unknown as Universe;
-    expect(ownRefused(s, one, round, 1, [a, b, c])).toBe('Nein A. Nein B.');
+    expect(ownRefused(s, one, round, 1, [a, b, c] as RoundSetting[])).toBe(
+      'Nein A. Nein B.',
+    );
     expect(ownRefused(s, one, round, 2, [a])).toBeNull();
   });
 });

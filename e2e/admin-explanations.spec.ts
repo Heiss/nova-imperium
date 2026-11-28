@@ -5,7 +5,8 @@
 // in the dialog „Neue Runde“ the panel opens inside the dialog, and Esc and
 // „Schließen“ leave the dialog open with what was typed (PR #471); the panel
 // keeps the focus where the admin put it and closes with the view and the
-// dialog. Desktop and phone (full width).
+// dialog; „Eigener Wert“ adds the column of a typed value of a setting with
+// a formula (part 2). Desktop and phone (full width).
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { cli, nav, register, uniqueName, watch } from './helpers.ts';
@@ -142,3 +143,44 @@ test('the explanation keeps the focus where the admin put it and closes when the
   await expect(panel(page)).toHaveCount(0);
   expect(w.problems).toEqual([]);
 });
+
+for (const phone of ['', ' @phone'])
+  test(`„Eigener Wert“ adds a column of a typed value, refuses one outside the range and forgets it when the panel closes (#358, part 2)${phone}`, async ({
+    page,
+  }) => {
+    const w = watch(page);
+    await universe(page);
+    const ask = page.locator('#axqu_speed');
+    await ask.click();
+    const own = panel(page).getByLabel('Eigener Wert');
+    await expect(own).toHaveAttribute('min', '1');
+    await expect(own).toHaveAttribute('max', '100');
+    await own.fill('7');
+    const head = panel(page).locator('thead th');
+    await expect(head.last()).toHaveText('7 (eigener Wert)');
+    await expect(head).toHaveCount(7);
+    // Typing keeps the focus in the field, over a poll too.
+    await expect(own).toBeFocused();
+    await page.waitForTimeout(4500);
+    await expect(own).toBeFocused();
+    expect(await violations(page)).toEqual([]);
+    await own.fill('0');
+    await expect(panel(page)).toContainText(
+      `${SPEED}: ganze Zahl von 1 bis 100.`,
+    );
+    await expect(own).toHaveAttribute('aria-invalid', 'true');
+    await expect(head).toHaveCount(6);
+    expect(await violations(page)).toEqual([]);
+    await page.keyboard.press('Escape');
+    await expect(panel(page)).toHaveCount(0);
+    await expect(ask).toBeFocused();
+    await ask.click();
+    await expect(panel(page).getByLabel('Eigener Wert')).toHaveValue('');
+    await expect(head).toHaveCount(6);
+    // A setting without a formula has no field.
+    await panel(page).getByRole('button', { name: 'Schließen' }).click();
+    await page.locator('#axqu_positions').click();
+    await expect(panel(page)).toBeVisible();
+    await expect(panel(page).getByLabel('Eigener Wert')).toHaveCount(0);
+    expect(w.problems).toEqual([]);
+  });

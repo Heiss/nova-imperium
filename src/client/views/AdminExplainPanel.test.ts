@@ -18,6 +18,7 @@ const game = {
 afterEach(() => {
   adminExplain.key = null;
   adminExplain.opener = null;
+  adminExplain.own = '';
   client.game = null;
 });
 
@@ -68,5 +69,30 @@ describe('the panel of the explanations (#358)', () => {
     open('speed', 'u');
     expect(body('r')).not.toContain('<aside');
     expect(body('u')).toContain('id="admin-explain-panel"');
+  });
+
+  it('shows the field „Eigener Wert“ with the rules of the setting, and the column and the refusal of a typed value (#358, part 2)', () => {
+    client.game = game;
+    open('speed');
+    let html = body();
+    expect(html).toMatch(
+      /<label for="axp-own">Eigener Wert<\/label>\s*<input type="number" id="axp-own" min="1" max="100" step="1"/,
+    );
+    expect(html).not.toContain('aria-invalid');
+    adminExplain.own = '7';
+    html = body();
+    expect(html).toContain('>7 (eigener Wert)</th>');
+    adminExplain.own = '0';
+    html = body();
+    expect(html).toContain('aria-invalid="true"');
+    expect(html).toContain('aria-describedby="axp-own-error"');
+    expect(html).toContain(explainPage('speed', game, '0')!.own!.error!);
+    expect(html).not.toContain('(eigener Wert)');
+  });
+
+  it('shows no field for a setting without a formula (#358, part 2)', () => {
+    client.game = game;
+    open('positions');
+    expect(body()).not.toContain('axp-own');
   });
 });

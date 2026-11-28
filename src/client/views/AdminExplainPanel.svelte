@@ -12,6 +12,7 @@
   import {
     EXPLAIN_PANEL_ID,
     explainPage,
+    OWN_FIELD_ID,
     openedAt,
   } from '../logic/admin-explain.ts';
   import { client } from '../logic/state.svelte.ts';
@@ -21,7 +22,7 @@
 
   const page = $derived(
     client.game && adminExplain.key && openedAt(adminExplain.opener, place)
-      ? explainPage(adminExplain.key, client.game)
+      ? explainPage(adminExplain.key, client.game, adminExplain.own)
       : null,
   );
   let panel: HTMLElement | undefined = $state();
@@ -101,6 +102,28 @@
             </tbody>
           </table>
         </div>
+      {/if}
+      {#if page.own}
+        <!-- A value of the admin's own, a column more (#358, part 2); never saved. -->
+        <p>
+          <label for={OWN_FIELD_ID}>{page.own.label}</label>
+          <input
+            type="number"
+            id={OWN_FIELD_ID}
+            min={page.own.min}
+            max={page.own.max}
+            step={page.own.step}
+            value={adminExplain.own}
+            oninput={(e) => (adminExplain.own = e.currentTarget.value)}
+            aria-invalid={page.own.error ? true : undefined}
+            aria-describedby={page.own.error
+              ? `${OWN_FIELD_ID}-error`
+              : undefined}
+          />
+        </p>
+        <p id="{OWN_FIELD_ID}-error" class="dim" aria-live="polite">
+          {page.own.error ?? ''}
+        </p>
       {/if}
     </div>
   </aside>

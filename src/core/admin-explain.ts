@@ -30,6 +30,8 @@ export interface Explained {
   min?: number;
   max?: number;
   choices?: readonly { value: number; label: string }[];
+  /** The step of its number field, when it is not 1 (#433). */
+  step?: number;
 }
 
 const fromSpec = (s: UniverseSpec): Explained => ({
@@ -39,6 +41,7 @@ const fromSpec = (s: UniverseSpec): Explained => ({
   min: s.min,
   max: s.max,
   ...(s.choices ? { choices: s.choices } : {}),
+  ...(s.step ? { step: s.step } : {}),
 });
 
 /** The name of a round setting stored under `key`, if it is one. */
