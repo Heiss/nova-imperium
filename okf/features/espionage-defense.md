@@ -63,7 +63,9 @@ points were answered on 2026-11-16.
   (#45) and of the held fleets' losses, the moon roll (#53), the rebuilt
   defense, the audit entry; no loot. The fleets that hold at the target
   defend it too (`defenders`, owner, 2026-11-19): each owner gets the
-  battle report of the defender.
+  battle report of the defender. The cargo that no longer fits into a
+  hold's survivors goes to the planet (#467, [Holding](/features/holding-acs.md)),
+  and the report of the defender shows it.
   Survivors deliver the report and fly back; without survivors the fleet is
   gone and the spy gets no Auspex-Bericht (D3).
 * **[E]** Texts confirmed (owner, 2026-11-18, #175): „Keine Aktivität in

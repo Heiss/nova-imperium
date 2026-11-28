@@ -1,7 +1,8 @@
 // Holding on the server (#55): who may hold under the admin's setting of the
 // round, the send with its holding time and fuel, the end of holding, the
-// recall, the battle with the fleets that hold (a report per party, loot of
-// the planet only: held cargo is no loot since #440) and what the host sees.
+// recall, the battle with the fleets that hold (a report per party; the cargo
+// that no longer fits into a hold's survivors goes to the planet before the
+// loot, #467) and what the host sees.
 import { describe, expect, it } from 'vitest';
 import { capacity, distance, fuelFor, holdFuel } from '../../core/flight.ts';
 import { HOUR_MS } from '../../core/holding.ts';

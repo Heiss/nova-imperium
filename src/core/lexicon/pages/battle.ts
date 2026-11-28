@@ -143,7 +143,8 @@ const afterSection = (): PageSection =>
       'Gewinnt der Angreifer, lädt er bis zu {share} jedes Rohstoffs des Planeten ein, soweit der Laderaum seiner übrigen Schiffe reicht. Der Laderaum wird in fester Reihenfolge gefüllt: zuerst Adamant, dann Psikristall, dann Promethium, und was danach noch Platz hat, füllt wieder mit Adamant und Psikristall auf.',
       { share: percent(LOOT_SHARE) },
     ),
-    // The held cargo is no loot since #440 (233b): the words are the owner's.
+    // The cargo of a destroyed hold goes to the host's planet and can be
+    // plundered there (#467, replacing 233b); the words are a proposal [V].
     say(HOLD_LEXICON.cargoHandover),
     table(
       `Beute bei einem Planeten mit ${number(STOCK.m)} Adamant, ${number(STOCK.c)} Psikristall und ${number(STOCK.d)} Promethium`,

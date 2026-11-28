@@ -48,13 +48,15 @@ The battle with several parties is built with #55
   hold“): the cargo of held fleets can be plundered too. This is a Nova rule: no classic source documents it;
   classic loot is 50 % of the planet's stock (owiki „Beute“), and owiki
   contradicts itself on whether held fleets keep their cargo.
-* **[U]** How the cargo of held fleets enters the loot (its share and the
-  order against the planet's stock) is not decided.
+* ~~**[U]** How the cargo of held fleets enters the loot (its share and the
+  order against the planet's stock) is not decided.~~ Closed by #467: see
+  „The cargo of a destroyed hold“.
 * **[V]** No holding at a player in vacation mode or in noob protection
   (the noob protection part replaced by #440, 238c), as in classic (owiki „Allianzkampfsystem“; see
   [Vacation mode](/features/vacation-mode.md)).
-* **[E]** Loot (owner, 2026-11-17, completing the [U] above; replaced by
-  #440, 233b, then by #467): when a planet with held fleets is raided, the loot takes the classic 50 % of
+* ~~**[E]** Loot (owner, 2026-11-17, completing the [U] above)~~, replaced
+  by #440 (233b), then by #467; the current rule is „The cargo of a
+  destroyed hold“: when a planet with held fleets is raided, the loot takes the classic 50 % of
   the planet's stock first, then the cargo of the held fleets with the
   capacity that is left.
 * **[E]** Who may hold is a value per round, set in the dialog „Neue
@@ -572,7 +574,8 @@ The owner's decisions on #440, built on `claude/hold-rework`.
     Spielers Wache, gilt sein Schutz an diesem Ort nicht für Sturmangriff
     und Auspex-Erkundung, außer gegen den Besitzer dieser Wache; vor Raketen
     bleibt er geschützt.“ (after CodeRabbit on #455) and „Eine Wache wird
-    nicht geplündert: Ihre Ladung geht verloren, wenn sie zerstört wird.“;
+    nicht geplündert: Ihre Ladung geht verloren, wenn sie zerstört wird.“
+    (replaced by #467, see „The cargo of a destroyed hold“);
   * the line of the Auspex-Erkundung (page `spy`, after CodeRabbit on
     #455): „Erkunden lassen sich fremde Planeten und Monde. Wer im
     Urlaubsmodus ist, lässt sich nicht erkunden. Wer unter Noobschutz
@@ -584,4 +587,6 @@ The owner's decisions on #440, built on `claude/hold-rework`.
     Fremde Wachen kannst du wegschicken oder ablehnen; nicht mehr erlaubte
     kehren von selbst um. Hält bei einem schwachen Spieler die Wache eines
     anderen, dürfen Dritte ihn dort trotz Noobschutz angreifen und
-    erkunden. Ladung einer Wache ist keine Beute.“
+    erkunden. Ladung einer Wache ist keine Beute.“ (shipped in 26.11.30;
+    its last sentence is replaced by #467, see „The cargo of a destroyed
+    hold“ and `changes/wachen-ladung.md`)
