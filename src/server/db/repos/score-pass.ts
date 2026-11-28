@@ -7,7 +7,7 @@ import type { RoundReset } from '../round-reset.ts';
 import type { RepositoryModule } from './contract.ts';
 
 /** A stored pass: the round it was made for, when, and its scores as stored. */
-export interface StoredPass<P> {
+interface StoredPass<P> {
   round: string;
   at: number;
   pass: P;
