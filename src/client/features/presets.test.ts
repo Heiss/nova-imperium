@@ -81,6 +81,13 @@ describe('„Umstellen“ in the tab „Universum“ (#441, 237a; owner, 2026-11
     expect(fields.set_speed!.value).toBe('5');
     expect(fields.set_galaxies!.value).toBe('2');
   });
+
+  it('fills nothing for an unknown preset', () => {
+    fields.set_speed = field();
+    fillPreset('universe', 'nope');
+    expect(fields.set_speed.value).toBe('999');
+    expect(fields.set_speed.dispatchEvent).not.toHaveBeenCalled();
+  });
 });
 
 describe('the handlers of the presets (#441)', () => {

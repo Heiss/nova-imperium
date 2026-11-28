@@ -37,9 +37,9 @@ export function fillPreset(place: PresetPlace, id: string | undefined): void {
   const preset = presetOf(id);
   if (!preset) return;
   if (place === 'round') {
-    const values = presetValues(preset, false);
-    for (const s of ROUND_SETTINGS)
-      if (s.name in values) fill(byId(roundFieldId(s)), values[s.name]!);
+    const byName = new Map(ROUND_SETTINGS.map((s) => [s.name, s]));
+    for (const [name, value] of Object.entries(presetValues(preset, false)))
+      fill(byId(roundFieldId(byName.get(name)!)), value);
   } else {
     for (const [key, value] of Object.entries(presetUniverse(preset)))
       fill(byId(`set_${key}`), value);
