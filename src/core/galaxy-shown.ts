@@ -11,9 +11,15 @@ export interface ShownSystem {
   s: number;
 }
 
-/** The owners of the shown system that the noob protection covers against the player. */
+/**
+ * The owners of the shown system that the noob protection covers against the
+ * player, and the places of them where it lapses for an attack and an
+ * espionage because a fleet of another player holds there (#440, 238c, 281b);
+ * the key only while there is one.
+ */
 export interface ShownProtection extends ShownSystem {
   owners: string[];
+  lapsed?: string[];
 }
 
 /** The name of a system in a request: „g:s“. */
@@ -41,3 +47,15 @@ export const protectionOf = (
   at: ShownSystem,
 ): readonly string[] | null =>
   list && list.g === at.g && list.s === at.s ? list.owners : null;
+
+/**
+ * Whether the Sternenkarte marks the place `pl` as protected (n): its owner is
+ * covered, and the protection has not lapsed at the place (#440). False until
+ * the list of its system is there.
+ */
+export const shownProtected = (
+  list: ShownProtection | undefined,
+  pl: ShownSystem & { id: string; owner: string },
+): boolean =>
+  (protectionOf(list, pl)?.includes(pl.owner) ?? false) &&
+  !list!.lapsed?.includes(pl.id);

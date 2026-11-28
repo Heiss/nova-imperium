@@ -40,6 +40,10 @@ const TURNS_OFF: Readonly<
   daily: { views: ['achievements'] },
   guilds: { views: ['guilds'] },
   marketOn: { views: ['market'] },
+  holdOn: {
+    views: [],
+    none: 'hides the mission Wache stellen in the fleet form (#440): a mission, no view',
+  },
   colonyResearch: {
     views: [],
     none: 'the research Kolonialverwaltung, a catalog entry the research list shows only in a round with it (#237); catalog entries are #375',

@@ -493,11 +493,14 @@ describe('a Wache stellen and the vacation mode (#55, #223)', () => {
       recalled: false,
     });
     expect(heldAt(ctx, 'p1_1_5')).toEqual([]);
-    // The owner is told at the arrival, once; the host gets nothing.
+    // The owner is told at the arrival, once; the host has only the report
+    // of the launch (#440, 242c), none of the arrival.
     expect(ctx.reports.ofPlayer('u_Bert')).toMatchObject([
       sentHome(fleet.arr, 'Heim'),
     ]);
-    expect(ctx.reports.ofPlayer('u_Anna')).toEqual([]);
+    expect(ctx.reports.ofPlayer('u_Anna').map((r) => r.title)).toEqual([
+      'Wache unterwegs [1:1:5]',
+    ]);
     const ships = ctx.planets.get('p1_2_6')!.ships;
     ctx.clock.t = fleet.arr + flight;
     tick(ctx);

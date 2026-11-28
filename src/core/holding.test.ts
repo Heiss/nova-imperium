@@ -4,13 +4,14 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import {
+  holdOpen,
+  turnHomeAt,
   ALLIES,
   ALLIES_RANGE,
   HELD_SPY,
   HOLD_HOURS,
   HOLD_LIMITS,
   HOUR_MS,
-  cargoOf,
   dueAt,
   holdEnd,
   holdLimitError,
@@ -50,6 +51,39 @@ const HELD_SPY_ROW = {
   max: 30,
   def: 2,
 };
+
+describe('the switch „Wache stellen“ (#440, 261a)', () => {
+  it('is on with 1 and without a value, off only with an explicit 0', () => {
+    expect(holdOpen({ holdOn: 1 })).toBe(true);
+    expect(holdOpen({})).toBe(true);
+    expect(holdOpen({ holdOn: undefined })).toBe(true);
+    expect(holdOpen({ holdOn: 0 })).toBe(false);
+  });
+});
+
+describe('a hold that turns home (#440, 231a, 4a)', () => {
+  const f = { dep: 1000, arr: 1600, hold: 10_000 };
+  it('flies home from its place as at the end of its holding time when it holds', () => {
+    expect(turnHomeAt({ ...f, state: 'hold' }, 5000)).toEqual({
+      ret: 5000 + 600,
+    });
+    // Its holding time already over: it left at its end.
+    expect(turnHomeAt({ ...f, state: 'hold' }, 20_000)).toEqual({
+      ret: 11_600 + 600,
+    });
+  });
+  it('flies home from its arrival when it turns there', () => {
+    expect(turnHomeAt({ ...f, state: 'out' }, 1600)).toEqual({
+      ret: 1600 + 600,
+    });
+  });
+  it('turns back like a recall on its way, as long as it has flown', () => {
+    expect(turnHomeAt({ ...f, state: 'out' }, 1200)).toEqual({
+      ret: 1200 + 200,
+      recalled: true,
+    });
+  });
+});
 
 describe('holding times', () => {
   it('are the classic 0, 1, 2, 4, 8, 16 and 32 hours', () => {
@@ -211,18 +245,6 @@ describe('the return of a fleet that turns home (#55, owner, 2026-11-19)', () =>
         },
       ),
     );
-  });
-});
-
-describe('the cargo of several fleets', () => {
-  it('adds up each resource', () => {
-    expect(cargoOf([])).toEqual({ m: 0, c: 0, d: 0 });
-    expect(
-      cargoOf([
-        { cargo: { m: 1, c: 2, d: 3 } },
-        { cargo: { m: 10, c: 20, d: 30 } },
-      ]),
-    ).toEqual({ m: 11, c: 22, d: 33 });
   });
 });
 

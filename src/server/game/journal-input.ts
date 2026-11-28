@@ -73,6 +73,9 @@ export const INPUT: Readonly<Record<string, Spec>> = {
   startVacation: {},
   endVacation: {},
   pushOptions: { off: 'keep' },
+  // „Wache stellen“ (#440).
+  sendAway: { id: 'keep' },
+  holdOption: { on: 'keep' },
   // Friends.
   requestFriend: { name: 'seatByName' },
   answerFriend: { uid: 'seat', accept: 'keep' },

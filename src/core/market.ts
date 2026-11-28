@@ -23,7 +23,7 @@
 // most what it started with unless the admin's ratios themselves gain on a
 // round trip (`gainingTrips` names those, the panel warns).
 import type { RoundGroup, RoundSetting } from './round.ts';
-import type { Planet, Resources } from './types.ts';
+import type { Planet, Resources, Universe } from './types.ts';
 
 /** A resource: Adamant `m`, Psikristall `c`, Promethium `d`; energy is no resource here. */
 export type Res = keyof Resources;
@@ -288,6 +288,23 @@ export interface MarketRound {
 /** Whether the marketplace is on in the round. */
 export const marketOpen = (round: Pick<MarketRound, 'marketOn'>): boolean =>
   round.marketOn === 1;
+
+/** The key of the Handelsposten in the catalog (#171). */
+export const TRADING_POST = 'market';
+
+/**
+ * Whether the round offers the Handelsposten (#442, owner, 2026-11-27,
+ * 226b): only while the marketplace is open, its only use. The one place of
+ * the rule: with the Börse (#386, 245a) it becomes „the marketplace or the
+ * Börse is open“. A special rule of this building, no general mechanism.
+ */
+export const tradingPostOffered = (
+  round: Pick<MarketRound, 'marketOn'>,
+): boolean => marketOpen(round);
+
+/** The same from the universe, whose live rows carry the switch (`roundMarketOn`). */
+export const tradingPostOfferedIn = (u: Universe): boolean =>
+  tradingPostOffered({ marketOn: u.roundMarketOn ?? 1 });
 
 /** The ratio of each pair, from the rules of the round. */
 export const ratiosOf = (round: MarketRound): Record<Pair, number> => ({

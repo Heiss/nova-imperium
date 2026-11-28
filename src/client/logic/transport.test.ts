@@ -19,6 +19,7 @@ const answer = (
 
 function setup(...answers: (Response | Error)[]) {
   const queue = [...answers];
+  let keys = 0;
   const fetch = vi.fn(async () => {
     const next = queue.shift()!;
     if (next instanceof Error) throw next;
@@ -33,6 +34,8 @@ function setup(...answers: (Response | Error)[]) {
     }),
     requestId: vi.fn(),
     wait: vi.fn(async () => undefined),
+    // The keys of #450 in turn: k1, k2, …
+    key: vi.fn(() => `k${++keys}`),
   } satisfies TransportDeps;
   return { api: createApi(deps), fetch, deps };
 }
@@ -59,7 +62,10 @@ describe('a call', () => {
         '/api/x',
         {
           method: 'POST',
-          headers: { 'content-type': 'application/json' },
+          headers: {
+            'content-type': 'application/json',
+            'idempotency-key': 'k1',
+          },
           body: '{"a":1}',
           credentials: 'same-origin',
         },
@@ -221,6 +227,38 @@ describe('maintenance', () => {
 
 describe('the retry of an action', () => {
   const busy = () => answer(503, { code: 'ACTION_DB_BUSY', error: 'Busy.' });
+  /** The key header of each request. */
+  const keysSent = (fetch: ReturnType<typeof setup>['fetch']) =>
+    fetch.mock.calls.map(
+      (c) =>
+        (
+          (c as unknown as [string, RequestInit])[1].headers as Record<
+            string,
+            string
+          >
+        )['idempotency-key'],
+    );
+
+  it('sends the busy action again with the same key (#450)', async () => {
+    const { api, fetch, deps } = setup(busy(), answer(200, { done: true }));
+    await api('/api/action', { type: 'x' });
+    expect(keysSent(fetch)).toEqual(['k1', 'k1']);
+    expect(deps.key).toHaveBeenCalledTimes(1);
+  });
+
+  it('gives every call with a body a key of its own, a get none (#450)', async () => {
+    const { api, fetch } = setup(
+      answer(200, {}),
+      answer(200, {}),
+      answer(200, {}),
+      answer(200, {}),
+    );
+    await api('/api/action', { type: 'x' });
+    await api('/api/action', { type: 'x' });
+    await api('/api/state');
+    await api('/api/admin/announce', {});
+    expect(keysSent(fetch)).toEqual(['k1', 'k2', undefined, 'k3']);
+  });
 
   it('sends a busy action once more after a pause and returns that answer', async () => {
     const { api, fetch, deps } = setup(busy(), answer(200, { done: true }));

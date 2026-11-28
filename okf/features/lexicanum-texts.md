@@ -473,7 +473,8 @@ code and here in the same pull request.
 * **[V]** Table: „Einheit | Angriff | Schild | Struktur“
 * **[V]** Heading: „Nach dem Kampf“
 * **[V]** Text: „Zerstörte Schiffe beider Seiten hinterlassen ein Trümmerfeld. Von der zerstörten Verteidigung wird ein Teil wieder aufgebaut: 70 % je Art. Gehen weniger als 50 Stück einer Art verloren, wird jedes Stück einzeln ausgelost, ab 50 Stück wird der Anteil gerundet. Zerstörte Schiffe werden nie ersetzt, und Raketen kämpfen nicht mit.“
-* **[V]** Text: „Gewinnt der Angreifer, lädt er bis zu 50 % jedes Rohstoffs des Planeten ein, soweit der Laderaum seiner übrigen Schiffe reicht. Der Laderaum wird in fester Reihenfolge gefüllt: zuerst Adamant, dann Psikristall, dann Promethium, und was danach noch Platz hat, füllt wieder mit Adamant und Psikristall auf. Danach nimmt er die Ladung der Flotten mit, die am Planeten Wache gehalten haben, soweit noch Platz ist; diese Flotten sind dann verloren.“
+* **[V]** Text: „Gewinnt der Angreifer, lädt er bis zu 50 % jedes Rohstoffs des Planeten ein, soweit der Laderaum seiner übrigen Schiffe reicht. Der Laderaum wird in fester Reihenfolge gefüllt: zuerst Adamant, dann Psikristall, dann Promethium, und was danach noch Platz hat, füllt wieder mit Adamant und Psikristall auf.“
+* **[E]** Text (owner, 2026-11-27, #440): „Eine Wache wird nicht geplündert: Ihre Ladung geht verloren, wenn sie zerstört wird.“
 * **[V]** Table: „Beute bei einem Planeten mit 200.000 Adamant, 100.000 Psikristall und 50.000 Promethium“
 * **[V]** Table: „Freier Laderaum | Adamant | Psikristall | Promethium“
 * **[V]** Keywords: Schlacht, Gefecht, Schaden, Beute, Verlust
@@ -495,7 +496,7 @@ code and here in the same pull request.
 * **[V]** Formula: „Höchste Chance in % = Spähschädel ÷ 4 · Auspex-Lehre des Ziels ÷ deine Auspex-Lehre · (1 + Schiffe am Ziel ÷ 100), höchstens 100“
 * **[V]** Text: „Wird die Erkundung entdeckt, kämpfen die Spähschädel wie in einem Kampf gegen die Schiffe und die Verteidigung des Ziels und gegen Flotten, die dort Wache halten. Nur Spähschädel, die den Kampf überleben, bringen einen Bericht. Hat das Ziel weder Schiffe noch Verteidigung noch Wache haltende Flotten, gibt es keinen Kampf, und die Spähschädel berichten wie sonst. Der Verteidiger erfährt in jedem Fall, von wo er erkundet wurde und wie hoch die ausgeloste Chance war.“
 * **[V]** Heading: „Wen du erkunden darfst“
-* **[V]** Text: „Erkunden lassen sich fremde Planeten und Monde. Wer unter Noobschutz steht oder im Urlaubsmodus ist, lässt sich nicht erkunden.“
+* **[E]** Text (owner, 2026-11-27, after CodeRabbit on #455): „Erkunden lassen sich fremde Planeten und Monde. Wer im Urlaubsmodus ist, lässt sich nicht erkunden. Wer unter Noobschutz steht, auch nicht, außer am Ort der Wache eines anderen Spielers.“
 * **[V]** Keywords: ausspähen, Gegner, Bericht, Späher, entdeckt
 
 ### Flug und Treibstoff (`rule-flight`)
@@ -741,13 +742,14 @@ code and here in the same pull request.
 
 * **[V]** Line: „Wer an einem fremden Planeten Wache halten darf, was die Wache tut und wie mehrere Spieler gemeinsam angreifen.“
 * **[V]** Heading: „Wache stellen: wer, wo und wie lange“
-* **[V]** Text: „Mit Wache stellen fliegt eine Flotte zum Planeten oder Mond eines Verbündeten, bleibt dort die Haltezeit, die du beim Start wählst, und verteidigt ihn in jedem Kampf zusammen mit seinem Besitzer; danach fliegt sie heim. Wer Verbündeter ist, legt der Admin für die Runde fest. Eine Gilde zählt nur, solange es in der Runde Gilden gibt (Gilden). Bei einem Spieler im Urlaubsmodus oder unter dem Schutz der Schwachen kann niemand Wache stellen.“
+* **[V]** Text: „Mit Wache stellen fliegt eine Flotte zum Planeten oder Mond eines Verbündeten, bleibt dort die Haltezeit, die du beim Start wählst, und verteidigt ihn in jedem Kampf zusammen mit seinem Besitzer; danach fliegt sie heim. Wer Verbündeter ist, legt der Admin für die Runde fest. Eine Gilde zählt nur, solange es in der Runde Gilden gibt (Gilden). Bei einem Spieler im Urlaubsmodus kann niemand Wache stellen.“
 * **[V]** Facts: „Verbündete für Halten und Verband: Gilde und Freunde“
 * **[V]** Facts: „Gehaltene Flotten im Auspex-Bericht ab Auspex-Lehre: 2 (von 0 bis 30)“
 * **[V]** Text: „Die Haltezeit beträgt 0, 1, 2, 4, 8, 16 oder 32 Stunden. Sie läuft in Echtzeit, das Tempo des Universums teilt sie nicht. Den Treibstoff für die Haltezeit zahlst du beim Start zusammen mit dem für den Flug: ein Zehntel des Grundverbrauchs der Flotte je Stunde, mindestens 1 Promethium. An einem Planeten halten höchstens 4 verschiedene Spieler mit zusammen höchstens 15 Flotten, die eigene Flotte des Besitzers nicht mitgerechnet; gezählt werden auch Flotten, die noch unterwegs sind. Solange eine Flotte Wache hält, kannst du sie zurückrufen; sie ist dann nach so langer Zeit zu Hause, wie ihr Hinflug gedauert hat.“
 * **[V]** Formula: „Treibstoff der Haltezeit = ⌊Summe aller Schiffe (Anzahl · Grundverbrauch) · Stunden ÷ 10⌋, mindestens 1“
 * **[V]** Heading: „Was eine Wache tut“
-* **[V]** Text: „Eine Flotte, die Wache hält, kämpft als eigene Partei mit der Forschung ihres Besitzers, und zwar in allen drei Kämpfen an diesem Ort: beim Sturmangriff, beim Mondbruch und im Kampf gegen entdeckte Spähschädel der Auspex-Erkundung. Raketen kämpfen nicht mit. Jeder Besitzer bekommt den Bericht des Verteidigers, und was die Wache verliert, liegt zum Teil im Trümmerfeld (Trümmerfelder und Bergung). Eine Flotte des Angreifers selbst, die dort Wache hält, bleibt aus dem Kampf. Gewinnt der Angreifer, nimmt er zuerst seinen Anteil vom Vorrat des Planeten und dann die ganze Ladung der Flotten, die Wache gehalten haben, soweit sein Laderaum reicht; diese Flotten sind dann zerstört (Kampf).“
+* **[V]** Text: „Eine Flotte, die Wache hält, kämpft als eigene Partei mit der Forschung ihres Besitzers, und zwar in allen drei Kämpfen an diesem Ort: beim Sturmangriff, beim Mondbruch und im Kampf gegen entdeckte Spähschädel der Auspex-Erkundung. Raketen kämpfen nicht mit. Jeder Besitzer bekommt den Bericht des Verteidigers, und was die Wache verliert, liegt zum Teil im Trümmerfeld (Trümmerfelder und Bergung). Eine Flotte des Angreifers selbst, die dort Wache hält, bleibt aus dem Kampf.“
+* **[E]** Text (owner, 2026-11-27, #440): „Eine Wache wird nicht geplündert: Ihre Ladung geht verloren, wenn sie zerstört wird.“
 * **[V]** Text: „Der Gastgeber sieht eine Flotte, die Wache hält, mit allen Schiffen und ihrer Haltezeit. Im Auspex-Bericht zählt sie zur Flotte des Planeten, bis die Auspex-Lehre des Spähers die Stufe der Runde erreicht; ab dann steht sie getrennt unter Gehaltene Flotten. In der Auspex-Phalanx zeigt sie sich als haltend, mit dem Ende ihrer Haltezeit.“
 * **[V]** Heading: „Urlaubsmodus und Mondbruch“
 * **[V]** Text: „Beginnt der Gastgeber den Urlaubsmodus, fliegen alle Flotten, die bei ihm Wache halten, sofort heim, und ihre Besitzer bekommen einen Bericht. Eine Flotte, die noch unterwegs ist, hält bei der Ankunft nicht mehr, sondern kehrt gleich um. Wer selbst mit einer Flotte Wache hält, kann den Urlaubsmodus nicht beginnen, solange sie draußen ist (Urlaubsmodus).“
@@ -804,11 +806,12 @@ code and here in the same pull request.
 
 * **[V]** Line: „Wer vor wem geschützt ist: der Noobschutz und der Schutz im Urlaubsmodus.“
 * **[V]** Heading: „Noobschutz“
-* **[V]** Text: „Wer viel weniger Punkte hat als du, ist vor dir geschützt: Du kannst ihn nicht angreifen und nicht erkunden, ihn nicht mit einem Mondbruch oder Raketen treffen und bei ihm keine Wache stellen. Als geschützt gilt, wer weniger als 20 % deiner Punkte hat. Es zählen die Punkte der Gesamtwertung (Highscore). Der Schutz gilt nur gegen Stärkere: Ein Spieler mit wenig Punkten darf einen mit vielen angreifen. Versorgungsflüge sind nicht betroffen. Auf der Sternenkarte sind geschützte Spieler mit (n) markiert.“
+* **[V]** Text: „Wer viel weniger Punkte hat als du, ist vor dir geschützt: Du kannst ihn nicht angreifen und nicht erkunden, ihn nicht mit einem Mondbruch oder Raketen treffen. Als geschützt gilt, wer weniger als 20 % deiner Punkte hat. Es zählen die Punkte der Gesamtwertung (Highscore). Der Schutz gilt nur gegen Stärkere: Ein Spieler mit wenig Punkten darf einen mit vielen angreifen. Versorgungsflüge sind nicht betroffen. Auf der Sternenkarte sind geschützte Spieler mit (n) markiert.“
+* **[E]** Text (owner, 2026-11-27, #440, after CodeRabbit on #455): „Hält bei einem geschützten Spieler die Flotte eines anderen Spielers Wache, gilt sein Schutz an diesem Ort nicht für Sturmangriff und Auspex-Erkundung, außer gegen den Besitzer dieser Wache; vor Raketen bleibt er geschützt.“
 * **[V]** Formula: „Geschützt, wenn Punkte des Ziels · 5 < deine Punkte“
 * **[V]** Table: „Wer vor dir geschützt ist“
 * **[V]** Table: „Deine Punkte | Geschützt sind Spieler mit weniger Punkten als“
-* **[V]** Text: „Der Noobschutz gilt für die Aufträge Sturmangriff, Auspex-Erkundung, Mondbruch, Raketenangriff und Wache stellen.“
+* **[V]** Text: „Der Noobschutz gilt für die Aufträge Sturmangriff, Auspex-Erkundung, Mondbruch und Raketenangriff.“
 * **[V]** Heading: „Urlaubsmodus“
 * **[V]** Text: „Ein Spieler im Urlaubsmodus ist vor allen neuen Aufträgen anderer Spieler geschützt, ganz gleich, wie viele Punkte er hat, und auch vor Versorgungsflügen und Raketen. Seine Planeten und Monde bleiben so lange unberührt, bis er den Urlaubsmodus beendet.“
 * **[V]** Keywords: Noobschutz, geschützt, Schutz, angreifen, Punkte

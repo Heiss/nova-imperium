@@ -12,6 +12,7 @@ import { colonyRules, limitReached, planetLimit } from '../colony-limit.ts';
 import { caps, production } from '../economy.ts';
 import { fieldsFull, maxFields } from '../fields.ts';
 import { fleetSlots } from '../flight.ts';
+import { TRADING_POST, tradingPostOfferedIn } from '../market.ts';
 import { unmetRequirements } from '../requirements.ts';
 import type { Requirements } from '../types.ts';
 import { number, percent } from './say.ts';
@@ -141,6 +142,8 @@ function near(s: Known): Hint[] {
     // A building the shown place cannot hold is no step for it (a moon building on a planet).
     const here = s.own.planet.kind;
     if (!buildable(key, here) && key in BUILD) return [];
+    // Nor the Handelsposten while the round does not offer it (#442).
+    if (key === TRADING_POST && !tradingPostOfferedIn(s.u)) return [];
     if (need.kind === 'b' && !buildable(need.key, here)) return [];
     return [
       {

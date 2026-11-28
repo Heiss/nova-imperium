@@ -81,6 +81,8 @@ describe('push options in „Hilfe & Optionen“ (#192)', () => {
       'Sturmangriff auf deine Planeten',
       'Auspex-Aktivität bei deinen Planeten',
       'Lieferung eines anderen Spielers',
+      // Reports of a hold to its host and its owner (#440, 243b).
+      'Wachen',
       'Servernachrichten',
       'Neue Version',
       'Gildenereignisse',

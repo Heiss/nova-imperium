@@ -3,6 +3,7 @@
 // determines the noob protection and turns the codes into the messages. The
 // mission, the ships, the slots, the holding time, the stay, the cargo, the
 // fuel and the recall are the pure checks of src/core/fleet-checks.ts (#214).
+import { HOLDS_REFUSED_REFUSAL } from '../../core/hold-texts.ts';
 import type { Wire } from '../../core/actions.ts';
 import { isShip } from '../../core/catalog.ts';
 import {
@@ -14,7 +15,12 @@ import {
   fuelFor,
   holdFuel,
 } from '../../core/flight.ts';
-import { ALLIES, HOLD_LIMITS, HOUR_MS } from '../../core/holding.ts';
+import {
+  ALLIES,
+  HOLD_LIMITS,
+  HOUR_MS,
+  LAPSES_AT_HOLD,
+} from '../../core/holding.ts';
 import {
   cargoError,
   type CargoError,
@@ -55,7 +61,7 @@ import { lockedUntil, positionLockedText } from './position-lock.ts';
 import { type Ctx, coords, fail, int, universe } from './context.ts';
 import { colonyRoom, limitRefusal } from './colony-limit.ts';
 import { attackEvent } from './guild-events.ts';
-import { holdersAt, isAllyOf } from './holding.ts';
+import { heldByOthers, holdersAt, holdLaunched, isAllyOf } from './holding.ts';
 import { joinPlan, joinUnion, recalledWith } from './union.ts';
 import { isProtected } from './points.ts';
 import { exactPoints } from './scores.ts';
@@ -107,7 +113,7 @@ export const target = (ctx: Ctx, d: Aimed): Coords => {
  * A code with a fixed message; a locked position names the end of its lock,
  * and the limit of planets names the count (#237).
  */
-type WordedError = Exclude<SendError, 'locked' | 'colonyLimit'>;
+type WordedError = Exclude<SendError, 'locked' | 'colonyLimit' | 'notOffered'>;
 
 /** The message of each code of `sendError`, in German like the interface. */
 const SEND_ERROR: Readonly<Record<WordedError, string>> = {
@@ -136,6 +142,8 @@ const SEND_ERROR: Readonly<Record<WordedError, string>> = {
   expeditionSpace: 'Die Expeditionsposition kann nicht besiedelt werden.',
   // #55 [V]: worded like the other missions, by the setting of the round.
   notAlly: 'Wache stellen nur bei Gildenmitgliedern und Freunden.',
+  // #440: the texts the owner has not decided yet are marked placeholders.
+  holdsRefused: HOLDS_REFUSED_REFUSAL,
   holdFleets: `An diesem Planeten halten bereits ${HOLD_LIMITS.fleets} Flotten.`,
   holdPlayers: `An diesem Planeten halten bereits Flotten von ${HOLD_LIMITS.players} Spielern.`,
 };
@@ -169,9 +177,16 @@ const refuse = (error: keyof typeof FLEET_ERROR | null): void => {
 };
 
 /** The message of a code; a Halten names who may hold in this round. */
-const sendMessage = (ctx: Ctx, error: WordedError): string =>
-  (error === 'notAlly' && NOT_ALLY[roundRules(ctx).allies]) ||
-  SEND_ERROR[error];
+const sendMessage = (
+  ctx: Ctx,
+  error: WordedError | 'notOffered',
+  rules: MissionRules,
+): string =>
+  error === 'notOffered'
+    ? // A mission the round switched off has its own words (#440).
+      rules.offered!.refusal
+    : (error === 'notAlly' && NOT_ALLY[roundRules(ctx).allies]) ||
+      SEND_ERROR[error];
 
 const loadCargo = (p: Planet, rules: MissionRules, raw: unknown): Resources => {
   if (!rules.cargo) return { m: 0, c: 0, d: 0 };
@@ -237,10 +252,21 @@ function checkDestination(
       locked: at.lockEnd !== null,
       expedition: at.expedition,
       // The exact points of the two players, never the stored pass (#405).
+      // The protection lapses at a place where a fleet of a third player
+      // holds (#440, 238c, 296a), for a Sturmangriff and an
+      // Auspex-Erkundung only (281b): the Mondbruch keeps it. The host can
+      // send the fleet away to get it back; the sender's own hold there
+      // lifts nothing.
       protects: (owner) =>
-        isProtected(u.id, owner, exactPoints(ctx, [u.id, owner])),
+        !(
+          LAPSES_AT_HOLD.includes(mission) &&
+          heldByOthers(ctx, occupied!.id, owner, u.id)
+        ) && isProtected(u.id, owner, exactPoints(ctx, [u.id, owner])),
       vacation: inVacation(ctx),
       ally: (owner) => isAllyOf(ctx, u.id, owner),
+      // „Wache stellen“ is a switch of the round (#440).
+      round: roundRules(ctx),
+      refusesHolds: (owner) => ctx.holdRefusals.refuses(owner),
       // Asked only for a Halten, whose target kind has a planet (#55).
       holding: () => holdersAt(ctx, occupied!.id),
     },
@@ -249,7 +275,7 @@ function checkDestination(
   if (error === 'locked') return fail(positionLockedText(at.lockEnd!));
   // The planets against the limit, as the player sees them (#237).
   if (error === 'colonyLimit') return fail(limitRefusal(ctx, u.id, research));
-  if (error) fail(sendMessage(ctx, error));
+  if (error) fail(sendMessage(ctx, error, rules));
 }
 
 function plan(ctx: Ctx, u: User, p: Planet, d: Wire<'send'>): Plan {
@@ -429,6 +455,8 @@ export const send: Handler<'send'> = (ctx, u, d, event) => {
   // launch (#169 D3, #95); both fly to a foreign place only, so it has an
   // owner.
   if (missionRules(mission)!.alertsGuild) attackEvent(ctx, fleet, targetOwner!);
+  // The host learns of a hold at its launch (#440, 242c).
+  if (holds) holdLaunched(ctx, fleet, targetOwner!);
   if (event) logLaunch(event, fleet, targetOwner);
   return `Flotte unterwegs nach ${coords(fleet.toC)}.`;
 };

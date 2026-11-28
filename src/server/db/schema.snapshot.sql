@@ -242,6 +242,10 @@ CREATE TABLE guilds (
     founder TEXT NOT NULL REFERENCES users(id)
   , default_rank TEXT REFERENCES guild_ranks(id)) STRICT;
 
+CREATE TABLE hold_refusals (
+      user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE
+    ) STRICT;
+
 CREATE TABLE invitations (
     id TEXT PRIMARY KEY,
     email TEXT NOT NULL COLLATE NOCASE,

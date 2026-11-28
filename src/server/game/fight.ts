@@ -13,7 +13,6 @@ import { type BattleResult, battleOf } from '../../core/battle.ts';
 import { DEF, SHIPS, fights } from '../../core/catalog.ts';
 import { type Debris, debrisOf, isEmpty } from '../../core/debris.ts';
 import { capacity, countUnits } from '../../core/flight.ts';
-import { cargoOf } from '../../core/holding.ts';
 import { cutLoot, plunder, rebuild } from '../../core/loot.ts';
 import { placeName } from '../../core/moon.ts';
 import { splitLoot } from '../../core/union.ts';
@@ -343,17 +342,15 @@ export interface Raid extends Fight {
 
 /**
  * The loot of a won battle (owner, 2026-11-17): the classic half of the
- * planet's stock first, then the cargo of the fleets that held there with
- * the room that is left. Those fleets are destroyed when the attacker wins.
+ * planet's stock. The cargo of the fleets that held there is no loot (#440,
+ * 233b): those fleets are destroyed with it when the attacker wins.
  */
-function lootOf(t: Planet, held: readonly Held[], free: number): Resources {
+function lootOf(t: Planet, free: number): Resources {
   const planet = plunder(t.res, free);
-  const left = free - total(planet);
-  const cargo = plunder(cargoOf(held.map((h) => h.f)), left, 1);
   t.res.m -= planet.m;
   t.res.c -= planet.c;
   t.res.d -= planet.d;
-  return addResources(planet, cargo);
+  return planet;
 }
 
 /** The fleets that held keep their survivors and hold on; one without any is gone. */
@@ -384,8 +381,7 @@ export function raid(
     ...x.joined.map((j) => freeSpace(j.f, j.after)),
   ];
   const free = spaces.reduce((sum, n) => sum + n, 0);
-  const loot =
-    x.res.winner === 'att' ? lootOf(t, held, free) : { m: 0, c: 0, d: 0 };
+  const loot = x.res.winner === 'att' ? lootOf(t, free) : { m: 0, c: 0, d: 0 };
   ctx.planets.save(t);
   afterHeld(ctx, x.held);
   recordBattle(ctx, f, t, x);
