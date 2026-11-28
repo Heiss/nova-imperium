@@ -19,12 +19,15 @@ if ! qemu=$("$(dirname "$0")/static-qemu.sh"); then
 fi
 ref="$IMAGE@$DIGEST"
 # The entrypoint of compose.noavx.yaml; -xsavec only silences a
-# QEMU warning. An empty volume: the database is new.
+# QEMU warning. An empty volume: the database is new. The check has no mail
+# server, so the mail codes of the sign-in are off (NOVA_EMAIL_LOGIN_CODES is
+# on by default and needs SMTP_HOST, or the server does not start).
 docker volume create nova-noavx-data > /dev/null
 docker run --detach --name nova-noavx --platform linux/amd64 \
   --read-only --tmpfs /tmp -v nova-noavx-data:/data \
   -v "$qemu:/usr/local/bin/qemu-x86_64-static:ro" \
-  -e NOVA_PUBLIC_URL=http://127.0.0.1:8080 -p 127.0.0.1:8080:8080 \
+  -e NOVA_PUBLIC_URL=http://127.0.0.1:8080 -e NOVA_EMAIL_LOGIN_CODES=0 \
+  -p 127.0.0.1:8080:8080 \
   --entrypoint /usr/local/bin/qemu-x86_64-static \
   "$ref" -cpu Denverton,-xsavec /usr/local/bin/node src/server/main.ts > /dev/null
 ok=

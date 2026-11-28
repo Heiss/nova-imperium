@@ -95,10 +95,17 @@ describe('the release image on a CPU without AVX (#456)', () => {
     const docker = r.calls.filter((c) => c.startsWith('docker '));
     expect(docker[0]).toBe('docker volume create nova-noavx-data');
     expect(docker[1]).toBe(
-      `docker run --detach --name nova-noavx --platform linux/amd64 --read-only --tmpfs /tmp -v nova-noavx-data:/data -v ${r.bin}/qemu-x86_64-static:/usr/local/bin/qemu-x86_64-static:ro -e NOVA_PUBLIC_URL=http://127.0.0.1:8080 -p 127.0.0.1:8080:8080 --entrypoint /usr/local/bin/qemu-x86_64-static ghcr.io/heiss/nova-imperium@${DIGEST} -cpu Denverton,-xsavec /usr/local/bin/node src/server/main.ts`,
+      `docker run --detach --name nova-noavx --platform linux/amd64 --read-only --tmpfs /tmp -v nova-noavx-data:/data -v ${r.bin}/qemu-x86_64-static:/usr/local/bin/qemu-x86_64-static:ro -e NOVA_PUBLIC_URL=http://127.0.0.1:8080 -e NOVA_EMAIL_LOGIN_CODES=0 -p 127.0.0.1:8080:8080 --entrypoint /usr/local/bin/qemu-x86_64-static ghcr.io/heiss/nova-imperium@${DIGEST} -cpu Denverton,-xsavec /usr/local/bin/node src/server/main.ts`,
     );
     expect(r.calls).toContain('curl -fsS http://127.0.0.1:8080/healthz');
     expect(docker.at(-1)).toMatch(/^docker exec nova-noavx sh -c /);
+  });
+
+  it('starts with what a bare start needs, the mail codes off without a mail server', () => {
+    const r = run(ENV);
+    const start = r.calls.find((c) => c.startsWith('docker run '))!;
+    expect(start).toContain(' -e NOVA_EMAIL_LOGIN_CODES=0 ');
+    expect(start).not.toContain('SMTP_');
   });
 
   it('waits for a start under QEMU, two seconds apart', () => {
