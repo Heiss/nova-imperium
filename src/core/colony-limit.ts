@@ -87,6 +87,7 @@ export const roundSettings = [
     explain: {
       text: 'Wie viele Planeten ein Spieler ohne Forschung besitzen darf; der Heimatplanet zählt mit, Monde nicht. Beim Wert null gibt es keine Grenze. Gesenkt nimmt das Spiel keinen Planeten weg: Wer darüber liegt, kann keine Kolonie mehr gründen.',
       rows: LIMIT_ROWS,
+      own: true,
     },
     name: 'colonyBase',
     label:
@@ -127,6 +128,7 @@ export const roundSettings = [
     explain: {
       text: 'Um so viele Planeten erhöht jede Stufe der Kolonialverwaltung die Grenze.',
       rows: LIMIT_ROWS,
+      own: true,
     },
     name: 'colonyPerLevel',
     label: 'Zusätzliche Planeten je Forschungsstufe',
@@ -144,6 +146,7 @@ export const roundSettings = [
     explain: {
       text: 'Die höchste Stufe der Kolonialverwaltung, die erforscht werden kann und zählt. Beim Wert null gibt es keine Obergrenze.',
       rows: LIMIT_ROWS,
+      own: true,
     },
     name: 'colonyMaxLevel',
     label: 'Maximale Forschungsstufe (0 = unbegrenzt erforschbar)',

@@ -87,6 +87,7 @@ export const roundSettings = [
     explain: {
       text: 'Wie viel der Kosten einer Stufe ein Spieler beim Rückbau zurückbekommt. Ein positiver Wert erstattet am Ende des Rückbaus, ein negativer kostet diesen Anteil beim Start, und der Spieler muss ihn bezahlen können. Ein laufender Rückbau behält seine Bedingungen.',
       rows: REFUND_ROWS,
+      own: true,
     },
     name: 'demolitionRefund',
     label: 'Rückbau-Erstattung (%)',
@@ -101,6 +102,7 @@ export const roundSettings = [
     explain: {
       text: 'Wie lange ein Rückbau dauert, in Prozent der Bauzeit der Stufe. Ein laufender Rückbau behält sein Ende.',
       rows: TIME_ROWS,
+      own: true,
     },
     name: 'demolitionTime',
     label: 'Rückbau-Dauer (% der Bauzeit)',

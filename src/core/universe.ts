@@ -145,6 +145,7 @@ const SPECS: readonly UniverseSpec[] = [
     explain: {
       text: 'Das Tempo teilt alle Bau-, Forschungs- und Schiffsbauzeiten, die Flugzeiten von Flotten und Raketen und die Wartezeit der Warp-Tore. Es vervielfacht die Förderung der Minen und den Promethium-Verbrauch der Kraftwerke, die Promethium verbrennen. Der Treibstoff einer Flotte bleibt gleich. Die Haltezeit einer Expedition teilt es nur, wenn „Haltezeit durch das Universums-Tempo teilen“ an ist. Bei einer Änderung zählt die Zeit bis jetzt mit dem alten Tempo; laufende Aufträge und Flüge behalten ihr Ende.',
       rows: SPEED_ROWS,
+      own: true,
     },
   },
   {
@@ -196,6 +197,7 @@ const SPECS: readonly UniverseSpec[] = [
         label: (name) => `Lager bei ${name(STORE)} Stufe ${level}`,
         cell: ({ u }) => number(capOf(level, u)),
       })),
+      own: true,
     },
     min: 10000,
     max: 10000000,
@@ -257,6 +259,7 @@ const SPECS: readonly UniverseSpec[] = [
             )!,
           ),
       })),
+      own: true,
     },
     min: 0,
     max: 100,
