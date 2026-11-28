@@ -495,6 +495,13 @@ CREATE TABLE rounds (
 
 CREATE TABLE schema_migrations (id TEXT NOT NULL PRIMARY KEY) STRICT;
 
+CREATE TABLE score_pass (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      round TEXT NOT NULL,
+      at INTEGER NOT NULL,
+      pass TEXT NOT NULL
+    ) STRICT;
+
 CREATE TABLE sessions (
     token_hash TEXT PRIMARY KEY,
     user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
