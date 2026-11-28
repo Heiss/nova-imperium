@@ -26,6 +26,7 @@ import { targetInfo } from '../logic/fleet-target.ts';
 import { client } from '../logic/state.svelte.ts';
 import {
   PLAN,
+  freeShips,
   planJoin,
   type UnionJoin,
   unionArrivalLine,
@@ -55,7 +56,7 @@ const choiceOf = (): FleetChoice =>
 /** The ships typed, kept to the ones the planet has. */
 function shipsOf(): Record<string, number> {
   const ships: Record<string, number> = {};
-  const have = client.view!.P.ships;
+  const have = freeShips(client.game!, client.view!.P);
   for (const [k, typed] of Object.entries(fleetForm.ships)) {
     const n = clampInt(typed, 0, have[k] ?? 0);
     if (n > 0) ships[k] = n;
@@ -175,6 +176,7 @@ function formJoin(f: FleetForm): UnionJoin | null {
   const fleet = {
     dist: distance(view.P, f.to),
     speed: fleetSpeed(f.ships, view.R),
+    pct: f.pct,
   };
   // A plan of 0 is a field still empty.
   if (f.plan !== undefined)
@@ -232,7 +234,8 @@ const shipKeys = (): string[] =>
   );
 
 /** All of the ship `k` on the shown planet, as the field shows it. */
-const allOf = (k: string): string => String(client.view!.P.ships[k] ?? 0);
+const allOf = (k: string): string =>
+  String(freeShips(client.game!, client.view!.P)[k] ?? 0);
 
 /** The ship selection: all, none, the most of one kind. */
 const selectionActs = (): Record<string, Handler> => ({

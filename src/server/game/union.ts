@@ -449,6 +449,8 @@ export interface UnionView {
   arr: number;
   /** When the leader's fleet starts by itself, while it is planned (#478). */
   start?: number;
+  /** For the leader only: the planet of the planned start and its ships (#478). */
+  held?: { from: string; ships: Levels };
   /** Its fleets with their owners, the leader's first; the ships stay hidden. */
   fleets: { id: string; owner: string }[];
   /** The players invited who have not joined. */
@@ -475,6 +477,10 @@ export function unionsFor(ctx: Ctx, uid: string): UnionView[] {
       toC: row.toC,
       arr: row.arr,
       ...(row.start && { start: row.start.at }),
+      ...(row.start &&
+        row.leader === uid && {
+          held: { from: row.start.from, ships: row.start.ships },
+        }),
       fleets: union.fleets.map((f) => ({ id: f.id, owner: f.owner })),
       // Whoever has joined is no longer „invited“.
       invited: ctx.fleets
