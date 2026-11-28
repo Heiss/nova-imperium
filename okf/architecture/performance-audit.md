@@ -95,6 +95,43 @@ unverified.
   release](/ops/branching-release.md)) and no shell (`docker/nova`). Both
   are options of #484, not recommended first.
 
+# Decisions (owner, 2026-11-28)
+
+All issues of the audit were decided the same day and are `ready`; each
+body holds its decisions [E] and proposals [V], each has its „Geklärt“
+comment.
+
+* **#480** Statements prepared once in `make` of each repository; targeted
+  queries for single things, one query per child table for the bulk
+  methods, a light query of the coordinates for `galaxy`, no GraphQL; a
+  read never writes; an indexed column `due` for fleets; the settings cached
+  per database and dropped on `PRAGMA data_version`; the SQL of the state
+  and action paths moved into repositories; target `main`.
+* **#481** The registries first: password, vacation and audit as entries of
+  each action, the consequences of a mission with the mission, a guard;
+  then the SQL by area; `http/app.ts` split by route group; the pure battle
+  steps to `core/`; the wrappers of `Store` to `src/test`
+  ([Repositories and the Store](/architecture/patterns/08-store.md)).
+* **#482** Hashed names with `immutable`, `index.html` with ETag, an offline
+  app shell in a service worker; timeouts 8 s (poll) and 15 s (action); up
+  to 3 repetitions of a lost action with the key of #450 after 2, 5 and
+  10 s, 8 s each, stopped once the server is known unreachable (then O27 of
+  [Data exchange and realtime](/architecture/realtime.md) holds); policy,
+  state and news requested together; QR and WebAuthn lazy; a version of the
+  state instead of `JSON.stringify`; all to `main`.
+* **#483** Partial mutation parts by weight; Stryker concurrency 2; an
+  in-process E2E helper per worker; 6 E2E parts after a shuffled run;
+  Vitest isolated only where modules are mocked; a Playwright cache with
+  the full download; #381 and #371 apart.
+* **#484** Alpine with `apk upgrade` on top, arm64 dropped, a stage of the
+  production dependencies, one prebuild of better-sqlite3, no tests and npm
+  in the image, sizes recorded; one pull request ([Docker](/architecture/docker.md)).
+* **#488** The tick stops while hidden; only changed texts are written; the
+  animations pause outside the visible area, while hidden and below 20 %
+  battery without charging (Battery Status API, Chromium); the E2E
+  measurement in the night run, CPU 4× throttled, counts gated without and
+  times with +50 % on the median of 3 runs, limits as a ratchet.
+
 # Not measured
 
 * Node 26, the J4104, a database on disk with WAL, lock contention,

@@ -24,6 +24,10 @@ description: 'One repository per aggregate instead of a single store, the transa
     every former method name, plus `db` and `tx`. It is used only by tests,
     `e2e/seed.ts`, `cli.ts` and `server.ts`; the store, migration and
     E2E-seed tests stay unchanged.
+  * **[E]** Changed for #481, not built yet (owner, 2026-11-28): the
+    wrappers of the former method names move to `src/test`; the core of
+    `Store` (`repos`, `db`, `tx`) stays in production for `server.ts`,
+    `cli.ts` and `game/context.ts`.
   * `Ctx` has flat fields: `players`, `planets`, `fleets`, `reports`,
     `guilds`, `invitations`, `admin`, plus `tx(fn)` and `db` for the SQL
     not moved yet.

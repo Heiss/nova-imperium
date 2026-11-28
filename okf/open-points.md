@@ -39,7 +39,7 @@ their result.
 |---|---|---|
 | U1 | The CI workflows run green on GitHub. | The first run of this pull request. |
 | U2 | The reverse proxy snippets for Caddy and nginx in `docs/operations.md` work. | First real setup; with the events, E2E tests through real proxies in the CI (O29). |
-| U3 | The arm64 image starts on real arm64 hardware. | A Raspberry Pi or an arm64 server. |
+| U3 | The arm64 image starts on real arm64 hardware. | A Raspberry Pi or an arm64 server. Goes with #484 (owner, 2026-11-28: arm64 dropped). |
 | U4 | Invitation mails reach real inboxes (SPF, DKIM of the sender domain). | First invitation through the real SMTP server; Mailpit only checks sending. |
 | U5 | A look with a screen reader and the keyboard. | Manual; axe covers a part only. |
 
