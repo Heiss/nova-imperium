@@ -14,6 +14,8 @@ okf_version: "0.2"
 * [Design patterns](/architecture/patterns.md) - catalog components, economy events, missions, repositories, Svelte components, feature folders, migration order
 * [Checks of the server actions](/architecture/action-checks.md) - audit of #214, where each action checks, what the browser repeats, where they disagree, the follow-up pull requests
 * [Data exchange and realtime](/architecture/realtime.md) - polling of the full state today, Server-Sent Events decided, requirements on the proxies, Cobalt27 rejected
+* [Performance and maintainability audit](/architecture/performance-audit.md) - measurements of 2026-11-28 on server, client, tests and image, the issues #479 to #484, what is not measured
+* [Stack evaluation](/architecture/stack-evaluation.md) - Rust with rust-anything, WebAssembly and Bun checked on 2026-11-28, none recommended [V]
 * [Docker operation](/architecture/docker.md) - services, volumes, secrets, hardening
 * [SQLite storage](/data/sqlite.md) - schema, migrations, transactions, backup
 
