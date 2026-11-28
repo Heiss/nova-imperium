@@ -1,14 +1,17 @@
-// The attack union („Verbandsangriff“, #225, okf/features/holding-acs.md): a
-// player opens a union from an own Sturmangriff on its way, invites allies,
-// and they join with fleets of their own. All fleets of a union arrive
-// together and fight as several attackers in one battle. The classic limits
-// are the defaults of the round (owner, 2026-11-16, D3): at most 16 fleets
-// of at most 5 players, and a joining fleet may delay the union by at most
-// 30 % of the remaining flight time; an extra cut-off „no joining in the last
-// N minutes“ is off by default (owner, 2026-11-17). The rules are pure; the
-// server asks them (src/server/game/union.ts), the browser reads the same
-// values from the round.
+// The attack union („Verbandsangriff“, #225, #466, okf/features/holding-acs.md):
+// a union has a fixed arrival X (owner, 2026-11-28, 1c); its leader invites
+// allies, and they join with fleets of their own that start at once and fly
+// at the speed that brings them there exactly at X (7b). All fleets of a
+// union arrive together and fight as several attackers in one battle. The
+// classic limits are the defaults of the round (owner, 2026-11-16, D3): at
+// most 16 fleets of at most 5 players; an extra cut-off „no joining in the
+// last N minutes“ is off by default (owner, 2026-11-17) and stays (8a); the
+// delay of the classic 30 % rule went with the fixed X (8a). The union is a
+// switch of the round (4). The rules are pure; the server asks them
+// (src/server/game/union.ts), the browser reads the same values from the
+// round.
 import { flightMs } from './flight.ts';
+import { LIVE_SWITCH } from './live-switch.ts';
 import type { RoundSetting } from './round.ts';
 import type { Fleet, Resources, Universe } from './types.ts';
 
@@ -19,15 +22,13 @@ const MINUTE_MS = 60_000;
 export const UNION_DEFAULTS = {
   fleets: 16,
   players: 5,
-  delay: 30,
   cutoff: 0,
 } as const;
 
-/** The ranges of the four settings [V]: the owner named only the defaults. */
+/** The ranges of the settings [V]: the owner named only the defaults. */
 export const UNION_RANGES = {
   fleets: { min: 1, max: 50 },
   players: { min: 1, max: 20 },
-  delay: { min: 0, max: 100 },
   cutoff: { min: 0, max: 1440 },
 } as const;
 
@@ -38,10 +39,11 @@ export const UNION_RANGES = {
 export const roundHeading = 'Verbandsangriff';
 
 /**
- * The four settings of the attack union as entries of the registry of the
- * round settings (#283, #310): number fields of the dialog „Neue Runde“
- * and, `live`, rows of the universe settings (owner, 2026-11-17, X1). The
- * order numbers 200 to 230 follow the 100 and 110 of holding by a gap.
+ * The settings of the attack union as entries of the registry of the round
+ * settings (#283, #310): number fields of the dialog „Neue Runde“ and,
+ * `live`, rows of the universe settings (owner, 2026-11-17, X1). The order
+ * numbers 200 to 240 follow the 100 and 110 of holding by a gap; 220, the
+ * delay, went with #466 (8a).
  */
 export const roundSettings = [
   {
@@ -66,16 +68,6 @@ export const roundSettings = [
   },
   {
     kind: 'number',
-    key: 'roundUnionDelay',
-    name: 'unionDelay',
-    label: 'Verbandsangriff: Verspätung in Prozent der Restflugzeit',
-    order: 220,
-    ...UNION_RANGES.delay,
-    def: UNION_DEFAULTS.delay,
-    live: true,
-  },
-  {
-    kind: 'number',
     key: 'roundUnionCutoff',
     name: 'unionCutoff',
     label: 'Verbandsangriff: kein Beitritt in den letzten Minuten (0 = aus)',
@@ -84,14 +76,36 @@ export const roundSettings = [
     def: UNION_DEFAULTS.cutoff,
     live: true,
   },
+  {
+    // The switch of the round (#466, owner, 2026-11-28, 4;
+    // okf/ops/feature-switches.md), live like „Wache stellen“: a number of 1
+    // (An) and 0 (Aus), because a switch of the registry cannot be live. A
+    // universe without the key reads the default, „An“ (261a).
+    kind: 'number',
+    key: 'roundUnionOn',
+    name: 'unionOn',
+    label: 'Verbandsangriff',
+    order: 240,
+    ...LIVE_SWITCH,
+  },
 ] as const satisfies readonly RoundSetting[];
+
+/**
+ * Whether the attack union is on in the round (#466): „An“ by default, so a
+ * round without the value is on. Off, nobody plans, invites or joins; what
+ * flies arrives.
+ */
+export const unionOpen = (round: { unionOn?: number }): boolean =>
+  (round.unionOn ?? 1) !== 0;
+
+/** The refusal while the switch is off [V], as the one of „Wache stellen“. */
+export const UNION_OFF_REFUSAL =
+  'Verbandsangriffe sind in dieser Runde abgeschaltet.';
 
 /** The limits of the round, as the settings hold them. */
 export interface UnionLimits {
   fleets: number;
   players: number;
-  /** The most a joining fleet delays the union, in percent of the remaining flight time. */
-  delay: number;
   /** No joining in the last minutes before the arrival; 0 is off. */
   cutoff: number;
 }
@@ -117,17 +131,23 @@ export function foundError(
 
 /** Why a fleet cannot join a union (besides the checks of every attack). */
 export type JoinError =
-  'closed' | 'cutoff' | 'delay' | 'fleets' | 'players' | 'notInvited';
+  'closed' | 'cutoff' | 'early' | 'late' | 'fleets' | 'players' | 'notInvited';
 
-/** The message of each refusal of a joining fleet [V]; the server and the fleet form say the same. */
+/**
+ * The message of each refusal of a joining fleet [V]; the server and the
+ * fleet form say the same. `earliest` words the earliest start of a fleet
+ * that would be there too early (#466, 7b).
+ */
 export const joinMessage = (
   error: JoinError,
-  limits: Pick<UnionLimits, 'fleets' | 'players' | 'delay' | 'cutoff'>,
+  limits: Pick<UnionLimits, 'fleets' | 'players' | 'cutoff'>,
+  earliest = '',
 ): string =>
   ({
     closed: 'Der Angriffsverband ist schon angekommen.',
     cutoff: `In den letzten ${limits.cutoff} Minuten vor der Ankunft tritt niemand mehr bei.`,
-    delay: `Deine Flotte käme zu spät: Sie würde den Angriffsverband um mehr als ${limits.delay} % der Restflugzeit verzögern.`,
+    early: `Deine Flotte wäre selbst mit 10 % zu früh da. Schicke sie frühestens ${earliest} los.`,
+    late: 'Deine Flotte erreicht das Ziel selbst mit 100 % nicht bis zur Ankunft des Verbands.',
     fleets: `Am Angriffsverband nehmen bereits ${limits.fleets} Flotten teil.`,
     players: `Am Angriffsverband nehmen bereits ${limits.players} Spieler teil.`,
     notInvited: 'Du bist nicht zu diesem Angriffsverband eingeladen.',
@@ -177,32 +197,20 @@ export function inviteLimitError(
     : undefined;
 }
 
-/** What a joining fleet makes of the arrival of the union. */
-export type Timing = { arr: number } | { error: 'closed' | 'cutoff' | 'delay' };
-
 /**
- * The arrival of the union once a fleet with the flight time `flight` joins
- * at `now` (okf/features/holding-acs.md, classic and the owner's decisions):
- * a union that has arrived is closed; within the last `cutoff` minutes
- * nobody joins (the boundary counts as inside [V]); a fleet that is there in
- * time waits and arrives with the others; a fleet that would arrive later
- * delays the union, by at most `delay` percent of the flight time that is
- * left, else it is refused.
+ * Whether a fleet may still join at `now` a union that arrives at `arr`
+ * (#466): a union that has arrived is closed; within the last `cutoff`
+ * minutes nobody joins (the boundary counts as inside [V]). The speed that
+ * brings the fleet there at `arr` is `unionFlight`'s.
  */
-export function joinTiming(x: {
+export function joinWindow(x: {
   now: number;
   arr: number;
-  flight: number;
-  limits: Pick<UnionLimits, 'delay' | 'cutoff'>;
-}): Timing {
+  limits: Pick<UnionLimits, 'cutoff'>;
+}): 'closed' | 'cutoff' | undefined {
   const left = x.arr - x.now;
-  if (left <= 0) return { error: 'closed' };
-  if (left <= x.limits.cutoff * MINUTE_MS) return { error: 'cutoff' };
-  // The union never arrives earlier than it did; a later fleet delays it.
-  const arr = Math.max(x.arr, x.now + x.flight);
-  return (arr - x.arr) * 100 <= x.limits.delay * left
-    ? { arr }
-    : { error: 'delay' };
+  if (left <= 0) return 'closed';
+  return left <= x.limits.cutoff * MINUTE_MS ? 'cutoff' : undefined;
 }
 
 /** The slowest and the fastest speed of a fleet, in tenths (10 % and 100 %). */
@@ -240,12 +248,6 @@ export function unionFlight(x: {
   const pct = drive / ((left * x.universe.speed) / 1000 - 10);
   return { pct: Math.min(FASTEST, Math.max(SLOWEST, pct)) };
 }
-
-/** The fleet with the arrival and the return moved by `ms`: what a delay does to the fleets already in the union. */
-export const delayed = (
-  f: Pick<Fleet, 'arr' | 'ret'>,
-  ms: number,
-): Pick<Fleet, 'arr' | 'ret'> => ({ arr: f.arr + ms, ret: f.ret + ms });
 
 /**
  * The loot of a won battle split between the fleets of the union by their

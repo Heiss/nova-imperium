@@ -26,11 +26,14 @@ export interface Unions {
   get(id: string): Union | null;
   /** Saves a union, a new one or one whose leading fleet changes. */
   save(u: Union): void;
+  /** The IDs of the unions `uid` leads, by arrival. */
+  ledBy(uid: string): string[];
   /** Deletes a union that is over, with its invitations. */
   delete(id: string): void;
   /**
-   * Deletes the unions whose arrival is at or before `now`, with their
-   * invitations: a union no fleet reached ends silently (#466 [V]).
+   * Deletes the unions whose arrival is at or before `now` and that have no
+   * fleet out any more, with their invitations: a union no fleet reached
+   * ends silently (#466 [V]).
    */
   purge(now: number): number;
 }
@@ -76,6 +79,13 @@ class SqliteUnions implements Unions {
       );
   }
 
+  ledBy(uid: string): string[] {
+    const rows = this.db
+      .prepare('SELECT id FROM attack_unions WHERE leader = ? ORDER BY arr, id')
+      .all(uid) as Row[];
+    return rows.map((r) => r.id as string);
+  }
+
   delete(id: string): void {
     this.db
       .prepare('DELETE FROM attack_union_invites WHERE union_id = ?')
@@ -84,13 +94,15 @@ class SqliteUnions implements Unions {
   }
 
   purge(now: number): number {
+    // A union whose fleets are still out arrives with them first (the tick).
+    const over = `SELECT id FROM attack_unions WHERE arr <= ? AND NOT EXISTS (
+      SELECT 1 FROM fleets WHERE fleets.union_id = attack_unions.id AND fleets.state = 'out')`;
     this.db
-      .prepare(
-        'DELETE FROM attack_union_invites WHERE union_id IN (SELECT id FROM attack_unions WHERE arr <= ?)',
-      )
+      .prepare(`DELETE FROM attack_union_invites WHERE union_id IN (${over})`)
       .run(now);
-    return this.db.prepare('DELETE FROM attack_unions WHERE arr <= ?').run(now)
-      .changes;
+    return this.db
+      .prepare(`DELETE FROM attack_unions WHERE id IN (${over})`)
+      .run(now).changes;
   }
 }
 

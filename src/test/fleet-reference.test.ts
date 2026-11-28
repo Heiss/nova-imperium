@@ -92,8 +92,10 @@ function unionBox(v: V): string {
 <div class="dim">${esc(u.counts)}</div><div>Flotten: ${esc(u.fleets)}</div>${invited}${invite}
 <div class="mt"><button class="small" data-act="joinUnion" data-id="${id}">Beitreten</button></div></div>`;
   });
+  // The words of the hint changed with #466 (the fixed arrival); the rest of
+  // the box is as frozen. The switch of the round is on in every state here.
   const hint = rows.length
-    ? '<div class="dim mt">Ruft der Anführer seine Flotte zurück, kehren alle Flotten des Verbands um; ein Beteiligter ruft nur seine eigene zurück.</div>'
+    ? '<div class="dim mt">Alle Flotten des Verbands kommen zur geplanten Ankunft an; wer beitritt, startet sofort mit der Geschwindigkeit, die ihn genau dann ans Ziel bringt. Ruft der Anführer seine Flotte zurück, kehren alle Flotten des Verbands um; ein Beteiligter ruft nur seine eigene zurück.</div>'
     : '';
   return box('Verbandsangriff', list.join('') + open + hint);
 }

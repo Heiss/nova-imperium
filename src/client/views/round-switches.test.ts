@@ -44,6 +44,10 @@ const TURNS_OFF: Readonly<
     views: [],
     none: 'hides the mission Wache stellen in the fleet form (#440): a mission, no view',
   },
+  unionOn: {
+    views: [],
+    none: 'hides the box „Verbandsangriff“ and the choice of a union in the fleet view and refuses opening, inviting and joining (#466): parts of a view, no view',
+  },
   colonyResearch: {
     views: [],
     none: 'the research Kolonialverwaltung, a catalog entry the research list shows only in a round with it (#237); catalog entries are #375',

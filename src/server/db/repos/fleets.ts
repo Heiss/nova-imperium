@@ -22,8 +22,9 @@ export interface Fleets {
   /** The fleets flying to a place or holding there (#55), by departure. */
   at(place: string): Fleet[];
   /**
-   * The fleets of an attack union (#225) that are on their way out, the
-   * leader's first, then by departure: one that turned back is no part of it.
+   * The fleets of an attack union (#225) that are on their way out, by
+   * departure: one that turned back is no part of it. The server puts the
+   * leading one first (#466).
    */
   ofUnion(union: string): Fleet[];
   /** The players invited to an attack union (#225), by invitation. */
@@ -36,8 +37,6 @@ export interface Fleets {
   dropInvites(union: string): void;
   /** Puts a fleet into an attack union, or takes it out with `null` (#225). */
   setUnion(id: string, union: string | null): void;
-  /** Moves the arrival and the return of every fleet of an attack union by `ms` (#225). */
-  delayUnion(union: string, ms: number): void;
   save(f: Fleet): void;
   delete(id: string): void;
   deleteAll(): void;
@@ -173,7 +172,7 @@ class SqliteFleets implements Fleets {
   ofUnion(union: string): Fleet[] {
     const rows = this.db
       .prepare(
-        "SELECT * FROM fleets WHERE union_id = ? AND state = 'out' ORDER BY id != union_id, dep, id",
+        "SELECT * FROM fleets WHERE union_id = ? AND state = 'out' ORDER BY dep, id",
       )
       .all(union) as Row[];
     return rows.map((r) => this.fleetOf(r)!);
@@ -215,14 +214,6 @@ class SqliteFleets implements Fleets {
     this.db
       .prepare('UPDATE fleets SET union_id = ? WHERE id = ?')
       .run(union, id);
-  }
-
-  delayUnion(union: string, ms: number): void {
-    this.db
-      .prepare(
-        'UPDATE fleets SET arr = arr + ?, ret = ret + ? WHERE union_id = ?',
-      )
-      .run(ms, ms, union);
   }
 
   save(f: Fleet): void {

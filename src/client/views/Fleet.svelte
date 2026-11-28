@@ -64,11 +64,11 @@
                 >Einladen</button
               >
             </div>{/if}
-          <div class="mt">
-            <button class="small" data-act="joinUnion" data-id={union.id}
-              >Beitreten</button
-            >
-          </div>
+          {#if union.joins}<div class="mt">
+              <button class="small" data-act="joinUnion" data-id={union.id}
+                >Beitreten</button
+              >
+            </div>{/if}
         </div>
       {/each}
       {#if page.unions.open.length}

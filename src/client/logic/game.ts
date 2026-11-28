@@ -158,20 +158,26 @@ export const arrivalLine = (
   return `${dt(now + pv.ms + stay)} / ${missionRules(mission)?.returns === false ? '–' : dt(now + 2 * pv.ms + pv.hold + stay)}`;
 };
 
+/**
+ * The preview of the form. A fleet that joins an attack union (#466) flies
+ * the time left until the union's arrival, at the speed that brings it
+ * there, and its fuel is that of the speed: `join`, from logic/union.ts.
+ */
 export function fleetPreview(
   p: Planet,
   r: ResearchState,
   f: FleetForm,
   u: Universe,
+  join?: { pct: number; ms: number },
 ): FleetPreview | null {
   if (!countUnits(f.ships)) return null;
   const dist = distance(p, f.to);
-  const fuel = formFuel(f, dist);
+  const fuel = formFuel(join ? { ...f, pct: join.pct } : f, dist);
   const cap = capacity(f.ships);
   const load = f.cargo.m + f.cargo.c + f.cargo.d;
   return {
     dist,
-    ms: flightMs(dist, fleetSpeed(f.ships, r), f.pct, u),
+    ms: join ? join.ms : flightMs(dist, fleetSpeed(f.ships, r), f.pct, u),
     hold: holdsFor(f) ? (f.hold ?? 0) * HOUR_MS : 0,
     stay: stayMs(f, u),
     fuel,

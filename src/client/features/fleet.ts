@@ -24,7 +24,8 @@ import { type FleetChoice, fleetChoice } from '../logic/fleet-choice.ts';
 import { fleetForm } from '../logic/fleet-form.svelte.ts';
 import { targetInfo } from '../logic/fleet-target.ts';
 import { client } from '../logic/state.svelte.ts';
-import { unionArrivalLine } from '../logic/union.ts';
+import { type UnionJoin, unionArrivalLine, unionJoin } from '../logic/union.ts';
+import { distance, fleetSpeed } from '../../core/flight.ts';
 import type { ClientCtx, ClientFeature, Handler } from './contract.ts';
 import { askOne } from '../../core/cargo-fill.ts';
 
@@ -145,6 +146,26 @@ function showIntent(): void {
     fleetForm.cargo[k] = String(c[k]);
 }
 
+/**
+ * How the fleet of the form joins its attack union: at the speed that
+ * brings it there at the union's arrival (#466); null for a fleet of no
+ * union.
+ */
+function formJoin(f: FleetForm): UnionJoin | null {
+  const { game, view } = client;
+  if (!f.union || !game || !view) return null;
+  return unionJoin(game, f.union, client.now(), {
+    dist: distance(view.P, f.to),
+    speed: fleetSpeed(f.ships, view.R),
+  });
+}
+
+/** The speed and flight of a join the preview takes; none for a refused one. */
+const flying = (
+  join: UnionJoin | null,
+): Extract<UnionJoin, { pct: number }> | undefined =>
+  join && 'pct' in join ? join : undefined;
+
 function fleetCalc(): void {
   if (!$('#t_g') || !client.view || !client.game) return;
   settleKind();
@@ -153,7 +174,14 @@ function fleetCalc(): void {
   showIntent();
   const f = readFleetForm();
   $('#t_info')!.innerHTML = targetInfo(client.game, f);
-  const pv = fleetPreview(client.view.P, client.view.R, f, client.game.cfg);
+  const join = formJoin(f);
+  const pv = fleetPreview(
+    client.view.P,
+    client.view.R,
+    f,
+    client.game.cfg,
+    flying(join),
+  );
   const set = (id: string, html: string): void =>
     void ($(`#${id}`)!.innerHTML = html);
   if (!pv)
@@ -163,11 +191,7 @@ function fleetCalc(): void {
   const now = client.now();
   set('i_dist', fmt(pv.dist));
   set('i_dur', dur(pv.ms));
-  set(
-    'i_arr',
-    (f.union && unionArrivalLine(client.game, f.union, now, pv.ms)) ||
-      arrivalLine(f.mission, now, pv),
-  );
+  set('i_arr', join ? unionArrivalLine(join) : arrivalLine(f.mission, now, pv));
   set(
     'i_fuel',
     `<span class="${pv.fuelShort ? 'bad' : ''}">${fmt(pv.fuel)}</span> Promethium`,

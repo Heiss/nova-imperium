@@ -7,11 +7,13 @@ import type { RoundRules } from '../../core/round.ts';
 import {
   foundError,
   joinMessage,
-  joinTiming,
+  joinWindow,
+  unionFlight,
   type UnionLimits,
 } from '../../core/union.ts';
+import type { Universe } from '../../core/types.ts';
 import type { V } from '../views/common.ts';
-import { coords, dt, dur } from './format.ts';
+import { coords, dt } from './format.ts';
 import { nameOf } from './game.ts';
 import type { ClientFleet, GameState, UnionState } from './types.ts';
 
@@ -19,7 +21,6 @@ import type { ClientFleet, GameState, UnionState } from './types.ts';
 export const limitsOf = (round: RoundRules): UnionLimits => ({
   fleets: round.unionFleets,
   players: round.unionPlayers,
-  delay: round.unionDelay,
   cutoff: round.unionCutoff,
 });
 
@@ -137,27 +138,53 @@ export const joinChoices = (v: Pick<V, 's'>): JoinChoice[] =>
     moon: u.to.startsWith('m'),
   }));
 
+/** How a fleet of the form joins a union: its speed, its flight and the arrival X, or the refusal. */
+export type UnionJoin =
+  { pct: number; ms: number; arr: number } | { refusal: string };
+
 /**
- * „Ankunft / Rückkehr“ of a fleet that joins the union `id` with a flight of
- * `ms` (the rules of the arrival, src/core/union.ts): it arrives with the
- * union, or delays it, or is refused; null when the union is not known.
+ * How a fleet that starts at `now`, flying `dist` at the speed `speed`,
+ * joins the union `id` (the rules of the server, src/core/union.ts, #466):
+ * the cut-off, then the speed that brings it there at X; null when the
+ * union is not known.
  */
-export function unionArrivalLine(
-  s: Pick<GameState, 'unions' | 'round'>,
+export function unionJoin(
+  s: Pick<GameState, 'unions' | 'round'> & { cfg: Universe },
   id: string,
   now: number,
-  ms: number,
-): string | null {
+  fleet: { dist: number; speed: number },
+): UnionJoin | null {
   const union = unionsOf(s).find((u) => u.id === id);
   if (!union) return null;
   const limits = limitsOf(s.round);
-  const timing = joinTiming({ now, arr: union.arr, flight: ms, limits });
-  if ('error' in timing)
-    return `<span class="bad">${joinMessage(timing.error, limits)}</span>`;
-  const delay = timing.arr - union.arr;
-  const note =
-    delay > 0
-      ? ` <span class="dim">(verzögert den Verband um ${dur(delay)})</span>`
-      : '';
-  return `${dt(timing.arr)} / ${dt(timing.arr + ms)}${note}`;
+  const closed = joinWindow({ now, arr: union.arr, limits });
+  if (closed) return { refusal: joinMessage(closed, limits) };
+  const flight = unionFlight({
+    ...fleet,
+    universe: s.cfg,
+    now,
+    arr: union.arr,
+  });
+  if ('error' in flight)
+    return {
+      refusal: joinMessage(
+        flight.error,
+        limits,
+        flight.error === 'early' ? `am ${dt(flight.earliest)}` : '',
+      ),
+    };
+  return { pct: flight.pct, ms: union.arr - now, arr: union.arr };
 }
+
+/** The speed of a joining fleet as the form shows it: „37,5 %“. */
+export const unionSpeed = (pct: number): string =>
+  `${(pct * 10).toLocaleString('de-DE', { maximumFractionDigits: 1 })} %`;
+
+/**
+ * „Ankunft / Rückkehr“ of a fleet that joins a union: X and the way back
+ * after a flight as long, with the speed it flies at; the refusal in red.
+ */
+export const unionArrivalLine = (join: UnionJoin): string =>
+  'refusal' in join
+    ? `<span class="bad">${join.refusal}</span>`
+    : `${dt(join.arr)} / ${dt(join.arr + join.ms)} <span class="dim">(Verband: Geschwindigkeit ${unionSpeed(join.pct)})</span>`;
