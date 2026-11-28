@@ -25,6 +25,7 @@ import { ownLabs, researchOf } from './actions.ts';
 import { inactivities, planetActivities } from './activity.ts';
 import { type Ctx, universe } from './context.ts';
 import { mainPlanetOf } from './main-planet.ts';
+import { heldByOthers } from './holding.ts';
 import { isProtected } from './points.ts';
 import { roundRules } from './round.ts';
 import {
@@ -112,23 +113,28 @@ function galaxyOf(ctx: Ctx, limits: ActivityLimits) {
  * The owners of the shown system that the noob protection covers against
  * `me` (151a): the rule of an attack or a missile (points.ts `isProtected`
  * with the exact points of the players concerned), computed for them only.
+ * Their places where a fleet of a third player (neither the owner nor `me`)
+ * holds are `lapsed` (#440): the protection is gone there for an attack and
+ * an espionage of `me`.
  */
 export function protectedIn(
   ctx: Ctx,
   me: string,
   at: ShownSystem,
 ): ShownProtection {
-  const owners = [
-    ...new Set(
-      ctx.planets
-        .all()
-        .filter((x) => x.g === at.g && x.s === at.s && x.owner !== me)
-        .map((x) => x.owner),
-    ),
-  ];
+  const places = ctx.planets
+    .all()
+    .filter((x) => x.g === at.g && x.s === at.s && x.owner !== me);
+  const owners = [...new Set(places.map((x) => x.owner))];
   if (owners.length === 0) return { ...at, owners };
   const pts = exactPoints(ctx, [me, ...owners]);
-  return { ...at, owners: owners.filter((o) => isProtected(me, o, pts)) };
+  const covered = owners.filter((o) => isProtected(me, o, pts));
+  const lapsed = places
+    .filter(
+      (x) => covered.includes(x.owner) && heldByOthers(ctx, x.id, x.owner, me),
+    )
+    .map((x) => x.id);
+  return { ...at, owners: covered, ...(lapsed.length > 0 && { lapsed }) };
 }
 
 /** The player's own account: research, options and the push kinds that are off (#192). */

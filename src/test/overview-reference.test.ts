@@ -272,8 +272,12 @@ function view(x: Parts): V {
     // A foreign fleet always carries its ships here: one without them
     // shows „Zusammensetzung unbekannt“ (#228), which the frozen view did
     // not know (src/client/logic/overview.test.ts covers it).
+    // A foreign Wache stellen on its way shows under „Gehaltene Flotten“
+    // since #440, which the frozen view did not know either
+    // (src/client/logic/overview.test.ts covers it): here it flies home.
     fleets: x.fleets.map((f, i) => ({
       ...f,
+      ...(f.owner !== 'u1' && f.mission === 'hold' && { state: 'back' }),
       id: `f${i}`,
       to: '',
       ships: (f.owner === 'u1' ? f.ships : (f.ships ?? {})) as Levels,

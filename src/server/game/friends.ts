@@ -14,6 +14,7 @@ import {
 import type { User } from '../db/repos/players.ts';
 import type { Handler } from './actions.ts';
 import { type Ctx, fail, str } from './context.ts';
+import { recheckHolds } from './holding.ts';
 import type { ServerFeature, StatePart } from './feature.ts';
 import type { StateShape } from '../../core/state/friends.ts';
 
@@ -79,6 +80,8 @@ const cancelFriend: Handler<'cancelFriend'> = (ctx, u, d) => {
 const removeFriend: Handler<'removeFriend'> = (ctx, u, d) => {
   const other = check(ctx, u, 'remove', byId(ctx, d.uid));
   ctx.friends.remove(u.id, other.id);
+  // A bond that ends may end a hold too (#440, 229a).
+  recheckHolds(ctx);
   return 'Freundschaft beendet.';
 };
 

@@ -5,7 +5,7 @@
 // (owner, 2026-11-16, Q2). The server, the fleet form and the overview ask
 // these rules (patterns, section 7). The alliance depot comes later (D1).
 import type { RoundSetting } from './round.ts';
-import type { Fleet, Levels, Resources } from './types.ts';
+import type { Fleet, Levels, Mission } from './types.ts';
 
 /** One hour in milliseconds; the holding time runs in real time [V]. */
 export const HOUR_MS = 3_600_000;
@@ -101,7 +101,43 @@ export const roundSettings = [
     refusal: `Bitte für „${HELD_SPY_LABEL}“ eine ganze Zahl von ${HELD_SPY.min} bis ${HELD_SPY.max} angeben.`,
     live: true,
   },
+  {
+    // The switch of the feature (#440, owner, 2026-11-27; the rule of
+    // okf/ops/feature-switches.md): a number of 1 („An“) and 0 („Aus“),
+    // because a switch of the registry cannot be live, as `roundMarketOn`.
+    // A universe without the key reads the default, „An“ (261a). Last in
+    // the list, so the places of the two before stay (the Lexicanum reads them).
+    kind: 'number',
+    key: 'roundHoldOn',
+    name: 'holdOn',
+    label: 'Wache stellen',
+    order: 105,
+    min: 0,
+    max: 1,
+    def: 1,
+    choices: [
+      { value: 1, label: 'An' },
+      { value: 0, label: 'Aus' },
+    ],
+    live: true,
+  },
 ] as const satisfies readonly RoundSetting[];
+
+/**
+ * Whether „Wache stellen“ is on in the round (#440): „An“ by default (261a),
+ * so a round without the value, such as a state of a running universe before
+ * the update, reads „An“; only an explicit 0 is off, as the marketplace
+ * reads a missing switch (#451).
+ */
+export const holdOpen = (round: { holdOn?: number }): boolean =>
+  round.holdOn !== 0;
+
+/**
+ * The missions for which the noob protection lapses where a fleet of a third
+ * player holds (#440, owner, 2026-11-27, 281b): the attack and the
+ * espionage; the Mondbruch and the missiles keep it.
+ */
+export const LAPSES_AT_HOLD: readonly Mission[] = ['attack', 'spy'];
 
 /** Whether a spy with Auspex-Lehre `spy` sees the held fleets apart. */
 export const showsHeldApart = (spy: number, from: number): boolean =>
@@ -152,6 +188,21 @@ export const homeAt = (
   t: number,
 ): number => Math.min(t, holdEnd(f)) + (f.arr - f.dep);
 
+/**
+ * How a hold turns home at `at`, from where it is (#440): one that holds, or
+ * has just arrived (4a), flies home as at the end of its holding time,
+ * without the rest of it (`homeAt`); one on its way turns back like a recall
+ * (231a), as long as it has flown. The fuel of the unused hours is not
+ * refunded, as after a recall.
+ */
+export const turnHomeAt = (
+  f: Pick<Fleet, 'state' | 'dep' | 'arr' | 'hold'>,
+  at: number,
+): { ret: number; recalled?: true } =>
+  f.state === 'hold' || at >= f.arr
+    ? { ret: homeAt(f, at) }
+    : { ret: at + (at - f.dep), recalled: true };
+
 /** When the next event of a fleet is due: its arrival, the end of holding or its return. */
 export function dueAt(
   f: Pick<Fleet, 'state' | 'arr' | 'ret' | 'hold'>,
@@ -159,14 +210,3 @@ export function dueAt(
   if (f.state === 'out') return f.arr;
   return f.state === 'hold' ? holdEnd(f) : f.ret;
 }
-
-/** The sum of the cargo of several fleets. */
-export const cargoOf = (fleets: readonly Pick<Fleet, 'cargo'>[]): Resources =>
-  fleets.reduce(
-    (sum, f) => ({
-      m: sum.m + f.cargo.m,
-      c: sum.c + f.cargo.c,
-      d: sum.d + f.cargo.d,
-    }),
-    { m: 0, c: 0, d: 0 },
-  );
