@@ -364,17 +364,29 @@ function rowSections(
       last = { heading: h, id: `round-heading-${out.length}`, rows: [] };
       out.push(last);
     }
-    // A legend that repeats the heading of its group goes; the heading names
-    // the fieldset instead (owner, 2026-11-22). A group row always has a
-    // legend, so a row without a heading keeps it.
-    last.rows.push(
-      row.kind === 'group' && row.legend === h
-        ? { ...row, legend: null, labelledBy: last.id! }
-        : row,
-    );
+    last.rows.push(UNDER_HEADING[row.kind](row as never, h, last.id!));
   }
   return out;
 }
+
+type Row<K extends RoundRow['kind']> = Extract<RoundRow, { kind: K }>;
+
+/**
+ * A row under its heading, by its kind: a legend that repeats the heading of
+ * its group goes, and the heading names the fieldset instead (owner,
+ * 2026-11-22); a field stays as it is.
+ */
+const UNDER_HEADING: {
+  [K in RoundRow['kind']]: (
+    row: Row<K>,
+    heading: string | null,
+    id: string,
+  ) => RoundRow;
+} = {
+  field: (row) => row,
+  group: (row, heading, id) =>
+    row.legend === heading ? { ...row, legend: null, labelledBy: id } : row,
+};
 
 /** What the dialog „Endzeit einläuten“ shows (#161): the numbers of the gift and the flight time. */
 export const endzeitDialogPage = (minutes: number) => ({

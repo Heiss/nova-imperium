@@ -72,6 +72,11 @@ describe('a hold that turns home (#440, 231a, 4a)', () => {
     expect(turnHomeAt({ ...f, state: 'hold' }, 20_000)).toEqual({
       ret: 11_600 + 600,
     });
+    // The state decides, not the time: a fleet that holds is never recalled,
+    // even at a time before its arrival.
+    expect(turnHomeAt({ ...f, state: 'hold' }, 1200)).toEqual({
+      ret: 1200 + 600,
+    });
   });
   it('flies home from its arrival when it turns there', () => {
     expect(turnHomeAt({ ...f, state: 'out' }, 1600)).toEqual({
