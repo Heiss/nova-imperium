@@ -58,6 +58,7 @@ describe('Web Push on this device', () => {
 describe('the checkbox of a kind', () => {
   const box = (over: object) => ({
     target: {
+      type: 'checkbox',
       dataset: { chg: 'push', k: 'buildings' },
       checked: false,
       ...over,

@@ -24,7 +24,7 @@ afterEach(() => {
 });
 
 const box = (checked: boolean, chg = 'holdOption') => ({
-  target: { dataset: { chg }, checked },
+  target: { type: 'checkbox', dataset: { chg }, checked },
 });
 
 describe('„Wegschicken“ (#440)', () => {

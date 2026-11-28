@@ -1,6 +1,7 @@
 // Web Push in „Hilfe & Optionen“ (issue #192): switching it on and off for
 // this device, and the checkbox of each kind, which saves at once. The boxes
 // are in logic/push-options.ts, the browser calls in ../push.ts.
+import { setField } from '../dom.ts';
 import { pushSaver, shownPushOff } from '../logic/push-options.ts';
 import { client } from '../logic/state.svelte.ts';
 import { disablePush, enablePush } from '../push.ts';
@@ -43,7 +44,7 @@ export const clientFeature = {
           const off = client.game
             ? shownPushOff(client.ui, client.game.me.pushOff)
             : undefined;
-          if (off) box.checked = !off.includes(topic!);
+          if (off) setField(box, String(!off.includes(topic!)));
         });
     });
   },

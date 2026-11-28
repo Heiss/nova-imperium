@@ -2,6 +2,7 @@
 // Flotten“ sends a hold away, and the checkbox „Keine Wachen annehmen“ of
 // „Optionen“ saves at once.
 import { holdSaver, shownRefused } from '../logic/options/holding.ts';
+import { setField } from '../dom.ts';
 import { client } from '../logic/state.svelte.ts';
 import type { ClientFeature } from './contract.ts';
 
@@ -24,7 +25,8 @@ export const clientFeature = {
         )
         .finally(() => {
           ctx.render();
-          if (client.game) el.checked = shownRefused(client.game, client.ui);
+          if (client.game)
+            setField(el, String(shownRefused(client.game, client.ui)));
         });
     });
   },
