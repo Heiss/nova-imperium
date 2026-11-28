@@ -15,9 +15,15 @@ set -euo pipefail
   sudo apt-get install -y -q --no-install-recommends qemu-user-static \
     || sudo apt-get install -y -q --no-install-recommends qemu-user
 } >&2
-qemu=$(command -v qemu-x86_64-static || command -v qemu-x86_64)
+if ! qemu=$(command -v qemu-x86_64-static || command -v qemu-x86_64); then
+  echo "No QEMU binary for x86_64 after installing qemu-user-static or qemu-user." >&2
+  exit 1
+fi
+# Matched in the shell, not by a pipe into grep -q: under pipefail its early
+# exit could fail the pipe.
 linked=$(ldd "$qemu" 2>&1 || true)
-if ! printf '%s\n' "$linked" | grep -q -E 'statically linked|not a dynamic executable'; then
+static='statically linked|not a dynamic executable'
+if [[ ! "$linked" =~ $static ]]; then
   echo "$qemu is not a static binary: $linked" >&2
   exit 1
 fi

@@ -6,6 +6,7 @@
 import { spawnSync } from 'node:child_process';
 import {
   chmodSync,
+  symlinkSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -17,6 +18,10 @@ import { join, resolve } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 
 const SCRIPT = resolve('scripts/release-noavx.sh');
+/** bash itself, so a run with only the stubs on PATH still finds it. */
+const bash = spawnSync('bash', ['-c', 'command -v bash'], {
+  encoding: 'utf8',
+}).stdout.trim();
 const RELEASE = readFileSync('.github/workflows/release.yml', 'utf8');
 const root = mkdtempSync(join(tmpdir(), 'release-noavx-'));
 afterAll(() => rmSync(root, { recursive: true, force: true }));
@@ -33,15 +38,29 @@ interface Stubs {
   cmdline?: string;
   /** Whether the package qemu-user-static cannot be installed. */
   noQemuUserStatic?: boolean;
+  /** What docker inspect says of the container running; true by default. */
+  running?: string;
+  /** No QEMU binary at all on PATH, only the stubs and bash. */
+  noQemu?: boolean;
 }
 
-/** Runs the script with the stubs; its exit code, its output and the calls. */
-function run(env: Record<string, string>, stubs: Stubs = {}, script = SCRIPT) {
-  const dir = mkdtempSync(join(root, 'run-'));
+/** The default answers of the stubs. */
+const DEFAULTS = {
+  ldd: 'statically linked',
+  lddCode: 0,
+  healthyAt: 1,
+  cmdline:
+    '/usr/local/bin/qemu-x86_64-static -cpu Denverton,-xsavec /usr/local/bin/node src/server/main.ts',
+  running: 'true',
+};
+
+/** Writes the stubs into <dir>/bin; their calls go to <dir>/calls. */
+function writeStubs(dir: string, stubs: Stubs): { bin: string; log: string } {
   const bin = join(dir, 'bin');
   mkdirSync(bin);
   const log = join(dir, 'calls');
   writeFileSync(log, '');
+  const s = { ...DEFAULTS, ...stubs };
   const stub = (name: string, body: string) => {
     writeFileSync(
       join(bin, name),
@@ -52,28 +71,33 @@ function run(env: Record<string, string>, stubs: Stubs = {}, script = SCRIPT) {
   stub('sudo', '"$@"');
   stub(
     'apt-get',
-    stubs.noQemuUserStatic
+    s.noQemuUserStatic
       ? 'case "$*" in *" qemu-user-static") exit 100 ;; esac'
       : 'exit 0',
   );
-  stub('qemu-x86_64-static', 'exit 0');
-  stub(
-    'ldd',
-    `echo "${stubs.ldd ?? 'statically linked'}"; exit ${stubs.lddCode ?? 0}`,
-  );
+  if (s.noQemu) symlinkSync(bash, join(bin, 'bash'));
+  else stub('qemu-x86_64-static', 'exit 0');
+  stub('ldd', `echo "${s.ldd}"; exit ${s.lddCode}`);
   const tries = join(dir, 'tries');
   writeFileSync(tries, '0');
   stub(
     'curl',
-    `n=$(( $(cat "${tries}") + 1 )); echo "$n" > "${tries}"; [ ${stubs.healthyAt ?? 1} -gt 0 ] && [ "$n" -ge ${stubs.healthyAt ?? 1} ]`,
+    `n=$(( $(cat "${tries}") + 1 )); echo "$n" > "${tries}"; [ ${s.healthyAt} -gt 0 ] && [ "$n" -ge ${s.healthyAt} ]`,
   );
   stub('sleep', 'exit 0');
   stub(
     'docker',
-    `case "$1" in exec) echo "${stubs.cmdline ?? '/usr/local/bin/qemu-x86_64-static -cpu Denverton,-xsavec /usr/local/bin/node src/server/main.ts'}" ;; logs) echo "Illegal instruction" ;; esac`,
+    `case "$1" in exec) echo "${s.cmdline}" ;; inspect) echo "${s.running}" ;; logs) echo "Illegal instruction" ;; esac`,
   );
-  const result = spawnSync('bash', ['--noprofile', '--norc', script], {
-    env: { PATH: `${bin}:${process.env.PATH}`, TRIES: '3', ...env },
+  return { bin, log };
+}
+
+/** Runs the script with the stubs; its exit code, its output and the calls. */
+function run(env: Record<string, string>, stubs: Stubs = {}, script = SCRIPT) {
+  const { bin, log } = writeStubs(mkdtempSync(join(root, 'run-')), stubs);
+  const path = stubs.noQemu ? bin : `${bin}:${process.env.PATH}`;
+  const result = spawnSync(bash, ['--noprofile', '--norc', script], {
+    env: { PATH: path, TRIES: '3', ...env },
     encoding: 'utf8',
   });
   const code = result.status ?? 1;
@@ -95,7 +119,7 @@ describe('the release image on a CPU without AVX (#456)', () => {
     const docker = r.calls.filter((c) => c.startsWith('docker '));
     expect(docker[0]).toBe('docker volume create nova-noavx-data');
     expect(docker[1]).toBe(
-      `docker run --detach --name nova-noavx --platform linux/amd64 --read-only --tmpfs /tmp -v nova-noavx-data:/data -v ${r.bin}/qemu-x86_64-static:/usr/local/bin/qemu-x86_64-static:ro -e NOVA_PUBLIC_URL=http://127.0.0.1:8080 -e NOVA_EMAIL_LOGIN_CODES=0 -p 127.0.0.1:8080:8080 --entrypoint /usr/local/bin/qemu-x86_64-static ghcr.io/heiss/nova-imperium@${DIGEST} -cpu Denverton,-xsavec /usr/local/bin/node src/server/main.ts`,
+      `docker run --detach --name nova-noavx --platform linux/amd64 --read-only --tmpfs /tmp --cap-drop ALL --security-opt no-new-privileges:true -v nova-noavx-data:/data -v ${r.bin}/qemu-x86_64-static:/usr/local/bin/qemu-x86_64-static:ro -e NOVA_PUBLIC_URL=http://127.0.0.1:8080 -e NOVA_EMAIL_LOGIN_CODES=0 -p 127.0.0.1:8080:8080 --entrypoint /usr/local/bin/qemu-x86_64-static ghcr.io/heiss/nova-imperium@${DIGEST} -cpu Denverton,-xsavec /usr/local/bin/node src/server/main.ts`,
     );
     expect(r.calls).toContain('curl -fsS http://127.0.0.1:8080/healthz');
     expect(docker.at(-1)).toMatch(/^docker exec nova-noavx sh -c /);
@@ -126,10 +150,66 @@ describe('the release image on a CPU without AVX (#456)', () => {
     );
   });
 
-  it('fails when the app does not run under QEMU', () => {
+  it('stops at once with the log when the container stopped, without waiting out the tries', () => {
+    const r = run({ ...ENV, TRIES: '5' }, { healthyAt: 0, running: 'false' });
+    expect(r.code).toBe(1);
+    expect(r.calls.filter((c) => c.startsWith('curl '))).toHaveLength(1);
+    expect(r.calls).not.toContain('sleep 2');
+    expect(r.calls).toContain(
+      'docker inspect -f {{.State.Running}} nova-noavx',
+    );
+    expect(r.calls).toContain('docker logs --tail 60 nova-noavx');
+    expect(r.out).toContain('Illegal instruction');
+    expect(r.out).toContain(
+      `::error::ghcr.io/heiss/nova-imperium@${DIGEST} stopped on a CPU without AVX.`,
+    );
+  });
+
+  it('fails when the app does not run under QEMU, with what PID 1 runs and the log', () => {
     const r = run(ENV, { cmdline: 'node src/server/main.ts' });
     expect(r.code).toBe(1);
+    expect(r.out).toContain('PID 1 runs: node src/server/main.ts');
+    expect(r.calls).toContain('docker logs --tail 60 nova-noavx');
     expect(r.out).toContain('did not run under QEMU.');
+  });
+
+  it('runs the app with the hardening of compose.yaml', () => {
+    const start = run(ENV).calls.find((c) => c.startsWith('docker run '))!;
+    const compose = readFileSync('compose.yaml', 'utf8');
+    expect(compose).toMatch(
+      /read_only: true\n\s+tmpfs:\n\s+- \/tmp\n\s+cap_drop: \[ALL\]\n\s+security_opt:\n\s+- no-new-privileges:true/,
+    );
+    for (const flag of [
+      ' --read-only ',
+      ' --tmpfs /tmp ',
+      ' --cap-drop ALL ',
+      ' --security-opt no-new-privileges:true ',
+    ])
+      expect(start).toContain(flag);
+  });
+
+  it('starts with the entrypoint and command of compose.noavx.yaml', () => {
+    const yaml = readFileSync('compose.noavx.yaml', 'utf8');
+    /** The quoted items of the flow list after <key>. */
+    const list = (key: string): string[] => {
+      const from = yaml.indexOf(`${key}:`);
+      const text = yaml.slice(from, yaml.indexOf(']', from));
+      return [...text.matchAll(/'([^']*)'/g)].map((m) => m[1]!);
+    };
+    const start = run(ENV).calls.find((c) => c.startsWith('docker run '))!;
+    const [, entrypoint, rest] = /--entrypoint (\S+) \S+@sha256:\S+ (.*)$/.exec(
+      start,
+    )!;
+    expect([entrypoint, ...rest!.split(' ')]).toEqual([
+      ...list('entrypoint'),
+      ...list('command'),
+    ]);
+    expect(list('entrypoint')).toHaveLength(4);
+  });
+
+  it('matches in the shell, not by a pipe into grep -q (pipefail)', () => {
+    for (const file of ['scripts/release-noavx.sh', 'scripts/static-qemu.sh'])
+      expect(readFileSync(file, 'utf8'), file).not.toMatch(/\|\s*grep -q/);
   });
 
   it('takes a static binary whichever way ldd says it, with its exit code', () => {
@@ -192,6 +272,15 @@ describe('the static QEMU binary, one rule for CI and the release (#449, #456)',
       expect(r.code, r.out).toBe(0);
       expect(r.stdout).toBe(`${r.bin}/qemu-x86_64-static\n`);
     }
+  });
+
+  it('says why when no QEMU binary is there after the installs', () => {
+    const r = run(ENV, { noQemu: true }, HELPER);
+    expect(r.code).toBe(1);
+    expect(r.stdout).toBe('');
+    expect(r.out).toContain(
+      'No QEMU binary for x86_64 after installing qemu-user-static or qemu-user.',
+    );
   });
 
   it('fails with the reason on stderr for a binary that is not static', () => {
