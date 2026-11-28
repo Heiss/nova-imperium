@@ -57,7 +57,7 @@
     "eslint": "^10.14.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-redos": "4.6.2",
-    "eslint-plugin-sonarjs": "4.2.2",
+    "eslint-plugin-sonarjs": "4.2.3",
     "fast-check": "^4.11.0",
     "globals": "^17.14.0",
     "jscpd": "5.4.3",
