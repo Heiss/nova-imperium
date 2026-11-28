@@ -8,8 +8,9 @@
 // N minutes“ is off by default (owner, 2026-11-17). The rules are pure; the
 // server asks them (src/server/game/union.ts), the browser reads the same
 // values from the round.
+import { flightMs } from './flight.ts';
 import type { RoundSetting } from './round.ts';
-import type { Fleet, Resources } from './types.ts';
+import type { Fleet, Resources, Universe } from './types.ts';
 
 /** One minute in milliseconds. */
 const MINUTE_MS = 60_000;
@@ -202,6 +203,42 @@ export function joinTiming(x: {
   return (arr - x.arr) * 100 <= x.limits.delay * left
     ? { arr }
     : { error: 'delay' };
+}
+
+/** The slowest and the fastest speed of a fleet, in tenths (10 % and 100 %). */
+export const SLOWEST = 1;
+export const FASTEST = 10;
+
+/** How a fleet that joins a union flies, or why it cannot make the arrival. */
+export type UnionFlight =
+  { pct: number } | { error: 'early'; earliest: number } | { error: 'late' };
+
+/**
+ * The speed of a fleet that starts at `now` and joins a union arriving at
+ * `arr` (#466, owner, 2026-11-28, 7b): it starts at once, and the server
+ * picks its speed between 10 % and 100 %, also between the steps of the
+ * form, so that its flight takes exactly the time left. The speed is the
+ * inverse of `flightMs`: `((35000 / pct) · √(10 · dist / speed) + 10) /
+ * universe speed` seconds. Too early even at 10 % is refused with the
+ * earliest start; too late even at 100 % is refused [V]. The boundaries are
+ * inside. The fleet's arrival is set to `arr` itself, so the rounding of
+ * the milliseconds never moves it.
+ */
+export function unionFlight(x: {
+  dist: number;
+  speed: number;
+  universe: Universe;
+  now: number;
+  arr: number;
+}): UnionFlight {
+  const left = x.arr - x.now;
+  const slowest = flightMs(x.dist, x.speed, SLOWEST, x.universe);
+  if (left > slowest) return { error: 'early', earliest: x.arr - slowest };
+  if (left < flightMs(x.dist, x.speed, FASTEST, x.universe))
+    return { error: 'late' };
+  const drive = 35000 * Math.sqrt((x.dist * 10) / x.speed);
+  const pct = drive / ((left * x.universe.speed) / 1000 - 10);
+  return { pct: Math.min(FASTEST, Math.max(SLOWEST, pct)) };
 }
 
 /** The fleet with the arrival and the return moved by `ms`: what a delay does to the fleets already in the union. */
