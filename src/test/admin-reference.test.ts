@@ -74,6 +74,13 @@ const choiceOptions = (
     )
     .join('');
 
+/**
+ * The row „Voreinstellung“ of the presets (#441), the only addition to the old
+ * view: a button per preset, the question closed.
+ */
+const presetRow = (place: string): string =>
+  `<div class="presets" data-presets="${place}"><h4 id="presets-${place}">Voreinstellung</h4><p class="flex" role="group" aria-labelledby="presets-${place}"><button type="button" data-act="askPreset" data-place="${place}" data-id="standard">Standard</button></p></div>`;
+
 function settingsForm(s: GameState, a: AdminState): string {
   const rows = a.specs
     .map((x) => {
@@ -93,7 +100,7 @@ function settingsForm(s: GameState, a: AdminState): string {
   const gain = warning
     ? `<p class="notice" role="alert">${esc(warning)}</p>`
     : '';
-  return `<table class="kv">${rows}</table>${gain}<p class="dim">Änderungen wirken sofort. Laufende Bauaufträge und Flüge behalten ihre Endzeit.</p><button data-act="saveSettings">Einstellungen speichern</button>`;
+  return `${presetRow('universe')}<table class="kv">${rows}</table>${gain}<p class="dim">Änderungen wirken sofort. Laufende Bauaufträge und Flüge behalten ihre Endzeit.</p><button data-act="saveSettings">Einstellungen speichern</button>`;
 }
 
 /**
@@ -220,7 +227,7 @@ export function roundDialog(
   fresh: Readonly<Record<string, number>> = {},
 ): string {
   return `<p><b>Wirklich eine neue Runde starten?</b><br>
-  Die laufende Runde wird vorher im Rundenarchiv gespeichert. Planeten, Flotten, Forschung, Nachrichten und Belohnungsfortschritt werden zurückgesetzt. Das kann nicht rückgängig gemacht werden.</p>
+  Die laufende Runde wird vorher im Rundenarchiv gespeichert. Planeten, Flotten, Forschung, Nachrichten und Belohnungsfortschritt werden zurückgesetzt. Das kann nicht rückgängig gemacht werden.</p>${presetRow('round')}
   ${roundRows(round, settings, fresh).join('\n  ')}${confirmLines(round, settings, fresh)}
   <p><button class="red" data-act="doReset">Ja, neue Runde</button> <button data-act="closeModal">Abbrechen</button></p>`;
 }

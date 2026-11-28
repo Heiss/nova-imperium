@@ -236,6 +236,9 @@ const LISTS: Record<string, Record<string, Verdict>> = {
     'round.number': source('rounds primary key'),
     'h.number': source('rounds primary key'),
   },
+  'PresetRow.svelte': {
+    'preset.id': constant('the ids of PRESETS (#441)'),
+  },
   'RoundDialog.svelte': {
     'choice.value': constant('the choices of one registry setting'),
     i: index,
@@ -447,6 +450,7 @@ const LOOPS: Record<string, string[]> = {
     'body.rounds as round (round.number)',
     'body.history as h (h.number)',
   ],
+  'PresetRow.svelte': ['PRESETS as preset (preset.id)'],
   'RoundDialog.svelte': [
     'f.choices as choice (choice.value)',
     'rows as row, i (i)',

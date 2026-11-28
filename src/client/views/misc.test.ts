@@ -606,6 +606,29 @@ describe('a new setting of the round in both places (#283)', () => {
   });
 });
 
+describe('the mark of a live setting in „Universum“ (#441, 235b)', () => {
+  it('stands next to its row, and nowhere for a row without one', () => {
+    const marked = liveSpecs(ROUND_SETTINGS).map((x, i) =>
+      i === 0 ? { ...x, mark: 'new' as const } : x,
+    );
+    const html = admin({
+      s: {
+        cfg: Object.fromEntries(marked.map((x) => [x.key, x.def])),
+        admin: { specs: marked, endzeit: { minutes: 1, done: false } },
+      },
+      ui: {},
+    } as unknown as V);
+    expect(html).toContain(
+      normalize(
+        `<label for="set_${marked[0]!.key}">${marked[0]!.label}</label><span class="mark mark-new">neu</span>`,
+      ),
+    );
+    expect(html.match(/class="mark /g)).toHaveLength(1);
+    // The row „Voreinstellung“ stands in „Universum“.
+    expect(html).toContain('data-presets="universe"');
+  });
+});
+
 describe('the option „Stufenübersicht“ in „Optionen“ (#187)', () => {
   const page = (levelTable?: string): string => {
     const v = levelView({}, {}, [], { levelTable, probes: 1, pushOff: [] });

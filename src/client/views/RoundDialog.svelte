@@ -15,6 +15,7 @@
     RoundRow,
   } from '../logic/admin.ts';
   import { isInvalid, isOpen, setOpen } from '../logic/admin-groups.svelte.ts';
+  import PresetRow from './PresetRow.svelte';
   import { EXPLAIN_PANEL_ID, explainButtonId } from '../logic/admin-explain.ts';
   import { adminExplain } from './admin-explain-state.svelte.ts';
   import AdminExplainPanel from './AdminExplainPanel.svelte';
@@ -33,9 +34,12 @@
         checked={f.checked}
       />
       {f.label}</label
-    >
+    >{#if f.mark}<span class="mark mark-{f.mark.kind}">{f.mark.label}</span
+      >{/if}
   {:else if f.kind === 'choice'}
-    <label for={f.id}>{f.label}</label>
+    <label for={f.id}>{f.label}</label>{#if f.mark}<span
+        class="mark mark-{f.mark.kind}">{f.mark.label}</span
+      >{/if}
     <select id={f.id} aria-invalid={isInvalid(f.id) || undefined}>
       {#each f.choices as choice (choice.value)}
         <option value={choice.value} selected={choice.selected}
@@ -44,7 +48,9 @@
       {/each}
     </select>
   {:else}
-    <label for={f.id}>{f.label}</label>
+    <label for={f.id}>{f.label}</label>{#if f.mark}<span
+        class="mark mark-{f.mark.kind}">{f.mark.label}</span
+      >{/if}
     <input
       type="number"
       id={f.id}
@@ -112,6 +118,7 @@
   Nachrichten und Belohnungsfortschritt werden zurückgesetzt. Das kann nicht rückgängig
   gemacht werden.
 </p>
+<PresetRow place="round" />
 {#each page.sections as section, i (section.heading ?? i)}
   {#if section.heading}
     <details

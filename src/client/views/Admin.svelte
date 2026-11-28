@@ -31,6 +31,7 @@
   import { adminExplain } from './admin-explain-state.svelte.ts';
   import AdminExplainPanel from './AdminExplainPanel.svelte';
   import Box from './Box.svelte';
+  import PresetRow from './PresetRow.svelte';
   import RoundArchive from './RoundArchive.svelte';
 
   let { page }: { page: AdminPage | null } = $props();
@@ -46,7 +47,9 @@
       {#each rows as row (`${page?.settings.owner}/${row.key}`)}
         <tr>
           <td>
-            <label for="set_{row.key}">{row.label}</label>
+            <label for="set_{row.key}">{row.label}</label>{#if row.mark}<span
+                class="mark mark-{row.mark.kind}">{row.mark.label}</span
+              >{/if}
             <button
               type="button"
               class="exq"
@@ -189,6 +192,7 @@
     hidden={shown !== 'universe'}
   >
     <Box title="Universum">
+      <PresetRow place="universe" />
       {#each page.settings.sections as section, i (section.heading ?? i)}
         {#if section.heading}
           <details

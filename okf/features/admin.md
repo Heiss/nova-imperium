@@ -429,6 +429,60 @@ universe settings) and their ranges are not decided yet.
   that needs a full set of round values takes it from `roundDefaults()`
   (`src/test/fixtures.ts`) and names the values of its own feature on top.
 
+## Presets of the round settings and the marks (#441)
+
+* **[E]** The mechanism first, the values later (owner, 2026-11-27, 234):
+  one preset „Standard“, today's defaults. „Klassisch“, „Schnelles Spiel“,
+  „Alle Funktionen an“ and others follow with the owner's values; no preset
+  value is invented. The preset „Klassisch“ will set every switch of a
+  feature that is not classic to „Aus“
+  ([A switch for every feature](/ops/feature-switches.md)).
+* **[E]** The place (237a): the row of the presets stands in the dialog
+  „Neue Runde“ and in the tab „Universum“.
+* **[E]** A preset sets the base values of the universe too (speed, size of
+  the galaxy, start resources …), in both places (owner, 2026-11-28); in a
+  running round a value that cannot apply there is refused at „Speichern“,
+  as every other value is. Under „Universum“ „Standard“ gives the base
+  values their defaults of version 1 (`DEFAULT_UNIVERSE`, [V]) and the live
+  settings their `def`. Open: the dialog „Neue Runde“ has no fields for the
+  base values; asked on 2026-11-28 whether they stay under „Universum“ only.
+* **[E]** The flow: a click on a preset asks first, „Sollen die
+  Einstellungen auf die Voreinstellung „{Preset}“ umgestellt werden? Achtung:
+  Erst „Speichern“ unten übernimmt die Änderung.“, with „Umstellen“ and
+  „Abbrechen“. „Umstellen“ fills the fields and saves nothing, „Abbrechen“
+  changes nothing; only the save below applies the values („Ja, neue
+  Runde“, „Einstellungen speichern“). A save is audited as before, with the
+  values before and after; a click on a preset writes nothing.
+* **[E]** A mark per setting, „klassisch“ or „neu“ (235b); the topic groups
+  stay. The marks of the entries follow once the owner confirms the list
+  (proposed on 2026-11-27); until then no entry has one and nothing is shown.
+* **[V]** Built:
+  * The registry entry has an optional `mark` (`classic` or `new`, shown as
+    „klassisch“ or „neu“, `MARK_LABELS`) and optional `presets` values by
+    the id of a preset, both in the feature's own `roundSettings`; there is
+    no shared list of settings. „Standard“ is the `def` of every entry
+    (`presetValue`, `presetValues` in `src/core/round.ts`). Only the ids and
+    names of the presets are one list, `PRESETS`. A test refuses a preset
+    without a value for an entry.
+  * The row „Voreinstellung“ (`views/PresetRow.svelte`, the heading by the
+    owner, 2026-11-28) has a
+    button per preset; the question stands in place, below the buttons, as
+    the dialog „Neue Runde“ is itself in the modal, and stays open over a
+    redraw (`logic/presets.svelte.ts`). `features/presets.ts` fills the
+    fields: in „Neue Runde“ every field by its id, in „Universum“ the base
+    values and the rows of the live settings (`presetUniverse` in
+    `src/core/universe.ts`); each field reports its change like a typed one,
+    so the dialog writes its lines again and the universe settings keep the
+    draft (`logic/settings-draft.ts`).
+  * The mark is a coloured tag after the label (owner, 2026-11-28): [V]
+    „klassisch“ in bronze (`--mark-classic`, #cd8a4b), „neu“ in blue
+    (`--mark-new`, #7fb2f0), as tokens in `:root` of `static/style.css`.
+    The game has one dark theme only, so there is one value each; their
+    contrast is at least 5.9 on `--bg`, `--box` and `--box-2`
+    (`src/client/mark-colours.test.ts` checks 4.5).
+  * Open for the owner: the list of the marks. The base values of the
+    universe get no mark for now (registry only, [V]).
+
 # Round rewards and menu hints
 
 * **[E]** Starting a new round offers independent checkboxes for achievements

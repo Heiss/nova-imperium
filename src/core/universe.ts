@@ -5,8 +5,11 @@
 // `ROUND_SETTINGS`, under the key the round stores it.
 import { GIFT_DEFAULT_MINUTES, GIFT_MINUTES } from './endzeit.ts';
 import {
+  type PresetId,
+  presetValues,
   ROUND_SECTIONS,
   ROUND_SETTINGS,
+  type RoundMark,
   type RoundNumber,
   type RoundSection,
   type RoundSetting,
@@ -41,12 +44,25 @@ export interface UniverseSpec {
   choices?: readonly { value: number; label: string }[];
   /** The step of the number field of a setting of the round (#433, 218a). */
   step?: number;
+  /** The mark of a setting of the round (#441, 235b). */
+  mark?: RoundMark;
   /** A rule between settings of the round (#237), with its wording. */
   agrees?: RoundNumber['agrees'];
   refusal?: string;
   /** The explanation behind its „?“ in the admin panel (#358); a test asks for one. */
   explain?: SettingExplain;
 }
+
+type NumberSetting = Extract<RoundSetting, { kind: 'number' }>;
+
+/** The optional parts of a row of a `live` setting, only where it has them. */
+const liveExtras = (s: NumberSetting): Partial<UniverseSpec> => ({
+  ...(s.choices ? { choices: s.choices } : {}),
+  ...(s.step ? { step: s.step } : {}),
+  ...(s.mark ? { mark: s.mark } : {}),
+  ...(s.agrees ? { agrees: s.agrees, refusal: s.refusal } : {}),
+  ...(s.explain ? { explain: s.explain } : {}),
+});
 
 /** The rows of the `live` settings of the round (#283, X1). */
 export const liveSpecs = (
@@ -61,10 +77,7 @@ export const liveSpecs = (
             min: s.min,
             max: s.max,
             def: s.unstored ?? s.def,
-            ...(s.choices ? { choices: s.choices } : {}),
-            ...(s.step ? { step: s.step } : {}),
-            ...(s.agrees ? { agrees: s.agrees, refusal: s.refusal } : {}),
-            ...(s.explain ? { explain: s.explain } : {}),
+            ...liveExtras(s),
           },
         ]
       : [],
@@ -311,6 +324,18 @@ export const UNIVERSE_SPECS: readonly UniverseSpec[] = [
   ...SPECS,
   ...liveSpecs(),
 ];
+
+/**
+ * The values of a preset in the tab „Universum“ (#441, owner, 2026-11-28): the
+ * base values of the universe at their default, the default of version 1
+ * („Standard“), and the `live` settings of the round as the preset has them.
+ */
+export const presetUniverse = (
+  id: PresetId,
+): Record<string, number | boolean> => ({
+  ...Object.fromEntries(SPECS.map((s) => [s.key, s.def])),
+  ...presetValues(id, true),
+});
 
 export const DEFAULT_UNIVERSE: Universe = Object.fromEntries(
   UNIVERSE_SPECS.map((s) => [s.key, s.def]),

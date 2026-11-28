@@ -158,6 +158,13 @@ describe('a new entry of the registry (#283)', () => {
     ).toEqual([]);
   });
 
+  it('carries the mark of a live entry to its row (#441, 235b)', () => {
+    expect(liveSpecs([{ ...HOURS, mark: 'classic' } as RoundSetting])).toEqual([
+      expect.objectContaining({ key: 'roundTestHours', mark: 'classic' }),
+    ]);
+    expect(liveSpecs([HOURS])[0]).not.toHaveProperty('mark');
+  });
+
   it('only a number is a row of the universe settings, never a switch', () => {
     // Stored data or a later entry may carry `live` on a switch by mistake.
     const flagged = {
