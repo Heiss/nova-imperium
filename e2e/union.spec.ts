@@ -115,6 +115,15 @@ async function plan(p: Player, target: Player, ships: number): Promise<void> {
   await p.page
     .getByLabel('Verband', { exact: true })
     .selectOption({ label: 'Neuen Verband planen' });
+  // Another mission drops the plan, and nothing hidden is sent (review of
+  // #473); a Sturmangriff offers it again.
+  await p.page.getByLabel('Auftrag').selectOption('transport');
+  await expect(p.page.getByLabel('Ankunft des Verbands')).toHaveCount(0);
+  await expect(p.page.getByLabel('Verband', { exact: true })).toHaveCount(0);
+  await p.page.getByLabel('Auftrag').selectOption('attack');
+  await expect(p.page.getByLabel('Verband', { exact: true })).toHaveValue(
+    'plan',
+  );
   await p.page
     .getByLabel('Ankunft des Verbands')
     .fill(await arrivalIn30Minutes(p.page));

@@ -79,11 +79,13 @@ function targetOf(v: FleetSeen, draft: FleetDraft) {
 
 /**
  * The union chosen, else the one of the page, while the player can join it;
- * `plan` plans a new one while the switch of the round is on (#466).
+ * `plan` plans a new one with a Sturmangriff while the switch of the round
+ * is on (#466): another mission drops it, so a hidden choice is never sent.
  */
-function unionOf(v: FleetSeen, draft: FleetDraft): string {
+function unionOf(v: FleetSeen, draft: FleetDraft, mission: string): string {
   const chosen = draft.union ?? v.ui.union ?? '';
-  if (chosen === PLAN) return unionOpen(v.s.round) ? PLAN : '';
+  if (chosen === PLAN)
+    return mission === 'attack' && unionOpen(v.s.round) ? PLAN : '';
   return joinChoices(v).some((c) => c.id === chosen) ? chosen : '';
 }
 
@@ -130,7 +132,7 @@ export function fleetChoice(
     missions: options,
     mission: selected,
     limit: colonyNote(v.s, selected),
-    union: unionOf(v, draft),
+    union: unionOf(v, draft, selected),
     plan: draft.plan ?? '',
     ...timeOf(v, selected, draft),
   };

@@ -602,10 +602,14 @@ Everything below is [V] unless it names an owner's decision.
   return is X plus the time it flew, its fuel `fuelFor` with that speed; the
   speed the form sends is not used. The cut-off and the limits are as
   before (`joinWindow`).
-* **The leader and the battle.** The fleet in `lead` leads the battle; a
-  union without one is led by the first fleet that joined, and the
-  leader's first fleet becomes `lead` when he joins one. The recall of the
-  `lead` fleet ends the union (Q2, unchanged).
+* **The leader and the battle.** The fleet the leader planned the union
+  with leads the battle; its ID is the union's and is kept as `lead`. A
+  union is alive while its row exists, X is in the future and this leading
+  fleet is still on its way out in it; a leading fleet turned back by
+  another way than the recall (the target deletes its account) ends the
+  union for invitations and joins. A union whose leading fleet is gone
+  arrives as single fleets, as before #466. The recall of the leading fleet
+  ends the union (Q2, unchanged).
 * **Settings, replacing „Settings“ of #225.** `roundUnionDelay` is gone from
   the registry; a stored value is no longer read. New is the live switch
   `roundUnionOn` „Verbandsangriff“, „An“ (1) or „Aus“ (0), order 240, the
@@ -643,4 +647,9 @@ Everything below is [V] unless it names an owner's decision.
   Zukunft liegen, sonst kann niemand mehr beitreten.“; the Lexicanum section
   „Verbandsangriff: planen, einladen, beitreten“.
 * **No limit** on the unions a leader has planned at once beyond his fleet
-  slots (owner, A1a) and no upper bound for X (owner, 3).
+  slots (owner, A1a).
+* **[U]** The upper bound of X. The owner decided no expiry (3), but with
+  A1a the leader's own fleet starts at once, so X is at most the leader's
+  flight time at 10 %: a later X is refused as too early, with the earliest
+  start. Asked by the coordinator, 2026-11-28; until then the code keeps
+  this limit.

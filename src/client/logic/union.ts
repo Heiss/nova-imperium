@@ -163,7 +163,14 @@ function flightAt(
 ): UnionJoin {
   const limits = limitsOf(s.round);
   const flight = unionFlight({ ...fleet, universe: s.cfg, now, arr });
-  if ('error' in flight) return { refusal: flightRefusal(flight, limits, dt) };
+  // The server names the earliest start to the second, rounded up: a fleet
+  // sent at it makes the arrival.
+  if ('error' in flight)
+    return {
+      refusal: flightRefusal(flight, limits, (t) =>
+        dt(Math.ceil(t / 1000) * 1000),
+      ),
+    };
   return { pct: flight.pct, ms: arr - now, arr };
 }
 

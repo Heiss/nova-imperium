@@ -46,7 +46,7 @@ const TURNS_OFF: Readonly<
   },
   unionOn: {
     views: [],
-    none: 'hides the box „Verbandsangriff“ and the choice of a union in the fleet view and refuses opening, inviting and joining (#466): parts of a view, no view',
+    none: 'hides planning, the invitation and „Beitreten“ in the fleet view (the box „Verbandsangriff“ keeps listing the unions in flight) and refuses planning, inviting and joining (#466): parts of a view, no view',
   },
   colonyResearch: {
     views: [],

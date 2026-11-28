@@ -55,10 +55,17 @@ const fleetsOf = (ctx: Ctx, row: Union): Fleet[] => {
   return [...lead, ...all.filter((f) => f.id !== row.lead)];
 };
 
-/** The union with the ID `id` as long as it is alive: it has a row and has not arrived (#466). */
+/**
+ * The union with the ID `id` as long as it is alive (#466): it has a row, has
+ * not arrived, and its leading fleet is still on its way out in it. A
+ * leading fleet that turned back by another way than the recall (the target
+ * deleted its account) ends the union too.
+ */
 export function unionOf(ctx: Ctx, id: unknown): LiveUnion | null {
   const row = ctx.unions.get(String(id));
   if (!row || row.arr <= ctx.now()) return null;
+  const lead = ctx.fleets.get(row.lead ?? '');
+  if (lead?.state !== 'out' || lead.union !== row.id) return null;
   return { row, fleets: fleetsOf(ctx, row) };
 }
 

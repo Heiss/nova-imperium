@@ -157,7 +157,8 @@ describe('planning a union (#466, A1a)', () => {
         'Deine Flotte erreicht das Ziel selbst mit 100 % nicht bis zur Ankunft des Verbands.',
     });
     expect(planJoin(s(), 10_000 + slow + 1, 10_000, fleet1)).toEqual({
-      refusal: `Deine Flotte wäre selbst mit 10 % zu früh da. Schicke sie frühestens am ${dt(10_001)} los.`,
+      // Rounded up to the second, as the server says it.
+      refusal: `Deine Flotte wäre selbst mit 10 % zu früh da. Schicke sie frühestens am ${dt(11_000)} los.`,
     });
   });
 });

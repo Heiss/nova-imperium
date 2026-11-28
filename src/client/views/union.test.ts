@@ -166,6 +166,16 @@ describe('planning a union in the fleet form (#466, A1a)', () => {
     off.s.round = { ...off.s.round, unionOn: 0 };
     expect(fleet(off)).not.toContain('id="t_union_row"');
   });
+  it('drops the plan for another mission and offers it again for a Sturmangriff (review of #473)', () => {
+    fleetForm.union = 'plan';
+    fleetForm.plan = '2026-11-28T12:30';
+    fleetForm.mission = 'transport';
+    const html = fleet(attack());
+    expect(html).not.toContain('id="t_plan_row"');
+    expect(html).not.toContain('id="t_union_row"');
+    fleetForm.mission = 'attack';
+    expect(fleet(attack())).toContain('id="t_plan_row"');
+  });
   it('asks for the arrival of the union, date and time, once it is chosen', () => {
     expect(fleet(attack())).not.toContain('id="t_plan_row"');
     fleetForm.union = 'plan';

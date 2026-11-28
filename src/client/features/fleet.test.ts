@@ -267,6 +267,21 @@ describe('sending, recalling and jumping', () => {
     expect(client.ui.union).toBeNull();
   });
 
+  it('sends no plan once the mission is no Sturmangriff any more (#466, review of #473)', async () => {
+    fleetForm.union = 'plan';
+    fleetForm.plan = '2026-11-28T12:30';
+    fleetForm.mission = 'transport';
+    const ctx = fakeCtx();
+    await acts(ctx).send!({});
+    const order = vi.mocked(ctx.actHere).mock.calls[0]![1] as Record<
+      string,
+      unknown
+    >;
+    expect(order.mission).toBe('transport');
+    expect(order).not.toHaveProperty('plan');
+    expect(order).not.toHaveProperty('union');
+  });
+
   it('sends the arrival of a union the fleet plans, and no union to join (#466)', async () => {
     fleetForm.union = 'plan';
     fleetForm.plan = '2026-11-28T12:30';

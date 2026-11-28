@@ -25,6 +25,7 @@ import { runAction } from './dispatch.ts';
 import { recall, send } from './fleet-actions.ts';
 import { roundRules } from './round.ts';
 import { stateFor } from './state.ts';
+import { deleteAccount } from '../delete-account.ts';
 import { arriving, limitsOf, unionOf, unionsFor } from './union.ts';
 
 const ANNA = { g: 1, s: 1, p: 5 };
@@ -747,6 +748,30 @@ describe('the recall', () => {
     expect(ctx.fleets.get(bert.id)).toMatchObject({ state: 'back' });
     expect(ctx.fleets.get(id)!.state).toBe('out');
   });
+  it('ends the union when its leading fleet turns back another way: the target deletes its account (#466)', () => {
+    const ctx = setup();
+    const id = opened(ctx);
+    runAction(ctx, 'u_Anna', { type: 'inviteUnion', id, name: 'Bert' });
+    deleteAccount(ctx, user(ctx, 'Dirk'), 'secret1');
+    expect(ctx.fleets.get(id)!.state).toBe('back');
+    expect(unionOf(ctx, id)).toBeNull();
+    expect(unionsFor(ctx, 'u_Bert')).toEqual([]);
+    expect(unionsFor(ctx, 'u_Anna')).toEqual([]);
+    expect(
+      refused(() =>
+        runAction(ctx, 'u_Anna', { type: 'inviteUnion', id, name: 'Cora' }),
+      ),
+    ).toBe('Diesen Angriffsverband gibt es nicht mehr.');
+  });
+  it('is no union while its leading fleet is not in it, or is not out', () => {
+    const ctx = setup();
+    const id = opened(ctx);
+    ctx.fleets.save({ ...ctx.fleets.get(id)!, id: 'other' });
+    ctx.unions.save({ ...ctx.unions.get(id)!, id: 'u2', lead: 'other' });
+    // `other` carries the union `id`, not `u2`.
+    expect(unionOf(ctx, 'u2')).toBeNull();
+    expect(unionOf(ctx, id)).not.toBeNull();
+  });
   it('of a participant turns back only his fleet; the union flies on', () => {
     const ctx = setup();
     const id = opened(ctx);
@@ -1303,8 +1328,9 @@ describe('the state', () => {
     runAction(ctx, 'u_Anna', { type: 'inviteUnion', id, name: 'Bert' });
     const arr = ctx.unions.get(id)!.arr;
     ctx.fleets.delete(id);
-    // Its row lives until X (#466): its fleet is no condition any more.
-    expect(unionsFor(ctx, 'u_Bert').map((u) => u.id)).toEqual([id]);
+    // Without its leading fleet it is no union any more (review of #473);
+    // its row stays until X, then the sweep deletes it.
+    expect(unionsFor(ctx, 'u_Bert')).toEqual([]);
     expect(ctx.unions.purge(ctx.now())).toBe(0);
     ctx.clock.t = arr;
     expect(unionsFor(ctx, 'u_Bert')).toEqual([]);
